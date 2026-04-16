@@ -8,6 +8,12 @@
   "hosting": {
     "public": "dist",
     "site": "haflaway-f14aa",
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",

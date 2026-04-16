@@ -297,14 +297,13 @@ const formatCurrency = (val) => {
         <div class="max-w-md mx-auto px-6 py-12 relative z-10 min-h-screen flex flex-col">
             <!-- Header Section -->
             <header class="text-center mb-10">
-                <div
-                    class="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full apple-glass border-white/10 mb-6 mx-auto">
+                <div class="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full cyber-border mb-6 mx-auto">
                     <SparklesIcon class="size-3 text-indigo-400" />
                     <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">{{ eventData.title
-                    }}</span>
+                        }}</span>
                 </div>
 
-                <h1 class="text-4xl font-black text-white tracking-tight mb-4 leading-tight">
+                <h1 class="text-4xl font-black text-white tracking-tight mb-4 leading-tight google-glow-text">
                     {{ myRecord.fullName }}
                 </h1>
                 <div v-if="eventData.description" class="max-w-xs mx-auto text-center">
@@ -337,14 +336,16 @@ const formatCurrency = (val) => {
                 <div v-if="activeTab === 'yangu'"
                     class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <!-- Progress Card -->
-                    <div class="apple-glass-heavy rounded-[32px] p-8 text-center relative overflow-hidden group">
+                    <div
+                        class="cyber-border apple-glass-heavy rounded-[32px] p-8 text-center relative overflow-hidden group">
                         <div class="relative z-10">
                             <h3 class="text-white/40 text-[10px] font-black uppercase tracking-widest mb-6">Lengo la
                                 Jamii
                             </h3>
                             <div class="flex items-end justify-center space-x-2 mb-2">
-                                <span class="text-4xl font-black text-white tracking-tighter">{{ totalStats.progress
-                                }}%</span>
+                                <span class="text-4xl font-black text-white tracking-tighter google-glow-text">{{
+                                    totalStats.progress
+                                    }}%</span>
                                 <span class="text-white/30 text-xs font-bold mb-1.5">Imekamilika</span>
                             </div>
 
@@ -363,25 +364,28 @@ const formatCurrency = (val) => {
                     </div>
 
                     <!-- Personal Status Card -->
-                    <div class="apple-glass rounded-[32px] p-8 flex flex-col items-center justify-center min-h-[300px]">
-                        <div v-if="myRecord.pledgedAmount === 0" class="text-center space-y-6">
+                    <div
+                        class="cyber-border apple-glass rounded-[32px] p-8 flex flex-col items-center justify-center min-h-[300px] overflow-hidden">
+                        <div v-if="!myRecord.pledgedAmount || myRecord.pledgedAmount === 0"
+                            class="text-center space-y-6">
                             <div class="size-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto">
                                 <RocketLaunchIcon class="size-8 text-white/40" />
                             </div>
                             <h3 class="text-xl font-bold text-white">Anza Leo</h3>
                             <p class="text-white/40 text-sm max-w-[200px]">Usiachwe nyuma, weka ahadi yako sasa.</p>
                             <button @click="openPledgeModal"
-                                class="bg-white text-black font-black px-8 py-4 rounded-2xl text-sm transition-transform active:scale-95 shadow-[0_10px_30px_-10px_rgba(255,255,255,0.3)]">
+                                class="cyber-border-light bg-white text-black font-black px-8 py-4 rounded-2xl text-sm transition-transform active:scale-95 shadow-[0_10px_30px_-10px_rgba(255,255,255,0.3)] overflow-hidden">
                                 Weka Ahadi
                             </button>
                         </div>
 
                         <div v-else class="w-full space-y-8 text-center">
                             <div>
-                                <p class="text-[10px] font-black uppercase text-white/40 tracking-widest mb-2">Salio
-                                    Lako
+                                <p class="text-[10px] font-black uppercase text-white/40 tracking-widest mb-2">Kiasi
+                                    Kilichobaki
                                 </p>
-                                <h2 class="text-5xl font-black text-white tracking-tighter tabular-nums">
+                                <h2
+                                    class="text-5xl font-black text-white tracking-tighter tabular-nums google-glow-text">
                                     {{ formatCurrency(myRecord.pledgedAmount - myRecord.paidAmount) }}
                                 </h2>
                             </div>
@@ -391,7 +395,7 @@ const formatCurrency = (val) => {
                                 <div class="bg-black/20 p-4">
                                     <p class="text-[9px] font-bold text-white/30 uppercase mb-1">Ahadi</p>
                                     <p class="text-sm font-black text-white">{{ formatCurrency(myRecord.pledgedAmount)
-                                        }}
+                                    }}
                                     </p>
                                 </div>
                                 <div class="bg-black/20 p-4">
@@ -404,7 +408,7 @@ const formatCurrency = (val) => {
 
                             <div class="space-y-3">
                                 <button @click="openPaymentModal"
-                                    class="w-full bg-white text-black font-black py-4 rounded-2xl text-sm transition-transform active:scale-95">
+                                    class="cyber-border-light w-full bg-white text-black font-black py-4 rounded-2xl text-sm transition-transform active:scale-95 overflow-hidden">
                                     Ongeza Mchango
                                 </button>
                                 <button @click="openPledgeModal"
@@ -419,7 +423,7 @@ const formatCurrency = (val) => {
                 <!-- Tab: Community -->
                 <div v-if="activeTab === 'jamii'"
                     class="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div class="apple-glass rounded-[32px] overflow-hidden">
+                    <div class="cyber-border apple-glass rounded-[32px] overflow-hidden">
                         <div class="p-6 border-b border-white/5 flex justify-between items-center">
                             <h3 class="text-xs font-black uppercase tracking-widest text-white/60">Wachangiaji</h3>
                             <span class="text-[10px] font-bold text-white/30">{{ contributions.length }} Jumla</span>
@@ -500,7 +504,7 @@ const formatCurrency = (val) => {
                     </div>
 
                     <button @click="showPledgeModal ? savePledge() : addPayment()" :disabled="isProcessing"
-                        class="w-full bg-white text-black font-black py-4 rounded-2xl text-sm transition-all active:scale-95 shadow-xl disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center space-x-2">
+                        class="cyber-border-light w-full bg-white text-black font-black py-4 rounded-2xl text-sm transition-all active:scale-95 shadow-xl disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center space-x-2 overflow-hidden">
                         <div v-if="isProcessing && showPaymentModal"
                             class="size-4 border-2 border-black/10 border-t-black rounded-full animate-spin"></div>
                         <span>{{ isProcessing && showPaymentModal ? 'Inachakata...' : (showPledgeModal ? 'Hifadhi Ahadi'
