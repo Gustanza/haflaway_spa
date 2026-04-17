@@ -2,18 +2,18 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { db } from '@/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, addDoc, getDocs, serverTimestamp, query, orderBy, increment, limit, startAfter } from 'firebase/firestore';
 
 const route   = useRoute();
 const eventId = computed(() => route.params.eventId);
-const userId  = computed(() => route.params.userId);
+const userId  = computed(() => route.params.userId); 
 
 const eventData    = ref(null);
-const attendeeData = ref(null);
+const attendeeData = ref(null); 
 const loading      = ref(true);
 const hasError     = ref(false);
 
-let unsubEvent = null, unsubAttendee = null;
+let unsubEvent = null, unsubAttendee = null, unsubComments = null;
 
 const startSync = () => {
     if (unsubEvent)    unsubEvent();
@@ -29,18 +29,28 @@ const startSync = () => {
     unsubAttendee = onSnapshot(doc(db, 'events', eventId.value, 'attendees', userId.value), snap => {
         if (snap.exists()) attendeeData.value = { id: snap.id, ...snap.data() };
     });
+
+    if (unsubComments) unsubComments();
+    const q = query(collection(db, 'events', eventId.value, 'comments'), orderBy('createdAt', 'asc'));
+    unsubComments = onSnapshot(q, snap => {
+        comments.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    });
 };
 
 onMounted(startSync);
 watch([eventId, userId], startSync);
-onUnmounted(() => { if (unsubEvent) unsubEvent(); if (unsubAttendee) unsubAttendee(); });
+onUnmounted(() => {
+    if (unsubEvent)    unsubEvent();
+    if (unsubAttendee) unsubAttendee();
+    if (unsubComments) unsubComments();
+});
 
 // ── Computed ─────────────────────────────────────────────────────────────────
 const isPublished = computed(() => (eventData.value?.status || '').toLowerCase() === 'published');
 
 const fmtDate = iso => {
     if (!iso) return null;
-    try { return new Date(iso).toLocaleString('en-TZ', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+    try { return new Date(iso).toLocaleString('en-TZ', { weekday: 'short', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
     catch { return null; }
 };
 const startFmt = computed(() => fmtDate(eventData.value?.startDate));
@@ -58,23 +68,185 @@ const palette = [
 const ac = computed(() => palette[attendeeName.value.charCodeAt(0) % palette.length]);
 
 const hasInvitation  = computed(() => !!attendeeData.value?.cards?.invitation);
-const hasContribution= computed(() => !!attendeeData.value?.cards?.contribution);
-const cardBadge = computed(() => hasInvitation.value ? 'Invited Guest' : hasContribution.value ? 'Contributor' : 'Attendee');
-const isCheckedIn = computed(() => {
-    const inv = attendeeData.value?.cards?.invitation;
-    return inv?.attendance === true || inv?.attendance === 'checked';
+const cardBadge = computed(() => hasInvitation.value ? 'Invited Guest' : 'Attendee');
+
+const aboutExpanded = ref(false);
+const activeTab     = ref('details');
+
+// ── Gallery ───────────────────────────────────────────────────────────────────
+const PAGE_SIZE      = 20;
+const lightboxPhoto  = ref(null);
+const galleryPhotos  = ref([]);
+const galleryLoading = ref(false);
+const galleryHasMore = ref(false);
+const galleryLastDoc = ref(null);
+
+const fetchGallery = async (reset = false) => {
+    if (galleryLoading.value) return;
+    galleryLoading.value = true;
+    try {
+        const base = [
+            collection(db, 'events', eventId.value, 'gallery'),
+            orderBy('uploadedAt', 'desc'),
+        ];
+        const constraints = reset || !galleryLastDoc.value
+            ? [...base, limit(PAGE_SIZE + 1)]
+            : [...base, startAfter(galleryLastDoc.value), limit(PAGE_SIZE + 1)];
+
+        const snap = await getDocs(query(...constraints));
+        const docs = snap.docs.slice(0, PAGE_SIZE);
+
+        galleryHasMore.value = snap.docs.length > PAGE_SIZE;
+        galleryLastDoc.value = docs.length ? docs[docs.length - 1] : null;
+
+        const offset = reset ? 0 : galleryPhotos.value.length;
+        const incoming = docs.map((d, i) => ({
+            id:   d.id,
+            url:  d.data().url,
+            tall: (offset + i) % 3 === 0,
+        }));
+
+        galleryPhotos.value = reset ? incoming : [...galleryPhotos.value, ...incoming];
+    } catch (e) {
+        console.error('gallery_fetch', e);
+    } finally {
+        galleryLoading.value = false;
+    }
+};
+
+watch(activeTab, (tab) => {
+    if (tab === 'gallery' && galleryPhotos.value.length === 0) fetchGallery(true);
 });
 
-const pledged    = computed(() => attendeeData.value?.pledgedAmount || 0);
-const paid       = computed(() => attendeeData.value?.paidAmount    || 0);
-const remaining  = computed(() => Math.max(pledged.value - paid.value, 0));
-const pct        = computed(() => pledged.value > 0 ? Math.min((paid.value / pledged.value) * 100, 100) : 0);
+// ── RSVP Prompt ───────────────────────────────────────────────────────────────
+const rsvpSaving  = ref(false);
+const showRsvp    = ref(false);
+let   rsvpChecked = false;
 
-const fmt = v => new Intl.NumberFormat('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }).format(v || 0);
+watch(attendeeData, (val) => {
+    if (val && !rsvpChecked) {
+        rsvpChecked = true;
+        if (!val.attendanceStatus) showRsvp.value = true;
+    }
+}, { immediate: true });
+
+const needsRsvp = computed(() => {
+    if (!attendeeData.value) return false;
+    const s = attendeeData.value.attendanceStatus;
+    return !s || s !== 'Confirmed';
+});
+
+const submitRsvp = async (status) => {
+    if (rsvpSaving.value) return;
+    rsvpSaving.value = true;
+    try {
+        await updateDoc(doc(db, 'events', eventId.value, 'attendees', userId.value), {
+            attendanceStatus: status,
+        });
+        attendeeData.value = { ...attendeeData.value, attendanceStatus: status };
+        showRsvp.value = false;
+    } catch (e) {
+        console.error('rsvp_error', e);
+    } finally {
+        rsvpSaving.value = false;
+    }
+};
+
+// ── Comments ──────────────────────────────────────────────────────────────────
+const comments        = ref([]);
+const commentText     = ref('');
+const commentPosting  = ref(false);
+const replyingTo      = ref(null);
+const replyTexts      = ref({});
+const replyPosting    = ref({});
+const expandedReplies = ref({});
+
+const fmtCommentTime = (ts) => {
+    if (!ts?.toDate) return '';
+    const d = ts.toDate(), now = new Date();
+    const s = Math.floor((now - d) / 1000);
+    if (s < 60)    return 'just now';
+    if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return d.toLocaleDateString('en-TZ', { day: 'numeric', month: 'short' });
+};
+
+const postComment = async () => {
+    const text = commentText.value.trim();
+    if (!text || commentPosting.value) return;
+    commentPosting.value = true;
+    try {
+        await addDoc(collection(db, 'events', eventId.value, 'comments'), {
+            userId: userId.value,
+            userName: attendeeName.value,
+            userInitial: attendeeInitial.value,
+            userColor: ac.value,
+            text,
+            createdAt: serverTimestamp(),
+            replyCount: 0,
+        });
+        commentText.value = '';
+    } finally {
+        commentPosting.value = false;
+    }
+};
+
+const toggleReplies = async (comment) => {
+    if (expandedReplies.value[comment.id]) {
+        const updated = { ...expandedReplies.value };
+        delete updated[comment.id];
+        expandedReplies.value = updated;
+        return;
+    }
+    const q = query(
+        collection(db, 'events', eventId.value, 'comments', comment.id, 'replies'),
+        orderBy('createdAt', 'asc')
+    );
+    const snap = await getDocs(q);
+    expandedReplies.value = {
+        ...expandedReplies.value,
+        [comment.id]: snap.docs.map(d => ({ id: d.id, ...d.data() })),
+    };
+};
+
+const openReply = (commentId) => {
+    replyingTo.value = replyingTo.value === commentId ? null : commentId;
+};
+
+const postReply = async (comment) => {
+    const text = (replyTexts.value[comment.id] || '').trim();
+    if (!text || replyPosting.value[comment.id]) return;
+    replyPosting.value = { ...replyPosting.value, [comment.id]: true };
+    try {
+        const newReply = {
+            userId: userId.value,
+            userName: attendeeName.value,
+            userInitial: attendeeInitial.value,
+            userColor: ac.value,
+            text,
+            createdAt: { toDate: () => new Date() },
+        };
+        const replyRef = await addDoc(
+            collection(db, 'events', eventId.value, 'comments', comment.id, 'replies'),
+            { ...newReply, createdAt: serverTimestamp() }
+        );
+        await updateDoc(doc(db, 'events', eventId.value, 'comments', comment.id), {
+            replyCount: increment(1),
+        });
+        replyTexts.value  = { ...replyTexts.value, [comment.id]: '' };
+        replyingTo.value  = null;
+        if (expandedReplies.value[comment.id]) {
+            expandedReplies.value[comment.id].push({ id: replyRef.id, ...newReply });
+        }
+    } finally {
+        replyPosting.value = { ...replyPosting.value, [comment.id]: false };
+    }
+};
 </script>
 
 <template>
     <div class="page">
+
 
         <!-- Loading -->
         <div v-if="loading" class="center-screen">
@@ -91,6 +263,33 @@ const fmt = v => new Intl.NumberFormat('en-TZ', { style: 'currency', currency: '
 
         <!-- Main -->
         <template v-if="!loading && !hasError && eventData">
+
+            <!-- RSVP Prompt — overlays the page so user can see context behind it -->
+            <Transition name="rsvp-fade">
+                <div v-if="showRsvp" class="rsvp-overlay">
+                    <div class="rsvp-card">
+                        <div class="rsvp-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+                            </svg>
+                        </div>
+                        <h2 class="rsvp-title">Will you be attending?</h2>
+                        <p class="rsvp-event">{{ eventData?.title }}</p>
+                        <p class="rsvp-sub">Please confirm your attendance so the host can plan accordingly.</p>
+                        <div class="rsvp-actions">
+                            <button class="rsvp-btn rsvp-confirm" :disabled="rsvpSaving" @click="submitRsvp('Confirmed')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 13l4 4L19 7"/></svg>
+                                <span>{{ rsvpSaving ? 'Saving…' : 'Confirm Attendance' }}</span>
+                            </button>
+                            <button class="rsvp-btn rsvp-decline" :disabled="rsvpSaving" @click="submitRsvp('Declined')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                                <span>Decline</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+
             <div class="wrap">
 
                 <!-- ── TICKET CARD ── -->
@@ -131,8 +330,10 @@ const fmt = v => new Intl.NumberFormat('en-TZ', { style: 'currency', currency: '
                                     </svg>
                                 </div>
                                 <div class="ev-meta-text">
-                                    <span>{{ startFmt }}</span>
-                                    <span v-if="endFmt" class="ev-meta-end"> → {{ endFmt }}</span>
+                                    <span class="ev-meta-primary">{{ startFmt }}</span>
+                                    <span v-if="endFmt" class="ev-meta-end">
+                                        <span class="ev-meta-until">until</span> {{ endFmt }}
+                                    </span>
                                 </div>
                             </div>
 
@@ -172,12 +373,13 @@ const fmt = v => new Intl.NumberFormat('en-TZ', { style: 'currency', currency: '
                             </div>
                         </div>
 
-                        <div :class="['stub-status', isCheckedIn ? 'status-in' : 'status-pending']">
+                        <div :class="['stub-status', attendeeData?.attendanceStatus === 'Confirmed' ? 'status-in' : 'status-pending']"
+                             @click="showRsvp = true" title="Change RSVP">
                             <div class="status-indicator">
-                                <div :class="['status-led', isCheckedIn ? 'led-green' : 'led-amber']"></div>
-                                <span>{{ isCheckedIn ? 'Checked In' : 'Pending Arrival' }}</span>
+                                <div :class="['status-led', attendeeData?.attendanceStatus === 'Confirmed' ? 'led-green' : 'led-amber']"></div>
+                                <span>{{ attendeeData?.attendanceStatus || 'Pending' }}</span>
                             </div>
-                            <svg v-if="isCheckedIn" class="check-mark" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.5">
+                            <svg v-if="attendeeData?.attendanceStatus === 'Confirmed'" class="check-mark" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.5">
                                 <path d="M5 13l4 4L19 7"/>
                             </svg>
                         </div>
@@ -185,56 +387,167 @@ const fmt = v => new Intl.NumberFormat('en-TZ', { style: 'currency', currency: '
                 </div>
                 <!-- /ticket -->
 
-                <!-- ── Contribution ── -->
-                <div v-if="hasContribution" class="section-card anim" style="--d:.05s">
-                    <div class="s-hdr">
-                        <div class="s-bar"></div>
-                        <span class="s-lbl">Contribution</span>
-                    </div>
-
-                    <div class="contrib-top">
-                        <div>
-                            <p class="c-sub">Remaining</p>
-                            <p class="c-amount">{{ fmt(remaining) }}</p>
-                        </div>
-                        <div class="c-badge">{{ pct.toFixed(0) }}%</div>
-                    </div>
-
-                    <div class="c-track">
-                        <div class="c-fill" :style="{ '--w': pct + '%' }"></div>
-                    </div>
-
-                    <div class="c-row">
-                        <div class="c-cell">
-                            <span class="c-cell-lbl">Pledged</span>
-                            <span class="c-cell-val">{{ fmt(pledged) }}</span>
-                        </div>
-                        <div class="c-divider"></div>
-                        <div class="c-cell" style="align-items:flex-end">
-                            <span class="c-cell-lbl">Paid</span>
-                            <span class="c-cell-val" style="color:#30D158">{{ fmt(paid) }}</span>
-                        </div>
-                    </div>
+                <!-- ── Tab bar ── -->
+                <div class="tab-bar">
+                    <button :class="['tab', activeTab === 'details' && 'tab-active']" @click="activeTab = 'details'">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <rect x="3" y="3" width="18" height="18" rx="3"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="9" y1="21" x2="9" y2="9"/>
+                        </svg>
+                        Details
+                    </button>
+                    <button :class="['tab', activeTab === 'gallery' && 'tab-active']" @click="activeTab = 'gallery'">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                        </svg>
+                        Gallery
+                    </button>
                 </div>
 
-                <!-- ── About ── -->
-                <div v-if="eventData.description" class="section-card anim" style="--d:.1s">
-                    <div class="s-hdr">
-                        <div class="s-bar"></div>
-                        <span class="s-lbl">About</span>
+                <!-- ── Details tab ── -->
+                <template v-if="activeTab === 'details'">
+                    <!-- About -->
+                    <div v-if="eventData.description" class="section-card anim" style="--d:.05s">
+                        <div class="s-hdr">
+                            <div class="s-bar"></div>
+                            <span class="s-lbl">About</span>
+                        </div>
+                        <p :class="['about-text', { 'about-clamped': !aboutExpanded }]">{{ eventData.description }}</p>
+                        <button v-if="eventData.description.length > 180" class="about-toggle" @click="aboutExpanded = !aboutExpanded">
+                            {{ aboutExpanded ? 'Show less' : 'Read more' }}
+                        </button>
                     </div>
-                    <p class="about-text">{{ eventData.description }}</p>
-                </div>
 
-                <!-- ── Support ── -->
-                <a v-if="eventData.supportPhone"
-                   :href="`https://wa.me/${eventData.supportPhone.replace(/\D/g,'')}`"
-                   target="_blank" class="support-link anim" style="--d:.15s">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                    </svg>
-                    Contact Support
-                </a>
+                    <!-- Comments -->
+                    <div class="section-card anim" style="--d:.1s">
+                        <div class="s-hdr">
+                            <div class="s-bar"></div>
+                            <span class="s-lbl">Comments<span v-if="comments.length" class="cmnt-count"> ({{ comments.length }})</span></span>
+                        </div>
+
+                        <div class="cmnt-list" v-if="comments.length">
+                            <div v-for="c in comments" :key="c.id" class="cmnt-item">
+                                <div class="cmnt-avatar" :style="{ background: c.userColor?.bg, color: c.userColor?.fg }">{{ c.userInitial }}</div>
+                                <div class="cmnt-body">
+                                    <div class="cmnt-meta">
+                                        <span class="cmnt-name">{{ c.userName }}</span>
+                                        <span class="cmnt-time">{{ fmtCommentTime(c.createdAt) }}</span>
+                                    </div>
+                                    <p class="cmnt-text">{{ c.text }}</p>
+                                    <div class="cmnt-actions">
+                                        <button class="cmnt-reply-btn" @click="openReply(c.id)">Reply</button>
+                                        <button v-if="c.replyCount > 0" class="cmnt-view-replies" @click="toggleReplies(c)">
+                                            {{ expandedReplies[c.id] ? 'Hide replies' : `${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}` }}
+                                        </button>
+                                    </div>
+
+                                    <div v-if="replyingTo === c.id" class="cmnt-reply-form">
+                                        <input v-model="replyTexts[c.id]" class="cmnt-input" placeholder="Write a reply…"
+                                            @keydown.enter.prevent="postReply(c)" />
+                                        <button class="cmnt-send" :disabled="!replyTexts[c.id]?.trim() || replyPosting[c.id]" @click="postReply(c)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    <div v-if="expandedReplies[c.id]" class="cmnt-replies">
+                                        <div v-for="r in expandedReplies[c.id]" :key="r.id" class="cmnt-item">
+                                            <div class="cmnt-avatar cmnt-avatar-sm" :style="{ background: r.userColor?.bg, color: r.userColor?.fg }">{{ r.userInitial }}</div>
+                                            <div class="cmnt-body">
+                                                <div class="cmnt-meta">
+                                                    <span class="cmnt-name">{{ r.userName }}</span>
+                                                    <span class="cmnt-time">{{ fmtCommentTime(r.createdAt) }}</span>
+                                                </div>
+                                                <p class="cmnt-text">{{ r.text }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p v-else class="cmnt-empty">No comments yet. Be the first!</p>
+
+                        <div class="cmnt-compose">
+                            <div class="cmnt-avatar cmnt-avatar-sm" :style="{ background: ac?.bg, color: ac?.fg }">{{ attendeeInitial }}</div>
+                            <input v-model="commentText" class="cmnt-input" placeholder="Write a comment…"
+                                @keydown.enter.prevent="postComment" />
+                            <button class="cmnt-send" :disabled="!commentText.trim() || commentPosting" @click="postComment">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Support -->
+                    <a v-if="eventData.supportPhone"
+                       :href="`https://wa.me/${eventData.supportPhone.replace(/\D/g,'')}`"
+                       target="_blank" class="support-link anim" style="--d:.15s">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                        </svg>
+                        Contact Support
+                    </a>
+                </template>
+
+                <!-- ── Gallery tab ── -->
+                <template v-if="activeTab === 'gallery'">
+
+                    <!-- Initial load spinner -->
+                    <div v-if="galleryLoading && galleryPhotos.length === 0" class="gallery-spinner">
+                        <div class="spin-ring"></div>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div v-else-if="!galleryLoading && galleryPhotos.length === 0" class="gallery-empty">
+                        <div class="gallery-empty-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <path d="m21 15-5-5L5 21"/>
+                            </svg>
+                        </div>
+                        <p class="gallery-empty-txt">No photos yet</p>
+                    </div>
+
+                    <!-- Grid -->
+                    <template v-else>
+                        <div class="gallery-grid anim" style="--d:0s">
+                            <div v-for="photo in galleryPhotos" :key="photo.id"
+                                 :class="['gallery-cell', photo.tall ? 'gallery-tall' : '']"
+                                 @click="lightboxPhoto = photo">
+                                <img :src="photo.url" loading="lazy" />
+                            </div>
+                        </div>
+
+                        <!-- Load more -->
+                        <button v-if="galleryHasMore" class="gallery-more-btn"
+                                :disabled="galleryLoading" @click="fetchGallery(false)">
+                            {{ galleryLoading ? 'Loading…' : 'Load more' }}
+                        </button>
+                    </template>
+
+                </template>
+
+                <!-- Lightbox (always mounted) -->
+                <Teleport to="body">
+                    <Transition name="lb-fade">
+                        <div v-if="lightboxPhoto" class="lb-overlay" @click.self="lightboxPhoto = null">
+                            <button class="lb-close" @click="lightboxPhoto = null">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                            <img :src="lightboxPhoto.url" class="lb-img" />
+                        </div>
+                    </Transition>
+                </Teleport>
 
                 <div style="height:56px"></div>
             </div>
@@ -351,8 +664,10 @@ const fmt = v => new Intl.NumberFormat('en-TZ', { style: 'currency', currency: '
     display: flex; align-items: center; justify-content: center;
 }
 .ev-meta-icon svg { width: 14px; height: 14px; color: #C9A84C; }
-.ev-meta-text  { font-size: 13px; color: #AEAEB2; line-height: 1.5; padding-top: 6px; }
-.ev-meta-end   { color: #8E8E93; display: block; font-size: 12px; }
+.ev-meta-text     { display: flex; flex-direction: column; gap: 2px; padding-top: 5px; }
+.ev-meta-primary  { font-size: 13px; color: #E0E0E0; font-weight: 500; line-height: 1.4; }
+.ev-meta-end      { font-size: 12px; color: #8E8E93; display: flex; align-items: center; gap: 4px; }
+.ev-meta-until    { font-size: 10px; text-transform: uppercase; letter-spacing: .6px; color: #C9A84C; font-weight: 600; }
 
 /* ── Tear / perforation ────────────────────────────────────────────────────── */
 .tear {
@@ -434,6 +749,7 @@ const fmt = v => new Intl.NumberFormat('en-TZ', { style: 'currency', currency: '
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 14px;
     border-radius: 12px;
+    cursor: pointer;
 }
 .status-in      { background: rgba(48,209,88,.07);  border: 1px solid rgba(48,209,88,.18);  }
 .status-pending { background: rgba(255,159,10,.07); border: 1px solid rgba(255,159,10,.18); }
@@ -463,35 +779,116 @@ const fmt = v => new Intl.NumberFormat('en-TZ', { style: 'currency', currency: '
 .s-bar { width: 3px; height: 13px; background: #C9A84C; border-radius: 2px; flex-shrink: 0; }
 .s-lbl { font-size: 11px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: #8E8E93; }
 
-/* Contribution */
-.contrib-top { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; }
-.c-sub    { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #48484A; margin-bottom: 4px; }
-.c-amount { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; }
-.c-badge  {
-    padding: 4px 11px;
-    background: rgba(42,34,16,.9); border: .7px solid rgba(201,168,76,.35);
-    border-radius: 9px; font-size: 13px; font-weight: 800; color: #C9A84C;
-    flex-shrink: 0; margin-bottom: 2px;
+
+/* ── Tab bar ──────────────────────────────────────────────────────────────── */
+.tab-bar {
+    display: flex;
+    background: #1C1C1E;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 16px;
+    padding: 4px;
+    gap: 4px;
+    margin-bottom: 12px;
 }
-.c-track {
-    height: 4px; background: rgba(255,255,255,.06); border-radius: 99px;
-    overflow: hidden; margin-bottom: 14px;
+.tab {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 0;
+    border: none; border-radius: 12px; cursor: pointer;
+    font-size: 12px; font-weight: 600; letter-spacing: .4px;
+    font-family: inherit; background: transparent; color: #636366;
+    transition: background .18s, color .18s;
 }
-.c-fill {
-    height: 100%; width: var(--w, 0%);
-    background: linear-gradient(90deg, rgba(201,168,76,.6), #C9A84C);
-    border-radius: 99px;
-    animation: fillBar 1s cubic-bezier(.22,1,.36,1) both .3s;
+.tab svg { width: 14px; height: 14px; flex-shrink: 0; }
+.tab-active { background: #2C2C2E; color: #E0E0E0; }
+
+/* ── Gallery ──────────────────────────────────────────────────────────────── */
+.gallery-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 130px;
+    gap: 6px;
 }
-@keyframes fillBar { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
-.c-row { display: flex; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); border-radius: 12px; overflow: hidden; }
-.c-cell { flex: 1; padding: 11px 14px; display: flex; flex-direction: column; gap: 3px; }
-.c-divider { width: 1px; background: rgba(255,255,255,.05); flex-shrink: 0; }
-.c-cell-lbl { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #48484A; }
-.c-cell-val { font-size: 13px; font-weight: 700; color: #AEAEB2; }
+.gallery-cell {
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    background: #2C2C2E;
+}
+.gallery-cell.gallery-tall { grid-row: span 2; }
+.gallery-cell img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform .3s ease, opacity .3s;
+    display: block;
+}
+.gallery-cell:active img { transform: scale(1.04); opacity: .85; }
+
+/* Gallery extras */
+.gallery-spinner {
+    display: flex; justify-content: center; padding: 48px 0;
+}
+.gallery-empty {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px; padding: 56px 32px;
+}
+.gallery-empty-icon {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(201,168,76,.08);
+    border: 1px solid rgba(201,168,76,.2);
+    display: flex; align-items: center; justify-content: center;
+    color: #C9A84C;
+}
+.gallery-empty-icon svg { width: 24px; height: 24px; }
+.gallery-empty-txt { font-size: 14px; color: #48484A; font-weight: 600; }
+.gallery-more-btn {
+    display: block; width: 100%; margin-top: 10px;
+    padding: 13px;
+    background: #1C1C1E;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 14px;
+    font-size: 13px; font-weight: 600;
+    color: #C9A84C; font-family: inherit; cursor: pointer;
+    transition: background .18s, border-color .18s;
+}
+.gallery-more-btn:disabled { opacity: .4; cursor: default; }
+.gallery-more-btn:not(:disabled):active { background: rgba(42,34,16,.6); border-color: rgba(201,168,76,.3); }
+
+/* Lightbox */
+.lb-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,.92);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px;
+}
+.lb-close {
+    position: absolute; top: 20px; right: 20px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,.1); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.lb-close svg { width: 16px; height: 16px; }
+.lb-img {
+    max-width: 100%; max-height: 75vh;
+    border-radius: 14px;
+    object-fit: contain;
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+}
+.lb-caption {
+    margin-top: 14px; font-size: 13px; color: #8E8E93; text-align: center;
+}
+.lb-fade-enter-active, .lb-fade-leave-active { transition: opacity .2s; }
+.lb-fade-enter-from, .lb-fade-leave-to { opacity: 0; }
 
 /* About */
-.about-text { font-size: 14px; color: #8E8E93; line-height: 1.75; }
+.about-text    { font-size: 14px; color: #8E8E93; line-height: 1.75; }
+.about-clamped { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.about-toggle  {
+    background: none; border: none; cursor: pointer; padding: 6px 0 0;
+    font-size: 12px; font-weight: 600; color: #C9A84C; font-family: inherit;
+    letter-spacing: .3px;
+}
 
 /* Support */
 .support-link {
@@ -507,4 +904,135 @@ const fmt = v => new Intl.NumberFormat('en-TZ', { style: 'currency', currency: '
 }
 .support-link svg  { width: 15px; height: 15px; }
 .support-link:hover { color: #C9A84C; border-color: rgba(201,168,76,.3); background: rgba(42,34,16,.5); }
+
+/* ── RSVP Overlay ─────────────────────────────────────────────────────────── */
+.rsvp-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(10,10,10,.65);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 0 16px 32px;
+}
+@media (min-height: 600px) {
+    .rsvp-overlay { align-items: center; padding: 24px 16px; }
+}
+.rsvp-card {
+    width: 100%; max-width: 420px;
+    background: #1C1C1E;
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 28px;
+    padding: 32px 24px 28px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+    display: flex; flex-direction: column; align-items: center; gap: 0;
+    animation: rsvpUp .45s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes rsvpUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.rsvp-icon {
+    width: 56px; height: 56px;
+    background: rgba(201,168,76,.12);
+    border: 1px solid rgba(201,168,76,.25);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #C9A84C; margin-bottom: 18px;
+}
+.rsvp-icon svg { width: 24px; height: 24px; }
+.rsvp-title {
+    font-size: 22px; font-weight: 800;
+    color: #EEEEF0; letter-spacing: -.4px;
+    margin-bottom: 6px; text-align: center;
+}
+.rsvp-event {
+    font-size: 13px; font-weight: 600;
+    color: #C9A84C; margin-bottom: 10px; text-align: center;
+}
+.rsvp-sub {
+    font-size: 13px; color: #8E8E93;
+    line-height: 1.6; text-align: center;
+    margin-bottom: 28px;
+}
+.rsvp-actions {
+    width: 100%; display: flex; flex-direction: column; gap: 10px;
+}
+.rsvp-btn {
+    width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    padding: 15px;
+    border-radius: 16px;
+    border: none; cursor: pointer;
+    font-size: 15px; font-weight: 700;
+    font-family: inherit;
+    transition: opacity .15s, transform .1s;
+}
+.rsvp-btn:disabled { opacity: .5; cursor: not-allowed; }
+.rsvp-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.rsvp-confirm {
+    background: rgba(48,209,88,.15);
+    border: 1px solid rgba(48,209,88,.35);
+    color: #30D158;
+}
+.rsvp-confirm:not(:disabled):active { opacity: .75; transform: scale(.98); }
+.rsvp-decline {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.1);
+    color: #8E8E93;
+}
+.rsvp-decline:not(:disabled):active { opacity: .75; transform: scale(.98); }
+
+/* transition */
+.rsvp-fade-enter-active, .rsvp-fade-leave-active { transition: opacity .3s; }
+.rsvp-fade-enter-from, .rsvp-fade-leave-to { opacity: 0; }
+
+/* ── Comments ─────────────────────────────────────────────────────────────── */
+.cmnt-count       { color: #C9A84C; font-weight: 700; }
+.cmnt-list        { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+.cmnt-item        { display: flex; gap: 10px; }
+.cmnt-avatar      {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+}
+.cmnt-avatar-sm   { width: 28px; height: 28px; font-size: 11px; }
+.cmnt-body        { flex: 1; min-width: 0; }
+.cmnt-meta        { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.cmnt-name        { font-size: 13px; font-weight: 600; color: #E0E0E0; }
+.cmnt-time        { font-size: 11px; color: #48484A; }
+.cmnt-text        { font-size: 13px; color: #AEAEB2; line-height: 1.5; }
+.cmnt-actions     { display: flex; gap: 12px; margin-top: 6px; }
+.cmnt-reply-btn, .cmnt-view-replies {
+    background: none; border: none; cursor: pointer; padding: 0;
+    font-size: 11px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; font-family: inherit;
+}
+.cmnt-reply-btn    { color: #C9A84C; }
+.cmnt-view-replies { color: #48484A; }
+.cmnt-replies      {
+    margin-top: 10px; padding-left: 10px;
+    border-left: 2px solid rgba(255,255,255,.07);
+    display: flex; flex-direction: column; gap: 12px;
+}
+.cmnt-reply-form  { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.cmnt-empty       { font-size: 13px; color: #48484A; text-align: center; padding: 12px 0 16px; }
+.cmnt-compose     {
+    display: flex; align-items: center; gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,.07);
+}
+.cmnt-input {
+    flex: 1; background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.09); border-radius: 20px;
+    padding: 9px 14px; font-size: 13px; color: #E0E0E0;
+    outline: none; font-family: inherit;
+}
+.cmnt-input::placeholder { color: #3A3A3C; }
+.cmnt-input:focus         { border-color: rgba(201,168,76,.4); }
+.cmnt-send {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: #C9A84C; border: none; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity .15s;
+}
+.cmnt-send:disabled   { opacity: .3; cursor: default; }
+.cmnt-send svg        { width: 13px; height: 13px; color: #111; }
 </style>

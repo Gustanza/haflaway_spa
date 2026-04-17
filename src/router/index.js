@@ -10,7 +10,7 @@ const routes = [
         component: Ahadi_Mchango,
     },
     {
-        path: '/events/:eventId/:userId',
+        path: '/events/:eventId/:userId', 
         name: 'EventLanding',
         component: Event_Landing,
     },
