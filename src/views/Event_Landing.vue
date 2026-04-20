@@ -8,7 +8,7 @@ const route = useRoute();
 const eventId = computed(() => route.params.eventId);
 const userId = computed(() => route.params.userId);
 
-const eventData = ref(null);
+const eventData = ref(null); 
 const attendeeData = ref(null);
 const loading = ref(true);
 const hasError = ref(false);
@@ -46,10 +46,26 @@ const fetchHeroSlides = async () => {
     if (!eventId.value) return;
     heroSlides.value = [];
     try {
-        const snap = await getDocs(
-            query(collection(db, 'events', eventId.value, 'gallery'), orderBy('uploadedAt', 'desc'), limit(8))
+        const folderSnap = await getDocs(
+            query(collection(db, 'events', eventId.value, 'galleryFolders'), orderBy('createdAt', 'asc'), limit(4))
         );
-        heroSlides.value = snap.docs.map(d => ({ id: d.id, url: d.data().url }));
+        const slides = [];
+        for (const fd of folderSnap.docs) {
+            if (slides.length >= 8) break;
+            const mediaSnap = await getDocs(
+                query(
+                    collection(db, 'events', eventId.value, 'galleryFolders', fd.id, 'media'),
+                    orderBy('uploadedAt', 'desc'),
+                    limit(8 - slides.length)
+                )
+            );
+            for (const d of mediaSnap.docs) {
+                if (!d.data().type || d.data().type === 'image') {
+                    slides.push({ id: d.id, url: d.data().url });
+                }
+            }
+        }
+        heroSlides.value = slides;
     } catch (e) { console.error('hero_fetch', e); }
 };
 
@@ -169,7 +185,7 @@ const attendeeInitial = computed(() => attendeeName.value.charAt(0).toUpperCase(
 const palette = [
     { bg: '#1A3A28', fg: '#3DAA76' }, { bg: '#1A2838', fg: '#5A8ADB' },
     { bg: '#2A1A38', fg: '#BF5AF2' }, { bg: '#38200A', fg: '#E07040' },
-    { bg: '#2A2210', fg: '#C9A84C' },
+    { bg: '#2A2210', fg: '#E8C070' },
 ];
 const ac = computed(() => palette[attendeeName.value.charCodeAt(0) % palette.length]);
 
@@ -180,39 +196,53 @@ const aboutExpanded = ref(false);
 const activeTab = ref('details');
 
 // ── Gallery ───────────────────────────────────────────────────────────────────
-const PAGE_SIZE = 20;
-const lightboxPhoto = ref(null);
-const galleryPhotos = ref([]);
+const FOLDER_PAGE = 6;
+const MEDIA_LIMIT = 24;
+const lightboxItem = ref(null); // { url, type, folderName }
+const galleryGroups = ref([]); // [{ folderId, folderName, items: [{id,url,type,tall}] }]
 const galleryLoading = ref(false);
-const galleryHasMore = ref(false);
-const galleryLastDoc = ref(null);
+const galleryHasMoreFolders = ref(false);
+const galleryLastFolderDoc = ref(null);
+
 
 const fetchGallery = async (reset = false) => {
     if (galleryLoading.value) return;
     galleryLoading.value = true;
     try {
-        const base = [
-            collection(db, 'events', eventId.value, 'gallery'),
-            orderBy('uploadedAt', 'desc'),
+        const folderBase = [
+            collection(db, 'events', eventId.value, 'galleryFolders'),
+            orderBy('createdAt', 'asc'),
         ];
-        const constraints = reset || !galleryLastDoc.value
-            ? [...base, limit(PAGE_SIZE + 1)]
-            : [...base, startAfter(galleryLastDoc.value), limit(PAGE_SIZE + 1)];
+        const folderConstraints = (reset || !galleryLastFolderDoc.value)
+            ? [...folderBase, limit(FOLDER_PAGE + 1)]
+            : [...folderBase, startAfter(galleryLastFolderDoc.value), limit(FOLDER_PAGE + 1)];
 
-        const snap = await getDocs(query(...constraints));
-        const docs = snap.docs.slice(0, PAGE_SIZE);
+        const folderSnap = await getDocs(query(...folderConstraints));
+        const folderDocs = folderSnap.docs.slice(0, FOLDER_PAGE);
+        galleryHasMoreFolders.value = folderSnap.docs.length > FOLDER_PAGE;
+        galleryLastFolderDoc.value = folderDocs.length ? folderDocs[folderDocs.length - 1] : null;
 
-        galleryHasMore.value = snap.docs.length > PAGE_SIZE;
-        galleryLastDoc.value = docs.length ? docs[docs.length - 1] : null;
-
-        const offset = reset ? 0 : galleryPhotos.value.length;
-        const incoming = docs.map((d, i) => ({
-            id: d.id,
-            url: d.data().url,
-            tall: (offset + i) % 3 === 0,
+        const groups = await Promise.all(folderDocs.map(async (fd) => {
+            const mediaSnap = await getDocs(
+                query(
+                    collection(db, 'events', eventId.value, 'galleryFolders', fd.id, 'media'),
+                    orderBy('uploadedAt', 'desc'),
+                    limit(MEDIA_LIMIT)
+                )
+            );
+            const folderName = fd.data().name ?? 'Untitled';
+            const items = mediaSnap.docs.map((d, i) => ({
+                id: d.id,
+                url: d.data().url,
+                type: d.data().type ?? 'image',
+                tall: i % 3 === 0,
+                folderName,
+            }));
+            return { folderId: fd.id, folderName, items };
         }));
 
-        galleryPhotos.value = reset ? incoming : [...galleryPhotos.value, ...incoming];
+        const nonEmpty = groups.filter(g => g.items.length > 0);
+        galleryGroups.value = reset ? nonEmpty : [...galleryGroups.value, ...nonEmpty];
     } catch (e) {
         console.error('gallery_fetch', e);
     } finally {
@@ -221,8 +251,14 @@ const fetchGallery = async (reset = false) => {
 };
 
 watch(activeTab, (tab) => {
-    if (tab === 'gallery' && galleryPhotos.value.length === 0) fetchGallery(true);
+    if (tab === 'gallery' && galleryGroups.value.length === 0) fetchGallery(true);
 });
+
+const FOLDER_PREVIEW = 6;
+const expandedFolders = ref({});
+const toggleFolderExpand = (folderId) => {
+    expandedFolders.value = { ...expandedFolders.value, [folderId]: !expandedFolders.value[folderId] };
+};
 
 // ── RSVP Prompt ───────────────────────────────────────────────────────────────
 const rsvpSaving = ref(false);
@@ -710,12 +746,12 @@ const postReply = async (comment) => {
                 <template v-if="activeTab === 'gallery'">
 
                     <!-- Initial load spinner -->
-                    <div v-if="galleryLoading && galleryPhotos.length === 0" class="gallery-spinner">
+                    <div v-if="galleryLoading && galleryGroups.length === 0" class="gallery-spinner">
                         <div class="spin-ring"></div>
                     </div>
 
                     <!-- Empty state -->
-                    <div v-else-if="!galleryLoading && galleryPhotos.length === 0" class="gallery-empty">
+                    <div v-else-if="!galleryLoading && galleryGroups.length === 0" class="gallery-empty">
                         <div class="gallery-empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -726,18 +762,50 @@ const postReply = async (comment) => {
                         <p class="gallery-empty-txt">{{ t('noPhotos') }}</p>
                     </div>
 
-                    <!-- Grid -->
+                    <!-- Grouped grid -->
                     <template v-else>
-                        <div class="gallery-grid anim" style="--d:0s">
-                            <div v-for="photo in galleryPhotos" :key="photo.id"
-                                :class="['gallery-cell', photo.tall ? 'gallery-tall' : '']"
-                                @click="lightboxPhoto = photo">
-                                <img :src="photo.url" loading="lazy" />
+                        <div v-for="group in galleryGroups" :key="group.folderId" class="gallery-section anim" style="--d:0s">
+                            <div class="gallery-section-hdr">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                                    <path d="M3 7a2 2 0 012-2h3.586a1 1 0 01.707.293L10.707 6.7A1 1 0 0011.414 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/>
+                                </svg>
+                                <span>{{ group.folderName }}</span>
+                                <span class="gallery-section-count">{{ group.items.length }}</span>
                             </div>
+                            <div class="gallery-grid">
+                                <div v-for="item in (expandedFolders[group.folderId] ? group.items : group.items.slice(0, FOLDER_PREVIEW))"
+                                    :key="item.id"
+                                    :class="['gallery-cell', item.tall ? 'gallery-tall' : '', item.type === 'video' ? 'gallery-video-cell' : '']"
+                                    @click="lightboxItem = item">
+                                    <img v-if="item.type === 'image'" :src="item.url" loading="lazy" />
+                                    <div v-else class="gallery-video-thumb">
+                                        <video :src="item.url" preload="metadata" muted playsinline></video>
+                                        <div class="gallery-play-overlay">
+                                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                                <circle cx="12" cy="12" r="12" opacity=".55"/>
+                                                <polygon points="10,8 17,12 10,16" fill="white"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Expand / collapse -->
+                            <button v-if="group.items.length > FOLDER_PREVIEW"
+                                class="gallery-expand-btn"
+                                @click="toggleFolderExpand(group.folderId)">
+                                <template v-if="!expandedFolders[group.folderId]">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                                    See {{ group.items.length - FOLDER_PREVIEW }} more
+                                </template>
+                                <template v-else>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+                                    Show less
+                                </template>
+                            </button>
                         </div>
 
-                        <!-- Load more -->
-                        <button v-if="galleryHasMore" class="gallery-more-btn" :disabled="galleryLoading"
+                        <!-- Load more folders -->
+                        <button v-if="galleryHasMoreFolders" class="gallery-more-btn" :disabled="galleryLoading"
                             @click="fetchGallery(false)">
                             {{ galleryLoading ? t('loadingDots') : t('loadMore') }}
                         </button>
@@ -748,14 +816,16 @@ const postReply = async (comment) => {
                 <!-- Lightbox (always mounted) -->
                 <Teleport to="body">
                     <Transition name="lb-fade">
-                        <div v-if="lightboxPhoto" class="lb-overlay" @click.self="lightboxPhoto = null">
-                            <button class="lb-close" @click="lightboxPhoto = null">
+                        <div v-if="lightboxItem" class="lb-overlay" @click.self="lightboxItem = null">
+                            <button class="lb-close" @click="lightboxItem = null">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <line x1="18" y1="6" x2="6" y2="18" />
                                     <line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
                             </button>
-                            <img :src="lightboxPhoto.url" class="lb-img" />
+                            <div class="lb-folder-badge" v-if="lightboxItem.folderName">{{ lightboxItem.folderName }}</div>
+                            <img v-if="lightboxItem.type === 'image'" :src="lightboxItem.url" class="lb-img" />
+                            <video v-else :src="lightboxItem.url" class="lb-video" controls autoplay playsinline></video>
                         </div>
                     </Transition>
                 </Teleport>
@@ -778,15 +848,15 @@ const postReply = async (comment) => {
 /* ── Page ─────────────────────────────────────────────────────────────────── */
 .page {
     min-height: 100vh;
-    background: #FDFAF7;
-    color: #1A1A1A;
+    background: #111114;
+    color: #EEEEF0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     position: relative;
     overflow-x: hidden;
 }
 
-/* ── Celebration particles ────────────────────────────────────────────────── */
+/* ── Atmospheric orbs ─────────────────────────────────────────────────────── */
 .bg-anim {
     position: fixed;
     inset: 0;
@@ -795,38 +865,76 @@ const postReply = async (comment) => {
     overflow: hidden;
 }
 
+/* Large atmospheric orbs — spans 1-3 */
 .bg-anim span {
     position: absolute;
-    bottom: -80px;
     border-radius: 50%;
+}
+
+.bg-anim span:nth-child(1) {
+    left: -25%; top: -20%;
+    width: 85vw; height: 85vw;
+    background: radial-gradient(circle at center, rgba(201,150,60,.11) 0%, transparent 65%);
+    opacity: 1;
+    animation: orbDrift1 32s ease-in-out infinite;
+}
+.bg-anim span:nth-child(2) {
+    right: -25%; bottom: 0; left: unset; top: unset;
+    width: 75vw; height: 75vw;
+    background: radial-gradient(circle at center, rgba(160,100,30,.08) 0%, transparent 65%);
+    opacity: 1;
+    animation: orbDrift2 38s ease-in-out infinite;
+}
+.bg-anim span:nth-child(3) {
+    left: 20%; top: 35%;
+    width: 55vw; height: 55vw;
+    background: radial-gradient(circle at center, rgba(220,160,60,.05) 0%, transparent 60%);
+    opacity: 1;
+    animation: orbDrift3 28s ease-in-out infinite;
+}
+
+/* Small floating sparkles — spans 4-18 */
+.bg-anim span:nth-child(n+4) {
+    bottom: -10px;
     opacity: 0;
     animation: floatUp var(--dur) ease-in var(--delay) infinite;
 }
+.bg-anim span:nth-child(4)  { left: 10%; width:  4px; height:  4px; background: rgba(201,150,60,.8);   --dur:  9s; --delay: 0.3s; }
+.bg-anim span:nth-child(5)  { left: 22%; width:  3px; height:  3px; background: rgba(255,255,255,.5);  --dur: 11s; --delay: 1.2s; border-radius: 2px; }
+.bg-anim span:nth-child(6)  { left: 33%; width:  5px; height:  5px; background: rgba(201,150,60,.7);   --dur:  8s; --delay: 2.8s; }
+.bg-anim span:nth-child(7)  { left: 44%; width:  4px; height:  4px; background: rgba(200,170,255,.65); --dur: 13s; --delay: 0.6s; }
+.bg-anim span:nth-child(8)  { left: 55%; width:  3px; height:  3px; background: rgba(201,150,60,.7);   --dur: 10s; --delay: 3.5s; }
+.bg-anim span:nth-child(9)  { left: 64%; width:  5px; height:  5px; background: rgba(255,255,255,.35); --dur:  7s; --delay: 1.8s; border-radius: 2px; }
+.bg-anim span:nth-child(10) { left: 73%; width:  4px; height:  4px; background: rgba(201,150,60,.6);   --dur: 12s; --delay: 0.9s; }
+.bg-anim span:nth-child(11) { left: 82%; width:  3px; height:  3px; background: rgba(200,170,255,.6);  --dur:  9s; --delay: 4.1s; }
+.bg-anim span:nth-child(12) { left: 91%; width:  4px; height:  4px; background: rgba(201,150,60,.75);  --dur: 11s; --delay: 2.2s; }
+.bg-anim span:nth-child(13) { left: 17%; width:  5px; height:  5px; background: rgba(255,255,255,.4);  --dur:  8s; --delay: 0s; }
+.bg-anim span:nth-child(14) { left: 40%; width:  3px; height:  3px; background: rgba(201,150,60,.8);   --dur: 14s; --delay: 3s; border-radius: 2px; }
+.bg-anim span:nth-child(15) { left: 59%; width:  4px; height:  4px; background: rgba(201,150,60,.65);  --dur:  9s; --delay: 1.5s; }
+.bg-anim span:nth-child(16) { left: 78%; width:  5px; height:  5px; background: rgba(200,170,255,.5);  --dur: 10s; --delay: 2.7s; }
+.bg-anim span:nth-child(17) { left:  6%; width:  3px; height:  3px; background: rgba(255,255,255,.45); --dur: 12s; --delay: 0.5s; }
+.bg-anim span:nth-child(18) { left: 48%; width:  4px; height:  4px; background: rgba(201,150,60,.7);   --dur:  8s; --delay: 4.5s; border-radius: 2px; }
 
-.bg-anim span:nth-child(1)  { left:  5%; width: 10px; height: 10px; background: rgba(255,182,193,.55); --dur: 10s; --delay: 0s; }
-.bg-anim span:nth-child(2)  { left: 14%; width:  6px; height:  6px; background: rgba(201,150, 60,.50); --dur:  8s; --delay: 1.5s; }
-.bg-anim span:nth-child(3)  { left: 22%; width: 14px; height: 14px; background: rgba(200,170,255,.40); --dur: 12s; --delay: 0.5s; }
-.bg-anim span:nth-child(4)  { left: 30%; width:  8px; height:  8px; background: rgba(160,230,190,.50); --dur:  9s; --delay: 3s; }
-.bg-anim span:nth-child(5)  { left: 38%; width:  6px; height:  6px; background: rgba(201,150, 60,.60); --dur: 11s; --delay: 1s;   border-radius: 2px; }
-.bg-anim span:nth-child(6)  { left: 46%; width: 12px; height: 12px; background: rgba(255,182,193,.45); --dur:  8s; --delay: 2.5s; }
-.bg-anim span:nth-child(7)  { left: 53%; width:  7px; height:  7px; background: rgba(200,170,255,.50); --dur: 13s; --delay: 0.2s; }
-.bg-anim span:nth-child(8)  { left: 61%; width:  9px; height:  9px; background: rgba(255,200,160,.50); --dur: 10s; --delay: 4s; }
-.bg-anim span:nth-child(9)  { left: 68%; width:  5px; height:  5px; background: rgba(201,150, 60,.55); --dur:  7s; --delay: 1.5s; border-radius: 2px; }
-.bg-anim span:nth-child(10) { left: 76%; width: 13px; height: 13px; background: rgba(255,182,193,.40); --dur: 11s; --delay: 2s; }
-.bg-anim span:nth-child(11) { left: 83%; width:  8px; height:  8px; background: rgba(160,230,190,.50); --dur:  9s; --delay: 0.5s; }
-.bg-anim span:nth-child(12) { left: 89%; width:  6px; height:  6px; background: rgba(200,170,255,.45); --dur: 12s; --delay: 3.5s; }
-.bg-anim span:nth-child(13) { left: 94%; width: 10px; height: 10px; background: rgba(255,200,160,.50); --dur:  8s; --delay: 1s; }
-.bg-anim span:nth-child(14) { left: 11%; width:  4px; height:  4px; background: rgba(201,150, 60,.65); --dur: 14s; --delay: 4s;   border-radius: 2px; }
-.bg-anim span:nth-child(15) { left: 56%; width:  6px; height:  6px; background: rgba(255,182,193,.55); --dur:  9s; --delay: 2.5s; }
-.bg-anim span:nth-child(16) { left: 71%; width:  9px; height:  9px; background: rgba(201,150, 60,.40); --dur: 10s; --delay: 0.3s; }
-.bg-anim span:nth-child(17) { left: 35%; width:  7px; height:  7px; background: rgba(160,200,255,.50); --dur: 11s; --delay: 3s; }
-.bg-anim span:nth-child(18) { left: 86%; width:  5px; height:  5px; background: rgba(201,150, 60,.50); --dur:  8s; --delay: 2s;   border-radius: 2px; }
+@keyframes orbDrift1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(4vw, -3vh) scale(1.04); }
+    66%      { transform: translate(-2vw, 4vh) scale(.97); }
+}
+@keyframes orbDrift2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    40%      { transform: translate(-5vw, -4vh) scale(1.06); }
+    70%      { transform: translate(2vw, 2vh) scale(.95); }
+}
+@keyframes orbDrift3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(3vw, 5vh) scale(1.08); }
+}
 
 @keyframes floatUp {
     0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
-    8%   { opacity: .85; }
-    85%  { opacity: .35; }
-    100% { transform: translateY(-105vh) translateX(18px) scale(.6); opacity: 0; }
+    8%   { opacity: 1; }
+    85%  { opacity: .6; }
+    100% { transform: translateY(-100vh) translateX(12px) scale(.5); opacity: 0; }
 }
 
 /* ── Wrap ─────────────────────────────────────────────────────────────────── */
@@ -836,6 +944,43 @@ const postReply = async (comment) => {
     padding: 24px 16px;
     position: relative;
     z-index: 1;
+}
+
+@media (min-width: 760px) {
+    .page {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 40px 24px 60px;
+    }
+    .wrap {
+        width: 100%;
+        max-width: 480px;
+        background: rgba(18,18,20,.92);
+        border: 1px solid rgba(44,44,46,.7);
+        border-radius: 32px;
+        box-shadow:
+            0 0 0 1px rgba(201,150,60,.08),
+            0 40px 80px rgba(0,0,0,.6);
+        padding: 0 0 8px;
+        overflow: hidden;
+    }
+    .wrap > * {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    .ticket {
+        border-radius: 0;
+        margin-bottom: 0;
+        border: none;
+        box-shadow: none;
+    }
+    .ticket::before {
+        border-radius: 0;
+    }
+    .tab-bar {
+        margin: 12px 16px;
+    }
 }
 
 /* ── Loading / Error ──────────────────────────────────────────────────────── */
@@ -854,7 +999,7 @@ const postReply = async (comment) => {
 .spin-ring {
     width: 38px;
     height: 38px;
-    border: 2.5px solid rgba(201, 150, 60, .15);
+    border: 2.5px solid rgba(201, 150, 60,.15);
     border-top-color: #C9963C;
     border-radius: 50%;
     animation: spin .75s linear infinite;
@@ -869,15 +1014,15 @@ const postReply = async (comment) => {
     font-weight: 700;
     letter-spacing: .18em;
     text-transform: uppercase;
-    color: #B0A090;
+    color: rgba(238,238,240,.4);
 }
 
 .err-circle {
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: rgba(201, 150, 60, .08);
-    border: 1px solid rgba(201, 150, 60, .2);
+    background: rgba(201, 150, 60,.08);
+    border: 1px solid rgba(201, 150, 60,.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -888,27 +1033,39 @@ const postReply = async (comment) => {
 .err-h {
     font-size: 20px;
     font-weight: 800;
-    color: #1A1A1A;
+    color: #EEEEF0;
 }
 
 .err-p {
     font-size: 13px;
-    color: #8E8E93;
+    color: rgba(238,238,240,.5);
     text-align: center;
     line-height: 1.6;
 }
 
 /* ── TICKET ───────────────────────────────────────────────────────────────── */
 .ticket {
-    background: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, .06);
+    background: rgba(28,28,30,.78);
+    backdrop-filter: blur(40px) saturate(1.6);
+    -webkit-backdrop-filter: blur(40px) saturate(1.6);
+    border: 1px solid rgba(44,44,46,.8);
     border-radius: 24px;
     overflow: hidden;
     margin-bottom: 14px;
     box-shadow:
-        0 20px 60px rgba(180, 130, 80, .10),
-        0 4px 16px rgba(0, 0, 0, .05);
+        0 0 0 1px rgba(201,150,60,.12),
+        0 48px 96px rgba(0,0,0,.7),
+        0 16px 40px rgba(201,150,60,.10);
     animation: fadeUp .55s cubic-bezier(.22, 1, .36, 1) both;
+    position: relative;
+}
+.ticket::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #C9963C 0%, #E8A020 50%, #C9A84C 100%);
+    z-index: 10;
 }
 
 @keyframes fadeUp {
@@ -952,7 +1109,7 @@ const postReply = async (comment) => {
     left: 0;
     right: 0;
     height: 80px;
-    background: linear-gradient(to bottom, transparent, #FFFFFF);
+    background: linear-gradient(to bottom, transparent, rgba(28,28,30,.78));
     z-index: 2;
     pointer-events: none;
 }
@@ -1134,7 +1291,7 @@ const postReply = async (comment) => {
 
 .s-live {
     background: rgba(255, 255, 255, .88);
-    border: .8px solid rgba(201, 150, 60, .5);
+    border: .8px solid rgba(201, 150, 60,.5);
     color: #B8861E;
 }
 
@@ -1157,11 +1314,11 @@ const postReply = async (comment) => {
 }
 
 .ev-title {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
-    color: #1A1A1A;
-    letter-spacing: -.5px;
-    line-height: 1.2;
+    color: #EEEEF0;
+    letter-spacing: -.6px;
+    line-height: 1.18;
     margin-bottom: 14px;
 }
 
@@ -1181,7 +1338,8 @@ const postReply = async (comment) => {
     width: 30px;
     height: 30px;
     flex-shrink: 0;
-    background: rgba(201, 150, 60, .10);
+    background: rgba(201,150,60,.14);
+    border: 1px solid rgba(201,150,60,.2);
     border-radius: 9px;
     display: flex;
     align-items: center;
@@ -1203,14 +1361,14 @@ const postReply = async (comment) => {
 
 .ev-meta-primary {
     font-size: 13px;
-    color: #1A1A1A;
+    color: rgba(238,238,240,.88);
     font-weight: 500;
     line-height: 1.4;
 }
 
 .ev-meta-end {
     font-size: 12px;
-    color: #8E8E93;
+    color: rgba(238,238,240,.42);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -1235,9 +1393,9 @@ const postReply = async (comment) => {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #FDFAF7;
+    background: #111114;
     flex-shrink: 0;
-    border: 1px solid rgba(0, 0, 0, .06);
+    z-index: 2;
 }
 
 .tear-l {
@@ -1254,7 +1412,7 @@ const postReply = async (comment) => {
 
 .tear-line {
     flex: 1;
-    border-top: 1.5px dashed rgba(0, 0, 0, .10);
+    border-top: 1.5px dashed rgba(44,44,46,1);
 }
 
 /* ── Attendee stub ─────────────────────────────────────────────────────────── */
@@ -1278,7 +1436,7 @@ const postReply = async (comment) => {
     content: '';
     flex: 1;
     height: 1px;
-    background: rgba(201, 150, 60, .2);
+    background: rgba(201,150,60,.22);
 }
 
 .stub-main {
@@ -1321,21 +1479,21 @@ const postReply = async (comment) => {
 .stub-badge {
     display: inline-flex;
     padding: 3px 10px;
-    background: rgba(201, 150, 60, .10);
-    border: .7px solid rgba(201, 150, 60, .30);
+    background: rgba(201,150,60,.15);
+    border: .7px solid rgba(201,150,60,.35);
     border-radius: 99px;
     font-size: 9px;
     font-weight: 800;
     letter-spacing: .8px;
     text-transform: uppercase;
-    color: #B8861E;
+    color: #C9963C;
     margin-bottom: 6px;
 }
 
 .stub-name {
     font-size: 16px;
     font-weight: 700;
-    color: #1A1A1A;
+    color: #EEEEF0;
     letter-spacing: -.2px;
     line-height: 1.3;
     word-break: break-word;
@@ -1344,7 +1502,7 @@ const postReply = async (comment) => {
 
 .stub-phone {
     font-size: 12px;
-    color: #8E8E93;
+    color: rgba(238,238,240,.45);
 }
 
 /* Status */
@@ -1443,13 +1601,14 @@ const postReply = async (comment) => {
 /* ── Tab bar ──────────────────────────────────────────────────────────────── */
 .tab-bar {
     display: flex;
-    background: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, .07);
+    background: rgba(28,28,30,.98);
+    border: 1px solid rgba(44,44,46,.8);
     border-radius: 16px;
     padding: 4px;
     gap: 4px;
     margin-bottom: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, .05);
+    box-shadow: 0 4px 24px rgba(0,0,0,.35);
+    backdrop-filter: blur(16px);
 }
 
 .tab {
@@ -1467,7 +1626,7 @@ const postReply = async (comment) => {
     letter-spacing: .4px;
     font-family: inherit;
     background: transparent;
-    color: #B0A090;
+    color: rgba(238,238,240,.38);
     transition: background .18s, color .18s;
 }
 
@@ -1478,18 +1637,20 @@ const postReply = async (comment) => {
 }
 
 .tab-active {
-    background: rgba(201, 150, 60, .12);
-    color: #B8861E;
+    background: #C9963C;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(201,150,60,.35);
 }
 
 /* ── Section cards ────────────────────────────────────────────────────────── */
 .section-card {
-    background: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, .06);
+    background: rgba(28,28,30,1);
+    border: 1px solid rgba(44,44,46,.8);
     border-radius: 20px;
     padding: 18px;
     margin-bottom: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, .04);
+    box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    backdrop-filter: blur(20px);
 }
 
 .anim {
@@ -1516,10 +1677,76 @@ const postReply = async (comment) => {
     font-weight: 700;
     letter-spacing: 1.3px;
     text-transform: uppercase;
-    color: #9B9B9E;
+    color: rgba(238,238,240,.42);
 }
 
 /* ── Gallery ──────────────────────────────────────────────────────────────── */
+.gallery-section {
+    margin-bottom: 18px;
+}
+
+.gallery-section-hdr {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 8px;
+    padding: 0 2px;
+}
+
+.gallery-section-hdr svg {
+    width: 15px;
+    height: 15px;
+    color: #C9963C;
+    flex-shrink: 0;
+}
+
+.gallery-section-hdr span:first-of-type {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: rgba(238,238,240,.7);
+}
+
+.gallery-section-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(238,238,240,.4);
+    background: rgba(201,150,60,.12);
+    padding: 2px 7px;
+    border-radius: 99px;
+}
+
+.gallery-expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px;
+    background: rgba(201,150,60,.06);
+    border: 1px solid rgba(201,150,60,.18);
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    color: #C9963C;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+}
+
+.gallery-expand-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.gallery-expand-btn:active {
+    background: rgba(201,150,60,.13);
+}
+
 .gallery-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1552,6 +1779,45 @@ const postReply = async (comment) => {
     opacity: .85;
 }
 
+.gallery-video-cell {
+    background: #1A1A20;
+}
+
+.gallery-video-thumb {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.gallery-video-thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: .75;
+}
+
+.gallery-play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.gallery-play-overlay svg {
+    width: 44px;
+    height: 44px;
+    color: #fff;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,.4));
+}
+
+.gallery-cell:active .gallery-play-overlay svg {
+    opacity: .7;
+    transform: scale(.9);
+}
+
 .gallery-spinner {
     display: flex;
     justify-content: center;
@@ -1570,8 +1836,8 @@ const postReply = async (comment) => {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: rgba(201, 150, 60, .08);
-    border: 1px solid rgba(201, 150, 60, .2);
+    background: rgba(201, 150, 60,.08);
+    border: 1px solid rgba(201, 150, 60,.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1585,7 +1851,7 @@ const postReply = async (comment) => {
 
 .gallery-empty-txt {
     font-size: 14px;
-    color: #B0A090;
+    color: rgba(238,238,240,.38);
     font-weight: 600;
 }
 
@@ -1594,8 +1860,8 @@ const postReply = async (comment) => {
     width: 100%;
     margin-top: 10px;
     padding: 13px;
-    background: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, .07);
+    background: rgba(28,28,30,.98);
+    border: 1px solid rgba(44,44,46,.8);
     border-radius: 14px;
     font-size: 13px;
     font-weight: 600;
@@ -1612,8 +1878,8 @@ const postReply = async (comment) => {
 }
 
 .gallery-more-btn:not(:disabled):active {
-    background: rgba(201, 150, 60, .06);
-    border-color: rgba(201, 150, 60, .3);
+    background: rgba(201, 150, 60,.06);
+    border-color: rgba(201, 150, 60,.3);
 }
 
 /* Lightbox */
@@ -1658,11 +1924,31 @@ const postReply = async (comment) => {
     box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
 }
 
-.lb-caption {
-    margin-top: 14px;
-    font-size: 13px;
-    color: #8E8E93;
-    text-align: center;
+.lb-video {
+    max-width: 100%;
+    max-height: 75vh;
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+    outline: none;
+    background: #000;
+}
+
+.lb-folder-badge {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.75);
+    background: rgba(255,255,255,.12);
+    backdrop-filter: blur(10px);
+    padding: 4px 12px;
+    border-radius: 99px;
+    white-space: nowrap;
+    pointer-events: none;
 }
 
 .lb-fade-enter-active,
@@ -1678,7 +1964,7 @@ const postReply = async (comment) => {
 /* About */
 .about-text {
     font-size: 14px;
-    color: #5A5A60;
+    color: rgba(238,238,240,.72);
     line-height: 1.75;
 }
 
@@ -1709,16 +1995,17 @@ const postReply = async (comment) => {
     justify-content: center;
     gap: 8px;
     padding: 13px;
-    background: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, .07);
+    background: rgba(28,28,30,.98);
+    border: 1px solid rgba(44,44,46,.8);
     border-radius: 16px;
     font-size: 13px;
     font-weight: 600;
-    color: #8E8E93;
+    color: rgba(238,238,240,.55);
     text-decoration: none;
     transition: color .2s, border-color .2s, background .2s;
     margin-bottom: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    backdrop-filter: blur(12px);
 }
 
 .support-link svg {
@@ -1728,8 +2015,8 @@ const postReply = async (comment) => {
 
 .support-link:hover {
     color: #C9963C;
-    border-color: rgba(201, 150, 60, .3);
-    background: rgba(201, 150, 60, .05);
+    border-color: rgba(201, 150, 60,.3);
+    background: rgba(201, 150, 60,.05);
 }
 
 /* ── RSVP Overlay ─────────────────────────────────────────────────────────── */
@@ -1737,8 +2024,8 @@ const postReply = async (comment) => {
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: rgba(240, 228, 210, .60);
-    backdrop-filter: blur(8px);
+    background: rgba(0,0,0,.78);
+    backdrop-filter: blur(12px);
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -1755,16 +2042,17 @@ const postReply = async (comment) => {
 .rsvp-card {
     width: 100%;
     max-width: 420px;
-    background: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, .07);
+    background: rgba(28,28,30,.97);
+    border: 1px solid rgba(44,44,46,1);
     border-radius: 28px;
     padding: 32px 24px 28px;
-    box-shadow: 0 24px 60px rgba(150, 100, 50, .15);
+    box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(201,150,60,.12);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0;
     animation: rsvpUp .45s cubic-bezier(.22, 1, .36, 1) both;
+    backdrop-filter: blur(30px);
 }
 
 @keyframes rsvpUp {
@@ -1775,8 +2063,8 @@ const postReply = async (comment) => {
 .rsvp-icon {
     width: 56px;
     height: 56px;
-    background: rgba(201, 150, 60, .10);
-    border: 1px solid rgba(201, 150, 60, .25);
+    background: rgba(201, 150, 60,.10);
+    border: 1px solid rgba(201, 150, 60,.25);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1793,7 +2081,7 @@ const postReply = async (comment) => {
 .rsvp-title {
     font-size: 22px;
     font-weight: 800;
-    color: #1A1A1A;
+    color: #EEEEF0;
     letter-spacing: -.4px;
     margin-bottom: 6px;
     text-align: center;
@@ -1809,7 +2097,7 @@ const postReply = async (comment) => {
 
 .rsvp-sub {
     font-size: 13px;
-    color: #8E8E93;
+    color: rgba(238,238,240,.48);
     line-height: 1.6;
     text-align: center;
     margin-bottom: 28px;
@@ -1861,9 +2149,9 @@ const postReply = async (comment) => {
 }
 
 .rsvp-decline {
-    background: rgba(0, 0, 0, .04);
-    border: 1px solid rgba(0, 0, 0, .10);
-    color: #8E8E93;
+    background: rgba(40,40,44,.98);
+    border: 1px solid rgba(44,44,46,1);
+    color: rgba(238,238,240,.5);
 }
 
 .rsvp-decline:not(:disabled):active {
@@ -1928,24 +2216,30 @@ const postReply = async (comment) => {
 .cmnt-meta {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 7px;
     margin-bottom: 3px;
+    min-width: 0;
 }
 
 .cmnt-name {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
-    color: #1A1A1A;
+    color: #EEEEF0;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
 }
 
 .cmnt-time {
-    font-size: 11px;
-    color: #B0A090;
+    font-size: 10px;
+    color: rgba(238,238,240,.32);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .cmnt-text {
     font-size: 13px;
-    color: #5A5A60;
+    color: rgba(238,238,240,.65);
     line-height: 1.5;
 }
 
@@ -1973,13 +2267,13 @@ const postReply = async (comment) => {
 }
 
 .cmnt-view-replies {
-    color: #B0A090;
+    color: rgba(238,238,240,.35);
 }
 
 .cmnt-replies {
     margin-top: 10px;
     padding-left: 10px;
-    border-left: 2px solid rgba(0, 0, 0, .08);
+    border-left: 2px solid rgba(44,44,46,.8);
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -1994,7 +2288,7 @@ const postReply = async (comment) => {
 
 .cmnt-empty {
     font-size: 13px;
-    color: #B0A090;
+    color: rgba(238,238,240,.35);
     text-align: center;
     padding: 12px 0 16px;
 }
@@ -2004,29 +2298,29 @@ const postReply = async (comment) => {
     align-items: center;
     gap: 8px;
     padding-top: 14px;
-    border-top: 1px solid rgba(0, 0, 0, .07);
+    border-top: 1px solid rgba(44,44,46,.8);
 }
 
 .cmnt-input {
     flex: 1;
-    background: rgba(0, 0, 0, .04);
-    border: 1px solid rgba(0, 0, 0, .08);
+    background: rgba(40,40,44,.98);
+    border: 1px solid rgba(44,44,46,.8);
     border-radius: 20px;
     padding: 9px 14px;
     font-size: 13px;
-    color: #1A1A1A;
+    color: #EEEEF0;
     outline: none;
     font-family: inherit;
     transition: border-color .18s, background .18s;
 }
 
 .cmnt-input::placeholder {
-    color: #C0B8A8;
+    color: rgba(238,238,240,.3);
 }
 
 .cmnt-input:focus {
-    border-color: rgba(201, 150, 60, .4);
-    background: rgba(201, 150, 60, .04);
+    border-color: rgba(201,150,60,.45);
+    background: rgba(201,150,60,.07);
 }
 
 .cmnt-send {
