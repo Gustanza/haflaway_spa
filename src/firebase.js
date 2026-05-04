@@ -4,6 +4,7 @@ import { initializeApp } from 'firebase/app';
 import { getAnalytics } from 'firebase/analytics';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 
 // Replace these values with your real config (same values used previously in main.js)
 const firebaseConfig = {
@@ -31,5 +32,6 @@ try {
 // Export the services your app needs
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
+const storage = getStorage(firebaseApp);
 
-export { firebaseApp, analytics, db, auth };
+export { firebaseApp, analytics, db, auth, storage };
