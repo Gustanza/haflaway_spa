@@ -11,7 +11,7 @@ const userId = computed(() => route.params.userId);
 const eventData = ref(null); 
 const attendeeData = ref(null);
 const loading = ref(true);
-const hasError = ref(false);
+const hasError = ref(false); 
 
 let unsubEvent = null, unsubAttendee = null, unsubComments = null;
 
@@ -139,6 +139,7 @@ const i18n = {
         noPhotos: 'No photos yet', loadingDots: 'Loading…', loadMore: 'Load more',
         justNow: 'just now', minsAgo: n => `${n}m ago`, hoursAgo: n => `${n}h ago`,
         locale: 'en-TZ',
+        locations: 'Locations', openInMaps: 'Open in Maps', moreLocations: n => `+${n} more`,
     },
     sw: {
         loading: 'Inapakia', notFound: 'Haikupatikana',
@@ -160,6 +161,7 @@ const i18n = {
         noPhotos: 'Hakuna picha bado', loadingDots: 'Inapakia…', loadMore: 'Pakia Zaidi',
         justNow: 'sasa hivi', minsAgo: n => `dak ${n}`, hoursAgo: n => `saa ${n}`,
         locale: 'sw-TZ',
+        locations: 'Maeneo', openInMaps: 'Fungua Ramani', moreLocations: n => `+${n} zaidi`,
     },
 };
 
@@ -194,6 +196,14 @@ const cardBadge = computed(() => hasInvitation.value ? t('invitedGuest') : t('at
 
 const aboutExpanded = ref(false);
 const activeTab = ref('details');
+
+const eventLocations = computed(() => eventData.value?.locations ?? []);
+
+const mapsLink = (loc) => {
+    if (loc.mapsUrl) return loc.mapsUrl;
+    if (loc.lat != null && loc.lng != null) return `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
+    return `https://www.google.com/maps/search/${encodeURIComponent(loc.placeName)}`;
+};
 
 // ── Gallery ───────────────────────────────────────────────────────────────────
 const FOLDER_PAGE = 6;
@@ -550,15 +560,42 @@ const postReply = async (comment) => {
                                 </div>
                             </div>
 
-                            <div class="ev-meta-row" v-if="eventData.location">
+                            <!-- locations array: tappable, opens Maps -->
+                            <template v-if="eventLocations.length > 0">
+                                <a
+                                    v-for="loc in eventLocations"
+                                    :key="loc.id"
+                                    :href="mapsLink(loc)"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="ev-meta-row ev-meta-loc-link"
+                                >
+                                    <div class="ev-meta-icon ev-meta-icon-gold">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                                            <circle cx="12" cy="9" r="2.5" />
+                                        </svg>
+                                    </div>
+                                    <div class="ev-meta-text ev-meta-text-loc">
+                                        <span class="ev-meta-loc-label">{{ loc.label }}</span>
+                                        <span class="ev-meta-primary">{{ loc.placeName }}</span>
+                                    </div>
+                                    <div class="ev-meta-arrow-wrap">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                            <path d="M5 12h14M12 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
+                                </a>
+                            </template>
+                            <!-- location string fallback (no locations set) -->
+                            <div class="ev-meta-row" v-else-if="eventData.location">
                                 <div class="ev-meta-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                                        <path
-                                            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
                                         <circle cx="12" cy="9" r="2.5" />
                                     </svg>
                                 </div>
-                                <span class="ev-meta-text">{{ eventData.location }}</span>
+                                <span class="ev-meta-primary">{{ eventData.location }}</span>
                             </div>
                         </div>
                     </div>
@@ -1380,6 +1417,55 @@ const postReply = async (comment) => {
     letter-spacing: .6px;
     color: #C9963C;
     font-weight: 600;
+}
+
+.ev-meta-loc-link {
+    text-decoration: none;
+    border-radius: 10px;
+    transition: background .15s;
+    padding: 4px 6px;
+    margin: -4px -6px;
+}
+
+.ev-meta-loc-link:active {
+    background: rgba(201,150,60,.10);
+}
+
+.ev-meta-icon-gold svg {
+    stroke: #C9963C;
+}
+
+.ev-meta-loc-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: #C9963C;
+    line-height: 1;
+}
+
+.ev-meta-text-loc {
+    flex: 1;
+    padding-right: 10px;
+}
+
+.ev-meta-arrow-wrap {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: rgba(201,150,60,.13);
+    box-shadow: 0 0 8px rgba(201,150,60,.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+}
+
+.ev-meta-arrow-wrap svg {
+    width: 12px;
+    height: 12px;
+    color: #C9963C;
 }
 
 /* ── Tear / perforation ────────────────────────────────────────────────────── */
