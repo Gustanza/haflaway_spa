@@ -11,7 +11,7 @@
         <span class="brand-name">haflaway</span>
       </div>
 
-      <nav class="sidebar-nav">
+      <nav class="sidebar-nav"> 
         <RouterLink
           v-for="item in navItems"
           :key="item.to"
