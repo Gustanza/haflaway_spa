@@ -342,6 +342,9 @@ import {
   collection, getDocs, setDoc, updateDoc,
   deleteDoc, doc, orderBy, query,
 } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
+
+const functions = getFunctions(firebaseApp)
 import { initializeApp, deleteApp } from 'firebase/app'
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth'
 import {
@@ -632,7 +635,8 @@ async function doAdjustBalance() {
   balanceError.value  = ''
   try {
     const newBalance = previewBalance.value
-    await updateDoc(doc(db, COL, balanceUser.value.id), { balance: newBalance })
+    const adjustBalance = httpsCallable(functions, 'adjustUserBalance')
+    await adjustBalance({ userId: balanceUser.value.id, newBalance })
     balanceUser.value.balance = newBalance
     balanceUser.value = null
   } catch {
