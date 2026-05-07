@@ -12,6 +12,8 @@ import {
     ShieldCheckIcon,
     DevicePhoneMobileIcon,
 } from '@heroicons/vue/24/outline';
+import { collection, getCountFromServer } from 'firebase/firestore';
+import { db } from '../firebase';
 
 // ── Scroll ────────────────────────────────────────────────────────────────────
 const scrollY = ref(0);
@@ -26,26 +28,39 @@ const pill3Style   = computed(() => ({ transform: `translateY(${-scrollY.value *
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const steps = [
-    { icon: DevicePhoneMobileIcon, title: 'Tengeneza Tukio Lako',               desc: 'Ingiza maelezo ya sherehe yako — jina, tarehe, mahali, na picha. Inachukua dakika chache tu.' },
-    { icon: EnvelopeIcon,          title: 'Tengeneza Kadi za Mialiko',           desc: 'Chagua muundo wa kadi, ongeza QR Code, na ukadi utakuwa tayari kutumwa kwa wageni wako.' },
-    { icon: UsersIcon,             title: 'Ingiza Orodha ya Wageni',             desc: 'Pakia orodha kutoka Excel, CSV, au contacts za simu yako. Tuma kwa wingi kwa kitufe kimoja.' },
-    { icon: QrCodeIcon,            title: 'Scan Mlangoni — Bila Tabu',           desc: 'Timu yetu au wewe mwenyewe unaweza kuscan QR za wageni kwa wakati halisi.' },
-    { icon: CurrencyDollarIcon,    title: 'Fuatilia Michango Kwa Wakati Halisi', desc: 'Pokea ahadi za michango, rekodi malipo, na uone muhtasari wa fedha wowote.' },
+    { icon: DevicePhoneMobileIcon, title: 'Create Your Event',                   desc: 'Enter your event details — name, date, venue, and cover photo. Takes just a few minutes.' },
+    { icon: EnvelopeIcon,          title: 'Design Invitation Cards',              desc: 'Pick a card style, add a QR Code, and your invitation is ready to send to every guest.' },
+    { icon: UsersIcon,             title: 'Import Your Guest List',               desc: 'Upload from Excel, CSV, or your phone contacts. Send in bulk with a single tap.' },
+    { icon: QrCodeIcon,            title: 'Scan at the Gate — Effortlessly',      desc: 'Our team or you can scan guest QR codes in real time. No queues, no confusion.' },
+    { icon: CurrencyDollarIcon,    title: 'Track Contributions in Real Time',     desc: 'Receive pledges, record payments, and view a full financial summary from anywhere.' },
 ];
-const stats = [
-    { value: '10,000+', label: 'Wageni Waliohudumiwa' },
-    { value: '500+',    label: 'Matukio Yaliyofanikiwa'  },
-    { value: '98%',     label: 'Ukaguzi Uliofanikiwa'    },
-    { value: '0',       label: 'Kadi za Karatasi'        },
-];
+const stats = ref([
+    { value: '…',   label: 'Guests Served'    },
+    { value: '…',   label: 'Events Hosted'    },
+    { value: '98%', label: 'Check-in Rate'    },
+    { value: '0',   label: 'Paper Cards'      },
+]);
 
-onMounted(() => {
+onMounted(async () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     const observer = new IntersectionObserver(
         (entries) => entries.forEach(el => { if (el.isIntersecting) el.target.classList.add('is-visible'); }),
         { threshold: 0.08 }
     );
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    const fmt = (n) => `${n.toLocaleString()}+`;
+    try {
+        const [attendeesSnap, eventsSnap] = await Promise.all([
+            getCountFromServer(collection(db, 'attendeeProfiles')),
+            getCountFromServer(collection(db, 'events')),
+        ]);
+        stats.value[0].value = fmt(attendeesSnap.data().count);
+        stats.value[1].value = fmt(eventsSnap.data().count);
+    } catch (e) {
+        stats.value[0].value = '10K+';
+        stats.value[1].value = '500+';
+    }
 });
 onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 </script>
@@ -61,7 +76,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 
         <!-- ░░ NAV ░░ -->
         <nav class="sticky top-0 z-[100] backdrop-blur-xl border-b" style="background:rgba(17,17,20,0.88); border-color:#2C2C2E;">
-            <div class="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center gap-4">
+            <div class="max-w-4xl mx-auto px-3 py-4 flex justify-between items-center gap-4">
                 <div class="flex items-center gap-3 cursor-pointer" @click="$router.push('/')">
                     <div class="size-8 rounded-xl overflow-hidden border" style="border-color:#2C2C2E;">
                         <img src="/src/assets/icon-512.png" alt="Haflaway" class="size-full object-cover" />
@@ -69,13 +84,13 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                     <span class="text-xl font-black tracking-tighter uppercase amber-text">Haflaway</span>
                 </div>
                 <div class="hidden md:flex items-center gap-8">
-                    <a href="#features" class="nav-link">Huduma</a>
-                    <a href="#how"      class="nav-link">Jinsi Inavyofanya</a>
-                    <a href="#cta"      class="nav-link">Anza</a>
-                    <a @click="$router.push('/pricing')" class="nav-link cursor-pointer" style="color:#C9A84C;">Bei</a>
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#how"      class="nav-link">How It Works</a>
+                    <a href="#cta"      class="nav-link">Get Started</a>
+                    <a @click="$router.push('/pricing')" class="nav-link cursor-pointer" style="color:#C9A84C;">Pricing</a>
                 </div>
                 <a href="https://wa.me/255625689904" target="_blank" class="btn-outline text-[10px] px-5 py-2.5 rounded-full">
-                    Wasiliana Nasi
+                    Contact Us
                 </a>
             </div>
         </nav>
@@ -85,39 +100,39 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
             <!-- ╔══════════════════════════════════════════════════════════╗ -->
             <!-- ║  HERO                                                    ║ -->
             <!-- ╚══════════════════════════════════════════════════════════╝ -->
-            <section class="max-w-4xl mx-auto px-6 pt-20 sm:pt-28 pb-0">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-4 items-start">
+            <section class="max-w-4xl mx-auto px-3 pt-20 sm:pt-28 pb-0">
+                <div class="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 lg:gap-4 items-start">
 
                     <!-- ── Left: Copy ── -->
                     <div>
                         <!-- Event type pills -->
                         <div class="flex flex-wrap gap-2 mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                            <span class="event-pill">💍 Harusi</span>
+                            <span class="event-pill">💍 Wedding</span>
                             <span class="event-pill">🎀 Kitchen Party</span>
                             <span class="event-pill">🎉 Sendoff</span>
-                            <span class="event-pill">🥂 Maadhimisho</span>
+                            <span class="event-pill">🥂 Celebration</span>
                         </div>
 
-                        <h1 class="font-black tracking-tighter leading-[0.9] mb-5 animate-in fade-in slide-in-from-bottom-6 duration-1000"
+                        <h1 class="font-black tracking-tighter leading-[1.15] mb-5 animate-in fade-in slide-in-from-bottom-6 duration-1000"
                             style="font-size:clamp(2rem,4vw,2.8rem);">
-                            <span style="color:#EEEEF0;">Mialiko ya Hadhi.</span><br />
-                            <span class="amber-text">Wageni Wapokelewe.</span><br />
-                            <span style="color:#3A3A3C;">Sherehe Kamili.</span>
+                            <span style="color:#EEEEF0;">Invitations with Class.</span><br />
+                            <span class="amber-text">Guests Welcomed.</span><br />
+                            <span style="color:#3A3A3C;">Perfect Celebration.</span>
                         </h1>
 
                         <p class="text-sm sm:text-base font-medium leading-relaxed mb-6 max-w-md animate-in fade-in duration-1000 delay-150"
                             style="color:#8E8E93;">
-                            Haflaway inakusaidia kupanga harusi, sendoff, kitchen party na hafla yoyote — kadi za kidigitali zenye QR Code, kusimamia wageni, na kupokea michango kwa simu moja.
+                            Haflaway helps you plan weddings, sendoffs, kitchen parties and any event — digital invitations with QR codes, guest management, and contributions tracking, all from one app.
                         </p>
 
                         <div class="flex flex-col sm:flex-row gap-3 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
                             <button class="btn-primary px-7 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest">
-                                Anza Kupanga Sherehe
+                                Start Planning Your Event
                             </button>
                             <a href="https://wa.me/255625689904" target="_blank"
                                 class="btn-outline px-7 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2">
                                 <ChatBubbleLeftRightIcon class="size-4" />
-                                Zungumza Nasi
+                                Chat With Us
                             </a>
                         </div>
 
@@ -135,7 +150,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                                     <span class="text-[11px] amber-text font-black">★★★★★</span>
                                 </div>
                                 <p class="text-[11px] font-medium" style="color:#8E8E93;">
-                                    Wapangaji <span style="color:#EEEEF0; font-weight:800;">500+</span> wanategemea Haflaway
+                                    <span style="color:#EEEEF0; font-weight:800;">500+</span> organizers trust Haflaway
                                 </p>
                             </div>
                         </div>
@@ -205,7 +220,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                                         </div>
                                         <!-- Event title -->
                                         <div style="font-size:20px; font-weight:800; color:#EEEEF0; letter-spacing:-0.6px; line-height:1.1; margin-bottom:13px; font-family:system-ui;">
-                                            Harusi ya<br/>Amina &amp; Said Juma
+                                            Wedding of<br/>Amina &amp; Said Juma
                                         </div>
                                         <!-- Meta card -->
                                         <div style="padding:10px 12px; background:#1C1C1E; border-radius:13px; border:0.8px solid #2C2C2E;">
@@ -282,7 +297,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                                         </div>
                                     </div>
                                     <div style="margin:0 14px; display:flex; flex-direction:column; gap:7px;">
-                                        <div v-for="cp in ['Mlango Mkuu','VIP Entrance']" :key="cp"
+                                        <div v-for="cp in ['Main Entrance','VIP Entrance']" :key="cp"
                                             style="display:flex; align-items:center; gap:11px; padding:12px 13px; background:#1C1C1E; border-radius:14px; border:0.8px solid #2C2C2E;">
                                             <div style="padding:7px; background:rgba(201,168,76,0.11); border-radius:9px; flex-shrink:0;">
                                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9v11a1 1 0 0 0 1 1h7V9"/><path d="M21 9H3"/><rect x="9" y="14" width="6" height="8"/><path d="M15 4h-6v5h6V4z"/></svg>
@@ -340,18 +355,18 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                             <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-2xl" style="background:#1C1C1E; border-color:#2C2C2E;">
                                 <span class="text-base leading-none">📲</span>
                                 <div>
-                                    <p style="font-size:9px; font-weight:800; color:#EEEEF0; line-height:1.3;">Imetumwa · 247 wageni</p>
+                                    <p style="font-size:9px; font-weight:800; color:#EEEEF0; line-height:1.3;">Sent · 247 guests</p>
                                     <p style="font-size:8px; color:#8E8E93;">WhatsApp ✓✓</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="absolute bottom-24 -left-2 sm:left-0 lg:-left-6 z-30 pill-drift-b" :style="pill2Style">
+                        <div class="absolute bottom-24 right-[160px] z-30 pill-drift-b" :style="pill2Style">
                             <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-2xl" style="background:#1C1C1E; border-color:#2C2C2E;">
                                 <span class="size-2 rounded-full flex-shrink-0" style="background:#C9A84C;"></span>
                                 <div>
-                                    <p style="font-size:9px; font-weight:800; color:#C9A84C; line-height:1.3;">Amina Hassan ameingia</p>
-                                    <p style="font-size:8px; color:#8E8E93;">Sasa hivi · Mlango Mkuu</p>
+                                    <p style="font-size:9px; font-weight:800; color:#C9A84C; line-height:1.3;">Amina Hassan checked in</p>
+                                    <p style="font-size:8px; color:#8E8E93;">Just now · Main Entrance</p>
                                 </div>
                             </div>
                         </div>
@@ -361,7 +376,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                                 <span class="text-base leading-none">💰</span>
                                 <div>
                                     <p style="font-size:9px; font-weight:800; font-family:system-ui; line-height:1.3;" class="amber-text">TZS 2.4M</p>
-                                    <p style="font-size:8px; color:#8E8E93;">Michango iliyokusanywa</p>
+                                    <p style="font-size:8px; color:#8E8E93;">Contributions collected</p>
                                 </div>
                             </div>
                         </div>
@@ -376,11 +391,11 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
             <!-- ║  STATS BAND   ║ -->
             <!-- ╚═══════════════╝ -->
             <section class="py-16 reveal">
-                <div class="max-w-4xl mx-auto px-6">
+                <div class="max-w-4xl mx-auto px-3">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-10 text-center">
                         <div v-for="stat in stats" :key="stat.value" class="space-y-2">
                             <span class="text-4xl sm:text-5xl font-black amber-text block italic">{{ stat.value }}</span>
-                            <span class="text-[9px] font-black uppercase tracking-[0.3em]" style="color:#48484A;">{{ stat.label }}</span>
+                            <span class="text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap" style="color:#48484A;">{{ stat.label }}</span>
                         </div>
                     </div>
                 </div>
@@ -389,44 +404,44 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
             <!-- ╔══════════════════╗ -->
             <!-- ║  FEATURES GRID   ║ -->
             <!-- ╚══════════════════╝ -->
-            <section id="features" class="max-w-4xl mx-auto px-6 py-16 border-t" style="border-color:#2C2C2E;">
+            <section id="features" class="max-w-4xl mx-auto px-3 py-16 border-t" style="border-color:#2C2C2E;">
                 <div class="flex items-center gap-3 mb-4 reveal">
                     <div class="w-0.5 h-3.5 rounded-full" style="background:#C9A84C;"></div>
-                    <span class="text-[11px] font-black uppercase tracking-[0.4em]" style="color:#8E8E93;">Huduma Zetu</span>
+                    <span class="text-[11px] font-black uppercase tracking-[0.4em]" style="color:#8E8E93;">Our Features</span>
                 </div>
                 <h2 class="text-3xl sm:text-4xl font-black tracking-tighter mb-12 reveal" style="color:#EEEEF0;">
-                    Kila Kitu Unachohitaji<br /><span class="amber-text">Mahali Pamoja.</span>
+                    Everything You Need<br /><span class="amber-text">In One Place.</span>
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
                     <div class="md:col-span-2 feature-card p-7 reveal">
                         <div class="icon-badge mb-6"><EnvelopeIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-2xl">Kadi za Kidigitali</h3>
-                        <p class="feature-desc max-w-md mb-8">Tengeneza kadi nzuri za mialiko zenye QR Code. Chagua muundo, weka rangi, na tuma kwa WhatsApp au SMS kwa sekunde moja.</p>
+                        <h3 class="feature-title text-2xl">Digital Invitations</h3>
+                        <p class="feature-desc max-w-md mb-8">Create beautiful invitation cards with QR codes. Choose a design, pick colors, and send via WhatsApp or SMS in seconds.</p>
                         <div class="flex flex-wrap gap-2">
-                            <span v-for="tag in ['Mialiko','QR Code','Save the Date','Michango']" :key="tag" class="tag">{{ tag }}</span>
+                            <span v-for="tag in ['Invitations','QR Code','Save the Date','Contributions']" :key="tag" class="tag">{{ tag }}</span>
                         </div>
                     </div>
                     <div class="feature-card p-7 reveal">
                         <div class="icon-badge mb-5"><QrCodeIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-xl">Scan Mlangoni</h3>
-                        <p class="feature-desc text-sm">Timu yetu au wewe mwenyewe unaweza kuscan QR kwa haraka. Hakuna foleni. Hakuna mkanganyiko.</p>
+                        <h3 class="feature-title text-xl">Gate Check-in</h3>
+                        <p class="feature-desc text-sm">Our team or you can scan guest QR codes instantly. No queues. No confusion.</p>
                     </div>
                     <div class="feature-card p-7 reveal">
                         <div class="icon-badge mb-5"><ChatBubbleLeftRightIcon class="size-6 amber-icon" /></div>
                         <h3 class="feature-title text-xl">WhatsApp & SMS</h3>
-                        <p class="feature-desc text-sm">Tuma mialiko, vikumbusho, na shukrani kwa wingi. Barua pepe si lazima.</p>
+                        <p class="feature-desc text-sm">Send invitations, reminders, and thank-you notes in bulk. No email required.</p>
                     </div>
                     <div class="md:col-span-2 feature-card p-7 reveal">
                         <div class="icon-badge mb-6"><UsersIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-2xl">Simamia Wageni</h3>
-                        <p class="feature-desc max-w-sm mb-7 text-sm">Ingiza orodha kutoka Excel, CSV, au contacts. Fuatilia hali ya kila mgeni.</p>
+                        <h3 class="feature-title text-2xl">Manage Guests</h3>
+                        <p class="feature-desc max-w-sm mb-7 text-sm">Import your list from Excel, CSV, or contacts. Track every guest's status live.</p>
                         <div class="space-y-2.5">
                             <div v-for="(g, i) in [
-                                {name:'Amina Hassan',   status:'Amethibitisha',  dot:'#C9A84C'},
-                                {name:'John Makwela',   status:'Ameingia',       dot:'#C9A84C'},
-                                {name:'Fatma Omar',     status:'Anasubiri',      dot:'#8E8E93'},
-                                {name:'Khalid Juma',    status:'Hajathibitisha', dot:'#48484A'},
+                                {name:'Amina Hassan',   status:'Confirmed',      dot:'#C9A84C'},
+                                {name:'John Makwela',   status:'Checked In',     dot:'#C9A84C'},
+                                {name:'Fatma Omar',     status:'Pending',        dot:'#8E8E93'},
+                                {name:'Khalid Juma',    status:'No Response',    dot:'#48484A'},
                             ]" :key="i" class="flex items-center justify-between px-4 py-3 rounded-2xl border" style="background:#28282C; border-color:#2C2C2E;">
                                 <div class="flex items-center gap-3">
                                     <div class="size-8 rounded-full flex items-center justify-center text-[11px] font-black" style="background:#3A3A3C; color:#8E8E93;">{{ g.name[0] }}</div>
@@ -441,26 +456,26 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                     </div>
                     <div class="feature-card p-7 reveal">
                         <div class="icon-badge mb-5"><CurrencyDollarIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-xl">Michango</h3>
-                        <p class="feature-desc text-sm mb-5">Rekodi ahadi na malipo kwa wakati halisi bila hitaji la karatasi.</p>
+                        <h3 class="feature-title text-xl">Contributions</h3>
+                        <p class="feature-desc text-sm mb-5">Record pledges and payments in real time — no paperwork needed.</p>
                         <div class="space-y-3">
                             <div class="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                                <span style="color:#48484A;">Jumla ya Ahadi</span>
+                                <span style="color:#48484A;">Total Pledged</span>
                                 <span class="amber-text">TZS 4.8M</span>
                             </div>
                             <div class="h-1.5 rounded-full overflow-hidden" style="background:#3A3A3C;">
                                 <div class="h-full rounded-full" style="width:72%; background:#C9A84C;"></div>
                             </div>
                             <div class="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                                <span style="color:#C9A84C;">72% Imepokelewa</span>
-                                <span style="color:#48484A;">28% Inakuja</span>
+                                <span style="color:#C9A84C;">72% Received</span>
+                                <span style="color:#48484A;">28% Incoming</span>
                             </div>
                         </div>
                     </div>
                     <div class="md:col-span-2 feature-card p-7 reveal flex flex-col">
                         <div class="icon-badge mb-5"><PhotoIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-xl">Ghaleria ya Picha</h3>
-                        <p class="feature-desc text-sm mb-5">Hifadhi picha na video za tukio lako. Pagawane na wageni kwa urahisi.</p>
+                        <h3 class="feature-title text-xl">Photo Gallery</h3>
+                        <p class="feature-desc text-sm mb-5">Store photos and videos from your event. Share them with guests effortlessly.</p>
                         <!-- Photo grid mockup -->
                         <div class="grid grid-cols-4 gap-2 mt-auto">
                             <div v-for="(item, i) in [
@@ -479,11 +494,11 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                         <div class="flex flex-col sm:flex-row sm:items-start gap-8">
                             <div class="flex-1">
                                 <div class="icon-badge mb-6"><RocketLaunchIcon class="size-6 amber-icon" /></div>
-                                <h3 class="feature-title text-2xl sm:text-3xl">Pata Watoa Huduma Bora</h3>
-                                <p class="feature-desc max-w-xl text-sm">Tunakuunganisha na MC, wapambaji, kumbi, wasanii, na watoa huduma waliochaguliwa kwa makini.</p>
+                                <h3 class="feature-title text-2xl sm:text-3xl">Find Top Service Providers</h3>
+                                <p class="feature-desc max-w-xl text-sm">We connect you with MCs, decorators, venues, artists, and carefully vetted service providers.</p>
                             </div>
                             <div class="flex-shrink-0 grid grid-cols-3 gap-3">
-                                <div v-for="svc in [{n:'MC',e:'🎤'},{n:'Mapambo',e:'🌸'},{n:'Kumbi',e:'🏛️'},{n:'Wasanii',e:'🎵'},{n:'Picha',e:'📸'},{n:'Chakula',e:'🍽️'}]" :key="svc.n"
+                                <div v-for="svc in [{n:'MC',e:'🎤'},{n:'Decor',e:'🌸'},{n:'Venue',e:'🏛️'},{n:'Artists',e:'🎵'},{n:'Photos',e:'📸'},{n:'Catering',e:'🍽️'}]" :key="svc.n"
                                     class="flex flex-col items-center gap-2 p-4 rounded-2xl border hover:border-[#C9A84C]/30 transition-colors cursor-pointer group/svc"
                                     style="background:#28282C; border-color:#2C2C2E;">
                                     <span class="text-2xl">{{ svc.e }}</span>
@@ -498,13 +513,13 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
             <!-- ╔═══════════════╗ -->
             <!-- ║  HOW IT WORKS ║ -->
             <!-- ╚═══════════════╝ -->
-            <section id="how" class="max-w-4xl mx-auto px-6 py-16 border-t" style="border-color:#2C2C2E;">
+            <section id="how" class="max-w-4xl mx-auto px-3 py-16 border-t" style="border-color:#2C2C2E;">
                 <div class="flex items-center gap-3 mb-4 reveal">
                     <div class="w-0.5 h-3.5 rounded-full" style="background:#C9A84C;"></div>
-                    <span class="text-[11px] font-black uppercase tracking-[0.4em]" style="color:#8E8E93;">Mwongozo</span>
+                    <span class="text-[11px] font-black uppercase tracking-[0.4em]" style="color:#8E8E93;">Guide</span>
                 </div>
                 <h2 class="text-3xl sm:text-4xl font-black tracking-tighter mb-12 reveal" style="color:#EEEEF0;">
-                    Jinsi Inavyofanya<br /><span class="amber-text">Kazi.</span>
+                    How It <span class="amber-text">Works.</span>
                 </h2>
                 <div class="relative">
                     <div class="absolute left-[27px] top-12 bottom-12 w-px hidden sm:block" style="background:linear-gradient(to bottom,rgba(201,168,76,0.35),transparent);"></div>
@@ -526,22 +541,22 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
             <!-- ╔═══════════════╗ -->
             <!-- ║  FINAL CTA    ║ -->
             <!-- ╚═══════════════╝ -->
-            <section id="cta" class="max-w-4xl mx-auto px-6 py-16 reveal">
+            <section id="cta" class="max-w-4xl mx-auto px-3 py-16 reveal">
                 <div class="rounded-[48px] border p-14 sm:p-24 relative overflow-hidden text-center" style="background:#1C1C1E; border-color:#2C2C2E;">
                     <div class="absolute inset-0 pointer-events-none cta-glow"></div>
                     <div class="relative z-10">
                         <div class="icon-badge mx-auto mb-10"><SparklesIcon class="size-8 amber-icon" /></div>
                         <h2 class="text-3xl sm:text-5xl font-black tracking-tighter mb-6 leading-tight" style="color:#EEEEF0;">
-                            Uko Tayari Kubadilisha<br /><span class="amber-text">Sherehe Yako?</span>
+                            Ready to Transform<br /><span class="amber-text">Your Event?</span>
                         </h2>
                         <p class="text-lg font-medium mb-14 max-w-lg mx-auto leading-relaxed" style="color:#8E8E93;">
-                            Jiunge na maelfu ya wapangaji sherehe wanaotumia Haflaway kufanya harusi, sendoff, na kitchen party zao ziwe za kipekee.
+                            Join thousands of event organizers using Haflaway to make their weddings, sendoffs, and kitchen parties truly unforgettable.
                         </p>
                         <div class="flex flex-col sm:flex-row gap-5 justify-center">
-                            <button class="btn-primary px-12 py-5 rounded-2xl text-sm font-black uppercase tracking-widest">Anza Bure Leo</button>
+                            <button class="btn-primary px-12 py-5 rounded-2xl text-sm font-black uppercase tracking-widest">Start Free Today</button>
                             <a href="https://wa.me/255625689904" target="_blank"
                                 class="btn-outline px-12 py-5 rounded-2xl text-sm font-black uppercase tracking-widest flex items-center justify-center gap-3">
-                                <ChatBubbleLeftRightIcon class="size-4" />WhatsApp Sasa
+                                <ChatBubbleLeftRightIcon class="size-4" />WhatsApp Now
                             </a>
                         </div>
                     </div>
@@ -550,7 +565,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
         </main>
 
         <!-- ░░ FOOTER ░░ -->
-        <footer class="max-w-4xl mx-auto px-6 py-14 border-t" style="border-color:#2C2C2E;">
+        <footer class="max-w-4xl mx-auto px-3 py-14 border-t" style="border-color:#2C2C2E;">
             <div class="flex flex-col md:flex-row justify-between items-center gap-8">
                 <div class="flex items-center gap-3 cursor-pointer opacity-50 hover:opacity-80 transition-opacity" @click="$router.push('/')">
                     <div class="size-8 rounded-xl overflow-hidden border" style="border-color:#2C2C2E;"><img src="/src/assets/icon-512.png" alt="Logo" class="size-full object-cover" /></div>
