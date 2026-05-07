@@ -9,7 +9,7 @@ import {
     FingerPrintIcon,
     CheckBadgeIcon,
     RocketLaunchIcon
-} from '@heroicons/vue/24/outline';
+} from '@heroicons/vue/24/outline'; 
 </script>
 
 <template>
