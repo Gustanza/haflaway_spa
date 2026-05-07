@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { db } from '@/firebase';
 import { doc, onSnapshot, updateDoc, collection, addDoc, getDocs, serverTimestamp, query, orderBy, increment, limit, startAfter } from 'firebase/firestore';
@@ -9,11 +9,11 @@ const eventId = computed(() => route.params.eventId);
 const userId = computed(() => route.params.userId);
 
 const eventData = ref(null); 
-const attendeeData = ref(null);
+const attendeeData = ref(null); 
 const loading = ref(true);
 const hasError = ref(false); 
 
-let unsubEvent = null, unsubAttendee = null, unsubComments = null;
+let unsubEvent = null, unsubAttendee = null, unsubComments = null, unsubMediaComments = null;
 
 const startSync = () => {
     if (unsubEvent) unsubEvent();
@@ -112,6 +112,7 @@ onUnmounted(() => {
     if (unsubEvent) unsubEvent();
     if (unsubAttendee) unsubAttendee();
     if (unsubComments) unsubComments();
+    if (unsubMediaComments) unsubMediaComments();
     if (heroTimer) clearInterval(heroTimer);
 });
 
@@ -128,7 +129,7 @@ const i18n = {
         published: 'Published', draft: 'Draft', until: 'until',
         guestPass: 'Guest Pass', invitedGuest: 'Invited Guest', attendee: 'Attendee',
         confirmed: 'Confirmed', declined: 'Declined', pendingRsvp: 'Pending RSVP',
-        tapToChange: 'Tap to change',
+        tapToChange: 'Tap to change', viewCard: 'View Card',
         details: 'Details', gallery: 'Gallery',
         about: 'About', showLess: 'Show less', readMore: 'Read more',
         comments: 'Comments', reply: 'Reply', hideReplies: 'Hide replies',
@@ -150,7 +151,7 @@ const i18n = {
         published: 'Imechapishwa', draft: 'Rasimu', until: 'hadi',
         guestPass: 'Kibali cha Mgeni', invitedGuest: 'Mgeni Maalum', attendee: 'Mshiriki',
         confirmed: 'Imethibitishwa', declined: 'Imekataliwa', pendingRsvp: 'Jibu Linasubiri',
-        tapToChange: 'Gusa Kubadilisha',
+        tapToChange: 'Gusa Kubadilisha', viewCard: 'Angalia Kadi',
         details: 'Maelezo', gallery: 'Picha',
         about: 'Kuhusu', showLess: 'Onyesha Kidogo', readMore: 'Soma Zaidi',
         comments: 'Maoni', reply: 'Jibu', hideReplies: 'Ficha Majibu',
@@ -208,7 +209,82 @@ const mapsLink = (loc) => {
 // ── Gallery ───────────────────────────────────────────────────────────────────
 const FOLDER_PAGE = 6;
 const MEDIA_LIMIT = 24;
-const lightboxItem = ref(null); // { url, type, folderName }
+const lightboxItem       = ref(null); // { url, type, folderName, id?, folderId? }
+const showMediaComments  = ref(false);
+const mediaComments      = ref([]);
+const mediaCommentText   = ref('');
+const mediaCommentPosting = ref(false);
+const lbScale  = ref(1);
+const lbOffX   = ref(0);
+const lbOffY   = ref(0);
+
+let _lbPinchDist0 = 0, _lbScale0 = 1;
+let _lbPanStart  = { x: 0, y: 0 }, _lbOff0 = { x: 0, y: 0 };
+let _lbLastTap   = 0, _lbMoved = false;
+
+function _pinchDist(t) {
+    const dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+}
+function lbResetZoom() { lbScale.value = 1; lbOffX.value = 0; lbOffY.value = 0; }
+function closeLightbox() { lightboxItem.value = null; lbResetZoom(); }
+watch(lightboxItem, (item) => {
+    if (!item) lbResetZoom();
+    showMediaComments.value = false;
+    mediaCommentText.value = '';
+    if (unsubMediaComments) { unsubMediaComments(); unsubMediaComments = null; }
+    mediaComments.value = [];
+    if (!item?.id || !item?.folderId) return;
+    const mq = query(
+        collection(db, 'events', eventId.value, 'galleryFolders', item.folderId, 'media', item.id, 'comments'),
+        orderBy('createdAt', 'asc')
+    );
+    unsubMediaComments = onSnapshot(mq, snap => {
+        mediaComments.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    });
+});
+
+function onLbTouchStart(e) {
+    _lbMoved = false;
+    if (e.touches.length === 2) {
+        _lbPinchDist0 = _pinchDist(e.touches);
+        _lbScale0 = lbScale.value;
+    } else {
+        _lbPanStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        _lbOff0 = { x: lbOffX.value, y: lbOffY.value };
+        const now = Date.now();
+        if (now - _lbLastTap < 300) {
+            lbScale.value = lbScale.value > 1 ? 1 : 2.5;
+            if (lbScale.value === 1) { lbOffX.value = 0; lbOffY.value = 0; }
+        }
+        _lbLastTap = now;
+    }
+}
+function onLbTouchMove(e) {
+    _lbMoved = true;
+    if (e.touches.length === 2) {
+        lbScale.value = Math.min(5, Math.max(1, _lbScale0 * (_pinchDist(e.touches) / _lbPinchDist0)));
+    } else if (lbScale.value > 1) {
+        lbOffX.value = _lbOff0.x + (e.touches[0].clientX - _lbPanStart.x);
+        lbOffY.value = _lbOff0.y + (e.touches[0].clientY - _lbPanStart.y);
+    }
+}
+function onLbTouchEnd() {
+    if (lbScale.value < 1) lbResetZoom();
+}
+function onLbWheel(e) {
+    lbScale.value = Math.min(5, Math.max(1, lbScale.value - e.deltaY * 0.002));
+    if (lbScale.value === 1) { lbOffX.value = 0; lbOffY.value = 0; }
+}
+function onLbDblClick() {
+    lbScale.value = lbScale.value > 1 ? 1 : 2.5;
+    if (lbScale.value === 1) { lbOffX.value = 0; lbOffY.value = 0; }
+}
+function onLbBgClick() {
+    if (showMediaComments.value) { showMediaComments.value = false; return; }
+    if (!_lbMoved) closeLightbox();
+}
+
 const galleryGroups = ref([]); // [{ folderId, folderName, items: [{id,url,type,tall}] }]
 const galleryLoading = ref(false);
 const galleryHasMoreFolders = ref(false);
@@ -247,6 +323,7 @@ const fetchGallery = async (reset = false) => {
                 type: d.data().type ?? 'image',
                 tall: i % 3 === 0,
                 folderName,
+                commentCount: d.data().commentCount ?? 0,
             }));
             return { folderId: fd.id, folderName, items };
         }));
@@ -391,6 +468,42 @@ const postReply = async (comment) => {
         }
     } finally {
         replyPosting.value = { ...replyPosting.value, [comment.id]: false };
+    }
+};
+
+const openMediaComments = async (item) => {
+    lightboxItem.value = item;
+    await nextTick();
+    showMediaComments.value = true;
+};
+
+const postMediaComment = async () => {
+    const text = mediaCommentText.value.trim();
+    const item = lightboxItem.value;
+    if (!text || mediaCommentPosting.value || !item?.id || !item?.folderId) return;
+    mediaCommentPosting.value = true;
+    try {
+        await addDoc(
+            collection(db, 'events', eventId.value, 'galleryFolders', item.folderId, 'media', item.id, 'comments'),
+            {
+                userId: userId.value,
+                userName: attendeeName.value,
+                userInitial: attendeeInitial.value,
+                userColor: ac.value,
+                text,
+                createdAt: serverTimestamp(),
+            }
+        );
+        await updateDoc(
+            doc(db, 'events', eventId.value, 'galleryFolders', item.folderId, 'media', item.id),
+            { commentCount: increment(1) }
+        );
+        const grp = galleryGroups.value.find(g => g.folderId === item.folderId);
+        const mi  = grp?.items.find(i => i.id === item.id);
+        if (mi) mi.commentCount = (mi.commentCount ?? 0) + 1;
+        mediaCommentText.value = '';
+    } finally {
+        mediaCommentPosting.value = false;
     }
 };
 </script>
@@ -624,6 +737,16 @@ const postReply = async (comment) => {
                             </div>
                         </div>
 
+                        <button v-if="hasInvitation && attendeeData?.cards?.invitation?.url"
+                            class="view-card-btn"
+                            @click="lightboxItem = { url: attendeeData.cards.invitation.url, type: 'image' }">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            {{ t('viewCard') }}
+                        </button>
+
                         <div :class="['stub-status',
                                 attendeeData?.attendanceStatus === 'Confirmed' ? 'status-in' :
                                 attendeeData?.attendanceStatus === 'Declined'  ? 'status-declined' :
@@ -813,7 +936,7 @@ const postReply = async (comment) => {
                                 <div v-for="item in (expandedFolders[group.folderId] ? group.items : group.items.slice(0, FOLDER_PREVIEW))"
                                     :key="item.id"
                                     :class="['gallery-cell', item.tall ? 'gallery-tall' : '', item.type === 'video' ? 'gallery-video-cell' : '']"
-                                    @click="lightboxItem = item">
+                                    @click="lightboxItem = { ...item, folderId: group.folderId, folderName: group.folderName }">
                                     <img v-if="item.type === 'image'" :src="item.url" loading="lazy" />
                                     <div v-else class="gallery-video-thumb">
                                         <video :src="item.url" preload="metadata" muted playsinline></video>
@@ -824,6 +947,13 @@ const postReply = async (comment) => {
                                             </svg>
                                         </div>
                                     </div>
+                                    <button class="gcc"
+                                        @click.stop="openMediaComments({ ...item, folderId: group.folderId, folderName: group.folderName })">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                                        </svg>
+                                        <span v-if="item.commentCount" class="gcc-count">{{ item.commentCount }}</span>
+                                    </button>
                                 </div>
                             </div>
                             <!-- Expand / collapse -->
@@ -853,16 +983,69 @@ const postReply = async (comment) => {
                 <!-- Lightbox (always mounted) -->
                 <Teleport to="body">
                     <Transition name="lb-fade">
-                        <div v-if="lightboxItem" class="lb-overlay" @click.self="lightboxItem = null">
-                            <button class="lb-close" @click="lightboxItem = null">
+                        <div v-if="lightboxItem" class="lb-overlay" @click.self="onLbBgClick">
+                            <button class="lb-close" @click="closeLightbox">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <line x1="18" y1="6" x2="6" y2="18" />
                                     <line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
                             </button>
                             <div class="lb-folder-badge" v-if="lightboxItem.folderName">{{ lightboxItem.folderName }}</div>
-                            <img v-if="lightboxItem.type === 'image'" :src="lightboxItem.url" class="lb-img" />
+                            <img v-if="lightboxItem.type === 'image'"
+                                :src="lightboxItem.url"
+                                class="lb-img"
+                                :style="{ transform: `translate(${lbOffX}px, ${lbOffY}px) scale(${lbScale})`, cursor: lbScale > 1 ? 'grab' : 'zoom-in' }"
+                                @touchstart="onLbTouchStart"
+                                @touchmove.prevent="onLbTouchMove"
+                                @touchend="onLbTouchEnd"
+                                @wheel.prevent="onLbWheel"
+                                @dblclick="onLbDblClick"
+                                @click.stop
+                            />
                             <video v-else :src="lightboxItem.url" class="lb-video" controls autoplay playsinline></video>
+
+                            <!-- Comment toggle (gallery items only) -->
+                            <button v-if="lightboxItem.folderId && lightboxItem.id"
+                                class="lb-comment-btn"
+                                :class="{ 'lb-comment-btn-active': showMediaComments }"
+                                @click.stop="showMediaComments = !showMediaComments">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                                </svg>
+                                <span v-if="mediaComments.length" class="lb-comment-badge">{{ mediaComments.length }}</span>
+                            </button>
+
+                            <!-- Media comments bottom sheet -->
+                            <Transition name="mc-slide">
+                                <div v-if="showMediaComments && lightboxItem.folderId" class="mc-sheet" @click.stop>
+                                    <div class="mc-handle"></div>
+                                    <p class="mc-title">{{ t('comments') }}<span v-if="mediaComments.length" class="cmnt-count"> ({{ mediaComments.length }})</span></p>
+                                    <div class="mc-list">
+                                        <div v-for="c in mediaComments" :key="c.id" class="cmnt-item">
+                                            <div class="cmnt-avatar cmnt-avatar-sm" :style="{ background: c.userColor?.bg, color: c.userColor?.fg }">{{ c.userInitial }}</div>
+                                            <div class="cmnt-body">
+                                                <div class="cmnt-meta">
+                                                    <span class="cmnt-name">{{ c.userName }}</span>
+                                                    <span class="cmnt-time">{{ fmtCommentTime(c.createdAt) }}</span>
+                                                </div>
+                                                <p class="cmnt-text">{{ c.text }}</p>
+                                            </div>
+                                        </div>
+                                        <p v-if="!mediaComments.length" class="cmnt-empty mc-empty">{{ t('noComments') }}</p>
+                                    </div>
+                                    <div class="cmnt-compose mc-compose">
+                                        <div class="cmnt-avatar cmnt-avatar-sm" :style="{ background: ac?.bg, color: ac?.fg }">{{ attendeeInitial }}</div>
+                                        <input v-model="mediaCommentText" class="cmnt-input" :placeholder="t('commentPlaceholder')"
+                                            @keydown.enter.prevent="postMediaComment" />
+                                        <button class="cmnt-send" :disabled="!mediaCommentText.trim() || mediaCommentPosting" @click="postMediaComment">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </Transition>
                         </div>
                     </Transition>
                 </Teleport>
@@ -1591,6 +1774,28 @@ const postReply = async (comment) => {
     color: rgba(238,238,240,.45);
 }
 
+/* View Card button */
+.view-card-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 9px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(90, 138, 219, .30);
+    background: rgba(90, 138, 219, .08);
+    color: #5A8ADB;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+    margin-bottom: 8px;
+}
+.view-card-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.view-card-btn:active { opacity: .7; }
+.view-card-btn:hover { background: rgba(90, 138, 219, .15); }
+
 /* Status */
 .stub-status {
     display: flex;
@@ -1865,6 +2070,46 @@ const postReply = async (comment) => {
     opacity: .85;
 }
 
+/* ── Gallery cell comment button ─────────────────────────────────────────── */
+.gcc {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 7px 4px 5px;
+    border-radius: 99px;
+    border: none;
+    background: rgba(0,0,0,.52);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: #fff;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity .18s ease, transform .18s ease, background .15s;
+    pointer-events: none;
+    z-index: 2;
+}
+.gcc svg { width: 13px; height: 13px; flex-shrink: 0; }
+.gcc-count { font-size: 11px; font-weight: 600; line-height: 1; }
+.gallery-cell:hover .gcc,
+.gallery-cell:focus-within .gcc {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+/* always visible on touch devices */
+@media (hover: none) {
+    .gcc {
+        opacity: 1;
+        transform: none;
+        pointer-events: auto;
+    }
+}
+.gcc:active { background: rgba(90,138,219,.65); }
+
 .gallery-video-cell {
     background: #1A1A20;
 }
@@ -2008,6 +2253,11 @@ const postReply = async (comment) => {
     border-radius: 14px;
     object-fit: contain;
     box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+    transform-origin: center center;
+    transition: transform .05s linear;
+    will-change: transform;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
 .lb-video {
@@ -2045,6 +2295,106 @@ const postReply = async (comment) => {
 .lb-fade-enter-from,
 .lb-fade-leave-to {
     opacity: 0;
+}
+
+/* ── Lightbox comment button ──────────────────────────────────────────────── */
+.lb-comment-btn {
+    position: absolute;
+    bottom: 24px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,.15);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    cursor: pointer;
+    transition: background .15s;
+}
+.lb-comment-btn svg { width: 20px; height: 20px; }
+.lb-comment-btn-active { background: rgba(90,138,219,.45); }
+.lb-comment-btn:active { opacity: .7; }
+.lb-comment-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 99px;
+    background: #5A8ADB;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+/* ── Media comments bottom sheet ─────────────────────────────────────────── */
+.mc-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 62vh;
+    background: rgba(18,18,22,.92);
+    backdrop-filter: blur(20px);
+    border-radius: 20px 20px 0 0;
+    border-top: 1px solid rgba(255,255,255,.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.mc-handle {
+    flex-shrink: 0;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,.25);
+    margin: 10px auto 0;
+}
+.mc-title {
+    flex-shrink: 0;
+    padding: 10px 16px 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(238,238,240,.9);
+    border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.mc-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0 4px;
+    -webkit-overflow-scrolling: touch;
+}
+.mc-list .cmnt-item { padding: 8px 16px; }
+.mc-empty {
+    padding: 20px 16px;
+    text-align: center;
+    font-size: 13px;
+    color: rgba(238,238,240,.35);
+}
+.mc-compose {
+    flex-shrink: 0;
+    border-top: 1px solid rgba(255,255,255,.07);
+    padding: 10px 12px 14px;
+    background: rgba(18,18,22,.6);
+}
+
+/* ── mc-slide transition ──────────────────────────────────────────────────── */
+.mc-slide-enter-active,
+.mc-slide-leave-active {
+    transition: transform .28s cubic-bezier(.32,0,.67,0);
+}
+.mc-slide-enter-from,
+.mc-slide-leave-to {
+    transform: translateY(100%);
 }
 
 /* About */
