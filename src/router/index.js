@@ -8,6 +8,7 @@ import ManageUsers from '../views/dashboard/ManageUsers.vue'
 import ManageCardTemplates from '../views/dashboard/ManageCardTemplates.vue'
 import DashSettings from '../views/dashboard/DashSettings.vue'
 import CardTemplateGallery from '../views/CardTemplateGallery.vue'
+import Pricing from '../views/Pricing.vue'
 
 const routes = [
     {
@@ -24,6 +25,11 @@ const routes = [
         path: '/',
         name: 'Nyumbani',
         component: Landing_Page,
+    },
+    {
+        path: '/pricing',
+        name: 'Pricing',
+        component: Pricing,
     },
     {
         path: '/dashboard',
