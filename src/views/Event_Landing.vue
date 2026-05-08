@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { db } from '@/firebase';
-import { doc, onSnapshot, updateDoc, collection, addDoc, getDocs, serverTimestamp, query, orderBy, increment, limit, startAfter } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, addDoc, getDocs, serverTimestamp, query, orderBy, increment, limit, startAfter, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 const route = useRoute();
 const eventId = computed(() => route.params.eventId);
@@ -31,7 +31,7 @@ const startSync = () => {
     });
 
     if (unsubComments) unsubComments();
-    const q = query(collection(db, 'events', eventId.value, 'comments'), orderBy('createdAt', 'asc'));
+    const q = query(collection(db, 'events', eventId.value, 'comments'), orderBy('createdAt', 'desc'));
     unsubComments = onSnapshot(q, snap => {
         comments.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     });
@@ -237,7 +237,7 @@ watch(lightboxItem, (item) => {
     if (!item?.id || !item?.folderId) return;
     const mq = query(
         collection(db, 'events', eventId.value, 'galleryFolders', item.folderId, 'media', item.id, 'comments'),
-        orderBy('createdAt', 'asc')
+        orderBy('createdAt', 'desc')
     );
     unsubMediaComments = onSnapshot(mq, snap => {
         mediaComments.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -324,6 +324,7 @@ const fetchGallery = async (reset = false) => {
                 tall: i % 3 === 0,
                 folderName,
                 commentCount: d.data().commentCount ?? 0,
+                likedBy: d.data().likedBy ?? [],
             }));
             return { folderId: fd.id, folderName, items };
         }));
@@ -504,6 +505,37 @@ const postMediaComment = async () => {
         mediaCommentText.value = '';
     } finally {
         mediaCommentPosting.value = false;
+    }
+};
+
+const toggleLike = async (item) => {
+    if (!item?.id || !item?.folderId) return;
+    const uid = userId.value;
+    const liked = (item.likedBy ?? []).includes(uid);
+    const mediaRef = doc(db, 'events', eventId.value, 'galleryFolders', item.folderId, 'media', item.id);
+
+    const grp = galleryGroups.value.find(g => g.folderId === item.folderId);
+    const mi = grp?.items.find(i => i.id === item.id);
+    const newLikedBy = liked
+        ? (mi?.likedBy ?? []).filter(id => id !== uid)
+        : [...(mi?.likedBy ?? []), uid];
+
+    if (mi) mi.likedBy = newLikedBy;
+    if (lightboxItem.value?.id === item.id && lightboxItem.value?.folderId === item.folderId) {
+        lightboxItem.value = { ...lightboxItem.value, likedBy: newLikedBy };
+    }
+
+    try {
+        await updateDoc(mediaRef, {
+            likedBy: liked ? arrayRemove(uid) : arrayUnion(uid),
+        });
+    } catch (e) {
+        const revert = liked ? [...newLikedBy, uid] : newLikedBy.filter(id => id !== uid);
+        if (mi) mi.likedBy = revert;
+        if (lightboxItem.value?.id === item.id && lightboxItem.value?.folderId === item.folderId) {
+            lightboxItem.value = { ...lightboxItem.value, likedBy: revert };
+        }
+        console.error('like_error', e);
     }
 };
 </script>
@@ -947,6 +979,14 @@ const postMediaComment = async () => {
                                             </svg>
                                         </div>
                                     </div>
+                                    <button class="glk"
+                                        :class="{ 'glk-liked': (item.likedBy ?? []).includes(userId) }"
+                                        @click.stop="toggleLike({ ...item, folderId: group.folderId })">
+                                        <svg viewBox="0 0 24 24" :fill="(item.likedBy ?? []).includes(userId) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2.2">
+                                            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                                        </svg>
+                                        <span v-if="(item.likedBy ?? []).length" class="glk-count">{{ (item.likedBy ?? []).length }}</span>
+                                    </button>
                                     <button class="gcc"
                                         @click.stop="openMediaComments({ ...item, folderId: group.folderId, folderName: group.folderName })">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -1003,6 +1043,17 @@ const postMediaComment = async () => {
                                 @click.stop
                             />
                             <video v-else :src="lightboxItem.url" class="lb-video" controls autoplay playsinline></video>
+
+                            <!-- Like button (gallery items only) -->
+                            <button v-if="lightboxItem.folderId && lightboxItem.id"
+                                class="lb-like-btn"
+                                :class="{ 'lb-like-btn-active': (lightboxItem.likedBy ?? []).includes(userId) }"
+                                @click.stop="toggleLike(lightboxItem)">
+                                <svg viewBox="0 0 24 24" :fill="(lightboxItem.likedBy ?? []).includes(userId) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                                </svg>
+                                <span v-if="(lightboxItem.likedBy ?? []).length" class="lb-like-badge">{{ (lightboxItem.likedBy ?? []).length }}</span>
+                            </button>
 
                             <!-- Comment toggle (gallery items only) -->
                             <button v-if="lightboxItem.folderId && lightboxItem.id"
@@ -2110,6 +2161,46 @@ const postMediaComment = async () => {
 }
 .gcc:active { background: rgba(90,138,219,.65); }
 
+/* ── Gallery cell like button ────────────────────────────────────────────── */
+.glk {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 7px 4px 5px;
+    border-radius: 99px;
+    border: none;
+    background: rgba(0,0,0,.52);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: rgba(255,255,255,.75);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity .18s ease, transform .18s ease, background .15s, color .15s;
+    pointer-events: none;
+    z-index: 2;
+}
+.glk svg { width: 13px; height: 13px; flex-shrink: 0; }
+.glk-count { font-size: 11px; font-weight: 600; line-height: 1; }
+.glk-liked { color: #FF4B6E; }
+.gallery-cell:hover .glk,
+.gallery-cell:focus-within .glk {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+@media (hover: none) {
+    .glk {
+        opacity: 1;
+        transform: none;
+        pointer-events: auto;
+    }
+}
+.glk:active { background: rgba(255,75,110,.35); }
+
 .gallery-video-cell {
     background: #1A1A20;
 }
@@ -2295,6 +2386,45 @@ const postMediaComment = async () => {
 .lb-fade-enter-from,
 .lb-fade-leave-to {
     opacity: 0;
+}
+
+/* ── Lightbox like button ─────────────────────────────────────────────────── */
+.lb-like-btn {
+    position: absolute;
+    bottom: 24px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,.15);
+    backdrop-filter: blur(8px);
+    color: rgba(255,255,255,.8);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+.lb-like-btn svg { width: 20px; height: 20px; }
+.lb-like-btn-active { background: rgba(255,75,110,.3); color: #FF4B6E; }
+.lb-like-btn:active { opacity: .7; }
+.lb-like-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 99px;
+    background: #FF4B6E;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
 }
 
 /* ── Lightbox comment button ──────────────────────────────────────────────── */
