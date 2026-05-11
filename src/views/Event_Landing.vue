@@ -8,10 +8,10 @@ const route = useRoute();
 const eventId = computed(() => route.params.eventId);
 const userId = computed(() => route.params.userId);
 
-const eventData = ref(null); 
-const attendeeData = ref(null); 
+const eventData = ref(null);
+const attendeeData = ref(null);
 const loading = ref(true);
-const hasError = ref(false); 
+const hasError = ref(false);
 
 let unsubEvent = null, unsubAttendee = null, unsubComments = null, unsubMediaComments = null;
 
@@ -198,6 +198,75 @@ const cardBadge = computed(() => hasInvitation.value ? t('invitedGuest') : t('at
 const aboutExpanded = ref(false);
 const activeTab = ref('details');
 
+// ── Gift ──────────────────────────────────────────────────────────────────────
+const showGiftSheet = ref(false);
+const giftStep = ref('pick'); // 'pick' | 'note' | 'confirm' | 'done'
+const giftAmount = ref(null);
+const giftCustom = ref('');
+const giftNote = ref('');
+const giftSending = ref(false);
+
+const GIFT_PRESETS = [5000, 10000, 20000, 50000];
+const giftCurrency = computed(() => eventData.value?.currency || 'TZS');
+const fmtMoney = (n) => Number(n).toLocaleString('en-TZ');
+
+// Mock givers — will be replaced by real Firestore snapshot
+const givers = ref([
+    { id: '1',  name: 'Amina Rashidi Mwakibete',      initial: 'A', color: { bg: '#1A3A28', fg: '#3DAA76' }, amount: 20000, note: 'Hongera sana! Mungu awabariki.' },
+    { id: '2',  name: 'Jonathan Mwangi Kariuki',      initial: 'J', color: { bg: '#1A2838', fg: '#5A8ADB' }, amount: 50000, note: 'Wishing you both a lifetime of joy!' },
+    { id: '3',  name: 'Fatuma Abdallah Ally',         initial: 'F', color: { bg: '#2A1A38', fg: '#BF5AF2' }, amount: 10000, note: '' },
+    { id: '4',  name: 'Kelvin Oduya Onyango',         initial: 'K', color: { bg: '#38200A', fg: '#E07040' }, amount: 15000, note: 'Best wishes from Nairobi 🎉' },
+    { id: '5',  name: 'Salma Khamis Hassan',          initial: 'S', color: { bg: '#2A2210', fg: '#E8C070' }, amount: 30000, note: 'Mapenzi na baraka!' },
+    { id: '6',  name: 'Brian Otieno Odhiambo',        initial: 'B', color: { bg: '#1A3A28', fg: '#3DAA76' }, amount: 5000,  note: '' },
+    { id: '7',  name: 'Zuwena Kombo Mwanahamisi',     initial: 'Z', color: { bg: '#38200A', fg: '#E07040' }, amount: 25000, note: 'Sherehe njema!' },
+    { id: '8',  name: 'David Njenga Kimani',          initial: 'D', color: { bg: '#1A2838', fg: '#5A8ADB' }, amount: 12000, note: 'Congratulations!' },
+    { id: '9',  name: 'Rehema Juma Nyamizi',          initial: 'R', color: { bg: '#2A1A38', fg: '#BF5AF2' }, amount: 35000, note: 'Baraka tele!' },
+    { id: '10', name: 'Moses Kamau Njoroge',          initial: 'M', color: { bg: '#2A2210', fg: '#E8C070' }, amount: 8000,  note: '' },
+    { id: '11', name: 'Yasmin Mohammed Abeid',        initial: 'Y', color: { bg: '#1A3A28', fg: '#3DAA76' }, amount: 45000, note: 'Hongera! Maisha marefu.' },
+    { id: '12', name: 'Petronella Nkosi Dlamini',     initial: 'P', color: { bg: '#38200A', fg: '#E07040' }, amount: 18000, note: '' },
+    { id: '13', name: 'Nasra Hamisi Mwanashehe',      initial: 'N', color: { bg: '#1A2838', fg: '#5A8ADB' }, amount: 22000, note: 'With love from Zanzibar 🌺' },
+    { id: '14', name: 'Grace Wanjiku Muthoni',                   initial: 'G', color: { bg: '#2A1A38', fg: '#BF5AF2' }, amount: 6000,  note: '' },
+    { id: '15', name: 'Mr & Mrs Gustanza Massareli Johnathan',  initial: 'G', color: { bg: '#1A3A28', fg: '#3DAA76' }, amount: 100000, note: 'With all our love!' },
+    { id: '16', name: 'Alexandrina Wambui Nyambura',            initial: 'A', color: { bg: '#2A2210', fg: '#E8C070' }, amount: 17000, note: '' },
+    { id: '17', name: 'Bartholomew Ochieng Oluoch',             initial: 'B', color: { bg: '#38200A', fg: '#E07040' }, amount: 9000,  note: '' },
+]);
+
+const giversPreview = computed(() => givers.value.slice(0, 4));
+const giversOverflow = computed(() => Math.max(0, givers.value.length - 4));
+const giversFirstNames = computed(() => givers.value.slice(0, 2).map(g => g.name.split(' ')[0]));
+
+function openGiftSheet() { showGiftSheet.value = true; giftStep.value = 'pick'; giftAmount.value = null; giftCustom.value = ''; giftNote.value = ''; }
+function closeGiftSheet() { if (giftSending.value) return; showGiftSheet.value = false; }
+
+const giftTotal = computed(() => {
+    if (giftAmount.value) return giftAmount.value;
+    const n = parseInt(giftCustom.value.replace(/\D/g, ''), 10);
+    return isNaN(n) ? null : n;
+});
+
+const stepTitle = computed(() => {
+    const sw = { pick: 'Toa Zawadi ya Pesa', note: 'Ongeza Ujumbe', confirm: 'Thibitisha Zawadi', done: 'Zawadi Imetumwa!' };
+    const en = { pick: 'Send a Gift', note: 'Add a Note', confirm: 'Confirm Gift', done: 'Gift Sent!' };
+    return (lang.value === 'sw' ? sw : en)[giftStep.value] ?? '';
+});
+
+function pickPreset(amt) { giftAmount.value = amt; giftCustom.value = ''; }
+function giftNext() {
+    if (!giftTotal.value || giftTotal.value < 1000) return;
+    giftStep.value = 'note';
+}
+function giftBack() { giftStep.value = 'pick'; }
+function giftConfirm() { giftStep.value = 'confirm'; }
+function giftBackToNote() { giftStep.value = 'note'; }
+
+async function sendGift() {
+    giftSending.value = true;
+    // placeholder — real Firestore write goes here
+    await new Promise(r => setTimeout(r, 1200));
+    giftSending.value = false;
+    giftStep.value = 'done';
+}
+
 const eventLocations = computed(() => eventData.value?.locations ?? []);
 
 const mapsLink = (loc) => {
@@ -209,22 +278,22 @@ const mapsLink = (loc) => {
 // ── Gallery ───────────────────────────────────────────────────────────────────
 const FOLDER_PAGE = 6;
 const MEDIA_LIMIT = 24;
-const lightboxItem       = ref(null); // { url, type, folderName, id?, folderId? }
-const showMediaComments  = ref(false);
-const mediaComments      = ref([]);
-const mediaCommentText   = ref('');
+const lightboxItem = ref(null); // { url, type, folderName, id?, folderId? }
+const showMediaComments = ref(false);
+const mediaComments = ref([]);
+const mediaCommentText = ref('');
 const mediaCommentPosting = ref(false);
-const lbScale  = ref(1);
-const lbOffX   = ref(0);
-const lbOffY   = ref(0);
+const lbScale = ref(1);
+const lbOffX = ref(0);
+const lbOffY = ref(0);
 
 let _lbPinchDist0 = 0, _lbScale0 = 1;
-let _lbPanStart  = { x: 0, y: 0 }, _lbOff0 = { x: 0, y: 0 };
-let _lbLastTap   = 0, _lbMoved = false;
+let _lbPanStart = { x: 0, y: 0 }, _lbOff0 = { x: 0, y: 0 };
+let _lbLastTap = 0, _lbMoved = false;
 
 function _pinchDist(t) {
     const dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
-    return Math.sqrt(dx*dx + dy*dy);
+    return Math.sqrt(dx * dx + dy * dy);
 }
 function lbResetZoom() { lbScale.value = 1; lbOffX.value = 0; lbOffY.value = 0; }
 function closeLightbox() { lightboxItem.value = null; lbResetZoom(); }
@@ -500,7 +569,7 @@ const postMediaComment = async () => {
             { commentCount: increment(1) }
         );
         const grp = galleryGroups.value.find(g => g.folderId === item.folderId);
-        const mi  = grp?.items.find(i => i.id === item.id);
+        const mi = grp?.items.find(i => i.id === item.id);
         if (mi) mi.commentCount = (mi.commentCount ?? 0) + 1;
         mediaCommentText.value = '';
     } finally {
@@ -603,11 +672,8 @@ const toggleLike = async (item) => {
                 <div class="ticket">
 
                     <!-- Thumbnail strip / Hero slider -->
-                    <div class="thumb-wrap"
-                        @touchstart.passive="onHeroDragStart"
-                        @touchend="onHeroDragEnd"
-                        @mousedown="onHeroDragStart"
-                        @mouseup="onHeroDragEnd"
+                    <div class="thumb-wrap" @touchstart.passive="onHeroDragStart" @touchend="onHeroDragEnd"
+                        @mousedown="onHeroDragStart" @mouseup="onHeroDragEnd"
                         @mouseleave="heroDragging = false; dragStartX = null"
                         :class="{ 'hero-grabbing': heroDragging }">
 
@@ -707,17 +773,12 @@ const toggleLike = async (item) => {
 
                             <!-- locations array: tappable, opens Maps -->
                             <template v-if="eventLocations.length > 0">
-                                <a
-                                    v-for="loc in eventLocations"
-                                    :key="loc.id"
-                                    :href="mapsLink(loc)"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="ev-meta-row ev-meta-loc-link"
-                                >
+                                <a v-for="loc in eventLocations" :key="loc.id" :href="mapsLink(loc)" target="_blank"
+                                    rel="noopener noreferrer" class="ev-meta-row ev-meta-loc-link">
                                     <div class="ev-meta-icon ev-meta-icon-gold">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                                            <path
+                                                d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
                                             <circle cx="12" cy="9" r="2.5" />
                                         </svg>
                                     </div>
@@ -736,7 +797,8 @@ const toggleLike = async (item) => {
                             <div class="ev-meta-row" v-else-if="eventData.location">
                                 <div class="ev-meta-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                                        <path
+                                            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
                                         <circle cx="12" cy="9" r="2.5" />
                                     </svg>
                                 </div>
@@ -769,32 +831,30 @@ const toggleLike = async (item) => {
                             </div>
                         </div>
 
-                        <button v-if="hasInvitation && attendeeData?.cards?.invitation?.url"
-                            class="view-card-btn"
+                        <button v-if="hasInvitation && attendeeData?.cards?.invitation?.url" class="view-card-btn"
                             @click="lightboxItem = { url: attendeeData.cards.invitation.url, type: 'image' }">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
                             </svg>
                             {{ t('viewCard') }}
                         </button>
 
                         <div :class="['stub-status',
-                                attendeeData?.attendanceStatus === 'Confirmed' ? 'status-in' :
-                                attendeeData?.attendanceStatus === 'Declined'  ? 'status-declined' :
-                                'status-pending']"
-                            @click="showRsvp = true">
+                            attendeeData?.attendanceStatus === 'Confirmed' ? 'status-in' :
+                                attendeeData?.attendanceStatus === 'Declined' ? 'status-declined' :
+                                    'status-pending']" @click="showRsvp = true">
                             <div class="status-indicator">
                                 <div :class="['status-led',
-                                        attendeeData?.attendanceStatus === 'Confirmed' ? 'led-green' :
-                                        attendeeData?.attendanceStatus === 'Declined'  ? 'led-red' :
-                                        'led-amber']">
+                                    attendeeData?.attendanceStatus === 'Confirmed' ? 'led-green' :
+                                        attendeeData?.attendanceStatus === 'Declined' ? 'led-red' :
+                                            'led-amber']">
                                 </div>
                                 <span>{{
                                     attendeeData?.attendanceStatus === 'Confirmed' ? t('confirmed') :
-                                    attendeeData?.attendanceStatus === 'Declined'  ? t('declined') :
-                                    t('pendingRsvp')
-                                }}</span>
+                                        attendeeData?.attendanceStatus === 'Declined' ? t('declined') :
+                                            t('pendingRsvp')
+                                    }}</span>
                             </div>
                             <div class="status-right">
                                 <svg v-if="attendeeData?.attendanceStatus === 'Confirmed'" class="check-mark"
@@ -805,7 +865,8 @@ const toggleLike = async (item) => {
                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <path d="M18 6L6 18M6 6l12 12" />
                                 </svg>
-                                <span v-if="attendeeData?.attendanceStatus === 'Confirmed' || attendeeData?.attendanceStatus === 'Declined'"
+                                <span
+                                    v-if="attendeeData?.attendanceStatus === 'Confirmed' || attendeeData?.attendanceStatus === 'Declined'"
                                     class="status-change-lbl">{{ t('tapToChange') }}</span>
                             </div>
                         </div>
@@ -849,12 +910,59 @@ const toggleLike = async (item) => {
                         </button>
                     </div>
 
+                    <!-- ── Gift card ── -->
+                    <div class="section-card gift-card anim" style="--d:.08s" @click="openGiftSheet">
+                        <div class="gift-card-inner">
+                            <div class="gift-icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                    <path d="M20 12v10H4V12" />
+                                    <path d="M22 7H2v5h20V7z" />
+                                    <path d="M12 22V7" />
+                                    <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z" />
+                                    <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" />
+                                </svg>
+                            </div>
+                            <div class="gift-card-text">
+                                <p class="gift-card-title">{{ lang === 'sw' ? 'Toa Zawadi ya Pesa' : 'Send a Gift' }}</p>
+                                <p class="gift-card-sub" v-if="givers.length === 0">
+                                    {{ lang === 'sw' ? 'Kuwa wa kwanza kutoa zawadi' : 'Be the first to send a gift' }}
+                                </p>
+                                <p class="gift-card-sub" v-else>
+                                    <template v-if="lang === 'sw'">
+                                        {{ giversFirstNames.join(', ') }}<span v-if="giversOverflow"> na {{ giversOverflow }} wengine</span> wametoa zawadi
+                                    </template>
+                                    <template v-else>
+                                        {{ giversFirstNames.join(', ') }}<span v-if="giversOverflow"> &amp; {{ giversOverflow }} others</span> have contributed
+                                    </template>
+                                </p>
+                            </div>
+                            <svg class="gift-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                <path d="M9 18l6-6-6-6" />
+                            </svg>
+                        </div>
+
+                        <!-- Givers avatar strip -->
+                        <div v-if="givers.length" class="gift-card-givers" @click.stop="openGiftSheet">
+                            <div class="givers-avatars">
+                                <div v-for="g in giversPreview" :key="g.id" class="givers-avatar"
+                                    :style="{ background: g.color.bg, color: g.color.fg }">
+                                    {{ g.initial }}
+                                </div>
+                                <div v-if="giversOverflow" class="givers-avatar givers-overflow">+{{ giversOverflow }}</div>
+                            </div>
+                            <span class="gift-card-givers-lbl">
+                                {{ givers.length }} {{ lang === 'sw' ? 'zawadi' : 'gifts' }}
+                            </span>
+                            <span class="gift-card-tap-lbl">{{ lang === 'sw' ? 'Gusa kutoa zawadi' : 'Tap to send a gift' }}</span>
+                        </div>
+                    </div>
+
                     <!-- Comments -->
                     <div class="section-card anim" style="--d:.1s">
                         <div class="s-hdr">
                             <div class="s-bar"></div>
                             <span class="s-lbl">{{ t('comments') }}<span v-if="comments.length" class="cmnt-count"> ({{
-                                    comments.length }})</span></span>
+                                comments.length }})</span></span>
                         </div>
 
                         <div class="cmnt-list" v-if="comments.length">
@@ -869,16 +977,19 @@ const toggleLike = async (item) => {
                                     </div>
                                     <p class="cmnt-text">{{ c.text }}</p>
                                     <div class="cmnt-actions">
-                                        <button class="cmnt-reply-btn" @click="openReply(c.id)">{{ t('reply') }}</button>
+                                        <button class="cmnt-reply-btn" @click="openReply(c.id)">{{ t('reply')
+                                            }}</button>
                                         <button v-if="c.replyCount > 0" class="cmnt-view-replies"
                                             @click="toggleReplies(c)">
-                                            {{ expandedReplies[c.id] ? t('hideReplies') : tFn('replies', c.replyCount) }}
+                                            {{ expandedReplies[c.id] ? t('hideReplies') : tFn('replies', c.replyCount)
+                                            }}
                                         </button>
                                     </div>
 
                                     <div v-if="replyingTo === c.id" class="cmnt-reply-form">
                                         <input v-model="replyTexts[c.id]" class="cmnt-input"
-                                            :placeholder="t('replyPlaceholder')" @keydown.enter.prevent="postReply(c)" />
+                                            :placeholder="t('replyPlaceholder')"
+                                            @keydown.enter.prevent="postReply(c)" />
                                         <button class="cmnt-send"
                                             :disabled="!replyTexts[c.id]?.trim() || replyPosting[c.id]"
                                             @click="postReply(c)">
@@ -893,7 +1004,7 @@ const toggleLike = async (item) => {
                                         <div v-for="r in expandedReplies[c.id]" :key="r.id" class="cmnt-item">
                                             <div class="cmnt-avatar cmnt-avatar-sm"
                                                 :style="{ background: r.userColor?.bg, color: r.userColor?.fg }">{{
-                                                r.userInitial }}</div>
+                                                    r.userInitial }}</div>
                                             <div class="cmnt-body">
                                                 <div class="cmnt-meta">
                                                     <span class="cmnt-name">{{ r.userName }}</span>
@@ -925,8 +1036,9 @@ const toggleLike = async (item) => {
                     </div>
 
                     <!-- Support -->
-                    <a v-if="eventData.supportPhone" :href="`https://wa.me/${eventData.supportPhone.replace(/\D/g, '')}`"
-                        target="_blank" class="support-link anim" style="--d:.15s">
+                    <a v-if="eventData.supportPhone"
+                        :href="`https://wa.me/${eventData.supportPhone.replace(/\D/g, '')}`" target="_blank"
+                        class="support-link anim" style="--d:.15s">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                         </svg>
@@ -956,10 +1068,12 @@ const toggleLike = async (item) => {
 
                     <!-- Grouped grid -->
                     <template v-else>
-                        <div v-for="group in galleryGroups" :key="group.folderId" class="gallery-section anim" style="--d:0s">
+                        <div v-for="group in galleryGroups" :key="group.folderId" class="gallery-section anim"
+                            style="--d:0s">
                             <div class="gallery-section-hdr">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                                    <path d="M3 7a2 2 0 012-2h3.586a1 1 0 01.707.293L10.707 6.7A1 1 0 0011.414 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/>
+                                    <path
+                                        d="M3 7a2 2 0 012-2h3.586a1 1 0 01.707.293L10.707 6.7A1 1 0 0011.414 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                                 </svg>
                                 <span>{{ group.folderName }}</span>
                                 <span class="gallery-section-count">{{ group.items.length }}</span>
@@ -974,38 +1088,44 @@ const toggleLike = async (item) => {
                                         <video :src="item.url" preload="metadata" muted playsinline></video>
                                         <div class="gallery-play-overlay">
                                             <svg viewBox="0 0 24 24" fill="currentColor">
-                                                <circle cx="12" cy="12" r="12" opacity=".55"/>
-                                                <polygon points="10,8 17,12 10,16" fill="white"/>
+                                                <circle cx="12" cy="12" r="12" opacity=".55" />
+                                                <polygon points="10,8 17,12 10,16" fill="white" />
                                             </svg>
                                         </div>
                                     </div>
-                                    <button class="glk"
-                                        :class="{ 'glk-liked': (item.likedBy ?? []).includes(userId) }"
+                                    <button class="glk" :class="{ 'glk-liked': (item.likedBy ?? []).includes(userId) }"
                                         @click.stop="toggleLike({ ...item, folderId: group.folderId })">
-                                        <svg viewBox="0 0 24 24" :fill="(item.likedBy ?? []).includes(userId) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2.2">
-                                            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                                        <svg viewBox="0 0 24 24"
+                                            :fill="(item.likedBy ?? []).includes(userId) ? 'currentColor' : 'none'"
+                                            stroke="currentColor" stroke-width="2.2">
+                                            <path
+                                                d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                                         </svg>
-                                        <span v-if="(item.likedBy ?? []).length" class="glk-count">{{ (item.likedBy ?? []).length }}</span>
+                                        <span v-if="(item.likedBy ?? []).length" class="glk-count">{{ (item.likedBy ??
+                                            []).length }}</span>
                                     </button>
                                     <button class="gcc"
                                         @click.stop="openMediaComments({ ...item, folderId: group.folderId, folderName: group.folderName })">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                                         </svg>
                                         <span v-if="item.commentCount" class="gcc-count">{{ item.commentCount }}</span>
                                     </button>
                                 </div>
                             </div>
                             <!-- Expand / collapse -->
-                            <button v-if="group.items.length > FOLDER_PREVIEW"
-                                class="gallery-expand-btn"
+                            <button v-if="group.items.length > FOLDER_PREVIEW" class="gallery-expand-btn"
                                 @click="toggleFolderExpand(group.folderId)">
                                 <template v-if="!expandedFolders[group.folderId]">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9" />
+                                    </svg>
                                     See {{ group.items.length - FOLDER_PREVIEW }} more
                                 </template>
                                 <template v-else>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="18 15 12 9 6 15" />
+                                    </svg>
                                     Show less
                                 </template>
                             </button>
@@ -1030,50 +1150,54 @@ const toggleLike = async (item) => {
                                     <line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
                             </button>
-                            <div class="lb-folder-badge" v-if="lightboxItem.folderName">{{ lightboxItem.folderName }}</div>
-                            <img v-if="lightboxItem.type === 'image'"
-                                :src="lightboxItem.url"
-                                class="lb-img"
+                            <div class="lb-folder-badge" v-if="lightboxItem.folderName">{{ lightboxItem.folderName }}
+                            </div>
+                            <img v-if="lightboxItem.type === 'image'" :src="lightboxItem.url" class="lb-img"
                                 :style="{ transform: `translate(${lbOffX}px, ${lbOffY}px) scale(${lbScale})`, cursor: lbScale > 1 ? 'grab' : 'zoom-in' }"
-                                @touchstart="onLbTouchStart"
-                                @touchmove.prevent="onLbTouchMove"
-                                @touchend="onLbTouchEnd"
-                                @wheel.prevent="onLbWheel"
-                                @dblclick="onLbDblClick"
-                                @click.stop
-                            />
-                            <video v-else :src="lightboxItem.url" class="lb-video" controls autoplay playsinline></video>
+                                @touchstart="onLbTouchStart" @touchmove.prevent="onLbTouchMove" @touchend="onLbTouchEnd"
+                                @wheel.prevent="onLbWheel" @dblclick="onLbDblClick" @click.stop />
+                            <video v-else :src="lightboxItem.url" class="lb-video" controls autoplay
+                                playsinline></video>
 
                             <!-- Like button (gallery items only) -->
-                            <button v-if="lightboxItem.folderId && lightboxItem.id"
-                                class="lb-like-btn"
+                            <button v-if="lightboxItem.folderId && lightboxItem.id" class="lb-like-btn"
                                 :class="{ 'lb-like-btn-active': (lightboxItem.likedBy ?? []).includes(userId) }"
                                 @click.stop="toggleLike(lightboxItem)">
-                                <svg viewBox="0 0 24 24" :fill="(lightboxItem.likedBy ?? []).includes(userId) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-                                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                                <svg viewBox="0 0 24 24"
+                                    :fill="(lightboxItem.likedBy ?? []).includes(userId) ? 'currentColor' : 'none'"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path
+                                        d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                                 </svg>
-                                <span v-if="(lightboxItem.likedBy ?? []).length" class="lb-like-badge">{{ (lightboxItem.likedBy ?? []).length }}</span>
+                                <span v-if="(lightboxItem.likedBy ?? []).length" class="lb-like-badge">{{
+                                    (lightboxItem.likedBy ??
+                                    []).length }}</span>
                             </button>
 
                             <!-- Comment toggle (gallery items only) -->
-                            <button v-if="lightboxItem.folderId && lightboxItem.id"
-                                class="lb-comment-btn"
+                            <button v-if="lightboxItem.folderId && lightboxItem.id" class="lb-comment-btn"
                                 :class="{ 'lb-comment-btn-active': showMediaComments }"
                                 @click.stop="showMediaComments = !showMediaComments">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                                 </svg>
-                                <span v-if="mediaComments.length" class="lb-comment-badge">{{ mediaComments.length }}</span>
+                                <span v-if="mediaComments.length" class="lb-comment-badge">{{ mediaComments.length
+                                    }}</span>
                             </button>
 
                             <!-- Media comments bottom sheet -->
                             <Transition name="mc-slide">
                                 <div v-if="showMediaComments && lightboxItem.folderId" class="mc-sheet" @click.stop>
                                     <div class="mc-handle"></div>
-                                    <p class="mc-title">{{ t('comments') }}<span v-if="mediaComments.length" class="cmnt-count"> ({{ mediaComments.length }})</span></p>
+                                    <p class="mc-title">{{ t('comments') }}<span v-if="mediaComments.length"
+                                            class="cmnt-count"> ({{
+                                            mediaComments.length }})</span></p>
                                     <div class="mc-list">
                                         <div v-for="c in mediaComments" :key="c.id" class="cmnt-item">
-                                            <div class="cmnt-avatar cmnt-avatar-sm" :style="{ background: c.userColor?.bg, color: c.userColor?.fg }">{{ c.userInitial }}</div>
+                                            <div class="cmnt-avatar cmnt-avatar-sm"
+                                                :style="{ background: c.userColor?.bg, color: c.userColor?.fg }">{{
+                                                c.userInitial }}
+                                            </div>
                                             <div class="cmnt-body">
                                                 <div class="cmnt-meta">
                                                     <span class="cmnt-name">{{ c.userName }}</span>
@@ -1082,19 +1206,162 @@ const toggleLike = async (item) => {
                                                 <p class="cmnt-text">{{ c.text }}</p>
                                             </div>
                                         </div>
-                                        <p v-if="!mediaComments.length" class="cmnt-empty mc-empty">{{ t('noComments') }}</p>
+                                        <p v-if="!mediaComments.length" class="cmnt-empty mc-empty">{{ t('noComments')
+                                            }}</p>
                                     </div>
                                     <div class="cmnt-compose mc-compose">
-                                        <div class="cmnt-avatar cmnt-avatar-sm" :style="{ background: ac?.bg, color: ac?.fg }">{{ attendeeInitial }}</div>
-                                        <input v-model="mediaCommentText" class="cmnt-input" :placeholder="t('commentPlaceholder')"
+                                        <div class="cmnt-avatar cmnt-avatar-sm"
+                                            :style="{ background: ac?.bg, color: ac?.fg }">{{
+                                            attendeeInitial }}</div>
+                                        <input v-model="mediaCommentText" class="cmnt-input"
+                                            :placeholder="t('commentPlaceholder')"
                                             @keydown.enter.prevent="postMediaComment" />
-                                        <button class="cmnt-send" :disabled="!mediaCommentText.trim() || mediaCommentPosting" @click="postMediaComment">
+                                        <button class="cmnt-send"
+                                            :disabled="!mediaCommentText.trim() || mediaCommentPosting"
+                                            @click="postMediaComment">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <line x1="22" y1="2" x2="11" y2="13"/>
-                                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                                <line x1="22" y1="2" x2="11" y2="13" />
+                                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
                                             </svg>
                                         </button>
                                     </div>
+                                </div>
+                            </Transition>
+                        </div>
+                    </Transition>
+                </Teleport>
+
+                <!-- ── Gift bottom-sheet ── -->
+                <Teleport to="body">
+                    <Transition name="gift-overlay">
+                        <div v-if="showGiftSheet" class="gift-overlay" @click.self="closeGiftSheet">
+                            <Transition name="gift-sheet">
+                                <div v-if="showGiftSheet" class="gift-sheet" @click.stop>
+                                    <div class="gift-sheet-handle"></div>
+
+                                    <!-- Persistent header: back · [icon] title · close -->
+                                    <div class="gift-hdr-row">
+                                        <button v-if="giftStep === 'note'" class="gift-hdr-back" @click="giftBack">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+                                        </button>
+                                        <button v-else-if="giftStep === 'confirm'" class="gift-hdr-back" @click="giftBackToNote">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+                                        </button>
+
+                                        <div v-if="giftStep === 'pick'" class="gift-hdr-identity">
+                                            <div class="gift-hdr-icon">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                                    <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+                                                    <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
+                                                    <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
+                                                </svg>
+                                            </div>
+                                            <p class="gift-hdr-title">{{ stepTitle }}</p>
+                                        </div>
+                                        <p v-else class="gift-hdr-title">{{ stepTitle }}</p>
+
+                                        <button class="gift-sheet-close" @click="closeGiftSheet">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    <!-- Step: pick amount -->
+                                    <template v-if="giftStep === 'pick'">
+                                        <p class="gift-sheet-sub">{{ lang === 'sw' ? 'Toa zawadi kwa' : 'Send a gift to' }} {{ eventData?.title }}</p>
+
+                                        <!-- Givers wall -->
+                                        <div v-if="givers.length" class="givers-wall">
+                                            <div class="givers-wall-scroll">
+                                                <div v-for="g in givers" :key="g.id" class="givers-wall-chip">
+                                                    <div class="givers-wall-avatar" :style="{ background: g.color.bg, color: g.color.fg }">{{ g.initial }}</div>
+                                                    <div class="givers-wall-info">
+                                                        <span class="givers-wall-name">{{ g.name }}</span>
+                                                        <span class="givers-wall-amt">{{ fmtMoney(g.amount) }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p class="givers-wall-lbl">{{ givers.length }} {{ lang === 'sw' ? 'wametoa zawadi hadi sasa' : 'people have sent gifts' }}</p>
+                                        </div>
+
+                                        <div class="gift-presets">
+                                            <button v-for="p in GIFT_PRESETS" :key="p"
+                                                :class="['gift-preset', giftAmount === p && !giftCustom ? 'gift-preset-active' : '']"
+                                                @click="pickPreset(p)">
+                                                {{ fmtMoney(p) }}<span class="gift-preset-cur">{{ giftCurrency }}</span>
+                                            </button>
+                                        </div>
+                                        <div class="gift-custom-wrap">
+                                            <span class="gift-custom-prefix">{{ giftCurrency }}</span>
+                                            <input v-model="giftCustom" class="gift-custom-input" type="number"
+                                                inputmode="numeric" :placeholder="lang === 'sw' ? 'Kiasi kingine' : 'Custom amount'"
+                                                @input="giftAmount = null" />
+                                        </div>
+                                        <p v-if="giftTotal && giftTotal < 1000" class="gift-err">{{ lang === 'sw' ? 'Kiwango cha chini ni' : 'Minimum is' }} {{ fmtMoney(1000) }} {{ giftCurrency }}</p>
+                                        <button class="gift-cta" :disabled="!giftTotal || giftTotal < 1000" @click="giftNext">
+                                            {{ lang === 'sw' ? 'Endelea' : 'Continue' }}
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                        </button>
+                                    </template>
+
+                                    <!-- Step: note -->
+                                    <template v-if="giftStep === 'note'">
+                                        <p class="gift-sheet-sub" style="margin-bottom:14px">{{ lang === 'sw' ? 'Hiari — maneno yako yataonekana ukutani' : 'Optional — shown on the givers wall' }}</p>
+                                        <div class="gift-amount-pill"><span>{{ fmtMoney(giftTotal) }} {{ giftCurrency }}</span></div>
+                                        <textarea v-model="giftNote" class="gift-note-ta"
+                                            :placeholder="lang === 'sw' ? 'Mfano: Hongera sana! Mungu abariki…' : 'e.g. Congratulations! Wishing you all the best…'"
+                                            rows="4" maxlength="200"></textarea>
+                                        <p class="gift-char-count">{{ giftNote.length }}/200</p>
+                                        <button class="gift-cta" @click="giftConfirm">
+                                            {{ lang === 'sw' ? 'Kagua' : 'Review' }}
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                        </button>
+                                    </template>
+
+                                    <!-- Step: confirm -->
+                                    <template v-if="giftStep === 'confirm'">
+                                        <div class="gift-confirm-card">
+                                            <div class="gift-confirm-row">
+                                                <span class="gift-confirm-lbl">{{ lang === 'sw' ? 'Kutoka' : 'From' }}</span>
+                                                <span class="gift-confirm-val">{{ attendeeName }}</span>
+                                            </div>
+                                            <div class="gift-confirm-row">
+                                                <span class="gift-confirm-lbl">{{ lang === 'sw' ? 'Kiasi' : 'Amount' }}</span>
+                                                <span class="gift-confirm-val gift-confirm-amt">{{ fmtMoney(giftTotal) }} {{ giftCurrency }}</span>
+                                            </div>
+                                            <div v-if="giftNote" class="gift-confirm-row gift-confirm-note-row">
+                                                <span class="gift-confirm-lbl">{{ lang === 'sw' ? 'Ujumbe' : 'Note' }}</span>
+                                                <span class="gift-confirm-val gift-confirm-note">{{ giftNote }}</span>
+                                            </div>
+                                        </div>
+                                        <p class="gift-confirm-disclaimer">{{ lang === 'sw' ? 'Malipo yatashughulikiwa kwa usalama.' : 'Payment will be processed securely.' }}</p>
+                                        <button class="gift-cta gift-cta-gold" :disabled="giftSending" @click="sendGift">
+                                            <template v-if="giftSending">
+                                                <div class="gift-spinner"></div>
+                                                {{ lang === 'sw' ? 'Inatuma…' : 'Sending…' }}
+                                            </template>
+                                            <template v-else>
+                                                {{ lang === 'sw' ? 'Tuma Zawadi' : 'Send Gift' }}
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+                                            </template>
+                                        </button>
+                                    </template>
+
+                                    <!-- Step: done -->
+                                    <template v-if="giftStep === 'done'">
+                                        <div class="gift-done">
+                                            <div class="gift-done-icon">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                                    <circle cx="12" cy="12" r="10"/>
+                                                    <path d="M8 12l3 3 5-6" stroke-linecap="round" stroke-linejoin="round"/>
+                                                </svg>
+                                            </div>
+                                            <p class="gift-done-sub">{{ fmtMoney(giftTotal) }} {{ giftCurrency }} — {{ lang === 'sw' ? 'Zawadi yako imetumwa. Asante sana!' : 'Your gift has been sent. Thank you!' }}</p>
+                                            <button class="gift-cta" @click="closeGiftSheet">{{ lang === 'sw' ? 'Funga' : 'Done' }}</button>
+                                        </div>
+                                    </template>
+
                                 </div>
                             </Transition>
                         </div>
@@ -1143,23 +1410,33 @@ const toggleLike = async (item) => {
 }
 
 .bg-anim span:nth-child(1) {
-    left: -25%; top: -20%;
-    width: 85vw; height: 85vw;
-    background: radial-gradient(circle at center, rgba(201,150,60,.11) 0%, transparent 65%);
+    left: -25%;
+    top: -20%;
+    width: 85vw;
+    height: 85vw;
+    background: radial-gradient(circle at center, rgba(201, 150, 60, .11) 0%, transparent 65%);
     opacity: 1;
     animation: orbDrift1 32s ease-in-out infinite;
 }
+
 .bg-anim span:nth-child(2) {
-    right: -25%; bottom: 0; left: unset; top: unset;
-    width: 75vw; height: 75vw;
-    background: radial-gradient(circle at center, rgba(160,100,30,.08) 0%, transparent 65%);
+    right: -25%;
+    bottom: 0;
+    left: unset;
+    top: unset;
+    width: 75vw;
+    height: 75vw;
+    background: radial-gradient(circle at center, rgba(160, 100, 30, .08) 0%, transparent 65%);
     opacity: 1;
     animation: orbDrift2 38s ease-in-out infinite;
 }
+
 .bg-anim span:nth-child(3) {
-    left: 20%; top: 35%;
-    width: 55vw; height: 55vw;
-    background: radial-gradient(circle at center, rgba(220,160,60,.05) 0%, transparent 60%);
+    left: 20%;
+    top: 35%;
+    width: 55vw;
+    height: 55vw;
+    background: radial-gradient(circle at center, rgba(220, 160, 60, .05) 0%, transparent 60%);
     opacity: 1;
     animation: orbDrift3 28s ease-in-out infinite;
 }
@@ -1170,42 +1447,208 @@ const toggleLike = async (item) => {
     opacity: 0;
     animation: floatUp var(--dur) ease-in var(--delay) infinite;
 }
-.bg-anim span:nth-child(4)  { left: 10%; width:  4px; height:  4px; background: rgba(201,150,60,.8);   --dur:  9s; --delay: 0.3s; }
-.bg-anim span:nth-child(5)  { left: 22%; width:  3px; height:  3px; background: rgba(255,255,255,.5);  --dur: 11s; --delay: 1.2s; border-radius: 2px; }
-.bg-anim span:nth-child(6)  { left: 33%; width:  5px; height:  5px; background: rgba(201,150,60,.7);   --dur:  8s; --delay: 2.8s; }
-.bg-anim span:nth-child(7)  { left: 44%; width:  4px; height:  4px; background: rgba(200,170,255,.65); --dur: 13s; --delay: 0.6s; }
-.bg-anim span:nth-child(8)  { left: 55%; width:  3px; height:  3px; background: rgba(201,150,60,.7);   --dur: 10s; --delay: 3.5s; }
-.bg-anim span:nth-child(9)  { left: 64%; width:  5px; height:  5px; background: rgba(255,255,255,.35); --dur:  7s; --delay: 1.8s; border-radius: 2px; }
-.bg-anim span:nth-child(10) { left: 73%; width:  4px; height:  4px; background: rgba(201,150,60,.6);   --dur: 12s; --delay: 0.9s; }
-.bg-anim span:nth-child(11) { left: 82%; width:  3px; height:  3px; background: rgba(200,170,255,.6);  --dur:  9s; --delay: 4.1s; }
-.bg-anim span:nth-child(12) { left: 91%; width:  4px; height:  4px; background: rgba(201,150,60,.75);  --dur: 11s; --delay: 2.2s; }
-.bg-anim span:nth-child(13) { left: 17%; width:  5px; height:  5px; background: rgba(255,255,255,.4);  --dur:  8s; --delay: 0s; }
-.bg-anim span:nth-child(14) { left: 40%; width:  3px; height:  3px; background: rgba(201,150,60,.8);   --dur: 14s; --delay: 3s; border-radius: 2px; }
-.bg-anim span:nth-child(15) { left: 59%; width:  4px; height:  4px; background: rgba(201,150,60,.65);  --dur:  9s; --delay: 1.5s; }
-.bg-anim span:nth-child(16) { left: 78%; width:  5px; height:  5px; background: rgba(200,170,255,.5);  --dur: 10s; --delay: 2.7s; }
-.bg-anim span:nth-child(17) { left:  6%; width:  3px; height:  3px; background: rgba(255,255,255,.45); --dur: 12s; --delay: 0.5s; }
-.bg-anim span:nth-child(18) { left: 48%; width:  4px; height:  4px; background: rgba(201,150,60,.7);   --dur:  8s; --delay: 4.5s; border-radius: 2px; }
+
+.bg-anim span:nth-child(4) {
+    left: 10%;
+    width: 4px;
+    height: 4px;
+    background: rgba(201, 150, 60, .8);
+    --dur: 9s;
+    --delay: 0.3s;
+}
+
+.bg-anim span:nth-child(5) {
+    left: 22%;
+    width: 3px;
+    height: 3px;
+    background: rgba(255, 255, 255, .5);
+    --dur: 11s;
+    --delay: 1.2s;
+    border-radius: 2px;
+}
+
+.bg-anim span:nth-child(6) {
+    left: 33%;
+    width: 5px;
+    height: 5px;
+    background: rgba(201, 150, 60, .7);
+    --dur: 8s;
+    --delay: 2.8s;
+}
+
+.bg-anim span:nth-child(7) {
+    left: 44%;
+    width: 4px;
+    height: 4px;
+    background: rgba(200, 170, 255, .65);
+    --dur: 13s;
+    --delay: 0.6s;
+}
+
+.bg-anim span:nth-child(8) {
+    left: 55%;
+    width: 3px;
+    height: 3px;
+    background: rgba(201, 150, 60, .7);
+    --dur: 10s;
+    --delay: 3.5s;
+}
+
+.bg-anim span:nth-child(9) {
+    left: 64%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, .35);
+    --dur: 7s;
+    --delay: 1.8s;
+    border-radius: 2px;
+}
+
+.bg-anim span:nth-child(10) {
+    left: 73%;
+    width: 4px;
+    height: 4px;
+    background: rgba(201, 150, 60, .6);
+    --dur: 12s;
+    --delay: 0.9s;
+}
+
+.bg-anim span:nth-child(11) {
+    left: 82%;
+    width: 3px;
+    height: 3px;
+    background: rgba(200, 170, 255, .6);
+    --dur: 9s;
+    --delay: 4.1s;
+}
+
+.bg-anim span:nth-child(12) {
+    left: 91%;
+    width: 4px;
+    height: 4px;
+    background: rgba(201, 150, 60, .75);
+    --dur: 11s;
+    --delay: 2.2s;
+}
+
+.bg-anim span:nth-child(13) {
+    left: 17%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, .4);
+    --dur: 8s;
+    --delay: 0s;
+}
+
+.bg-anim span:nth-child(14) {
+    left: 40%;
+    width: 3px;
+    height: 3px;
+    background: rgba(201, 150, 60, .8);
+    --dur: 14s;
+    --delay: 3s;
+    border-radius: 2px;
+}
+
+.bg-anim span:nth-child(15) {
+    left: 59%;
+    width: 4px;
+    height: 4px;
+    background: rgba(201, 150, 60, .65);
+    --dur: 9s;
+    --delay: 1.5s;
+}
+
+.bg-anim span:nth-child(16) {
+    left: 78%;
+    width: 5px;
+    height: 5px;
+    background: rgba(200, 170, 255, .5);
+    --dur: 10s;
+    --delay: 2.7s;
+}
+
+.bg-anim span:nth-child(17) {
+    left: 6%;
+    width: 3px;
+    height: 3px;
+    background: rgba(255, 255, 255, .45);
+    --dur: 12s;
+    --delay: 0.5s;
+}
+
+.bg-anim span:nth-child(18) {
+    left: 48%;
+    width: 4px;
+    height: 4px;
+    background: rgba(201, 150, 60, .7);
+    --dur: 8s;
+    --delay: 4.5s;
+    border-radius: 2px;
+}
 
 @keyframes orbDrift1 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    33%      { transform: translate(4vw, -3vh) scale(1.04); }
-    66%      { transform: translate(-2vw, 4vh) scale(.97); }
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    33% {
+        transform: translate(4vw, -3vh) scale(1.04);
+    }
+
+    66% {
+        transform: translate(-2vw, 4vh) scale(.97);
+    }
 }
+
 @keyframes orbDrift2 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    40%      { transform: translate(-5vw, -4vh) scale(1.06); }
-    70%      { transform: translate(2vw, 2vh) scale(.95); }
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    40% {
+        transform: translate(-5vw, -4vh) scale(1.06);
+    }
+
+    70% {
+        transform: translate(2vw, 2vh) scale(.95);
+    }
 }
+
 @keyframes orbDrift3 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    50%      { transform: translate(3vw, 5vh) scale(1.08); }
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    50% {
+        transform: translate(3vw, 5vh) scale(1.08);
+    }
 }
 
 @keyframes floatUp {
-    0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
-    8%   { opacity: 1; }
-    85%  { opacity: .6; }
-    100% { transform: translateY(-100vh) translateX(12px) scale(.5); opacity: 0; }
+    0% {
+        transform: translateY(0) translateX(0) scale(1);
+        opacity: 0;
+    }
+
+    8% {
+        opacity: 1;
+    }
+
+    85% {
+        opacity: .6;
+    }
+
+    100% {
+        transform: translateY(-100vh) translateX(12px) scale(.5);
+        opacity: 0;
+    }
 }
 
 /* ── Wrap ─────────────────────────────────────────────────────────────────── */
@@ -1224,31 +1667,36 @@ const toggleLike = async (item) => {
         align-items: flex-start;
         padding: 40px 24px 60px;
     }
+
     .wrap {
         width: 100%;
         max-width: 480px;
-        background: rgba(18,18,20,.92);
-        border: 1px solid rgba(44,44,46,.7);
+        background: rgba(18, 18, 20, .92);
+        border: 1px solid rgba(44, 44, 46, .7);
         border-radius: 32px;
         box-shadow:
-            0 0 0 1px rgba(201,150,60,.08),
-            0 40px 80px rgba(0,0,0,.6);
+            0 0 0 1px rgba(201, 150, 60, .08),
+            0 40px 80px rgba(0, 0, 0, .6);
         padding: 0 0 8px;
         overflow: hidden;
     }
-    .wrap > * {
+
+    .wrap>* {
         padding-left: 16px;
         padding-right: 16px;
     }
+
     .ticket {
         border-radius: 0;
         margin-bottom: 0;
         border: none;
         box-shadow: none;
     }
+
     .ticket::before {
         border-radius: 0;
     }
+
     .tab-bar {
         margin: 12px 16px;
     }
@@ -1270,14 +1718,16 @@ const toggleLike = async (item) => {
 .spin-ring {
     width: 38px;
     height: 38px;
-    border: 2.5px solid rgba(201, 150, 60,.15);
+    border: 2.5px solid rgba(201, 150, 60, .15);
     border-top-color: #C9963C;
     border-radius: 50%;
     animation: spin .75s linear infinite;
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .spin-lbl {
@@ -1285,15 +1735,15 @@ const toggleLike = async (item) => {
     font-weight: 700;
     letter-spacing: .18em;
     text-transform: uppercase;
-    color: rgba(238,238,240,.4);
+    color: rgba(238, 238, 240, .4);
 }
 
 .err-circle {
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: rgba(201, 150, 60,.08);
-    border: 1px solid rgba(201, 150, 60,.2);
+    background: rgba(201, 150, 60, .08);
+    border: 1px solid rgba(201, 150, 60, .2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1309,39 +1759,49 @@ const toggleLike = async (item) => {
 
 .err-p {
     font-size: 13px;
-    color: rgba(238,238,240,.5);
+    color: rgba(238, 238, 240, .5);
     text-align: center;
     line-height: 1.6;
 }
 
 /* ── TICKET ───────────────────────────────────────────────────────────────── */
 .ticket {
-    background: rgba(28,28,30,.78);
+    background: rgba(28, 28, 30, .78);
     backdrop-filter: blur(40px) saturate(1.6);
     -webkit-backdrop-filter: blur(40px) saturate(1.6);
-    border: 1px solid rgba(44,44,46,.8);
+    border: 1px solid rgba(44, 44, 46, .8);
     border-radius: 24px;
     overflow: hidden;
     margin-bottom: 14px;
     box-shadow:
-        0 0 0 1px rgba(201,150,60,.12),
-        0 48px 96px rgba(0,0,0,.7),
-        0 16px 40px rgba(201,150,60,.10);
+        0 0 0 1px rgba(201, 150, 60, .12),
+        0 48px 96px rgba(0, 0, 0, .7),
+        0 16px 40px rgba(201, 150, 60, .10);
     animation: fadeUp .55s cubic-bezier(.22, 1, .36, 1) both;
     position: relative;
 }
+
 .ticket::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 3px;
     background: linear-gradient(90deg, #C9963C 0%, #E8A020 50%, #C9A84C 100%);
     z-index: 10;
 }
 
 @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Thumbnail */
@@ -1380,7 +1840,7 @@ const toggleLike = async (item) => {
     left: 0;
     right: 0;
     height: 80px;
-    background: linear-gradient(to bottom, transparent, rgba(28,28,30,.78));
+    background: linear-gradient(to bottom, transparent, rgba(28, 28, 30, .78));
     z-index: 2;
     pointer-events: none;
 }
@@ -1442,8 +1902,13 @@ const toggleLike = async (item) => {
     background: rgba(255, 255, 255, .97);
 }
 
-.hero-arrow-l { left: 12px; }
-.hero-arrow-r { right: 12px; }
+.hero-arrow-l {
+    left: 12px;
+}
+
+.hero-arrow-r {
+    right: 12px;
+}
 
 .hero-arrow svg {
     width: 14px;
@@ -1529,14 +1994,24 @@ const toggleLike = async (item) => {
     pointer-events: none;
 }
 
-.hero-fake-arrow svg { width: 14px; height: 14px; }
-.hero-fake-arrow-l { left: 12px; }
-.hero-fake-arrow-r { right: 12px; }
+.hero-fake-arrow svg {
+    width: 14px;
+    height: 14px;
+}
+
+.hero-fake-arrow-l {
+    left: 12px;
+}
+
+.hero-fake-arrow-r {
+    right: 12px;
+}
 
 /* Drag handle cursors */
 .thumb-wrap {
     cursor: grab;
 }
+
 .thumb-wrap.hero-grabbing,
 .thumb-wrap.hero-grabbing * {
     cursor: grabbing;
@@ -1562,7 +2037,7 @@ const toggleLike = async (item) => {
 
 .s-live {
     background: rgba(255, 255, 255, .88);
-    border: .8px solid rgba(201, 150, 60,.5);
+    border: .8px solid rgba(201, 150, 60, .5);
     color: #B8861E;
 }
 
@@ -1609,8 +2084,8 @@ const toggleLike = async (item) => {
     width: 30px;
     height: 30px;
     flex-shrink: 0;
-    background: rgba(201,150,60,.14);
-    border: 1px solid rgba(201,150,60,.2);
+    background: rgba(201, 150, 60, .14);
+    border: 1px solid rgba(201, 150, 60, .2);
     border-radius: 9px;
     display: flex;
     align-items: center;
@@ -1632,14 +2107,14 @@ const toggleLike = async (item) => {
 
 .ev-meta-primary {
     font-size: 13px;
-    color: rgba(238,238,240,.88);
+    color: rgba(238, 238, 240, .88);
     font-weight: 500;
     line-height: 1.4;
 }
 
 .ev-meta-end {
     font-size: 12px;
-    color: rgba(238,238,240,.42);
+    color: rgba(238, 238, 240, .42);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -1662,7 +2137,7 @@ const toggleLike = async (item) => {
 }
 
 .ev-meta-loc-link:active {
-    background: rgba(201,150,60,.10);
+    background: rgba(201, 150, 60, .10);
 }
 
 .ev-meta-icon-gold svg {
@@ -1688,8 +2163,8 @@ const toggleLike = async (item) => {
     width: 26px;
     height: 26px;
     border-radius: 8px;
-    background: rgba(201,150,60,.13);
-    box-shadow: 0 0 8px rgba(201,150,60,.25);
+    background: rgba(201, 150, 60, .13);
+    box-shadow: 0 0 8px rgba(201, 150, 60, .25);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1732,7 +2207,7 @@ const toggleLike = async (item) => {
 
 .tear-line {
     flex: 1;
-    border-top: 1.5px dashed rgba(44,44,46,1);
+    border-top: 1.5px dashed rgba(44, 44, 46, 1);
 }
 
 /* ── Attendee stub ─────────────────────────────────────────────────────────── */
@@ -1756,7 +2231,7 @@ const toggleLike = async (item) => {
     content: '';
     flex: 1;
     height: 1px;
-    background: rgba(201,150,60,.22);
+    background: rgba(201, 150, 60, .22);
 }
 
 .stub-main {
@@ -1799,8 +2274,8 @@ const toggleLike = async (item) => {
 .stub-badge {
     display: inline-flex;
     padding: 3px 10px;
-    background: rgba(201,150,60,.15);
-    border: .7px solid rgba(201,150,60,.35);
+    background: rgba(201, 150, 60, .15);
+    border: .7px solid rgba(201, 150, 60, .35);
     border-radius: 99px;
     font-size: 9px;
     font-weight: 800;
@@ -1822,7 +2297,7 @@ const toggleLike = async (item) => {
 
 .stub-phone {
     font-size: 12px;
-    color: rgba(238,238,240,.45);
+    color: rgba(238, 238, 240, .45);
 }
 
 /* View Card button */
@@ -1843,9 +2318,20 @@ const toggleLike = async (item) => {
     transition: background .15s, opacity .15s;
     margin-bottom: 8px;
 }
-.view-card-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
-.view-card-btn:active { opacity: .7; }
-.view-card-btn:hover { background: rgba(90, 138, 219, .15); }
+
+.view-card-btn svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+.view-card-btn:active {
+    opacity: .7;
+}
+
+.view-card-btn:hover {
+    background: rgba(90, 138, 219, .15);
+}
 
 /* Status */
 .stub-status {
@@ -1858,7 +2344,9 @@ const toggleLike = async (item) => {
     transition: opacity .15s;
 }
 
-.stub-status:active { opacity: .75; }
+.stub-status:active {
+    opacity: .75;
+}
 
 .status-in {
     background: rgba(29, 171, 75, .07);
@@ -1877,8 +2365,15 @@ const toggleLike = async (item) => {
 }
 
 @keyframes pendingPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(212, 130, 10, .15); }
-    50%       { box-shadow: 0 0 0 5px rgba(212, 130, 10, 0); }
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(212, 130, 10, .15);
+    }
+
+    50% {
+        box-shadow: 0 0 0 5px rgba(212, 130, 10, 0);
+    }
 }
 
 .status-indicator {
@@ -1889,9 +2384,17 @@ const toggleLike = async (item) => {
     font-weight: 600;
 }
 
-.status-in .status-indicator      { color: #1DAB4B; }
-.status-declined .status-indicator { color: #E05A5A; }
-.status-pending .status-indicator  { color: #D4820A; }
+.status-in .status-indicator {
+    color: #1DAB4B;
+}
+
+.status-declined .status-indicator {
+    color: #E05A5A;
+}
+
+.status-pending .status-indicator {
+    color: #D4820A;
+}
 
 .status-led {
     width: 7px;
@@ -1916,8 +2419,15 @@ const toggleLike = async (item) => {
 }
 
 @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: .35; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .35;
+    }
 }
 
 .status-right {
@@ -1943,13 +2453,13 @@ const toggleLike = async (item) => {
 /* ── Tab bar ──────────────────────────────────────────────────────────────── */
 .tab-bar {
     display: flex;
-    background: rgba(28,28,30,.98);
-    border: 1px solid rgba(44,44,46,.8);
+    background: rgba(28, 28, 30, .98);
+    border: 1px solid rgba(44, 44, 46, .8);
     border-radius: 16px;
     padding: 4px;
     gap: 4px;
     margin-bottom: 12px;
-    box-shadow: 0 4px 24px rgba(0,0,0,.35);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, .35);
     backdrop-filter: blur(16px);
 }
 
@@ -1968,7 +2478,7 @@ const toggleLike = async (item) => {
     letter-spacing: .4px;
     font-family: inherit;
     background: transparent;
-    color: rgba(238,238,240,.38);
+    color: rgba(238, 238, 240, .38);
     transition: background .18s, color .18s;
 }
 
@@ -1981,17 +2491,17 @@ const toggleLike = async (item) => {
 .tab-active {
     background: #C9963C;
     color: #fff;
-    box-shadow: 0 4px 16px rgba(201,150,60,.35);
+    box-shadow: 0 4px 16px rgba(201, 150, 60, .35);
 }
 
 /* ── Section cards ────────────────────────────────────────────────────────── */
 .section-card {
-    background: rgba(28,28,30,1);
-    border: 1px solid rgba(44,44,46,.8);
+    background: rgba(28, 28, 30, 1);
+    border: 1px solid rgba(44, 44, 46, .8);
     border-radius: 20px;
     padding: 18px;
     margin-bottom: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .3);
     backdrop-filter: blur(20px);
 }
 
@@ -2019,7 +2529,7 @@ const toggleLike = async (item) => {
     font-weight: 700;
     letter-spacing: 1.3px;
     text-transform: uppercase;
-    color: rgba(238,238,240,.42);
+    color: rgba(238, 238, 240, .42);
 }
 
 /* ── Gallery ──────────────────────────────────────────────────────────────── */
@@ -2047,14 +2557,14 @@ const toggleLike = async (item) => {
     font-weight: 700;
     letter-spacing: .4px;
     text-transform: uppercase;
-    color: rgba(238,238,240,.7);
+    color: rgba(238, 238, 240, .7);
 }
 
 .gallery-section-count {
     font-size: 11px;
     font-weight: 600;
-    color: rgba(238,238,240,.4);
-    background: rgba(201,150,60,.12);
+    color: rgba(238, 238, 240, .4);
+    background: rgba(201, 150, 60, .12);
     padding: 2px 7px;
     border-radius: 99px;
 }
@@ -2067,8 +2577,8 @@ const toggleLike = async (item) => {
     width: 100%;
     margin-top: 6px;
     padding: 10px;
-    background: rgba(201,150,60,.06);
-    border: 1px solid rgba(201,150,60,.18);
+    background: rgba(201, 150, 60, .06);
+    border: 1px solid rgba(201, 150, 60, .18);
     border-radius: 12px;
     font-size: 12px;
     font-weight: 700;
@@ -2086,7 +2596,7 @@ const toggleLike = async (item) => {
 }
 
 .gallery-expand-btn:active {
-    background: rgba(201,150,60,.13);
+    background: rgba(201, 150, 60, .13);
 }
 
 .gallery-grid {
@@ -2132,7 +2642,7 @@ const toggleLike = async (item) => {
     padding: 4px 7px 4px 5px;
     border-radius: 99px;
     border: none;
-    background: rgba(0,0,0,.52);
+    background: rgba(0, 0, 0, .52);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     color: #fff;
@@ -2143,14 +2653,26 @@ const toggleLike = async (item) => {
     pointer-events: none;
     z-index: 2;
 }
-.gcc svg { width: 13px; height: 13px; flex-shrink: 0; }
-.gcc-count { font-size: 11px; font-weight: 600; line-height: 1; }
+
+.gcc svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+}
+
+.gcc-count {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+
 .gallery-cell:hover .gcc,
 .gallery-cell:focus-within .gcc {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
 }
+
 /* always visible on touch devices */
 @media (hover: none) {
     .gcc {
@@ -2159,7 +2681,10 @@ const toggleLike = async (item) => {
         pointer-events: auto;
     }
 }
-.gcc:active { background: rgba(90,138,219,.65); }
+
+.gcc:active {
+    background: rgba(90, 138, 219, .65);
+}
 
 /* ── Gallery cell like button ────────────────────────────────────────────── */
 .glk {
@@ -2172,10 +2697,10 @@ const toggleLike = async (item) => {
     padding: 4px 7px 4px 5px;
     border-radius: 99px;
     border: none;
-    background: rgba(0,0,0,.52);
+    background: rgba(0, 0, 0, .52);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-    color: rgba(255,255,255,.75);
+    color: rgba(255, 255, 255, .75);
     cursor: pointer;
     opacity: 0;
     transform: translateY(4px);
@@ -2183,15 +2708,30 @@ const toggleLike = async (item) => {
     pointer-events: none;
     z-index: 2;
 }
-.glk svg { width: 13px; height: 13px; flex-shrink: 0; }
-.glk-count { font-size: 11px; font-weight: 600; line-height: 1; }
-.glk-liked { color: #FF4B6E; }
+
+.glk svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+}
+
+.glk-count {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.glk-liked {
+    color: #FF4B6E;
+}
+
 .gallery-cell:hover .glk,
 .gallery-cell:focus-within .glk {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
 }
+
 @media (hover: none) {
     .glk {
         opacity: 1;
@@ -2199,7 +2739,10 @@ const toggleLike = async (item) => {
         pointer-events: auto;
     }
 }
-.glk:active { background: rgba(255,75,110,.35); }
+
+.glk:active {
+    background: rgba(255, 75, 110, .35);
+}
 
 .gallery-video-cell {
     background: #1A1A20;
@@ -2232,7 +2775,7 @@ const toggleLike = async (item) => {
     width: 44px;
     height: 44px;
     color: #fff;
-    filter: drop-shadow(0 2px 8px rgba(0,0,0,.4));
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .4));
 }
 
 .gallery-cell:active .gallery-play-overlay svg {
@@ -2258,8 +2801,8 @@ const toggleLike = async (item) => {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: rgba(201, 150, 60,.08);
-    border: 1px solid rgba(201, 150, 60,.2);
+    background: rgba(201, 150, 60, .08);
+    border: 1px solid rgba(201, 150, 60, .2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2273,7 +2816,7 @@ const toggleLike = async (item) => {
 
 .gallery-empty-txt {
     font-size: 14px;
-    color: rgba(238,238,240,.38);
+    color: rgba(238, 238, 240, .38);
     font-weight: 600;
 }
 
@@ -2282,8 +2825,8 @@ const toggleLike = async (item) => {
     width: 100%;
     margin-top: 10px;
     padding: 13px;
-    background: rgba(28,28,30,.98);
-    border: 1px solid rgba(44,44,46,.8);
+    background: rgba(28, 28, 30, .98);
+    border: 1px solid rgba(44, 44, 46, .8);
     border-radius: 14px;
     font-size: 13px;
     font-weight: 600;
@@ -2300,8 +2843,8 @@ const toggleLike = async (item) => {
 }
 
 .gallery-more-btn:not(:disabled):active {
-    background: rgba(201, 150, 60,.06);
-    border-color: rgba(201, 150, 60,.3);
+    background: rgba(201, 150, 60, .06);
+    border-color: rgba(201, 150, 60, .3);
 }
 
 /* Lightbox */
@@ -2369,8 +2912,8 @@ const toggleLike = async (item) => {
     font-weight: 700;
     letter-spacing: .5px;
     text-transform: uppercase;
-    color: rgba(255,255,255,.75);
-    background: rgba(255,255,255,.12);
+    color: rgba(255, 255, 255, .75);
+    background: rgba(255, 255, 255, .12);
     backdrop-filter: blur(10px);
     padding: 4px 12px;
     border-radius: 99px;
@@ -2400,15 +2943,27 @@ const toggleLike = async (item) => {
     height: 44px;
     border-radius: 50%;
     border: none;
-    background: rgba(255,255,255,.15);
+    background: rgba(255, 255, 255, .15);
     backdrop-filter: blur(8px);
-    color: rgba(255,255,255,.8);
+    color: rgba(255, 255, 255, .8);
     cursor: pointer;
     transition: background .15s, color .15s;
 }
-.lb-like-btn svg { width: 20px; height: 20px; }
-.lb-like-btn-active { background: rgba(255,75,110,.3); color: #FF4B6E; }
-.lb-like-btn:active { opacity: .7; }
+
+.lb-like-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.lb-like-btn-active {
+    background: rgba(255, 75, 110, .3);
+    color: #FF4B6E;
+}
+
+.lb-like-btn:active {
+    opacity: .7;
+}
+
 .lb-like-badge {
     position: absolute;
     top: -4px;
@@ -2439,15 +2994,26 @@ const toggleLike = async (item) => {
     height: 44px;
     border-radius: 50%;
     border: none;
-    background: rgba(255,255,255,.15);
+    background: rgba(255, 255, 255, .15);
     backdrop-filter: blur(8px);
     color: #fff;
     cursor: pointer;
     transition: background .15s;
 }
-.lb-comment-btn svg { width: 20px; height: 20px; }
-.lb-comment-btn-active { background: rgba(90,138,219,.45); }
-.lb-comment-btn:active { opacity: .7; }
+
+.lb-comment-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.lb-comment-btn-active {
+    background: rgba(90, 138, 219, .45);
+}
+
+.lb-comment-btn:active {
+    opacity: .7;
+}
+
 .lb-comment-badge {
     position: absolute;
     top: -4px;
@@ -2473,55 +3039,64 @@ const toggleLike = async (item) => {
     left: 0;
     right: 0;
     max-height: 62vh;
-    background: rgba(18,18,22,.92);
+    background: rgba(18, 18, 22, .92);
     backdrop-filter: blur(20px);
     border-radius: 20px 20px 0 0;
-    border-top: 1px solid rgba(255,255,255,.1);
+    border-top: 1px solid rgba(255, 255, 255, .1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
+
 .mc-handle {
     flex-shrink: 0;
     width: 36px;
     height: 4px;
     border-radius: 2px;
-    background: rgba(255,255,255,.25);
+    background: rgba(255, 255, 255, .25);
     margin: 10px auto 0;
 }
+
 .mc-title {
     flex-shrink: 0;
     padding: 10px 16px 8px;
     font-size: 13px;
     font-weight: 600;
-    color: rgba(238,238,240,.9);
-    border-bottom: 1px solid rgba(255,255,255,.07);
+    color: rgba(238, 238, 240, .9);
+    border-bottom: 1px solid rgba(255, 255, 255, .07);
 }
+
 .mc-list {
     flex: 1;
     overflow-y: auto;
     padding: 8px 0 4px;
     -webkit-overflow-scrolling: touch;
 }
-.mc-list .cmnt-item { padding: 8px 16px; }
+
+.mc-list .cmnt-item {
+    padding: 8px 16px;
+}
+
 .mc-empty {
     padding: 20px 16px;
     text-align: center;
     font-size: 13px;
-    color: rgba(238,238,240,.35);
+    color: rgba(238, 238, 240, .35);
 }
+
 .mc-compose {
     flex-shrink: 0;
-    border-top: 1px solid rgba(255,255,255,.07);
+    border-top: 1px solid rgba(255, 255, 255, .07);
     padding: 10px 12px 14px;
-    background: rgba(18,18,22,.6);
+    background: rgba(18, 18, 22, .6);
 }
 
 /* ── mc-slide transition ──────────────────────────────────────────────────── */
 .mc-slide-enter-active,
 .mc-slide-leave-active {
-    transition: transform .28s cubic-bezier(.32,0,.67,0);
+    transition: transform .28s cubic-bezier(.32, 0, .67, 0);
 }
+
 .mc-slide-enter-from,
 .mc-slide-leave-to {
     transform: translateY(100%);
@@ -2530,7 +3105,7 @@ const toggleLike = async (item) => {
 /* About */
 .about-text {
     font-size: 14px;
-    color: rgba(238,238,240,.72);
+    color: rgba(238, 238, 240, .72);
     line-height: 1.75;
 }
 
@@ -2561,16 +3136,16 @@ const toggleLike = async (item) => {
     justify-content: center;
     gap: 8px;
     padding: 13px;
-    background: rgba(28,28,30,.98);
-    border: 1px solid rgba(44,44,46,.8);
+    background: rgba(28, 28, 30, .98);
+    border: 1px solid rgba(44, 44, 46, .8);
     border-radius: 16px;
     font-size: 13px;
     font-weight: 600;
-    color: rgba(238,238,240,.55);
+    color: rgba(238, 238, 240, .55);
     text-decoration: none;
     transition: color .2s, border-color .2s, background .2s;
     margin-bottom: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
     backdrop-filter: blur(12px);
 }
 
@@ -2581,8 +3156,8 @@ const toggleLike = async (item) => {
 
 .support-link:hover {
     color: #C9963C;
-    border-color: rgba(201, 150, 60,.3);
-    background: rgba(201, 150, 60,.05);
+    border-color: rgba(201, 150, 60, .3);
+    background: rgba(201, 150, 60, .05);
 }
 
 /* ── RSVP Overlay ─────────────────────────────────────────────────────────── */
@@ -2590,7 +3165,7 @@ const toggleLike = async (item) => {
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: rgba(0,0,0,.78);
+    background: rgba(0, 0, 0, .78);
     backdrop-filter: blur(12px);
     display: flex;
     align-items: flex-end;
@@ -2608,11 +3183,11 @@ const toggleLike = async (item) => {
 .rsvp-card {
     width: 100%;
     max-width: 420px;
-    background: rgba(28,28,30,.97);
-    border: 1px solid rgba(44,44,46,1);
+    background: rgba(28, 28, 30, .97);
+    border: 1px solid rgba(44, 44, 46, 1);
     border-radius: 28px;
     padding: 32px 24px 28px;
-    box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(201,150,60,.12);
+    box-shadow: 0 32px 80px rgba(0, 0, 0, .6), 0 0 0 1px rgba(201, 150, 60, .12);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2622,15 +3197,22 @@ const toggleLike = async (item) => {
 }
 
 @keyframes rsvpUp {
-    from { opacity: 0; transform: translateY(40px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .rsvp-icon {
     width: 56px;
     height: 56px;
-    background: rgba(201, 150, 60,.10);
-    border: 1px solid rgba(201, 150, 60,.25);
+    background: rgba(201, 150, 60, .10);
+    border: 1px solid rgba(201, 150, 60, .25);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2663,7 +3245,7 @@ const toggleLike = async (item) => {
 
 .rsvp-sub {
     font-size: 13px;
-    color: rgba(238,238,240,.48);
+    color: rgba(238, 238, 240, .48);
     line-height: 1.6;
     text-align: center;
     margin-bottom: 28px;
@@ -2715,9 +3297,9 @@ const toggleLike = async (item) => {
 }
 
 .rsvp-decline {
-    background: rgba(40,40,44,.98);
-    border: 1px solid rgba(44,44,46,1);
-    color: rgba(238,238,240,.5);
+    background: rgba(40, 40, 44, .98);
+    border: 1px solid rgba(44, 44, 46, 1);
+    color: rgba(238, 238, 240, .5);
 }
 
 .rsvp-decline:not(:disabled):active {
@@ -2798,14 +3380,14 @@ const toggleLike = async (item) => {
 
 .cmnt-time {
     font-size: 10px;
-    color: rgba(238,238,240,.32);
+    color: rgba(238, 238, 240, .32);
     flex-shrink: 0;
     white-space: nowrap;
 }
 
 .cmnt-text {
     font-size: 13px;
-    color: rgba(238,238,240,.65);
+    color: rgba(238, 238, 240, .65);
     line-height: 1.5;
 }
 
@@ -2833,13 +3415,13 @@ const toggleLike = async (item) => {
 }
 
 .cmnt-view-replies {
-    color: rgba(238,238,240,.35);
+    color: rgba(238, 238, 240, .35);
 }
 
 .cmnt-replies {
     margin-top: 10px;
     padding-left: 10px;
-    border-left: 2px solid rgba(44,44,46,.8);
+    border-left: 2px solid rgba(44, 44, 46, .8);
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -2854,7 +3436,7 @@ const toggleLike = async (item) => {
 
 .cmnt-empty {
     font-size: 13px;
-    color: rgba(238,238,240,.35);
+    color: rgba(238, 238, 240, .35);
     text-align: center;
     padding: 12px 0 16px;
 }
@@ -2864,13 +3446,13 @@ const toggleLike = async (item) => {
     align-items: center;
     gap: 8px;
     padding-top: 14px;
-    border-top: 1px solid rgba(44,44,46,.8);
+    border-top: 1px solid rgba(44, 44, 46, .8);
 }
 
 .cmnt-input {
     flex: 1;
-    background: rgba(40,40,44,.98);
-    border: 1px solid rgba(44,44,46,.8);
+    background: rgba(40, 40, 44, .98);
+    border: 1px solid rgba(44, 44, 46, .8);
     border-radius: 20px;
     padding: 9px 14px;
     font-size: 13px;
@@ -2881,12 +3463,12 @@ const toggleLike = async (item) => {
 }
 
 .cmnt-input::placeholder {
-    color: rgba(238,238,240,.3);
+    color: rgba(238, 238, 240, .3);
 }
 
 .cmnt-input:focus {
-    border-color: rgba(201,150,60,.45);
-    background: rgba(201,150,60,.07);
+    border-color: rgba(201, 150, 60, .45);
+    background: rgba(201, 150, 60, .07);
 }
 
 .cmnt-send {
@@ -2913,4 +3495,441 @@ const toggleLike = async (item) => {
     height: 13px;
     color: #fff;
 }
+
+/* ── Gift card (section tile) ───────────────────────────────────────────────── */
+.gift-card {
+    cursor: pointer;
+    padding: 0;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(30,20,10,.82) 0%, rgba(22,16,8,.9) 100%);
+    border: 1px solid rgba(201,150,60,.28);
+    transition: border-color .2s, box-shadow .2s;
+}
+.gift-card:hover {
+    border-color: rgba(201,150,60,.55);
+    box-shadow: 0 0 24px rgba(201,150,60,.12);
+}
+.gift-card-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+}
+.gift-icon-wrap {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: rgba(201,150,60,.15);
+    border: 1px solid rgba(201,150,60,.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.gift-icon-wrap svg {
+    width: 22px;
+    height: 22px;
+    stroke: #C9963C;
+}
+.gift-card-text { flex: 1; min-width: 0; }
+.gift-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8d5a0;
+    margin: 0 0 3px;
+}
+.gift-card-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,.45);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gift-card-chevron {
+    width: 18px;
+    height: 18px;
+    stroke: rgba(201,150,60,.6);
+    flex-shrink: 0;
+}
+
+/* ── Gift card bottom strip ─────────────────────────────────────────────────── */
+.gift-card-givers {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px 16px;
+    border-top: 1px solid rgba(201,150,60,.12);
+}
+.givers-avatars {
+    display: flex;
+    align-items: center;
+}
+.givers-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #16100A;
+    margin-left: -7px;
+    flex-shrink: 0;
+}
+.givers-avatars .givers-avatar:first-child { margin-left: 0; }
+.givers-overflow {
+    background: rgba(255,255,255,.08);
+    color: rgba(255,255,255,.5);
+    font-size: 9px;
+}
+.gift-card-givers-lbl {
+    font-size: 12px;
+    color: rgba(255,255,255,.4);
+    flex: 1;
+}
+.gift-card-tap-lbl {
+    font-size: 11px;
+    color: rgba(201,150,60,.6);
+    white-space: nowrap;
+}
+
+/* ── Givers wall (inside sheet) ──────────────────────────────────────────────── */
+.givers-wall {
+    margin-bottom: 18px;
+}
+.givers-wall-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+}
+.givers-wall-scroll::-webkit-scrollbar { display: none; }
+.givers-wall-chip {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 72px;
+}
+.givers-wall-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(255,255,255,.08);
+}
+.givers-wall-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+}
+.givers-wall-name {
+    font-size: 11px;
+    color: rgba(255,255,255,.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 72px;
+    text-align: center;
+}
+.givers-wall-amt {
+    font-size: 10px;
+    color: rgba(201,150,60,.7);
+    white-space: nowrap;
+}
+.givers-wall-lbl {
+    font-size: 11px;
+    color: rgba(255,255,255,.3);
+    text-align: center;
+    margin: 8px 0 0;
+}
+
+/* ── Gift overlay + sheet ────────────────────────────────────────────────────── */
+.gift-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.54);
+    z-index: 1200;
+    display: flex;
+    align-items: flex-end;
+}
+.gift-sheet {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    background: rgba(17,17,20,0.72);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border-radius: 28px 28px 0 0;
+    border-top: 0.8px solid rgba(255,255,255,0.13);
+    border-left: 0.8px solid rgba(255,255,255,0.13);
+    border-right: 0.8px solid rgba(255,255,255,0.13);
+    padding: 0 24px 40px;
+    box-sizing: border-box;
+    position: relative;
+}
+.gift-sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: rgba(255,255,255,.18);
+    border-radius: 2px;
+    margin: 14px auto 0;
+}
+
+/* Header row: back · [icon] title · close */
+.gift-hdr-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0 16px;
+    gap: 8px;
+}
+.gift-hdr-identity {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex: 1;
+}
+.gift-hdr-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(201,150,60,.15);
+    border: 1px solid rgba(201,150,60,.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.gift-hdr-icon svg { width: 15px; height: 15px; stroke: #C9963C; }
+.gift-hdr-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #EEEEF0;
+    margin: 0;
+    flex: 1;
+    text-align: center;
+}
+.gift-hdr-identity .gift-hdr-title {
+    text-align: left;
+}
+.gift-hdr-back {
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #8E8E93;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: color .15s;
+}
+.gift-hdr-back:hover { color: #EEEEF0; }
+.gift-hdr-back svg { width: 20px; height: 20px; }
+.gift-sheet-close {
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #8E8E93;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: color .15s;
+}
+.gift-sheet-close:hover { color: #EEEEF0; }
+.gift-sheet-close svg { width: 18px; height: 18px; }
+.gift-sheet-sub {
+    font-size: 12.5px;
+    color: #8E8E93;
+    margin: 0 0 16px;
+    text-align: center;
+}
+
+/* Preset buttons */
+.gift-presets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.gift-preset {
+    background: rgba(255,255,255,.05);
+    border: 1.5px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    padding: 13px 8px;
+    color: #e0c88a;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .18s, background .18s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.gift-preset:hover { background: rgba(201,150,60,.12); border-color: rgba(201,150,60,.4); }
+.gift-preset-active { border-color: #C9963C !important; background: rgba(201,150,60,.18) !important; }
+.gift-preset-cur { font-size: 10px; font-weight: 400; color: rgba(201,150,60,.7); }
+
+/* Custom amount input */
+.gift-custom-wrap {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,.05);
+    border: 1.5px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    padding: 0 14px;
+    margin-bottom: 6px;
+    transition: border-color .18s;
+}
+.gift-custom-wrap:focus-within { border-color: rgba(201,150,60,.5); }
+.gift-custom-prefix {
+    font-size: 12px;
+    color: rgba(201,150,60,.7);
+    margin-right: 8px;
+    white-space: nowrap;
+}
+.gift-custom-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e8d5a0;
+    font-size: 15px;
+    padding: 13px 0;
+}
+.gift-custom-input::placeholder { color: rgba(255,255,255,.25); }
+.gift-custom-input::-webkit-outer-spin-button,
+.gift-custom-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.gift-err { font-size: 11.5px; color: #e07070; margin: 0 0 10px; }
+
+/* Amount pill */
+.gift-amount-pill {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(201,150,60,.18);
+    border: 1px solid rgba(201,150,60,.35);
+    border-radius: 20px;
+    padding: 7px 18px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #e8c870;
+    margin: 14px auto 18px;
+    display: flex;
+    justify-content: center;
+}
+
+/* Note textarea */
+.gift-note-ta {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255,255,255,.05);
+    border: 1.5px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    padding: 13px 14px;
+    color: #e8d5a0;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    transition: border-color .18s;
+}
+.gift-note-ta:focus { border-color: rgba(201,150,60,.45); }
+.gift-note-ta::placeholder { color: rgba(255,255,255,.25); }
+.gift-char-count { font-size: 11px; color: rgba(255,255,255,.3); text-align: right; margin: 4px 0 14px; }
+
+/* Confirm card */
+.gift-confirm-card {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(201,150,60,.2);
+    border-radius: 14px;
+    padding: 6px 0;
+    margin: 14px 0 10px;
+}
+.gift-confirm-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.gift-confirm-row:last-child { border-bottom: none; }
+.gift-confirm-note-row { flex-direction: column; gap: 5px; }
+.gift-confirm-lbl { font-size: 12px; color: rgba(255,255,255,.4); }
+.gift-confirm-val { font-size: 14px; color: #e8d5a0; text-align: right; max-width: 60%; word-break: break-word; }
+.gift-confirm-amt { font-size: 17px; font-weight: 700; color: #e8c870; }
+.gift-confirm-note { font-size: 13px; text-align: left; max-width: 100%; color: rgba(255,255,255,.7); font-style: italic; }
+.gift-confirm-disclaimer { font-size: 11px; color: rgba(255,255,255,.3); text-align: center; margin: 0 0 16px; }
+
+/* CTA button */
+.gift-cta {
+    width: 100%;
+    margin-top: 16px;
+    padding: 15px;
+    border-radius: 14px;
+    background: rgba(201,150,60,.18);
+    border: 1.5px solid rgba(201,150,60,.4);
+    color: #e8c870;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background .18s, border-color .18s, opacity .18s;
+}
+.gift-cta:hover:not(:disabled) { background: rgba(201,150,60,.28); border-color: #C9963C; }
+.gift-cta:disabled { opacity: .45; cursor: not-allowed; }
+.gift-cta svg { width: 17px; height: 17px; }
+.gift-cta-gold { background: rgba(201,150,60,.28); border-color: #C9963C; }
+
+
+/* Spinner inside button */
+.gift-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(232,200,112,.3);
+    border-top-color: #e8c870;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+
+/* Done state */
+.gift-done { text-align: center; padding: 20px 0 8px; }
+.gift-done-icon {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: rgba(61,170,118,.15);
+    border: 1.5px solid rgba(61,170,118,.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+}
+.gift-done-icon svg { width: 32px; height: 32px; stroke: #3DAA76; }
+.gift-done-title { font-size: 19px; font-weight: 700; color: #e8d5a0; margin: 0 0 8px; }
+.gift-done-sub { font-size: 13.5px; color: rgba(255,255,255,.5); margin: 0 0 24px; }
+
+/* Sheet transition */
+.gift-overlay-enter-active, .gift-overlay-leave-active { transition: opacity .25s; }
+.gift-overlay-enter-from, .gift-overlay-leave-to { opacity: 0; }
+.gift-sheet-enter-active, .gift-sheet-leave-active { transition: transform .3s cubic-bezier(.32,1,.4,1); }
+.gift-sheet-enter-from, .gift-sheet-leave-to { transform: translateY(100%); }
 </style>
