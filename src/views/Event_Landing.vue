@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { db } from '@/firebase';
-import { doc, onSnapshot, updateDoc, collection, addDoc, getDocs, serverTimestamp, query, orderBy, increment, limit, startAfter, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, addDoc, getDocs, serverTimestamp, query, where, orderBy, increment, limit, startAfter, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 const route = useRoute();
 const eventId = computed(() => route.params.eventId);
@@ -106,13 +106,22 @@ const onHeroDragEnd = (e) => {
     heroDragging.value = false;
 };
 
-onMounted(() => { startSync(); fetchHeroSlides().then(startHeroTimer); });
-watch([eventId, userId], () => { startSync(); heroIndex.value = 0; fetchHeroSlides().then(startHeroTimer); });
+onMounted(() => {
+    startSync(); startZawadiSync(); startAllContribsSync(); fetchHeroSlides().then(startHeroTimer);
+    // Detect return from Pesapal payment page
+    if (route.query.OrderTrackingId && route.query.OrderMerchantReference) {
+        giftReturnBanner.value = true;
+    }
+});
+watch([eventId, userId], () => { startSync(); startZawadiSync(); startAllContribsSync(); heroIndex.value = 0; fetchHeroSlides().then(startHeroTimer); });
 onUnmounted(() => {
     if (unsubEvent) unsubEvent();
     if (unsubAttendee) unsubAttendee();
     if (unsubComments) unsubComments();
     if (unsubMediaComments) unsubMediaComments();
+    if (unsubZawadi) unsubZawadi();
+    if (unsubAllContribs) unsubAllContribs();
+    if (unsubItemContribs) unsubItemContribs();
     if (heroTimer) clearInterval(heroTimer);
 });
 
@@ -198,73 +207,171 @@ const cardBadge = computed(() => hasInvitation.value ? t('invitedGuest') : t('at
 const aboutExpanded = ref(false);
 const activeTab = ref('details');
 
-// ── Gift ──────────────────────────────────────────────────────────────────────
+// ── Gift of Love ──────────────────────────────────────────────────────────────
 const showGiftSheet = ref(false);
 const giftStep = ref('pick'); // 'pick' | 'note' | 'confirm' | 'done'
 const giftAmount = ref(null);
 const giftCustom = ref('');
 const giftNote = ref('');
 const giftSending = ref(false);
+const selectedItem = ref(null);
+const expandedDescs = ref({});
 
 const GIFT_PRESETS = [5000, 10000, 20000, 50000];
 const giftCurrency = computed(() => eventData.value?.currency || 'TZS');
 const fmtMoney = (n) => Number(n).toLocaleString('en-TZ');
 
-// Mock givers — will be replaced by real Firestore snapshot
-const givers = ref([
-    { id: '1',  name: 'Amina Rashidi Mwakibete',      initial: 'A', color: { bg: '#1A3A28', fg: '#3DAA76' }, amount: 20000, note: 'Hongera sana! Mungu awabariki.' },
-    { id: '2',  name: 'Jonathan Mwangi Kariuki',      initial: 'J', color: { bg: '#1A2838', fg: '#5A8ADB' }, amount: 50000, note: 'Wishing you both a lifetime of joy!' },
-    { id: '3',  name: 'Fatuma Abdallah Ally',         initial: 'F', color: { bg: '#2A1A38', fg: '#BF5AF2' }, amount: 10000, note: '' },
-    { id: '4',  name: 'Kelvin Oduya Onyango',         initial: 'K', color: { bg: '#38200A', fg: '#E07040' }, amount: 15000, note: 'Best wishes from Nairobi 🎉' },
-    { id: '5',  name: 'Salma Khamis Hassan',          initial: 'S', color: { bg: '#2A2210', fg: '#E8C070' }, amount: 30000, note: 'Mapenzi na baraka!' },
-    { id: '6',  name: 'Brian Otieno Odhiambo',        initial: 'B', color: { bg: '#1A3A28', fg: '#3DAA76' }, amount: 5000,  note: '' },
-    { id: '7',  name: 'Zuwena Kombo Mwanahamisi',     initial: 'Z', color: { bg: '#38200A', fg: '#E07040' }, amount: 25000, note: 'Sherehe njema!' },
-    { id: '8',  name: 'David Njenga Kimani',          initial: 'D', color: { bg: '#1A2838', fg: '#5A8ADB' }, amount: 12000, note: 'Congratulations!' },
-    { id: '9',  name: 'Rehema Juma Nyamizi',          initial: 'R', color: { bg: '#2A1A38', fg: '#BF5AF2' }, amount: 35000, note: 'Baraka tele!' },
-    { id: '10', name: 'Moses Kamau Njoroge',          initial: 'M', color: { bg: '#2A2210', fg: '#E8C070' }, amount: 8000,  note: '' },
-    { id: '11', name: 'Yasmin Mohammed Abeid',        initial: 'Y', color: { bg: '#1A3A28', fg: '#3DAA76' }, amount: 45000, note: 'Hongera! Maisha marefu.' },
-    { id: '12', name: 'Petronella Nkosi Dlamini',     initial: 'P', color: { bg: '#38200A', fg: '#E07040' }, amount: 18000, note: '' },
-    { id: '13', name: 'Nasra Hamisi Mwanashehe',      initial: 'N', color: { bg: '#1A2838', fg: '#5A8ADB' }, amount: 22000, note: 'With love from Zanzibar 🌺' },
-    { id: '14', name: 'Grace Wanjiku Muthoni',                   initial: 'G', color: { bg: '#2A1A38', fg: '#BF5AF2' }, amount: 6000,  note: '' },
-    { id: '15', name: 'Mr & Mrs Gustanza Massareli Johnathan',  initial: 'G', color: { bg: '#1A3A28', fg: '#3DAA76' }, amount: 100000, note: 'With all our love!' },
-    { id: '16', name: 'Alexandrina Wambui Nyambura',            initial: 'A', color: { bg: '#2A2210', fg: '#E8C070' }, amount: 17000, note: '' },
-    { id: '17', name: 'Bartholomew Ochieng Oluoch',             initial: 'B', color: { bg: '#38200A', fg: '#E07040' }, amount: 9000,  note: '' },
-]);
+const AVATAR_PALETTE = [
+    { bg: '#1A3A28', fg: '#3DAA76' },
+    { bg: '#1A2838', fg: '#5A8ADB' },
+    { bg: '#2A1A38', fg: '#BF5AF2' },
+    { bg: '#38200A', fg: '#E07040' },
+    { bg: '#2A2210', fg: '#E8C070' },
+];
+const avatarColor = (initial) => AVATAR_PALETTE[(initial || '?').charCodeAt(0) % AVATAR_PALETTE.length];
 
-const giversPreview = computed(() => givers.value.slice(0, 4));
-const giversOverflow = computed(() => Math.max(0, givers.value.length - 4));
-const giversFirstNames = computed(() => givers.value.slice(0, 2).map(g => g.name.split(' ')[0]));
+// ── Zawadi items (real-time) ──────────────────────────────────────────────────
+const zawadiItems = ref([]);
+let unsubZawadi = null;
 
-function openGiftSheet() { showGiftSheet.value = true; giftStep.value = 'pick'; giftAmount.value = null; giftCustom.value = ''; giftNote.value = ''; }
-function closeGiftSheet() { if (giftSending.value) return; showGiftSheet.value = false; }
+const startZawadiSync = () => {
+    if (unsubZawadi) unsubZawadi();
+    if (!eventId.value) return;
+    const q = query(
+        collection(db, 'events', eventId.value, 'zawadiItems'),
+        orderBy('order', 'asc')
+    );
+    unsubZawadi = onSnapshot(q, snap => {
+        zawadiItems.value = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(item => item.isActive !== false);
+    });
+};
+
+// ── All paid contributions for this event (one query, grouped client-side) ────
+const allContribs = ref([]);
+let unsubAllContribs = null;
+
+const startAllContribsSync = () => {
+    if (unsubAllContribs) unsubAllContribs();
+    if (!eventId.value) return;
+    const q = query(
+        collection(db, 'events', eventId.value, 'zawadiContributions'),
+        orderBy('paidAt', 'desc'),
+        limit(200)
+    );
+    unsubAllContribs = onSnapshot(q, snap => {
+        allContribs.value = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(c => c.status === 'PAID');
+    });
+};
+
+const contribsByItem = computed(() => {
+    const map = {};
+    for (const c of allContribs.value) {
+        if (!map[c.itemId]) map[c.itemId] = [];
+        map[c.itemId].push(c);
+    }
+    return map;
+});
+
+// ── Per-item contributions stream (scoped when sheet is open) ─────────────────
+const itemContribs = ref([]);
+let unsubItemContribs = null;
+
+const loadItemContribs = (itemId) => {
+    if (unsubItemContribs) { unsubItemContribs(); unsubItemContribs = null; }
+    itemContribs.value = [];
+    if (!itemId || !eventId.value) return;
+    const q = query(
+        collection(db, 'events', eventId.value, 'zawadiContributions'),
+        where('itemId', '==', itemId),
+        orderBy('paidAt', 'desc')
+    );
+    unsubItemContribs = onSnapshot(q, snap => {
+        itemContribs.value = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(c => c.status === 'PAID');
+    });
+};
+
+function openGiftSheet(item) {
+    selectedItem.value = item;
+    showGiftSheet.value = true;
+    giftStep.value = 'pick';
+    giftAmount.value = null;
+    giftCustom.value = '';
+    giftNote.value = '';
+    loadItemContribs(item.id);
+}
+
+function closeGiftSheet() {
+    if (giftSending.value) return;
+    showGiftSheet.value = false;
+    if (unsubItemContribs) { unsubItemContribs(); unsubItemContribs = null; }
+    selectedItem.value = null;
+    itemContribs.value = [];
+}
 
 const giftTotal = computed(() => {
     if (giftAmount.value) return giftAmount.value;
-    const n = parseInt(giftCustom.value.replace(/\D/g, ''), 10);
+    const n = parseInt(String(giftCustom.value).replace(/\D/g, ''), 10);
     return isNaN(n) ? null : n;
 });
 
 const stepTitle = computed(() => {
-    const sw = { pick: 'Toa Zawadi ya Pesa', note: 'Ongeza Ujumbe', confirm: 'Thibitisha Zawadi', done: 'Zawadi Imetumwa!' };
-    const en = { pick: 'Send a Gift', note: 'Add a Note', confirm: 'Confirm Gift', done: 'Gift Sent!' };
+    if (giftStep.value === 'pick') return selectedItem.value?.title ?? (lang.value === 'sw' ? 'Toa Zawadi' : 'Send a Gift');
+    const sw = { note: 'Ongeza Ujumbe', confirm: 'Thibitisha Zawadi', done: 'Zawadi Imetumwa!' };
+    const en = { note: 'Add a Note', confirm: 'Confirm Gift', done: 'Gift Sent!' };
     return (lang.value === 'sw' ? sw : en)[giftStep.value] ?? '';
 });
 
 function pickPreset(amt) { giftAmount.value = amt; giftCustom.value = ''; }
+function onCustomInput() { giftAmount.value = null; }
 function giftNext() {
-    if (!giftTotal.value || giftTotal.value < 1000) return;
+    if (!giftTotal.value || giftTotal.value < 100) return;
     giftStep.value = 'note';
 }
 function giftBack() { giftStep.value = 'pick'; }
 function giftConfirm() { giftStep.value = 'confirm'; }
 function giftBackToNote() { giftStep.value = 'note'; }
 
+const giftError = ref('');
+const giftReturnBanner = ref(false); // shown when user lands back from Pesapal
+
 async function sendGift() {
     giftSending.value = true;
-    // placeholder — real Firestore write goes here
-    await new Promise(r => setTimeout(r, 1200));
-    giftSending.value = false;
-    giftStep.value = 'done';
+    giftError.value = '';
+    try {
+        const callbackUrl = window.location.href.split('?')[0];
+        const resp = await fetch('https://lipazawadi-frbu33fema-uc.a.run.app', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                amount: giftTotal.value,
+                eventId: eventId.value,
+                itemId: selectedItem.value.id,
+                attendeeId: userId.value,
+                attendeeName: attendeeName.value,
+                attendeeInitial: attendeeInitial.value,
+                attendeePhone: attendeePhone.value || '0000000000',
+                note: giftNote.value,
+                callback_url: callbackUrl,
+            }),
+        });
+        const data = await resp.json();
+        if (data.error) {
+            giftError.value = data.error.message || (lang.value === 'sw' ? 'Imeshindwa. Jaribu tena.' : 'Payment failed. Please try again.');
+            giftSending.value = false;
+            return;
+        }
+        // Hand off to Pesapal — user leaves the page here
+        window.location.href = data.redirect_url;
+    } catch (e) {
+        giftError.value = lang.value === 'sw' ? 'Hitilafu imetokea. Jaribu tena.' : 'Something went wrong. Please try again.';
+        giftSending.value = false;
+    }
 }
 
 const eventLocations = computed(() => eventData.value?.locations ?? []);
@@ -617,6 +724,20 @@ const toggleLike = async (item) => {
             <span v-for="n in 18" :key="n"></span>
         </div>
 
+        <!-- Gift return banner (shown after redirect back from Pesapal) -->
+        <Transition name="gift-overlay">
+            <div v-if="giftReturnBanner" class="gift-return-banner" @click="giftReturnBanner = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke-linecap="round"/>
+                </svg>
+                <div>
+                    <p class="gift-return-title">{{ lang === 'sw' ? 'Zawadi inasubiri uthibitisho' : 'Gift is being processed' }}</p>
+                    <p class="gift-return-sub">{{ lang === 'sw' ? 'Itaonekana hapa ikithibitishwa.' : 'It will appear here once confirmed.' }}</p>
+                </div>
+                <button class="gift-return-close">✕</button>
+            </div>
+        </Transition>
+
         <!-- Loading -->
         <div v-if="loading" class="center-screen">
             <div class="spin-ring"></div>
@@ -910,50 +1031,74 @@ const toggleLike = async (item) => {
                         </button>
                     </div>
 
-                    <!-- ── Gift card ── -->
-                    <div class="section-card gift-card anim" style="--d:.08s" @click="openGiftSheet">
-                        <div class="gift-card-inner">
-                            <div class="gift-icon-wrap">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                                    <path d="M20 12v10H4V12" />
-                                    <path d="M22 7H2v5h20V7z" />
-                                    <path d="M12 22V7" />
-                                    <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z" />
-                                    <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" />
-                                </svg>
-                            </div>
-                            <div class="gift-card-text">
-                                <p class="gift-card-title">{{ lang === 'sw' ? 'Toa Zawadi ya Pesa' : 'Send a Gift' }}</p>
-                                <p class="gift-card-sub" v-if="givers.length === 0">
-                                    {{ lang === 'sw' ? 'Kuwa wa kwanza kutoa zawadi' : 'Be the first to send a gift' }}
-                                </p>
-                                <p class="gift-card-sub" v-else>
-                                    <template v-if="lang === 'sw'">
-                                        {{ giversFirstNames.join(', ') }}<span v-if="giversOverflow"> na {{ giversOverflow }} wengine</span> wametoa zawadi
-                                    </template>
-                                    <template v-else>
-                                        {{ giversFirstNames.join(', ') }}<span v-if="giversOverflow"> &amp; {{ giversOverflow }} others</span> have contributed
-                                    </template>
-                                </p>
-                            </div>
-                            <svg class="gift-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                                <path d="M9 18l6-6-6-6" />
-                            </svg>
+                    <!-- ── Gift of Love section ── -->
+                    <div class="section-card zawadi-section anim" style="--d:.08s">
+                        <div class="s-hdr">
+                            <div class="s-bar"></div>
+                            <span class="s-lbl">{{ lang === 'sw' ? 'Zawadi ya Upendo' : 'Gift of Love' }}</span>
                         </div>
-
-                        <!-- Givers avatar strip -->
-                        <div v-if="givers.length" class="gift-card-givers" @click.stop="openGiftSheet">
-                            <div class="givers-avatars">
-                                <div v-for="g in giversPreview" :key="g.id" class="givers-avatar"
-                                    :style="{ background: g.color.bg, color: g.color.fg }">
-                                    {{ g.initial }}
+                        <div v-if="zawadiItems.length === 0" class="zawadi-empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                                <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+                                <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
+                                <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
+                            </svg>
+                            <p>{{ lang === 'sw' ? 'Hakuna vitu bado' : 'No gift items yet' }}</p>
+                        </div>
+                        <div v-else class="zawadi-list">
+                            <div v-for="(item, idx) in zawadiItems" :key="item.id"
+                                :class="['zawadi-item', idx < zawadiItems.length - 1 ? 'zawadi-item-sep' : '']"
+                                @click="openGiftSheet(item)">
+                                <!-- Top row: icon · title · chevron -->
+                                <div class="zawadi-item-top">
+                                    <div class="zawadi-item-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                            <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+                                            <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
+                                            <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="zawadi-item-info">
+                                        <p class="zawadi-item-title">{{ item.title }}</p>
+                                        <template v-if="item.description">
+                                            <p :class="['zawadi-item-desc', expandedDescs[item.id] ? 'zawadi-item-desc--expanded' : '']">{{ item.description }}</p>
+                                            <button v-if="item.description.length > 80" class="zawadi-read-more"
+                                                @click.stop="expandedDescs[item.id] = !expandedDescs[item.id]">
+                                                {{ expandedDescs[item.id] ? 'Show less' : 'Read more' }}
+                                            </button>
+                                        </template>
+                                    </div>
+                                    <svg class="zawadi-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                        <path d="M9 18l6-6-6-6"/>
+                                    </svg>
                                 </div>
-                                <div v-if="giversOverflow" class="givers-avatar givers-overflow">+{{ giversOverflow }}</div>
+                                <!-- Progress bar -->
+                                <div class="zawadi-progress-wrap">
+                                    <div class="zawadi-progress-bar">
+                                        <div class="zawadi-progress-fill"
+                                            :style="{ width: Math.min(100, item.targetAmount > 0 ? (item.totalFunded / item.targetAmount * 100) : 0) + '%' }">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Footer: amounts · avatar strip -->
+                                <div class="zawadi-item-foot">
+                                    <div class="zawadi-amounts">
+                                        <span class="zawadi-funded">{{ item.currency || 'TZS' }} {{ fmtMoney(item.totalFunded || 0) }}</span>
+                                        <span class="zawadi-target"> / {{ fmtMoney(item.targetAmount) }}</span>
+                                    </div>
+                                    <div v-if="(contribsByItem[item.id] || []).length" class="zawadi-avatars">
+                                        <div v-for="c in (contribsByItem[item.id] || []).slice(0, 4)" :key="c.id"
+                                            class="zawadi-avatar"
+                                            :style="{ background: avatarColor(c.attendeeInitial).bg, color: avatarColor(c.attendeeInitial).fg }">
+                                            {{ c.attendeeInitial }}
+                                        </div>
+                                        <div v-if="(contribsByItem[item.id] || []).length > 4" class="zawadi-avatar zawadi-avatar-more">
+                                            +{{ (contribsByItem[item.id] || []).length - 4 }}
+                                        </div>
+                                    </div>
+                                    <span v-else class="zawadi-no-gifts">{{ lang === 'sw' ? 'Bado hakuna zawadi' : 'Be the first!' }}</span>
+                                </div>
                             </div>
-                            <span class="gift-card-givers-lbl">
-                                {{ givers.length }} {{ lang === 'sw' ? 'zawadi' : 'gifts' }}
-                            </span>
-                            <span class="gift-card-tap-lbl">{{ lang === 'sw' ? 'Gusa kutoa zawadi' : 'Tap to send a gift' }}</span>
                         </div>
                     </div>
 
@@ -1269,20 +1414,20 @@ const toggleLike = async (item) => {
 
                                     <!-- Step: pick amount -->
                                     <template v-if="giftStep === 'pick'">
-                                        <p class="gift-sheet-sub">{{ lang === 'sw' ? 'Toa zawadi kwa' : 'Send a gift to' }} {{ eventData?.title }}</p>
+                                        <p class="gift-sheet-sub">{{ lang === 'sw' ? 'Unatoa zawadi kwa ajili ya' : 'Gifting towards' }} <strong style="color:#e8d5a0">{{ selectedItem?.title }}</strong></p>
 
-                                        <!-- Givers wall -->
-                                        <div v-if="givers.length" class="givers-wall">
+                                        <!-- Givers wall — scoped to this item -->
+                                        <div v-if="itemContribs.length" class="givers-wall">
                                             <div class="givers-wall-scroll">
-                                                <div v-for="g in givers" :key="g.id" class="givers-wall-chip">
-                                                    <div class="givers-wall-avatar" :style="{ background: g.color.bg, color: g.color.fg }">{{ g.initial }}</div>
+                                                <div v-for="c in itemContribs" :key="c.id" class="givers-wall-chip">
+                                                    <div class="givers-wall-avatar" :style="{ background: avatarColor(c.attendeeInitial).bg, color: avatarColor(c.attendeeInitial).fg }">{{ c.attendeeInitial }}</div>
                                                     <div class="givers-wall-info">
-                                                        <span class="givers-wall-name">{{ g.name }}</span>
-                                                        <span class="givers-wall-amt">{{ fmtMoney(g.amount) }}</span>
+                                                        <span class="givers-wall-name">{{ c.attendeeName }}</span>
+                                                        <span class="givers-wall-amt">{{ fmtMoney(c.amount) }}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <p class="givers-wall-lbl">{{ givers.length }} {{ lang === 'sw' ? 'wametoa zawadi hadi sasa' : 'people have sent gifts' }}</p>
+                                            <p class="givers-wall-lbl">{{ itemContribs.length }} {{ lang === 'sw' ? 'wametoa zawadi hadi sasa' : 'people have sent gifts' }}</p>
                                         </div>
 
                                         <div class="gift-presets">
@@ -1294,12 +1439,13 @@ const toggleLike = async (item) => {
                                         </div>
                                         <div class="gift-custom-wrap">
                                             <span class="gift-custom-prefix">{{ giftCurrency }}</span>
-                                            <input v-model="giftCustom" class="gift-custom-input" type="number"
-                                                inputmode="numeric" :placeholder="lang === 'sw' ? 'Kiasi kingine' : 'Custom amount'"
-                                                @input="giftAmount = null" />
+                                            <input v-model="giftCustom" class="gift-custom-input" type="text"
+                                                inputmode="numeric" pattern="[0-9]*"
+                                                :placeholder="lang === 'sw' ? 'Kiasi kingine' : 'Custom amount'"
+                                                @input="onCustomInput" />
                                         </div>
-                                        <p v-if="giftTotal && giftTotal < 1000" class="gift-err">{{ lang === 'sw' ? 'Kiwango cha chini ni' : 'Minimum is' }} {{ fmtMoney(1000) }} {{ giftCurrency }}</p>
-                                        <button class="gift-cta" :disabled="!giftTotal || giftTotal < 1000" @click="giftNext">
+                                        <p v-if="giftTotal && giftTotal < 100" class="gift-err">{{ lang === 'sw' ? 'Kiwango cha chini ni' : 'Minimum is' }} {{ fmtMoney(100) }} {{ giftCurrency }}</p>
+                                        <button class="gift-cta" :disabled="!giftTotal || giftTotal < 100" @click="giftNext">
                                             {{ lang === 'sw' ? 'Endelea' : 'Continue' }}
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                                         </button>
@@ -1336,6 +1482,7 @@ const toggleLike = async (item) => {
                                             </div>
                                         </div>
                                         <p class="gift-confirm-disclaimer">{{ lang === 'sw' ? 'Malipo yatashughulikiwa kwa usalama.' : 'Payment will be processed securely.' }}</p>
+                                        <p v-if="giftError" class="gift-err" style="margin-bottom:10px">{{ giftError }}</p>
                                         <button class="gift-cta gift-cta-gold" :disabled="giftSending" @click="sendGift">
                                             <template v-if="giftSending">
                                                 <div class="gift-spinner"></div>
@@ -3653,6 +3800,147 @@ const toggleLike = async (item) => {
     margin: 8px 0 0;
 }
 
+/* ── Gift of Love section ───────────────────────────────────────────────────── */
+.zawadi-section {
+    background: linear-gradient(135deg, rgba(30,20,10,.82) 0%, rgba(22,16,8,.9) 100%);
+    border: 1px solid rgba(201,150,60,.28);
+    padding: 18px;
+}
+.zawadi-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 28px 0 10px;
+    color: rgba(255,255,255,.25);
+    font-size: 13px;
+}
+.zawadi-empty svg {
+    width: 36px;
+    height: 36px;
+    stroke: rgba(201,150,60,.3);
+}
+.zawadi-list { display: flex; flex-direction: column; }
+.zawadi-item {
+    padding: 14px 0;
+    cursor: pointer;
+    transition: opacity .15s;
+}
+.zawadi-item:active { opacity: .7; }
+.zawadi-item-sep {
+    border-bottom: 1px solid rgba(201,150,60,.1);
+}
+.zawadi-item-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.zawadi-item-icon {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: rgba(201,150,60,.13);
+    border: 1px solid rgba(201,150,60,.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.zawadi-item-icon svg { width: 18px; height: 18px; stroke: #C9963C; }
+.zawadi-item-info { flex: 1; min-width: 0; }
+.zawadi-item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8d5a0;
+    margin: 0 0 2px;
+    word-break: break-word;
+}
+.zawadi-item-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,.38);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.zawadi-item-desc--expanded {
+    display: block;
+    overflow: visible;
+}
+.zawadi-read-more {
+    background: none;
+    border: none;
+    padding: 2px 0 0;
+    font-size: 11px;
+    color: #C9963C;
+    cursor: pointer;
+    line-height: 1;
+}
+.zawadi-item-chevron {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    stroke: rgba(201,150,60,.5);
+}
+.zawadi-progress-wrap { margin-bottom: 10px; }
+.zawadi-progress-bar {
+    height: 5px;
+    background: rgba(255,255,255,.07);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.zawadi-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, rgba(201,150,60,.6), #C9963C);
+    border-radius: 3px;
+    transition: width .4s ease;
+    min-width: 3px;
+}
+.zawadi-item-foot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.zawadi-amounts { flex: 1; min-width: 0; }
+.zawadi-funded {
+    font-size: 13px;
+    font-weight: 700;
+    color: #C9963C;
+}
+.zawadi-target {
+    font-size: 12px;
+    color: rgba(255,255,255,.35);
+}
+.zawadi-avatars {
+    display: flex;
+    align-items: center;
+}
+.zawadi-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(22,16,8,.9);
+    margin-left: -6px;
+    flex-shrink: 0;
+}
+.zawadi-avatars .zawadi-avatar:first-child { margin-left: 0; }
+.zawadi-avatar-more {
+    background: rgba(255,255,255,.08);
+    color: rgba(255,255,255,.45);
+    font-size: 8px;
+}
+.zawadi-no-gifts {
+    font-size: 11px;
+    color: rgba(201,150,60,.5);
+}
+
 /* ── Gift overlay + sheet ────────────────────────────────────────────────────── */
 .gift-overlay {
     position: fixed;
@@ -3666,7 +3954,7 @@ const toggleLike = async (item) => {
     width: 100%;
     max-width: 520px;
     margin: 0 auto;
-    background: rgba(17,17,20,0.72);
+    background: rgba(17,17,20,0.38);
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
     border-radius: 28px 28px 0 0;
@@ -3928,6 +4216,53 @@ const toggleLike = async (item) => {
 .gift-done-sub { font-size: 13.5px; color: rgba(255,255,255,.5); margin: 0 0 24px; }
 
 /* Sheet transition */
+/* ── Gift return banner ──────────────────────────────────────────────────────── */
+.gift-return-banner {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 480px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: rgba(17,17,20,0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(201,150,60,.4);
+    border-radius: 16px;
+    z-index: 1300;
+    cursor: pointer;
+}
+.gift-return-banner svg {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    stroke: #C9963C;
+}
+.gift-return-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8d5a0;
+    margin: 0 0 2px;
+}
+.gift-return-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,.4);
+    margin: 0;
+}
+.gift-return-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,.3);
+    font-size: 13px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
 .gift-overlay-enter-active, .gift-overlay-leave-active { transition: opacity .25s; }
 .gift-overlay-enter-from, .gift-overlay-leave-to { opacity: 0; }
 .gift-sheet-enter-active, .gift-sheet-leave-active { transition: transform .3s cubic-bezier(.32,1,.4,1); }
