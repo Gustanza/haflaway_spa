@@ -4,16 +4,31 @@
     <!-- Stats bar -->
     <div class="stats-bar">
       <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-label">Total Events</span>
+          <div class="stat-icon-wrap stat-icon-wrap--neutral">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+        </div>
         <span class="stat-num">{{ events.length }}</span>
-        <span class="stat-label">Total Events</span>
       </div>
       <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-label">Published</span>
+          <div class="stat-icon-wrap stat-icon-wrap--gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
         <span class="stat-num stat-num--gold">{{ publishedCount }}</span>
-        <span class="stat-label">Published</span>
       </div>
       <div class="stat-card">
+        <div class="stat-top">
+          <span class="stat-label">Draft</span>
+          <div class="stat-icon-wrap stat-icon-wrap--muted">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+        </div>
         <span class="stat-num stat-num--muted">{{ draftCount }}</span>
-        <span class="stat-label">Draft</span>
       </div>
     </div>
 
@@ -21,7 +36,7 @@
     <div class="toolbar">
       <div class="search-wrap">
         <MagnifyingGlassIcon class="search-icon" />
-        <input v-model="searchQuery" class="search-input" placeholder="Search by event title…" />
+        <input v-model="searchQuery" class="search-input" placeholder="Search events…" />
         <button v-if="searchQuery" class="search-clear" @click="searchQuery = ''">
           <XMarkIcon class="search-clear-icon" />
         </button>
@@ -50,81 +65,76 @@
       <p class="empty-sub">{{ searchQuery ? 'Try a different search term.' : 'Events created by users will appear here.' }}</p>
     </div>
 
-    <!-- Table -->
-    <div v-else class="table-wrap">
-      <table class="table">
-        <thead>
-          <tr>
-            <th class="th">Event</th>
-            <th class="th">Admin</th>
-            <th class="th">Dates</th>
-            <th class="th">Status</th>
-            <th class="th">Team</th>
-            <th class="th">Created</th>
-            <th class="th th--end"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="e in paginated" :key="e.id" class="row">
+    <!-- Events panel -->
+    <div v-else class="events-panel">
 
-            <!-- Event cell -->
-            <td class="td">
-              <div class="event-cell">
-                <div class="thumb-wrap">
-                  <img v-if="e.eventThumbnail" :src="e.eventThumbnail" class="thumb-img" @error="ev => ev.target.style.display='none'" />
-                  <CalendarDaysIcon v-else class="thumb-fallback" />
-                </div>
-                <div class="event-meta">
-                  <span class="event-title">{{ e.title || 'Untitled Event' }}</span>
-                  <span class="event-location">{{ e.location || '—' }}</span>
-                </div>
-              </div>
-            </td>
+      <!-- Panel header -->
+      <div class="panel-head">
+        <div class="panel-head-left">
+          <span class="panel-title">Events</span>
+          <span class="panel-count">{{ filtered.length }}</span>
+        </div>
+        <div class="panel-cols-label">
+          <span>Date</span>
+          <span>Status</span>
+          <span>Team</span>
+          <span>Organizer</span>
+          <span></span>
+        </div>
+      </div>
 
-            <!-- Admin email -->
-            <td class="td">
-              <span class="admin-email">{{ authorEmails[e.authorId] || '—' }}</span>
-            </td>
+      <!-- Rows -->
+      <div class="events-list">
+        <div v-for="e in paginated" :key="e.id" class="er">
 
-            <!-- Dates -->
-            <td class="td td--secondary">
-              <span class="date-range">{{ formatDateRange(e.startDate, e.endDate) }}</span>
-            </td>
+          <!-- Thumb + title -->
+          <div class="er-main">
+            <div class="er-thumb">
+              <img v-if="e.eventThumbnail" :src="e.eventThumbnail" class="er-thumb-img" @error="ev => ev.target.style.display='none'" />
+              <CalendarDaysIcon v-else class="er-thumb-icon" />
+            </div>
+            <div class="er-info">
+              <span class="er-title">{{ e.title || 'Untitled Event' }}</span>
+              <span class="er-location">{{ e.location || '—' }}</span>
+            </div>
+          </div>
 
-            <!-- Status -->
-            <td class="td">
-              <button
-                :class="['status-badge', isPublished(e.status) ? 'status-badge--pub' : 'status-badge--draft']"
-                @click="toggleStatus(e)"
-              >
-                {{ isPublished(e.status) ? 'Published' : 'Draft' }}
-              </button>
-            </td>
+          <!-- Date -->
+          <div class="er-cell er-date">{{ formatDateRange(e.startDate, e.endDate) }}</div>
 
-            <!-- Team -->
-            <td class="td td--secondary">{{ teamCount(e) }}</td>
+          <!-- Status -->
+          <div class="er-cell">
+            <button
+              :class="['er-status', isPublished(e.status) ? 'er-status--pub' : 'er-status--draft']"
+              @click="toggleStatus(e)"
+            >
+              <span class="er-dot" />
+              {{ isPublished(e.status) ? 'Published' : 'Draft' }}
+            </button>
+          </div>
 
-            <!-- Created -->
-            <td class="td td--secondary">{{ formatDate(e.createdAt) }}</td>
+          <!-- Team -->
+          <div class="er-cell er-team">
+            <span v-if="teamCount(e) !== '—'" class="team-chip">
+              <svg class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              {{ teamCount(e) }}
+            </span>
+            <span v-else class="er-empty">—</span>
+          </div>
 
-            <!-- Actions -->
-            <td class="td">
-              <div class="row-actions">
-                <button class="icon-btn" title="View" @click="() => {}">
-                  <EyeIcon class="ib-svg" />
-                </button>
-                <button class="icon-btn" title="Edit" @click="() => {}">
-                  <PencilSquareIcon class="ib-svg" />
-                </button>
-                <button class="icon-btn icon-btn--del" title="Delete" @click="() => {}">
-                  <TrashIcon class="ib-svg" />
-                </button>
-              </div>
-            </td>
+          <!-- Organizer -->
+          <div class="er-cell er-author">{{ authorEmails[e.authorId] || '—' }}</div>
 
-          </tr>
-        </tbody>
-      </table>
+          <!-- Actions -->
+          <div class="er-cell er-actions">
+            <button class="icon-btn" title="View"><EyeIcon class="ib-svg" /></button>
+            <button class="icon-btn" title="Edit"><PencilSquareIcon class="ib-svg" /></button>
+            <button class="icon-btn icon-btn--del" title="Delete"><TrashIcon class="ib-svg" /></button>
+          </div>
+
+        </div>
+      </div>
+
     </div>
 
     <!-- Pagination -->
@@ -306,52 +316,74 @@ onMounted(fetchEvents)
   padding: 28px 28px 48px;
   min-height: 100%;
   font-family: 'Inter', -apple-system, sans-serif;
-  color: #EEEEF0;
+  color: #1C1A18;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 /* ── Stats ───────────────────────────────────────────────────────────────── */
 .stats-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
 }
 
 .stat-card {
-  flex: 1;
+  background: #FFFFFF;
+  border: 1px solid #EBEBEA;
+  border-radius: 16px;
+  padding: 18px 20px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  background: #1C1C1E;
-  border: 0.8px solid #2C2C2E;
-  border-radius: 14px;
-  padding: 16px 20px;
+  gap: 12px;
 }
 
-.stat-num {
-  font-size: 28px;
-  font-weight: 700;
-  color: #EEEEF0;
-  letter-spacing: -1px;
-  line-height: 1;
+.stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-.stat-num--gold  { color: #C9A84C; }
-.stat-num--muted { color: #8E8E93; }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: #8E8E93;
+  color: #8A8580;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+.stat-icon-wrap {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.stat-icon-wrap svg { width: 15px; height: 15px; }
+.stat-icon-wrap--neutral { background: #F2F2F0; color: #8A8580; }
+.stat-icon-wrap--gold    { background: #FFF8EC; color: #C9A84C; }
+.stat-icon-wrap--muted   { background: #F2F2F0; color: #B5B0A8; }
+
+.stat-num {
+  font-size: 36px;
+  font-weight: 800;
+  color: #1C1A18;
+  letter-spacing: -1.5px;
+  line-height: 1;
+}
+.stat-num--gold  { color: #C9A84C; }
+.stat-num--muted { color: #C4BBAE; }
 
 /* ── Toolbar ─────────────────────────────────────────────────────────────── */
 .toolbar {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
@@ -366,61 +398,61 @@ onMounted(fetchEvents)
 .search-icon {
   position: absolute;
   left: 12px;
-  width: 16px;
-  height: 16px;
-  color: #48484A;
+  width: 15px;
+  height: 15px;
+  color: #C4BBAE;
   pointer-events: none;
 }
 
 .search-input {
   width: 100%;
   padding: 9px 36px;
-  background: #1C1C1E;
-  border: 0.8px solid #2C2C2E;
+  background: #FFFFFF;
+  border: 1px solid #EBEBEA;
   border-radius: 12px;
-  color: #EEEEF0;
+  color: #1C1A18;
   font-size: 14px;
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
-  transition: border-color 150ms;
+  transition: border-color 150ms, box-shadow 150ms;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
-.search-input::placeholder { color: #48484A; }
-.search-input:focus { border-color: rgba(201, 168, 76, 0.5); }
+.search-input::placeholder { color: #C4BBAE; }
+.search-input:focus { border-color: rgba(201,168,76,0.5); box-shadow: 0 0 0 3px rgba(201,168,76,0.08); }
 
 .search-clear {
   position: absolute;
   right: 8px;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 6px;
   border: none;
-  background: #28282C;
-  color: #8E8E93;
+  background: #F2F2F0;
+  color: #8A8580;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
 }
-.search-clear:hover { color: #EEEEF0; }
-.search-clear-icon { width: 12px; height: 12px; }
+.search-clear-icon { width: 11px; height: 11px; }
 
 .filter-tabs {
   display: flex;
-  gap: 4px;
-  background: #1C1C1E;
-  border: 0.8px solid #2C2C2E;
-  border-radius: 12px;
-  padding: 4px;
+  gap: 2px;
+  background: #F2F2F0;
+  border: 1px solid #EBEBEA;
+  border-radius: 10px;
+  padding: 3px;
 }
 
 .tab {
-  padding: 7px 14px;
-  border-radius: 9px;
+  padding: 6px 14px;
+  border-radius: 8px;
   border: none;
   background: transparent;
-  color: #8E8E93;
+  color: #8A8580;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -428,8 +460,8 @@ onMounted(fetchEvents)
   font-family: inherit;
   white-space: nowrap;
 }
-.tab:hover   { color: #AEAEB2; }
-.tab--active { background: #2A2210; color: #C9A84C; }
+.tab:hover   { color: #1C1A18; }
+.tab--active { background: #FFFFFF; color: #1C1A18; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 
 /* ── States ──────────────────────────────────────────────────────────────── */
 .state-center {
@@ -439,12 +471,16 @@ onMounted(fetchEvents)
   justify-content: center;
   min-height: 320px;
   gap: 12px;
+  background: #FFFFFF;
+  border: 1px solid #EBEBEA;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .spinner {
-  width: 28px;
-  height: 28px;
-  border: 2px solid #2C2C2E;
+  width: 26px;
+  height: 26px;
+  border: 2px solid #EBEBEA;
   border-top-color: #C9A84C;
   border-radius: 50%;
   animation: spin 0.75s linear infinite;
@@ -452,140 +488,188 @@ onMounted(fetchEvents)
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .empty-icon-wrap {
-  width: 60px;
-  height: 60px;
-  border-radius: 16px;
-  background: #2A2210;
-  border: 0.8px solid rgba(201, 168, 76, 0.2);
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: #FFF8EC;
+  border: 1px solid rgba(201,168,76,0.2);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.empty-icon  { width: 28px; height: 28px; color: #C9A84C; }
-.empty-title { font-size: 16px; font-weight: 600; color: #EEEEF0; margin: 0; }
-.empty-sub   { font-size: 13px; color: #8E8E93; margin: 0; text-align: center; max-width: 300px; }
+.empty-icon  { width: 26px; height: 26px; color: #C9A84C; }
+.empty-title { font-size: 15px; font-weight: 600; color: #1C1A18; margin: 0; }
+.empty-sub   { font-size: 13px; color: #8A8580; margin: 0; text-align: center; max-width: 300px; }
 
-/* ── Table ───────────────────────────────────────────────────────────────── */
-.table-wrap {
-  background: #1C1C1E;
-  border: 0.8px solid #2C2C2E;
-  border-radius: 16px;
+/* ── Events panel ────────────────────────────────────────────────────────── */
+.events-panel {
+  background: #FFFFFF;
+  border: 1px solid #EBEBEA;
+  border-radius: 20px;
   overflow: hidden;
-  overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 860px;
-}
-
-.th {
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 11px;
-  font-weight: 600;
-  color: #8E8E93;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  border-bottom: 0.8px solid #2C2C2E;
-  white-space: nowrap;
-  background: #1C1C1E;
-}
-
-.row { transition: background 100ms; }
-.row:hover { background: #28282C; }
-.row:not(:last-child) .td { border-bottom: 0.8px solid #2C2C2E; }
-
-.td {
-  padding: 12px 16px;
-  font-size: 13px;
-  color: #AEAEB2;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-.td--secondary { color: #8E8E93; font-size: 12px; }
-
-/* Event cell */
-.event-cell {
+.panel-head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 240px;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #EBEBEA;
+  background: #FAFAF8;
 }
 
-.thumb-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: #28282C;
-  border: 0.8px solid #2C2C2E;
+.panel-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1C1A18;
+  letter-spacing: -0.1px;
+}
+
+.panel-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8A8580;
+  background: #F2F2F0;
+  border: 1px solid #EBEBEA;
+  border-radius: 6px;
+  padding: 1px 7px;
+}
+
+.panel-cols-label {
+  display: grid;
+  grid-template-columns: 120px 110px 64px 160px 88px;
+  gap: 0;
+  text-align: left;
+}
+.panel-cols-label span {
+  font-size: 10px;
+  font-weight: 700;
+  color: #C4BBAE;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Event rows ──────────────────────────────────────────────────────────── */
+.events-list { display: flex; flex-direction: column; }
+
+.er {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 20px;
+  min-height: 72px;
+  border-bottom: 1px solid #F5F4F2;
+  transition: background 120ms;
+  position: relative;
+}
+.er:last-child { border-bottom: none; }
+.er:hover { background: #FDFCFA; }
+.er::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #C9A84C;
+  border-radius: 0 2px 2px 0;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+.er:hover::before { opacity: 1; }
+
+/* Main cell (thumb + title) — flex-1 to take remaining space */
+.er-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+  padding-right: 20px;
+}
+
+.er-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #F2F2F0;
+  border: 1px solid #EBEBEA;
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.er-thumb-img  { width: 100%; height: 100%; object-fit: cover; display: block; }
+.er-thumb-icon { width: 20px; height: 20px; color: #C4BBAE; }
 
-.thumb-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+.er-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.er-title    { font-size: 14px; font-weight: 600; color: #1C1A18; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.er-location { font-size: 12px; color: #B5B0A8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Aligned data cells */
+.er-cell {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #8A8580;
 }
+.er-date   { width: 120px; font-variant-numeric: tabular-nums; }
+.er-team   { width: 64px; }
+.er-author { width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #B5B0A8; font-size: 11px; }
+.er-actions { width: 88px; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.er-empty  { color: #DEDDD9; }
 
-.thumb-fallback { width: 20px; height: 20px; color: #48484A; }
-
-.event-meta   { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.event-title  { font-size: 13px; font-weight: 600; color: #EEEEF0; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
-.event-location { font-size: 11px; color: #8E8E93; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
-
-/* Date range */
-.date-range { font-variant-numeric: tabular-nums; }
-
-/* Status badge */
-.status-badge {
-  display: inline-block;
-  padding: 3px 9px;
-  border-radius: 6px;
+/* Status pill */
+.er-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 7px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.4px;
   cursor: pointer;
   font-family: inherit;
+  border: none;
   transition: opacity 150ms;
+  width: 110px;
+  white-space: nowrap;
 }
-.status-badge:hover { opacity: 0.75; }
-.status-badge--pub   { background: #2A2210; color: #C9A84C; border: 0.6px solid rgba(201,168,76,.3); }
-.status-badge--draft { background: #28282C; color: #8E8E93; border: 0.6px solid #2C2C2E; }
+.er-status:hover { opacity: 0.75; }
+.er-status--pub   { background: #FFF8EC; color: #C9A84C; }
+.er-status--draft { background: #F2F2F0; color: #8A8580; }
+.er-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
-/* Admin email */
-.admin-email {
-  font-size: 12px;
-  color: #AEAEB2;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
-}
-
-/* Row actions */
-.th--end { width: 96px; }
-
-.row-actions {
-  display: flex;
+/* Team chip */
+.team-chip {
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-  justify-content: flex-end;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #F2F2F0;
+  border: 1px solid #EBEBEA;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8A8580;
 }
+.chip-icon { width: 11px; height: 11px; flex-shrink: 0; }
 
+/* Action buttons */
 .icon-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  border: 0.8px solid #2C2C2E;
-  background: #28282C;
-  color: #8E8E93;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid #EBEBEA;
+  background: #F2F2F0;
+  color: #8A8580;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -593,10 +677,13 @@ onMounted(fetchEvents)
   transition: color 150ms, background 150ms, border-color 150ms;
   padding: 0;
   box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 150ms, color 150ms, background 150ms;
 }
-.icon-btn:hover      { color: #C9A84C; background: #2A2210; border-color: rgba(201,168,76,.3); }
-.icon-btn--del:hover { color: #FF453A; background: rgba(255,69,58,.1); border-color: rgba(255,69,58,.25); }
-.ib-svg { width: 14px; height: 14px; }
+.er:hover .icon-btn { opacity: 1; }
+.icon-btn:hover      { color: #C9A84C; background: #FFF8EC; border-color: rgba(201,168,76,.3); }
+.icon-btn--del:hover { color: #FF453A; background: rgba(255,69,58,.08); border-color: rgba(255,69,58,.2); }
+.ib-svg { width: 13px; height: 13px; }
 
 /* ── Pagination ──────────────────────────────────────────────────────────── */
 .pagination {
@@ -604,7 +691,6 @@ onMounted(fetchEvents)
   align-items: center;
   justify-content: center;
   gap: 4px;
-  margin-top: 28px;
 }
 
 .pg-btn {
@@ -612,9 +698,9 @@ onMounted(fetchEvents)
   height: 34px;
   padding: 0 10px;
   border-radius: 9px;
-  border: 0.8px solid #2C2C2E;
-  background: #1C1C1E;
-  color: #AEAEB2;
+  border: 1px solid #EBEBEA;
+  background: #FFFFFF;
+  color: #6B6A68;
   font-size: 13px;
   font-weight: 500;
   font-family: inherit;
@@ -625,9 +711,9 @@ onMounted(fetchEvents)
   transition: background 150ms, color 150ms, border-color 150ms;
   box-sizing: border-box;
 }
-.pg-btn:hover:not(:disabled):not(.pg-btn--active) { background: #28282C; color: #EEEEF0; }
+.pg-btn:hover:not(:disabled):not(.pg-btn--active) { background: #F2F2F0; color: #1C1A18; }
 .pg-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.pg-btn--active  { background: #2A2210; border-color: rgba(201,168,76,.4); color: #C9A84C; cursor: default; }
+.pg-btn--active  { background: #FFF8EC; border-color: rgba(201,168,76,.4); color: #C9A84C; cursor: default; }
 .pg-arrow        { width: 14px; height: 14px; }
 
 .pg-ellipsis {
@@ -636,7 +722,7 @@ onMounted(fetchEvents)
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #48484A;
+  color: #C4BBAE;
   font-size: 13px;
   user-select: none;
 }

@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { auth } from '../firebase'
 import Ahadi_Mchango from '../views/Ahadi_Mchango.vue'
 import Landing_Page from '../views/Landing_Page.vue'
 import Event_Landing from '../views/Event_Landing.vue'
@@ -9,8 +10,33 @@ import ManageCardTemplates from '../views/dashboard/ManageCardTemplates.vue'
 import DashSettings from '../views/dashboard/DashSettings.vue'
 import CardTemplateGallery from '../views/CardTemplateGallery.vue'
 import Pricing from '../views/Pricing.vue'
+import Login from '../views/Login.vue'
+import CreateEvent from '../views/CreateEvent.vue'
+import MyEvents from '../views/MyEvents.vue'
+import EventLayout from '../views/event/EventLayout.vue'
+import EventOverview from '../views/event/EventOverview.vue'
+import EventComingSoon from '../views/event/EventComingSoon.vue'
+import EditEvent from '../views/EditEvent.vue'
+
+// Resolves once Firebase has restored the persisted session (or confirmed no user)
+let authResolved = false
+const waitForAuth = new Promise(resolve => {
+    const unsub = auth.onAuthStateChanged(user => {
+        unsub()
+        authResolved = true
+        resolve(user)
+    })
+})
+
+const PROTECTED = ['/my-events', '/create-event', '/edit-event', '/event', '/dashboard']
 
 const routes = [
+    {
+        path: '/login',
+        name: 'Login',
+        component: Login,
+        meta: { guestOnly: true },
+    },
     {
         path: '/changia/:eventId/:userId',
         name: 'Changia',
@@ -43,6 +69,41 @@ const routes = [
         ],
     },
     {
+        path: '/create-event',
+        name: 'CreateEvent',
+        component: CreateEvent,
+        meta: { title: 'Create Event' },
+    },
+    {
+        path: '/my-events',
+        name: 'MyEvents',
+        component: MyEvents,
+        meta: { title: 'My Events' },
+    },
+    {
+        path: '/edit-event/:eventId',
+        name: 'EditEvent',
+        component: EditEvent,
+        meta: { title: 'Edit Event' },
+    },
+    {
+        path: '/event/:eventId',
+        component: EventLayout,
+        redirect: to => `/event/${to.params.eventId}/overview`,
+        children: [
+            { path: 'overview',  name: 'EventOverview',   component: EventOverview,   meta: { title: 'Overview' } },
+            { path: 'attendees', name: 'EventAttendees',  component: EventComingSoon, meta: { title: 'Attendees' } },
+            { path: 'checkins',  name: 'EventCheckins',   component: EventComingSoon, meta: { title: 'Check-ins' } },
+            { path: 'cards',     name: 'EventCards',      component: EventComingSoon, meta: { title: 'Cards' } },
+            { path: 'messages',  name: 'EventMessages',   component: EventComingSoon, meta: { title: 'Messages' } },
+            { path: 'gallery',   name: 'EventGallery',    component: EventComingSoon, meta: { title: 'Gallery' } },
+            { path: 'zawadi',    name: 'EventZawadi',     component: EventComingSoon, meta: { title: 'Zawadi' } },
+            { path: 'payments',  name: 'EventPayments',   component: EventComingSoon, meta: { title: 'Payments' } },
+            { path: 'team',      name: 'EventTeam',       component: EventComingSoon, meta: { title: 'Team' } },
+            { path: 'settings',  name: 'EventSettings',   component: EventComingSoon, meta: { title: 'Settings' } },
+        ],
+    },
+    {
         path: '/invitation-card-templates',
         name: 'InvitationTemplates',
         component: CardTemplateGallery,
@@ -59,6 +120,22 @@ const routes = [
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes
+})
+
+router.beforeEach(async (to) => {
+    // Wait for Firebase to restore the session on first navigation
+    const user = authResolved ? auth.currentUser : await waitForAuth
+
+    const needsAuth = PROTECTED.some(prefix => to.path.startsWith(prefix))
+    const isGuestOnly = to.meta.guestOnly
+
+    if (needsAuth && !user) {
+        return { name: 'Login', query: { redirect: to.fullPath } }
+    }
+
+    if (isGuestOnly && user) {
+        return { name: 'MyEvents' }
+    }
 })
 
 export default router

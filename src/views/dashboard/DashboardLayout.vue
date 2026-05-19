@@ -95,16 +95,16 @@ const navItems = [
 <style scoped>
 /* ── Tokens ──────────────────────────────────────────────────────────────── */
 :root {
-  --bg:      #111114;
-  --card:    #1C1C1E;
-  --card2:   #28282C;
-  --sep:     #2C2C2E;
+  --bg:      #F8F8F6;
+  --card:    #FFFFFF;
+  --card2:   #F2F2F0;
+  --sep:     #EBEBEA;
   --lime:    #C9A84C;
-  --limedim: #2A2210;
-  --lbl1:    #EEEEF0;
-  --lbl2:    #AEAEB2;
-  --lbl3:    #8E8E93;
-  --lbl4:    #48484A;
+  --limedim: #FFF8EC;
+  --lbl1:    #1C1A18;
+  --lbl2:    #6B6A68;
+  --lbl3:    #8A8580;
+  --lbl4:    #B5B0A8;
 }
 
 /* ── Root shell ──────────────────────────────────────────────────────────── */
@@ -113,7 +113,7 @@ const navItems = [
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: #111114;
+  background: #F8F8F6;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   position: relative;
 }
@@ -145,8 +145,9 @@ const navItems = [
 .sidebar {
   width: 232px;
   flex-shrink: 0;
-  background: #1C1C1E;
-  border-right: 0.8px solid #2C2C2E;
+  background: #FFFFFF;
+  border-right: 0.8px solid #EBEBEA;
+  box-shadow: 2px 0 12px rgba(0,0,0,0.04);
   display: flex;
   flex-direction: column;
   padding: 28px 16px 24px;
@@ -172,7 +173,7 @@ const navItems = [
 .brand-name {
   font-size: 17px;
   font-weight: 700;
-  color: #EEEEF0;
+  color: #1C1A18;
   letter-spacing: -0.4px;
 }
 
@@ -190,19 +191,19 @@ const navItems = [
   padding: 10px 12px;
   border-radius: 12px;
   text-decoration: none;
-  color: #8E8E93;
+  color: #8A8580;
   font-size: 14px;
   font-weight: 500;
   transition: background 160ms, color 160ms;
 }
 
 .nav-item:hover {
-  background: #28282C;
-  color: #AEAEB2;
+  background: #F2F2F0;
+  color: #6B6A68;
 }
 
 .nav-item--active {
-  background: #2A2210;
+  background: #FFF8EC;
   color: #C9A84C;
   border: 0.8px solid rgba(201, 168, 76, 0.25);
 }
@@ -230,8 +231,9 @@ const navItems = [
   justify-content: space-between;
   padding: 0 24px;
   height: 56px;
-  border-bottom: 0.8px solid #2C2C2E;
-  background: #111114;
+  border-bottom: 0.8px solid #EBEBEA;
+  background: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 
 .topbar-left {
@@ -243,18 +245,18 @@ const navItems = [
 .topbar-breadcrumb {
   font-size: 13px;
   font-weight: 500;
-  color: #48484A;
+  color: #B5B0A8;
 }
 
 .topbar-sep {
   font-size: 13px;
-  color: #48484A;
+  color: #B5B0A8;
 }
 
 .topbar-title {
   font-size: 14px;
   font-weight: 600;
-  color: #EEEEF0;
+  color: #1C1A18;
 }
 
 .topbar-right {
@@ -268,8 +270,8 @@ const navItems = [
   gap: 7px;
   padding: 5px 12px;
   border-radius: 20px;
-  background: #1C1C1E;
-  border: 0.8px solid #2C2C2E;
+  background: #FFFFFF;
+  border: 0.8px solid #EBEBEA;
 }
 
 .avatar-dot {
@@ -282,7 +284,7 @@ const navItems = [
 .avatar-label {
   font-size: 12px;
   font-weight: 500;
-  color: #AEAEB2;
+  color: #6B6A68;
 }
 
 /* ── Main content ────────────────────────────────────────────────────────── */
