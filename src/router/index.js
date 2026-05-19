@@ -15,6 +15,7 @@ import CreateEvent from '../views/CreateEvent.vue'
 import MyEvents from '../views/MyEvents.vue'
 import EventLayout from '../views/event/EventLayout.vue'
 import EventOverview from '../views/event/EventOverview.vue'
+import EventAttendees from '../views/event/EventAttendees.vue'
 import EventComingSoon from '../views/event/EventComingSoon.vue'
 import EditEvent from '../views/EditEvent.vue'
 
@@ -92,7 +93,7 @@ const routes = [
         redirect: to => `/event/${to.params.eventId}/overview`,
         children: [
             { path: 'overview',  name: 'EventOverview',   component: EventOverview,   meta: { title: 'Overview' } },
-            { path: 'attendees', name: 'EventAttendees',  component: EventComingSoon, meta: { title: 'Attendees' } },
+            { path: 'attendees', name: 'EventAttendees',  component: EventAttendees,  meta: { title: 'Attendees' } },
             { path: 'checkins',  name: 'EventCheckins',   component: EventComingSoon, meta: { title: 'Check-ins' } },
             { path: 'cards',     name: 'EventCards',      component: EventComingSoon, meta: { title: 'Cards' } },
             { path: 'messages',  name: 'EventMessages',   component: EventComingSoon, meta: { title: 'Messages' } },
