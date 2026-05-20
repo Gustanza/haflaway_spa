@@ -23,8 +23,20 @@
             class="ea-chip" :class="{ 'ea-chip--active': activeType === f.val }"
             @click="activeType = f.val">
             {{ f.label }}
+            <span v-if="f.val === 'all' ? attendees.length : typeCount[f.val]" class="ea-chip-cnt">
+              {{ f.val === 'all' ? attendees.length : typeCount[f.val] }}
+            </span>
           </button>
         </div>
+        <button class="ea-import-btn" @click="openImport">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Import
+        </button>
         <button class="ea-add-btn" @click="openAdd">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2.5" stroke-linecap="round">
@@ -35,23 +47,6 @@
       </div>
     </div>
 
-    <!-- ── Summary row ── -->
-    <div class="ea-summary" v-if="attendees.length">
-      <span class="ea-summary-total">
-        {{ filteredList.length }} attendee{{ filteredList.length !== 1 ? 's' : '' }}
-      </span>
-      <div class="ea-summary-pills">
-        <span class="ea-type-pill ea-type-pill--invitation" v-if="typeCount.invitation">
-          {{ typeCount.invitation }} invitation
-        </span>
-        <span class="ea-type-pill ea-type-pill--contribution" v-if="typeCount.contribution">
-          {{ typeCount.contribution }} contribution
-        </span>
-        <span class="ea-type-pill ea-type-pill--contact" v-if="typeCount.contact">
-          {{ typeCount.contact }} contact
-        </span>
-      </div>
-    </div>
 
     <!-- ── Selection bar ── -->
     <Transition name="ea-fade">
@@ -338,7 +333,20 @@
                 <!-- Phone -->
                 <div class="ea-field">
                   <label class="ea-label">Phone Number</label>
-                  <input v-model="form.phone" class="ea-input" placeholder="+255 7XX XXX XXX" />
+                  <VueTelInput
+                    v-model="form.phone"
+                    class="ea-tel-input"
+                    :class="{ 'ea-tel-input--valid': phoneObj?.valid, 'ea-tel-input--invalid': phoneObj && !phoneObj.valid && form.phone }"
+                    :preferred-countries="['TZ', 'KE', 'UG', 'RW', 'ET', 'ZM', 'MW', 'MZ']"
+                    default-country="TZ"
+                    mode="international"
+                    :input-options="{ placeholder: '7XX XXX XXX', name: 'phone', id: 'att-phone' }"
+                    :dropdown-options="{ showDialCodeInSelection: true, showFlags: true, showSearchBox: true }"
+                    @validate="onPhoneValidate"
+                  />
+                  <span v-if="phoneObj && !phoneObj.valid && form.phone" class="ea-field-error">
+                    Enter a valid phone number with country code
+                  </span>
                 </div>
 
                 <!-- Type -->
@@ -437,6 +445,336 @@
                   </button>
                 </div>
               </form>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         IMPORT — Phase 1: Type + File pick
+         ══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="ea-fade">
+        <div v-if="importPhase === 1" class="ea-overlay ea-overlay--center" @click.self="closeImport">
+          <Transition name="ea-scale">
+            <div class="ea-modal ea-imp-modal" v-if="importPhase === 1">
+              <div class="ea-modal-header">
+                <h3 class="ea-modal-title">Import Attendees</h3>
+                <button class="ea-modal-close" @click="closeImport">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+
+              <div class="ea-imp-body">
+                <!-- Type -->
+                <div class="ea-field">
+                  <label class="ea-label">Attendee Type <span class="ea-required">*</span></label>
+                  <div class="ea-type-row">
+                    <button v-for="t in ['invitation','contribution','contact']" :key="t"
+                      type="button" class="ea-type-opt"
+                      :class="{ 'ea-type-opt--active': importKardType === t }"
+                      @click="importKardType = t">
+                      {{ capitalize(t) }}
+                    </button>
+                  </div>
+                  <p class="ea-imp-type-hint">
+                    <template v-if="importKardType === 'invitation'">Guests who receive an invitation card.</template>
+                    <template v-else-if="importKardType === 'contribution'">Guests who pledge or pay contributions.</template>
+                    <template v-else>General contacts — no card, optional pledge/contribution fields.</template>
+                  </p>
+                </div>
+
+                <!-- Drop zone -->
+                <div class="ea-dropzone"
+                  :class="{ 'ea-dropzone--over': dropOver, 'ea-dropzone--filled': importFileName }"
+                  @dragover.prevent="dropOver = true"
+                  @dragleave="dropOver = false"
+                  @drop.prevent="onFileDrop">
+
+                  <input type="file" class="ea-file-input" ref="fileInputRef"
+                    accept=".xls,.xlsx,.xlsm,.xlsb"
+                    @change="handleImportFile" />
+
+                  <!-- Empty state -->
+                  <div v-if="!importFileName && !importProcessing" class="ea-dropzone-inner" @click="fileInputRef.click()">
+                    <div class="ea-drop-icon">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                    </div>
+                    <p class="ea-drop-title">Drop your Excel file here</p>
+                    <p class="ea-drop-sub">or <span class="ea-drop-link">click to browse</span> — .xls · .xlsx · .xlsm · .xlsb</p>
+                  </div>
+
+                  <!-- Processing -->
+                  <div v-else-if="importProcessing" class="ea-dropzone-inner">
+                    <svg class="ea-tpl-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                    <p class="ea-drop-sub" style="margin-top:10px">Parsing file…</p>
+                  </div>
+
+                  <!-- File chosen -->
+                  <div v-else class="ea-file-chosen">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <span class="ea-file-name">{{ importFileName }}</span>
+                    <button class="ea-file-clear" @click.stop="clearImportFile">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <p v-if="importFileError" class="ea-imp-error">{{ importFileError }}</p>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         IMPORT — Phase 2: Column Mapping
+         ══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="ea-fade">
+        <div v-if="importPhase === 2" class="ea-overlay ea-overlay--center" @click.self="closeImport">
+          <Transition name="ea-scale">
+            <div class="ea-modal ea-imp-modal ea-imp-modal--tall" v-if="importPhase === 2">
+              <div class="ea-modal-header">
+                <div class="ea-imp-header-left">
+                  <button class="ea-imp-back" @click="importPhase = 1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  </button>
+                  <h3 class="ea-modal-title">Map Columns</h3>
+                </div>
+                <button class="ea-modal-close" @click="closeImport">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+
+              <div class="ea-imp-body ea-imp-body--scroll">
+
+                <!-- File info pill -->
+                <div class="ea-imp-file-pill">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  {{ importFileName }} · {{ importRows.length }} rows · {{ capitalize(importKardType) }}
+                </div>
+
+                <!-- ── Step 1: Labels ── -->
+                <div v-if="eventLabels.length" class="ea-imp-section">
+                  <p class="ea-imp-section-label">Step 1 — Assign Labels <span class="ea-imp-opt">(optional)</span></p>
+                  <div class="ea-imp-label-scroller">
+                    <button v-for="lbl in eventLabels" :key="lbl.id"
+                      type="button" class="ea-imp-label-chip"
+                      :class="{ 'ea-imp-label-chip--active': importSelectedLabels.includes(lbl.id) }"
+                      :style="{
+                        borderColor: importSelectedLabels.includes(lbl.id) ? labelFg(lbl) : '#EBEBEA',
+                        color: importSelectedLabels.includes(lbl.id) ? labelFg(lbl) : '#8A8580',
+                        background: importSelectedLabels.includes(lbl.id) ? labelBg(lbl) : 'transparent',
+                      }"
+                      @click="toggleImportLabel(lbl.id)">
+                      {{ lbl.name }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- ── Step 2: Map columns ── -->
+                <div class="ea-imp-section">
+                  <p class="ea-imp-section-label">{{ eventLabels.length ? 'Step 2' : 'Step 1' }} — Map Excel Columns</p>
+
+                  <!-- Name -->
+                  <div class="ea-map-row">
+                    <div class="ea-map-icon-wrap">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                    <span class="ea-map-label">Name <span class="ea-required">*</span></span>
+                    <div class="ea-map-select-wrap">
+                      <select class="ea-map-select" v-model="importMapping.name">
+                        <option :value="null" disabled>Select column…</option>
+                        <option v-for="h in importHeaders" :key="h.idx" :value="h.idx">{{ h.label }}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Phone -->
+                  <div class="ea-map-row">
+                    <div class="ea-map-icon-wrap">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.02z"/></svg>
+                    </div>
+                    <span class="ea-map-label">Phone <span class="ea-required">*</span></span>
+                    <div class="ea-map-select-wrap">
+                      <select class="ea-map-select" v-model="importMapping.phone">
+                        <option :value="null" disabled>Select column…</option>
+                        <option v-for="h in importHeaders" :key="h.idx" :value="h.idx">{{ h.label }}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Pledges — contribution & contact only -->
+                  <div v-if="importKardType === 'contribution' || importKardType === 'contact'" class="ea-map-row">
+                    <div class="ea-map-icon-wrap">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    </div>
+                    <span class="ea-map-label">Pledges</span>
+                    <div class="ea-map-toggle-group">
+                      <label class="ea-toggle">
+                        <input type="checkbox" v-model="importMapAhadi" />
+                        <span class="ea-toggle-track"><span class="ea-toggle-thumb"/></span>
+                      </label>
+                      <div class="ea-map-select-wrap" v-if="importMapAhadi">
+                        <select class="ea-map-select" v-model="importMapping.ahadi">
+                          <option :value="null" disabled>Select column…</option>
+                          <option v-for="h in importHeaders" :key="h.idx" :value="h.idx">{{ h.label }}</option>
+                        </select>
+                      </div>
+                      <span v-else class="ea-map-skip">Skipped</span>
+                    </div>
+                  </div>
+
+                  <!-- Contribution paid — contribution & contact only -->
+                  <div v-if="importKardType === 'contribution' || importKardType === 'contact'" class="ea-map-row">
+                    <div class="ea-map-icon-wrap">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <span class="ea-map-label">Contribution</span>
+                    <div class="ea-map-toggle-group">
+                      <label class="ea-toggle">
+                        <input type="checkbox" v-model="importMapMchango" />
+                        <span class="ea-toggle-track"><span class="ea-toggle-thumb"/></span>
+                      </label>
+                      <div class="ea-map-select-wrap" v-if="importMapMchango">
+                        <select class="ea-map-select" v-model="importMapping.mchango">
+                          <option :value="null" disabled>Select column…</option>
+                          <option v-for="h in importHeaders" :key="h.idx" :value="h.idx">{{ h.label }}</option>
+                        </select>
+                      </div>
+                      <span v-else class="ea-map-skip">Skipped</span>
+                    </div>
+                  </div>
+
+                  <!-- Card Template — invitation & contribution only -->
+                  <div v-if="importKardType !== 'contact'" class="ea-map-row ea-map-row--card">
+                    <div class="ea-map-icon-wrap">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <span class="ea-map-label">Card Template <span class="ea-required">*</span></span>
+                    <div class="ea-map-select-wrap">
+                      <div v-if="fetchingTemplates" class="ea-map-loading">
+                        <svg class="ea-tpl-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                        Loading…
+                      </div>
+                      <div v-else-if="!cardTemplates.length" class="ea-map-empty">
+                        No {{ importKardType }} templates yet — create one in Cards first.
+                      </div>
+                      <select v-else class="ea-map-select" v-model="importMapping.card">
+                        <option :value="null" disabled>Select template…</option>
+                        <option v-for="tpl in cardTemplates" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Proceed -->
+                <button class="ea-imp-proceed-btn" @click="proceedToPreview">
+                  Preview Import
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         IMPORT — Phase 3: Preview + Import
+         ══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="ea-fade">
+        <div v-if="importPhase === 3" class="ea-overlay" @click.self="closeImport">
+          <Transition name="ea-slide-right">
+            <div class="ea-drawer ea-imp-drawer" v-if="importPhase === 3">
+
+              <!-- Header -->
+              <div class="ea-drawer-header ea-imp-drawer-header">
+                <button class="ea-drawer-back" @click="importPhase = 2">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  Back
+                </button>
+                <button class="ea-drawer-edit-btn" @click="closeImport">Cancel</button>
+              </div>
+
+              <!-- Hero strip -->
+              <div class="ea-imp-preview-hero">
+                <div>
+                  <p class="ea-imp-preview-title">Import Preview</p>
+                  <p class="ea-imp-preview-sub">{{ importPreviewList.length }} guest{{ importPreviewList.length !== 1 ? 's' : '' }} · {{ capitalize(importKardType) }}</p>
+                </div>
+                <!-- Labels assigned -->
+                <div v-if="importSelectedLabels.length" class="ea-imp-preview-labels">
+                  <span v-for="lbl in eventLabels.filter(l => importSelectedLabels.includes(l.id))" :key="lbl.id"
+                    class="ea-label-chip"
+                    :style="{ background: labelBg(lbl), color: labelFg(lbl) }">
+                    {{ lbl.name }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Card template being used -->
+              <div v-if="importKardType !== 'contact'" class="ea-imp-tpl-banner">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                Template: <strong>{{ cardTemplates.find(t => t.id === importMapping.card)?.name ?? '—' }}</strong>
+              </div>
+
+              <!-- Empty state -->
+              <div v-if="!importPreviewList.length" class="ea-imp-empty">
+                <p class="ea-empty-title">All done!</p>
+                <p class="ea-empty-sub">All guests were imported successfully.</p>
+                <button class="ea-empty-cta" @click="closeImport">Close</button>
+              </div>
+
+              <!-- Attendee list -->
+              <div v-else class="ea-imp-preview-list">
+                <div v-for="(att, idx) in importPreviewList" :key="att._id" class="ea-imp-preview-row">
+                  <span class="ea-imp-row-num">{{ idx + 1 }}</span>
+                  <div class="ea-imp-row-info">
+                    <span class="ea-imp-row-name">{{ att.fullName }}</span>
+                    <span class="ea-imp-row-phone">{{ att.phone || '—' }}</span>
+                    <!-- pledge / contribution for contribution & contact -->
+                    <div v-if="importKardType === 'contribution' || importKardType === 'contact'" class="ea-imp-row-amounts">
+                      <span v-if="att.pledgedAmount != null" class="ea-imp-amount ea-imp-amount--pledge">
+                        Pledge: {{ att.pledgedAmount ? formatMoney(att.pledgedAmount) : '—' }}
+                      </span>
+                      <span v-if="att.paidAmount != null" class="ea-imp-amount ea-imp-amount--paid">
+                        Paid: {{ att.paidAmount ? formatMoney(att.paidAmount) : '—' }}
+                      </span>
+                    </div>
+                  </div>
+                  <button class="ea-imp-row-remove" @click="importPreviewList.splice(idx,1)" title="Remove from import">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Footer: import button -->
+              <div class="ea-imp-drawer-footer" v-if="importPreviewList.length">
+                <button class="ea-imp-run-btn" :disabled="importing" @click="runImport">
+                  <template v-if="importing">
+                    <svg class="ea-tpl-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    Importing…
+                  </template>
+                  <template v-else>
+                    Import {{ importPreviewList.length }} Guest{{ importPreviewList.length !== 1 ? 's' : '' }}
+                  </template>
+                </button>
+              </div>
+
             </div>
           </Transition>
         </div>
@@ -573,8 +911,11 @@ import { useRoute } from 'vue-router'
 import { db, auth } from '../../firebase'
 import {
   collection, query, orderBy, where,
-  getDocs, updateDoc, deleteDoc, deleteField, doc,
+  getDocs, updateDoc, deleteDoc, deleteField, doc, addDoc,
 } from 'firebase/firestore'
+import * as XLSX from 'xlsx'
+import { VueTelInput } from 'vue-tel-input'
+import 'vue-tel-input/vue-tel-input.css'
 
 const CREATE_ATTENDEES_URL = 'https://createattendees-frbu33fema-uc.a.run.app'
 
@@ -893,6 +1234,9 @@ const submitting = ref(false)
 
 const form = ref({ name: '', phone: '', kardType: 'invitation', templateCardId: '', labelIds: [] })
 const formErr = ref({ name: '', templateCardId: '' })
+const phoneObj = ref(null)   // populated by vue-tel-input @validate
+
+function onPhoneValidate(obj) { phoneObj.value = obj }
 
 function validateForm() {
   formErr.value.name = form.value.name.trim() ? '' : 'Name is required'
@@ -906,6 +1250,7 @@ function openAdd() {
   editingAtt.value = null
   form.value = { name: '', phone: '', kardType: 'invitation', templateCardId: '', labelIds: [] }
   formErr.value = { name: '', templateCardId: '' }
+  phoneObj.value = null
   showModal.value = true
   fetchTemplates('invitation')
 }
@@ -913,14 +1258,17 @@ function openAdd() {
 function openEdit(att) {
   editingAtt.value = att
   const type = getKardType(att)
+  // Stored phone is E.164 digits without +; vue-tel-input needs the + to parse it
+  const rawPhone = att.phone ?? ''
   form.value = {
     name: att.fullName ?? '',
-    phone: att.phone ?? '',
+    phone: rawPhone ? '+' + rawPhone : '',
     kardType: type,
     templateCardId: att.cards?.[type]?.templateCardId ?? '',
     labelIds: [...(att.labelIds ?? [])],
   }
   formErr.value = { name: '', templateCardId: '' }
+  phoneObj.value = null
   closeDetail()
   showModal.value = true
   fetchTemplates(type)
@@ -949,7 +1297,8 @@ async function submitForm() {
   submitting.value = true
   try {
     const name = form.value.name.trim()
-    const phone = form.value.phone.trim().replace(/^\+/, '')
+    // Prefer the E.164 number from vue-tel-input validation; fall back to raw input stripped of +
+    const phone = (phoneObj.value?.number ?? form.value.phone).trim().replace(/^\+/, '')
     const isContact = form.value.kardType === 'contact'
     const existingAtt = editingAtt.value
 
@@ -1059,6 +1408,295 @@ async function bulkDelete() {
 watch([isAllPageSelected, isSomePageSelected], () => {
   if (headerCb.value) headerCb.value.indeterminate = isSomePageSelected.value
 }, { flush: 'post' })
+
+// ── Import flow ───────────────────────────────────────────────────────────────
+
+const importPhase          = ref(0)          // 0=closed 1=file+type 2=map 3=preview
+const importKardType       = ref('invitation')
+const importFileName       = ref('')
+const importHeaders        = ref([])         // [{ idx, label }]
+const importRows           = ref([])         // raw rows (no header row)
+const importMapping        = reactive({ name: null, phone: null, ahadi: null, mchango: null, card: null })
+const importMapAhadi       = ref(true)
+const importMapMchango     = ref(true)
+const importSelectedLabels = ref([])
+const importPreviewList    = ref([])
+const importProcessing     = ref(false)
+const importFileError      = ref('')
+const importing            = ref(false)
+const dropOver             = ref(false)
+const fileInputRef         = ref(null)
+
+function openImport() {
+  importPhase.value = 1
+  importKardType.value = 'invitation'
+  importFileName.value = ''
+  importHeaders.value = []
+  importRows.value = []
+  Object.assign(importMapping, { name: null, phone: null, ahadi: null, mchango: null, card: null })
+  importMapAhadi.value = true
+  importMapMchango.value = true
+  importSelectedLabels.value = []
+  importPreviewList.value = []
+  importFileError.value = ''
+  importProcessing.value = false
+  fetchTemplates('invitation')
+}
+
+function closeImport() { importPhase.value = 0 }
+
+function clearImportFile() {
+  importFileName.value = ''
+  importHeaders.value = []
+  importRows.value = []
+  importFileError.value = ''
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+
+function onFileDrop(e) {
+  dropOver.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (file) parseImportFile(file)
+}
+
+function handleImportFile(e) {
+  const file = e.target.files?.[0]
+  if (file) parseImportFile(file)
+}
+
+async function parseImportFile(file) {
+  const validExts = ['xls', 'xlsx', 'xlsm', 'xlsb']
+  const ext = file.name.split('.').pop().toLowerCase()
+  if (!validExts.includes(ext)) {
+    importFileError.value = 'Please select a valid Excel file (.xls, .xlsx, .xlsm, .xlsb)'
+    return
+  }
+  importFileName.value = file.name
+  importFileError.value = ''
+  importProcessing.value = true
+  try {
+    const buf = await file.arrayBuffer()
+    const wb  = XLSX.read(buf, { type: 'array', cellDates: true })
+    const ws  = wb.Sheets[wb.SheetNames[0]]
+    // header:1 → array of arrays; defval keeps empty cells as ''
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+    if (!data.length) throw new Error('empty')
+    const headerRow = data[0] ?? []
+    importHeaders.value = headerRow.map((h, i) => ({
+      idx:   i,
+      label: String(h).trim() || `Column ${i + 1}`,
+    }))
+    // skip rows that are entirely blank
+    importRows.value = data.slice(1).filter(row =>
+      row.some(cell => cell !== '' && cell != null)
+    )
+    if (!importRows.value.length) {
+      importFileError.value = 'The file has no data rows.'
+      importFileName.value = ''
+      return
+    }
+    Object.assign(importMapping, { name: null, phone: null, ahadi: null, mchango: null, card: null })
+    importPhase.value = 2
+  } catch (err) {
+    console.error('parseImportFile', err)
+    importFileError.value = 'Could not read the file. Ensure it is a valid Excel file.'
+    importFileName.value = ''
+  } finally {
+    importProcessing.value = false
+    if (fileInputRef.value) fileInputRef.value.value = ''
+  }
+}
+
+// Re-fetch templates and reset card selection when type changes in the import
+watch(() => importKardType.value, type => {
+  importMapping.card = null
+  fetchTemplates(type)
+})
+
+function toggleImportLabel(id) {
+  const idx = importSelectedLabels.value.indexOf(id)
+  if (idx === -1) importSelectedLabels.value.push(id)
+  else importSelectedLabels.value.splice(idx, 1)
+}
+
+function validateImportMapping() {
+  if (importMapping.name === null)  return 'Select the column that contains the guest name.'
+  if (importMapping.phone === null) return 'Select the column that contains the phone number.'
+  const isContrib = importKardType.value === 'contribution' || importKardType.value === 'contact'
+  if (isContrib && importMapAhadi.value && importMapping.ahadi === null)
+    return 'Select the Pledges column or disable the toggle.'
+  if (isContrib && importMapMchango.value && importMapping.mchango === null)
+    return 'Select the Contribution column or disable the toggle.'
+  if (importKardType.value !== 'contact' && !importMapping.card)
+    return 'Select a card template.'
+  return null
+}
+
+function proceedToPreview() {
+  const err = validateImportMapping()
+  if (err) { alert(err); return }
+  importPreviewList.value = buildPreviewList()
+  if (!importPreviewList.value.length) { alert('No valid rows found in the file.'); return }
+  importPhase.value = 3
+}
+
+// ── Port of Flutter's transformNumber (helpers.dart) ─────────────────────────
+// Normalises a raw phone string from Excel to E.164 digits (no +).
+// Handles: BOM / invisible chars, Excel float decimals (255712345678.0),
+// leading +, local 0-prefix, bare 7/6 9-digit numbers (TZ).
+function transformNumber(raw) {
+  let input = String(raw ?? '')
+  // 1. Strip invisible / non-printable chars (BOM, zero-width spaces, etc.)
+  input = input.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, '')
+  // 2. Excel stores phone numbers as floats → drop the decimal part
+  if (input.includes('.')) input = input.split('.')[0]
+  // 3. Remember whether the original had a leading + (foreign country code)
+  const hadPlus = input.trimStart().startsWith('+')
+  // 4. Strip everything that is not a digit
+  input = input.replace(/\D/g, '')
+  if (!input) return ''
+  // 5. Normalise to TZ E.164 (no +)
+  if (input.startsWith('255')) {
+    // already correct — leave as-is
+  } else if (hadPlus) {
+    // foreign country code — keep digits as-is (e.g. 254…, 256…)
+  } else if (input.startsWith('0') && input.length >= 10) {
+    input = '255' + input.slice(1)
+  } else if ((input.startsWith('7') || input.startsWith('6')) && input.length === 9) {
+    input = '255' + input
+  }
+  // 6. Sanity: must be all digits and a plausible length (9–15)
+  if (!/^\d{9,15}$/.test(input)) return ''
+  return input
+}
+
+// ── Numeric cleaner for pledge / contribution amounts ─────────────────────────
+// Handles: invisible chars, currency prefixes (TZS, $, etc.),
+// thousands separators (commas, dots, spaces), European decimals,
+// Excel scientific notation (1.5E+6), and negative values.
+function cleanNumeric(raw) {
+  let s = String(raw ?? '')
+  // Strip invisible / non-printable chars
+  s = s.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, '')
+  // Strip currency letters / symbols (e.g. "TZS", "$", "KSH ")
+  s = s.replace(/[A-Za-z$€£¥₦₹]/g, '').trim()
+  // If the value is already a JS number (SheetJS often returns real numbers), handle directly
+  if (raw !== null && raw !== '' && !isNaN(Number(raw))) return Math.max(0, Number(raw))
+  // Determine decimal separator: if both , and . exist, the last one is decimal
+  const lastComma = s.lastIndexOf(',')
+  const lastDot   = s.lastIndexOf('.')
+  if (lastComma > lastDot) {
+    // European style: 1.234.567,89 → remove dots, replace comma with dot
+    s = s.replace(/\./g, '').replace(',', '.')
+  } else {
+    // US / default style: 1,234,567.89 → remove commas
+    s = s.replace(/,/g, '')
+  }
+  // Remove any remaining spaces used as thousand-separators
+  s = s.replace(/\s/g, '')
+  const n = parseFloat(s)
+  return isNaN(n) ? 0 : Math.max(0, n)
+}
+
+function buildPreviewList() {
+  const isContrib = importKardType.value === 'contribution' || importKardType.value === 'contact'
+  return importRows.value
+    .map(row => {
+      const rawName  = String(row[importMapping.name]  ?? '').trim()
+      const rawPhone = String(row[importMapping.phone] ?? '').trim()
+      if (!rawName && !rawPhone) return null
+
+      const phone = transformNumber(rawPhone)
+
+      const pledgedAmount = (isContrib && importMapAhadi.value && importMapping.ahadi !== null)
+        ? cleanNumeric(row[importMapping.ahadi]) : null
+      const paidAmount    = (isContrib && importMapMchango.value && importMapping.mchango !== null)
+        ? cleanNumeric(row[importMapping.mchango]) : null
+
+      return {
+        _id:           crypto.randomUUID(),
+        fullName:      rawName.toUpperCase(),
+        fullNameLower: rawName.toLowerCase(),
+        phone,
+        pledgedAmount,
+        paidAmount,
+        labelIds:      [...importSelectedLabels.value],
+      }
+    })
+    .filter(Boolean)
+}
+
+async function runImport() {
+  if (!importPreviewList.value.length || importing.value) return
+  importing.value = true
+  const uid            = auth.currentUser?.uid
+  const templateCardId = importKardType.value === 'contact' ? 'contact' : importMapping.card
+  const snapshot       = [...importPreviewList.value]   // copy so we can mutate the reactive list
+
+  for (let i = 0; i < snapshot.length; i += 2) {
+    const batch   = snapshot.slice(i, i + 2)
+    const payload = batch.map(p => ({
+      id:               p._id,
+      cards:            {},
+      checkinStatus:    [],
+      createdAt:        new Date().toISOString(),
+      email:            '',
+      fullName:         p.fullName,
+      fullNameLower:    p.fullNameLower,
+      attendanceStatus: 'Not Confirmed',
+      phone:            p.phone,
+      messages:         {},
+      messageIndexes:   [],
+      labelIds:         p.labelIds,
+      idComment:        'No Comment',
+      ...(p.pledgedAmount != null ? { pledgedAmount: p.pledgedAmount } : {}),
+      ...(p.paidAmount    != null ? { paidAmount:    p.paidAmount    } : {}),
+    }))
+
+    try {
+      const res = await fetch(CREATE_ATTENDEES_URL, {
+        method:  'POST',
+        headers: { 'Authorization': `Bearer ${uid}` },
+        body:    JSON.stringify({
+          eventId:        eventId.value,
+          attendees:      payload,
+          templateCardId,
+          usepng:         props.event?.usepng ?? true,
+          kardType:       importKardType.value,
+        }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json = await res.json()
+      if (!json.status) throw new Error(json.message ?? 'Server error')
+
+      for (const result of (json.data ?? [])) {
+        if (!result.status) continue
+        const p   = batch.find(a => a._id === result.attendeeId)
+        const idx = importPreviewList.value.findIndex(a => a._id === result.attendeeId)
+        if (idx !== -1) importPreviewList.value.splice(idx, 1)
+        // For contribution / contact: write a payment sub-collection entry when paidAmount > 0
+        if (p && (importKardType.value === 'contribution' || importKardType.value === 'contact') && p.paidAmount) {
+          setImportPayment(result.attendeeId, p.paidAmount)
+        }
+      }
+    } catch (err) {
+      console.error('Import batch error', err)
+    }
+  }
+
+  importing.value = false
+  if (!importPreviewList.value.length) {
+    importPhase.value = 0
+    await loadInitial()
+  }
+}
+
+function setImportPayment(attendeeId, amount) {
+  addDoc(
+    collection(db, 'events', eventId.value, 'attendees', attendeeId, 'payments'),
+    { amount: amount ?? 0, createdAt: new Date().toISOString() }
+  ).catch(e => console.error('Payment entry error', e))
+}
 </script>
 
 <style scoped>
@@ -1145,6 +1783,24 @@ watch([isAllPageSelected, isSomePageSelected], () => {
   color: #C9A84C;
   font-weight: 600;
 }
+.ea-chip-cnt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 1px 5px;
+  background: #EDEDEB;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9A9690;
+  margin-left: 5px;
+  line-height: 1.4;
+}
+.ea-chip--active .ea-chip-cnt {
+  background: rgba(201,168,76,0.2);
+  color: #9A7218;
+}
 
 .ea-add-btn {
   display: flex;
@@ -1164,42 +1820,6 @@ watch([isAllPageSelected, isSomePageSelected], () => {
 }
 .ea-add-btn:hover { opacity: 0.82; }
 
-/* ── Summary ── */
-.ea-summary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.ea-summary-total {
-  font-size: 13px;
-  font-weight: 600;
-  color: #6B6A68;
-}
-.ea-summary-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-.ea-type-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px 4px 8px;
-  border-radius: 20px;
-  border: 0.8px solid transparent;
-}
-.ea-type-pill::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.ea-type-pill--invitation  { background: rgba(0,122,255,0.07); color: #0066CC; border-color: rgba(0,122,255,0.18); }
-.ea-type-pill--invitation::before { background: #007AFF; }
-.ea-type-pill--contribution { background: rgba(201,168,76,0.09); color: #9A7218; border-color: rgba(201,168,76,0.28); }
-.ea-type-pill--contribution::before { background: #C9A84C; }
-.ea-type-pill--contact     { background: rgba(142,142,147,0.08); color: #5A5A5E; border-color: rgba(142,142,147,0.2); }
-.ea-type-pill--contact::before { background: #8E8E93; }
 
 /* ── Selection bar ── */
 .ea-selection-bar {
@@ -2036,4 +2656,653 @@ watch([isAllPageSelected, isSomePageSelected], () => {
 
 .ea-slide-right-enter-active, .ea-slide-right-leave-active { transition: transform 260ms ease; }
 .ea-slide-right-enter-from, .ea-slide-right-leave-to { transform: translateX(100%); }
+
+/* ══════════════════════════════════════════════════════════════
+   VUE-TEL-INPUT OVERRIDES
+   ══════════════════════════════════════════════════════════════ */
+
+/* Outer wrapper — match ea-input sizing & border */
+:deep(.ea-tel-input.vue-tel-input) {
+  display: flex;
+  align-items: stretch;
+  border: 0.8px solid #EBEBEA;
+  border-radius: 10px;
+  background: #FAFAF9;
+  box-shadow: none;
+  font-family: inherit;
+  transition: border-color 150ms, background 150ms;
+  overflow: visible;
+}
+:deep(.ea-tel-input.vue-tel-input:focus-within) {
+  border-color: #C9A84C;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.10);
+}
+:deep(.ea-tel-input--valid.vue-tel-input) { border-color: rgba(48,209,88,0.55); }
+:deep(.ea-tel-input--invalid.vue-tel-input) { border-color: rgba(255,69,58,0.55); }
+
+/* Country dropdown button */
+:deep(.ea-tel-input .vti__dropdown) {
+  border: none;
+  border-right: 0.8px solid #EBEBEA;
+  border-radius: 10px 0 0 10px;
+  background: transparent;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: background 130ms;
+  flex-shrink: 0;
+}
+:deep(.ea-tel-input .vti__dropdown:hover),
+:deep(.ea-tel-input .vti__dropdown.open) {
+  background: #F2F2F0;
+}
+
+/* Flag */
+:deep(.ea-tel-input .vti__flag) {
+  margin-right: 1px;
+  border-radius: 2px;
+}
+
+/* Dial code shown next to flag */
+:deep(.ea-tel-input .vti__selection .vti__country-code) {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3A3936;
+  font-family: inherit;
+}
+
+/* Dropdown arrow */
+:deep(.ea-tel-input .vti__dropdown-arrow) {
+  font-size: 9px;
+  color: #B5B0A8;
+  margin-left: 2px;
+}
+
+/* The actual text input */
+:deep(.ea-tel-input .vti__input) {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: #1C1A18;
+  font-family: inherit;
+  border-radius: 0 10px 10px 0;
+  min-width: 0;
+}
+:deep(.ea-tel-input .vti__input::placeholder) { color: #B5B0A8; }
+
+/* Dropdown list */
+:deep(.ea-tel-input .vti__dropdown-list) {
+  border: 0.8px solid #EBEBEA;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+  background: #FFFFFF;
+  z-index: 9999;
+  padding: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  width: 280px;
+}
+:deep(.ea-tel-input .vti__dropdown-list.below) { top: calc(100% + 6px); }
+:deep(.ea-tel-input .vti__dropdown-list.above) { bottom: calc(100% + 6px); }
+
+/* Search box inside dropdown */
+:deep(.ea-tel-input .vti__search_box) {
+  width: calc(100% - 16px);
+  margin: 0 8px 6px;
+  padding: 7px 10px;
+  border: 0.8px solid #EBEBEA;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  background: #FAFAF9;
+  color: #1C1A18;
+  display: block;
+}
+:deep(.ea-tel-input .vti__search_box:focus) { border-color: #C9A84C; }
+
+/* Country list items */
+:deep(.ea-tel-input .vti__dropdown-item) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #3A3936;
+  font-family: inherit;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 100ms;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+:deep(.ea-tel-input .vti__dropdown-item:hover) { background: #F2F2F0; }
+:deep(.ea-tel-input .vti__dropdown-item.highlighted) {
+  background: #FFF8EC;
+  color: #9A7218;
+  font-weight: 600;
+}
+:deep(.ea-tel-input .vti__dropdown-item strong) {
+  font-weight: 600;
+  color: #6B6A68;
+  font-size: 11px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   IMPORT STYLES
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Import toolbar button ── */
+.ea-import-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #FFFFFF;
+  color: #6B6A68;
+  border: 0.8px solid #EBEBEA;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms;
+  font-family: inherit;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.ea-import-btn:hover {
+  background: #FFF8EC;
+  border-color: rgba(201,168,76,0.4);
+  color: #C9A84C;
+}
+
+/* ── Import modal sizing ── */
+.ea-imp-modal { max-width: 480px; }
+.ea-imp-modal--tall { max-height: 88vh; display: flex; flex-direction: column; }
+
+/* ── Import body ── */
+.ea-imp-body {
+  padding: 20px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.ea-imp-body--scroll {
+  overflow-y: auto;
+  flex: 1;
+  padding-bottom: 8px;
+}
+
+/* ── Type hint ── */
+.ea-imp-type-hint {
+  font-size: 11px;
+  color: #8A8580;
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+/* ── Drop zone ── */
+.ea-dropzone {
+  border: 1.5px dashed #D8D6D0;
+  border-radius: 14px;
+  background: #FAFAF9;
+  transition: all 180ms;
+  position: relative;
+  min-height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ea-dropzone--over {
+  border-color: #C9A84C;
+  background: #FFF8EC;
+}
+.ea-dropzone--filled {
+  border-style: solid;
+  border-color: rgba(201,168,76,0.45);
+  background: #FFFCF5;
+}
+.ea-file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.ea-dropzone-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+.ea-drop-icon {
+  width: 52px; height: 52px;
+  background: #F2F2F0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #B5B0A8;
+  margin-bottom: 4px;
+  transition: background 180ms, color 180ms;
+}
+.ea-dropzone--over .ea-drop-icon {
+  background: rgba(201,168,76,0.12);
+  color: #C9A84C;
+}
+.ea-drop-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3A3936;
+  margin: 0;
+}
+.ea-drop-sub {
+  font-size: 12px;
+  color: #8A8580;
+  margin: 0;
+}
+.ea-drop-link { color: #C9A84C; font-weight: 600; }
+
+/* ── File chosen state ── */
+.ea-file-chosen {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  width: 100%;
+}
+.ea-file-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3A3936;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ea-file-clear {
+  background: #F2F2F0;
+  border: none;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6B6A68;
+  flex-shrink: 0;
+  transition: background 140ms;
+}
+.ea-file-clear:hover { background: #EBEBEA; }
+
+/* ── Import error ── */
+.ea-imp-error {
+  font-size: 12px;
+  color: #FF453A;
+  margin: 0;
+  padding: 8px 12px;
+  background: rgba(255,69,58,0.06);
+  border: 0.8px solid rgba(255,69,58,0.2);
+  border-radius: 8px;
+}
+
+/* ── Phase 2 header back button ── */
+.ea-imp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ea-imp-back {
+  background: #F2F2F0;
+  border: none;
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6B6A68;
+  transition: background 130ms;
+}
+.ea-imp-back:hover { background: #EBEBEA; }
+
+/* ── File pill (phase 2) ── */
+.ea-imp-file-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: #F2F2F0;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B6A68;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ── Section label ── */
+.ea-imp-section { display: flex; flex-direction: column; gap: 12px; }
+.ea-imp-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #C9A84C;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+.ea-imp-opt { font-weight: 500; color: #B5B0A8; text-transform: none; letter-spacing: 0; }
+
+/* ── Label chip scroller ── */
+.ea-imp-label-scroller {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ea-imp-label-chip {
+  padding: 5px 13px;
+  border-radius: 20px;
+  border: 1px solid #EBEBEA;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 140ms;
+  font-family: inherit;
+}
+
+/* ── Mapping rows ── */
+.ea-map-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: #FAFAF9;
+  border: 0.8px solid #EBEBEA;
+  border-radius: 12px;
+}
+.ea-map-icon-wrap {
+  width: 28px; height: 28px;
+  background: rgba(201,168,76,0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ea-map-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3A3936;
+  width: 110px;
+  flex-shrink: 0;
+}
+.ea-map-select-wrap { flex: 1; }
+.ea-map-select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 0.8px solid #EBEBEA;
+  border-radius: 8px;
+  background: #FFFFFF;
+  font-size: 12px;
+  color: #1C1A18;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 140ms;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23B5B0A8' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  padding-right: 28px;
+}
+.ea-map-select:focus { border-color: #C9A84C; }
+.ea-map-toggle-group {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ea-map-loading, .ea-map-empty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #8A8580;
+}
+.ea-map-skip {
+  font-size: 11px;
+  color: #B5B0A8;
+  font-style: italic;
+}
+
+/* ── Toggle switch ── */
+.ea-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ea-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.ea-toggle-track {
+  width: 34px; height: 19px;
+  background: #D8D6D0;
+  border-radius: 10px;
+  position: relative;
+  transition: background 200ms;
+}
+.ea-toggle input:checked + .ea-toggle-track { background: #C9A84C; }
+.ea-toggle-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 15px; height: 15px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  transition: transform 200ms;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+}
+.ea-toggle input:checked + .ea-toggle-track .ea-toggle-thumb {
+  transform: translateX(15px);
+}
+
+/* ── Proceed button ── */
+.ea-imp-proceed-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 12px;
+  background: #1C1A18;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 150ms;
+  margin-top: 4px;
+}
+.ea-imp-proceed-btn:hover { opacity: 0.85; }
+
+/* ── Phase 3: import drawer ── */
+.ea-imp-drawer { width: 420px; display: flex; flex-direction: column; }
+
+.ea-imp-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  flex-shrink: 0;
+  border-bottom: 0.8px solid #F2F2F0;
+}
+
+.ea-imp-preview-hero {
+  padding: 16px 20px 12px;
+  border-bottom: 0.8px solid #F2F2F0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ea-imp-preview-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1C1A18;
+  margin: 0;
+}
+.ea-imp-preview-sub {
+  font-size: 12px;
+  color: #8A8580;
+  margin: 0;
+}
+.ea-imp-preview-labels { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.ea-imp-tpl-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: #FAFAF9;
+  border-bottom: 0.8px solid #F2F2F0;
+  font-size: 11px;
+  color: #8A8580;
+  flex-shrink: 0;
+}
+.ea-imp-tpl-banner strong { color: #3A3936; }
+
+/* ── Preview list ── */
+.ea-imp-preview-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ea-imp-preview-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  background: #FFFFFF;
+  border: 0.8px solid #EBEBEA;
+  border-radius: 12px;
+  transition: background 120ms;
+}
+.ea-imp-preview-row:hover { background: #FAFAF9; }
+.ea-imp-row-num {
+  width: 24px; height: 24px;
+  background: #F2F2F0;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6B6A68;
+  flex-shrink: 0;
+}
+.ea-imp-row-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ea-imp-row-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1C1A18;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ea-imp-row-phone { font-size: 11px; color: #8A8580; }
+.ea-imp-row-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+.ea-imp-amount {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.ea-imp-amount--pledge  { background: rgba(201,168,76,0.10); color: #9A7218; }
+.ea-imp-amount--paid    { background: rgba(48,209,88,0.10);  color: #1A8C3A; }
+
+.ea-imp-row-remove {
+  background: none;
+  border: none;
+  color: #C0BAB2;
+  cursor: pointer;
+  width: 22px; height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 130ms;
+  flex-shrink: 0;
+  padding: 0;
+}
+.ea-imp-row-remove:hover { background: rgba(255,69,58,0.08); color: #FF453A; }
+
+/* ── Empty import state ── */
+.ea-imp-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+/* ── Footer: run button ── */
+.ea-imp-drawer-footer {
+  padding: 14px 16px;
+  border-top: 0.8px solid #F2F2F0;
+  flex-shrink: 0;
+}
+.ea-imp-run-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px;
+  background: #1C1A18;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 150ms;
+}
+.ea-imp-run-btn:hover:not(:disabled) { opacity: 0.85; }
+.ea-imp-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

@@ -16,6 +16,7 @@ import MyEvents from '../views/MyEvents.vue'
 import EventLayout from '../views/event/EventLayout.vue'
 import EventOverview from '../views/event/EventOverview.vue'
 import EventAttendees from '../views/event/EventAttendees.vue'
+import EventMessages from '../views/event/EventMessages.vue'
 import EventComingSoon from '../views/event/EventComingSoon.vue'
 import EditEvent from '../views/EditEvent.vue'
 
@@ -29,7 +30,7 @@ const waitForAuth = new Promise(resolve => {
     })
 })
 
-const PROTECTED = ['/my-events', '/create-event', '/edit-event', '/event', '/dashboard']
+const PROTECTED = ['/my-events', '/create-event', '/edit-event', '/event/', '/dashboard']
 
 const routes = [
     {
@@ -92,16 +93,16 @@ const routes = [
         component: EventLayout,
         redirect: to => `/event/${to.params.eventId}/overview`,
         children: [
-            { path: 'overview',  name: 'EventOverview',   component: EventOverview,   meta: { title: 'Overview' } },
-            { path: 'attendees', name: 'EventAttendees',  component: EventAttendees,  meta: { title: 'Attendees' } },
-            { path: 'checkins',  name: 'EventCheckins',   component: EventComingSoon, meta: { title: 'Check-ins' } },
-            { path: 'cards',     name: 'EventCards',      component: EventComingSoon, meta: { title: 'Cards' } },
-            { path: 'messages',  name: 'EventMessages',   component: EventComingSoon, meta: { title: 'Messages' } },
-            { path: 'gallery',   name: 'EventGallery',    component: EventComingSoon, meta: { title: 'Gallery' } },
-            { path: 'zawadi',    name: 'EventZawadi',     component: EventComingSoon, meta: { title: 'Zawadi' } },
-            { path: 'payments',  name: 'EventPayments',   component: EventComingSoon, meta: { title: 'Payments' } },
-            { path: 'team',      name: 'EventTeam',       component: EventComingSoon, meta: { title: 'Team' } },
-            { path: 'settings',  name: 'EventSettings',   component: EventComingSoon, meta: { title: 'Settings' } },
+            { path: 'overview', name: 'EventOverview', component: EventOverview, meta: { title: 'Overview' } },
+            { path: 'attendees', name: 'EventAttendees', component: EventAttendees, meta: { title: 'Attendees' } },
+            { path: 'checkins', name: 'EventCheckins', component: EventComingSoon, meta: { title: 'Check-ins' } },
+            { path: 'cards', name: 'EventCards', component: EventComingSoon, meta: { title: 'Cards' } },
+            { path: 'messages', name: 'EventMessages', component: EventMessages, meta: { title: 'Messages' } },
+            { path: 'gallery', name: 'EventGallery', component: EventComingSoon, meta: { title: 'Gallery' } },
+            { path: 'zawadi', name: 'EventZawadi', component: EventComingSoon, meta: { title: 'Zawadi' } },
+            { path: 'payments', name: 'EventPayments', component: EventComingSoon, meta: { title: 'Payments' } },
+            { path: 'team', name: 'EventTeam', component: EventComingSoon, meta: { title: 'Team' } },
+            { path: 'settings', name: 'EventSettings', component: EventComingSoon, meta: { title: 'Settings' } },
         ],
     },
     {

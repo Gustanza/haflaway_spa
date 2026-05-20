@@ -281,7 +281,7 @@ onMounted(async () => {
   min-width: 0;
 }
 .el-event-name {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: #1C1A18;
   margin: 0;
@@ -290,7 +290,7 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 .el-event-type {
-  font-size: 11px;
+  font-size: 13px;
   color: #8A8580;
   margin: 2px 0 0;
 }
@@ -302,7 +302,7 @@ onMounted(async () => {
   gap: 6px;
   background: none;
   border: none;
-  font-size: 12px;
+  font-size: 14px;
   color: #8A8580;
   cursor: pointer;
   padding: 6px 8px;
@@ -329,7 +329,7 @@ onMounted(async () => {
   border-radius: 10px;
   text-decoration: none;
   color: #8A8580;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   transition: background 140ms, color 140ms;
 }
@@ -402,7 +402,7 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 .el-crumb {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   color: #8A8580;
   cursor: pointer;
@@ -426,7 +426,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   padding: 5px 12px;
   border-radius: 20px;
