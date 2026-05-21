@@ -268,15 +268,15 @@
       </div>
 
       <!-- Table footer: record range + paginator -->
-      <div class="ea-table-footer" v-if="filteredList.length > PAGE_SIZE || (filteredList.length && totalPages > 1)">
-        <span class="ea-range-label" v-if="filteredList.length">
-          {{ (currentPage - 1) * PAGE_SIZE + 1 }}–{{ Math.min(currentPage * PAGE_SIZE, filteredList.length) }}
+      <div class="ea-table-footer">
+        <span class="ea-range-label">
+          {{ filteredList.length ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filteredList.length)}` : '0' }}
           of {{ filteredList.length }}
         </span>
-        <div class="ea-paginator" v-if="totalPages > 1">
+        <div class="ea-paginator" :class="{ 'ea-paginator--disabled': totalPages <= 1 }">
           <!-- Prev -->
           <button class="ea-page-btn ea-page-btn--nav"
-            :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">
+            :disabled="currentPage === 1 || totalPages <= 1" @click="goToPage(currentPage - 1)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round">
               <polyline points="15 18 9 12 15 6"/>
@@ -287,13 +287,14 @@
             <span v-if="p === '…'" class="ea-page-ellipsis">…</span>
             <button v-else class="ea-page-btn"
               :class="{ 'ea-page-btn--active': currentPage === p }"
+              :disabled="totalPages <= 1"
               @click="goToPage(p)">
               {{ p }}
             </button>
           </template>
           <!-- Next -->
           <button class="ea-page-btn ea-page-btn--nav"
-            :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">
+            :disabled="currentPage === totalPages || totalPages <= 1" @click="goToPage(currentPage + 1)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" stroke-linecap="round">
               <polyline points="9 18 15 12 9 6"/>
@@ -877,18 +878,154 @@
                   </div>
                 </div>
 
-                <!-- Contributions — contribution type -->
-                <div v-if="getKardType(selectedAtt) === 'contribution'" class="ea-drawer-block">
-                  <p class="ea-block-label">Contributions</p>
+                <!-- Mchango — contribution & contact types -->
+                <div v-if="getKardType(selectedAtt) !== 'invitation'" class="ea-drawer-block ea-drawer-mchango">
+                  <p class="ea-block-label">Mchango</p>
+
+                  <!-- Summary row -->
                   <div class="ea-contrib-row">
-                    <div class="ea-contrib-card">
-                      <span class="ea-contrib-label">Pledged</span>
-                      <span class="ea-contrib-val">{{ formatMoney(selectedAtt.pledgedAmount) }}</span>
+                    <!-- Pledged — tap to edit -->
+                    <div class="ea-contrib-card ea-contrib-card--clickable" @click="openPledgeEdit">
+                      <div class="ea-contrib-card-top">
+                        <span class="ea-contrib-label">Pledged</span>
+                        <svg class="ea-contrib-edit-ico" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </div>
+                      <template v-if="!pledgeEditMode">
+                        <span class="ea-contrib-val">{{ formatMoney(selectedAtt.pledgedAmount) }}</span>
+                      </template>
+                      <template v-else>
+                        <div class="ea-inline-field" @click.stop>
+                          <input v-model="pledgeInput" type="number" min="0" class="ea-inline-inp"
+                            placeholder="0" autofocus
+                            @keyup.enter="savePledge" @keyup.escape="pledgeEditMode = false" />
+                          <button class="ea-inline-ok" :disabled="savingPledge" @click.stop="savePledge">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                              stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          </button>
+                          <button class="ea-inline-x" @click.stop="pledgeEditMode = false">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                              stroke-width="2.5" stroke-linecap="round">
+                              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </template>
                     </div>
+
+                    <!-- Paid -->
                     <div class="ea-contrib-card">
-                      <span class="ea-contrib-label">Paid</span>
+                      <div class="ea-contrib-card-top">
+                        <span class="ea-contrib-label">Paid</span>
+                      </div>
                       <span class="ea-contrib-val ea-contrib-val--paid">{{ formatMoney(selectedAtt.paidAmount) }}</span>
                     </div>
+                  </div>
+
+                  <!-- Progress bar (when pledge > 0) -->
+                  <div v-if="(selectedAtt.pledgedAmount ?? 0) > 0" class="ea-pledge-bar-wrap">
+                    <div class="ea-pledge-bar">
+                      <div class="ea-pledge-bar-fill"
+                        :style="{ width: Math.min(100, ((selectedAtt.paidAmount ?? 0) / selectedAtt.pledgedAmount) * 100) + '%' }" />
+                    </div>
+                    <span class="ea-pledge-pct">
+                      {{ Math.round(((selectedAtt.paidAmount ?? 0) / selectedAtt.pledgedAmount) * 100) }}% paid
+                    </span>
+                  </div>
+
+                  <!-- Add payment button / inline form -->
+                  <button v-if="!addPayMode" class="ea-add-pay-btn" @click="addPayMode = true">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.2" stroke-linecap="round">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Add Payment
+                  </button>
+
+                  <div v-else class="ea-pay-form">
+                    <div class="ea-pay-form-head">
+                      <span class="ea-pay-form-label">New Payment</span>
+                      <button class="ea-pay-form-close" @click="addPayMode = false; payInput = ''">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2.5" stroke-linecap="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="ea-pay-form-row">
+                      <input ref="payInputRef" v-model="payInput" type="number" min="0" class="ea-pay-inp"
+                        placeholder="Amount in TZS"
+                        @keyup.enter="addPayment" @keyup.escape="addPayMode = false; payInput = ''" />
+                      <button class="ea-pay-submit" :disabled="savingPayment || !payInput" @click="addPayment">
+                        {{ savingPayment ? '…' : 'Save' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Payment history -->
+                  <div class="ea-pay-history">
+                    <p v-if="loadingPayments" class="ea-pay-empty">
+                      <svg class="ea-spin" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                        stroke="#C9A84C" stroke-width="2.2">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                      </svg>
+                      Loading…
+                    </p>
+                    <p v-else-if="!drawerPayments.length" class="ea-pay-empty">No payments recorded yet</p>
+                    <template v-else>
+                      <div v-for="p in drawerPayments" :key="p.id" class="ea-pay-item">
+                        <div class="ea-pay-ico">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+                            stroke-width="2" stroke-linecap="round">
+                            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+                          </svg>
+                        </div>
+                        <template v-if="editingPaymentId === p.id">
+                          <div class="ea-inline-field" style="flex:1">
+                            <input v-model="editPayInput" type="number" min="0" class="ea-inline-inp"
+                              autofocus @keyup.enter="saveEditPayment" @keyup.escape="editingPaymentId = null" />
+                            <button class="ea-inline-ok" @click="saveEditPayment">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            </button>
+                            <button class="ea-inline-x" @click="editingPaymentId = null">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                              </svg>
+                            </button>
+                          </div>
+                        </template>
+                        <template v-else>
+                          <div class="ea-pay-info">
+                            <span class="ea-pay-amt">{{ formatMoney(p.amount) }}</span>
+                            <span class="ea-pay-when">{{ formatDate(p.createdAt) }}</span>
+                          </div>
+                          <div class="ea-pay-item-actions">
+                            <button class="ea-pay-item-btn" @click="startEditPayment(p)" title="Edit">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2" stroke-linecap="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                              </svg>
+                            </button>
+                            <button class="ea-pay-item-btn ea-pay-item-btn--del"
+                              :disabled="deletingPaymentId === p.id" @click="deletePayment(p)" title="Delete">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2" stroke-linecap="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                <path d="M10 11v6M14 11v6"/>
+                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                              </svg>
+                            </button>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
                   </div>
                 </div>
 
@@ -906,7 +1043,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, auth } from '../../firebase'
 import {
@@ -1188,6 +1325,155 @@ async function updateStatus(status) {
     console.error('Failed to update status', e)
   } finally {
     updatingStatus.value = false
+  }
+}
+
+// ── Mchango (pledges & payments) ──────────────────────────────────────────────
+const drawerPayments    = ref([])
+const loadingPayments   = ref(false)
+const pledgeEditMode    = ref(false)
+const pledgeInput       = ref('')
+const savingPledge      = ref(false)
+const addPayMode        = ref(false)
+const payInputRef       = ref(null)
+const payInput          = ref('')
+const savingPayment     = ref(false)
+const editingPaymentId  = ref(null)
+const editPayInput      = ref('')
+const deletingPaymentId = ref(null)
+
+watch(selectedAtt, async (att) => {
+  pledgeEditMode.value   = false
+  addPayMode.value       = false
+  editingPaymentId.value = null
+  payInput.value         = ''
+  if (att && getKardType(att) !== 'invitation') {
+    await loadDrawerPayments(att)
+  } else {
+    drawerPayments.value = []
+  }
+})
+
+watch(addPayMode, (v) => {
+  if (v) nextTick(() => payInputRef.value?.focus())
+})
+
+async function loadDrawerPayments(att) {
+  loadingPayments.value = true
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, 'events', eventId.value, 'attendees', att.id, 'payments'),
+        orderBy('createdAt', 'desc')
+      )
+    )
+    drawerPayments.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  } catch (e) {
+    console.error('Failed to load payments', e)
+  } finally {
+    loadingPayments.value = false
+  }
+}
+
+function openPledgeEdit() {
+  pledgeInput.value  = selectedAtt.value?.pledgedAmount ?? 0
+  pledgeEditMode.value = true
+}
+
+async function savePledge() {
+  const att = selectedAtt.value
+  if (!att || savingPledge.value) return
+  const amount = parseFloat(pledgeInput.value)
+  if (isNaN(amount) || amount < 0) return
+  savingPledge.value = true
+  try {
+    await updateDoc(doc(db, 'events', eventId.value, 'attendees', att.id), { pledgedAmount: amount })
+    const updated = { ...att, pledgedAmount: amount }
+    selectedAtt.value = updated
+    const idx = attendees.value.findIndex(a => a.id === att.id)
+    if (idx !== -1) attendees.value[idx] = updated
+    pledgeEditMode.value = false
+  } catch (e) {
+    console.error('Failed to save pledge', e)
+  } finally {
+    savingPledge.value = false
+  }
+}
+
+async function addPayment() {
+  const att = selectedAtt.value
+  if (!att || savingPayment.value) return
+  const amount = parseFloat(payInput.value)
+  if (isNaN(amount) || amount <= 0) return
+  savingPayment.value = true
+  try {
+    await addDoc(
+      collection(db, 'events', eventId.value, 'attendees', att.id, 'payments'),
+      { amount, method: 'manual', createdAt: new Date().toISOString() }
+    )
+    const newPaid = (att.paidAmount ?? 0) + amount
+    await updateDoc(doc(db, 'events', eventId.value, 'attendees', att.id), { paidAmount: newPaid })
+    const updated = { ...att, paidAmount: newPaid }
+    selectedAtt.value = updated
+    const idx = attendees.value.findIndex(a => a.id === att.id)
+    if (idx !== -1) attendees.value[idx] = updated
+    payInput.value   = ''
+    addPayMode.value = false
+    await loadDrawerPayments(selectedAtt.value)
+  } catch (e) {
+    console.error('Failed to add payment', e)
+  } finally {
+    savingPayment.value = false
+  }
+}
+
+function startEditPayment(p) {
+  editingPaymentId.value = p.id
+  editPayInput.value     = p.amount
+}
+
+async function saveEditPayment() {
+  const att = selectedAtt.value
+  const pid = editingPaymentId.value
+  if (!att || !pid) return
+  const newAmount = parseFloat(editPayInput.value)
+  if (isNaN(newAmount) || newAmount < 0) return
+  const original = drawerPayments.value.find(p => p.id === pid)
+  const diff     = newAmount - (original?.amount ?? 0)
+  try {
+    await updateDoc(doc(db, 'events', eventId.value, 'attendees', att.id, 'payments', pid), {
+      amount: newAmount, updateAt: new Date().toISOString(),
+    })
+    const newPaid = Math.max(0, (att.paidAmount ?? 0) + diff)
+    await updateDoc(doc(db, 'events', eventId.value, 'attendees', att.id), { paidAmount: newPaid })
+    const updated = { ...att, paidAmount: newPaid }
+    selectedAtt.value = updated
+    const idx = attendees.value.findIndex(a => a.id === att.id)
+    if (idx !== -1) attendees.value[idx] = updated
+    editingPaymentId.value = null
+    await loadDrawerPayments(att)
+  } catch (e) {
+    console.error('Failed to edit payment', e)
+  }
+}
+
+async function deletePayment(payment) {
+  const att = selectedAtt.value
+  if (!att || deletingPaymentId.value) return
+  deletingPaymentId.value = payment.id
+  try {
+    await deleteDoc(doc(db, 'events', eventId.value, 'attendees', att.id, 'payments', payment.id))
+    const newPaid = Math.max(0, (att.paidAmount ?? 0) - (payment.amount ?? 0))
+    await updateDoc(doc(db, 'events', eventId.value, 'attendees', att.id), { paidAmount: newPaid })
+    const updated = { ...att, paidAmount: newPaid }
+    selectedAtt.value = updated
+    const idx = attendees.value.findIndex(a => a.id === att.id)
+    if (idx !== -1) attendees.value[idx] = updated
+    await loadDrawerPayments(att)
+  } catch (e) {
+    console.error('Failed to delete payment', e)
+  } finally {
+    deletingPaymentId.value = null
   }
 }
 
@@ -1701,10 +1987,11 @@ function setImportPayment(attendeeId, amount) {
 
 <style scoped>
 .ea-root {
-  padding: 28px 28px 80px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  padding: 20px 24px 24px;
+  background: #F8F8F6;
 }
 
 /* ── Toolbar ── */
@@ -1713,6 +2000,8 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .ea-search-wrap {
@@ -1855,15 +2144,16 @@ function setImportPayment(attendeeId, amount) {
 
 /* ── Table ── */
 .ea-table-wrap {
+  display: flex;
+  flex-direction: column;
   background: #FFFFFF;
   border: 0.8px solid #EBEBEA;
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .ea-table-scroll {
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 .ea-table {
   width: 100%;
@@ -1898,6 +2188,9 @@ function setImportPayment(attendeeId, amount) {
   background: #FAFAF9;
   border-bottom: 0.8px solid #EBEBEA;
   user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 .ea-th--sortable { cursor: pointer; }
 .ea-th--sortable:hover { color: #1C1A18; }
@@ -2133,9 +2426,10 @@ function setImportPayment(attendeeId, amount) {
   justify-content: space-between;
   padding: 12px 16px;
   border-top: 0.8px solid #EBEBEA;
-  background: #FAFAF9;
+  background: #FFFFFF;
   gap: 12px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 .ea-range-label {
   font-size: 12px;
@@ -2148,6 +2442,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 3px;
 }
+.ea-paginator--disabled { opacity: 0.38; pointer-events: none; }
 .ea-page-btn {
   min-width: 32px;
   height: 32px;
@@ -2638,6 +2933,112 @@ function setImportPayment(attendeeId, amount) {
   color: #1C1A18;
 }
 .ea-contrib-val--paid { color: #30D158; }
+
+/* Mchango interactive bits */
+.ea-contrib-card--clickable { cursor: pointer; transition: background 130ms; }
+.ea-contrib-card--clickable:hover { background: #F2F1EE; }
+.ea-contrib-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.ea-contrib-edit-ico { color: #C9A84C; opacity: 0.5; flex-shrink: 0; transition: opacity 130ms; }
+.ea-contrib-card--clickable:hover .ea-contrib-edit-ico { opacity: 1; }
+
+.ea-inline-field { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+.ea-inline-inp {
+  flex: 1; min-width: 0;
+  border: 1px solid #C9A84C; border-radius: 6px;
+  padding: 4px 8px; font-size: 13px; font-family: inherit;
+  outline: none; background: #FFFDF5; color: #1C1A18;
+}
+.ea-inline-ok {
+  width: 26px; height: 26px; border-radius: 6px;
+  border: none; background: #C9A84C; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: background 130ms;
+}
+.ea-inline-ok:hover:not(:disabled) { background: #B8943E; }
+.ea-inline-ok:disabled { opacity: 0.5; cursor: not-allowed; }
+.ea-inline-x {
+  width: 26px; height: 26px; border-radius: 6px;
+  border: 0.8px solid #E5E4E0; background: #F2F2F0; color: #6B6760;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: background 130ms;
+}
+.ea-inline-x:hover { background: #EBEBEA; }
+
+/* Progress bar */
+.ea-pledge-bar-wrap { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.ea-pledge-bar { flex: 1; height: 5px; background: #EBEBEA; border-radius: 99px; overflow: hidden; }
+.ea-pledge-bar-fill { height: 100%; background: #30D158; border-radius: 99px; transition: width 500ms ease; }
+.ea-pledge-pct { font-size: 10px; font-weight: 700; color: #30D158; white-space: nowrap; flex-shrink: 0; }
+
+/* Add payment button */
+.ea-add-pay-btn {
+  width: 100%; margin-top: 14px; padding: 9px 16px;
+  border: 1px dashed #C9A84C; border-radius: 10px;
+  background: rgba(201,168,76,0.04); color: #C9A84C;
+  font-size: 12px; font-weight: 600; font-family: inherit;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 6px; transition: background 130ms;
+}
+.ea-add-pay-btn:hover { background: rgba(201,168,76,0.10); }
+
+/* Inline add-payment form */
+.ea-pay-form {
+  margin-top: 14px; background: #FAFAF9;
+  border: 0.8px solid #EBEBEA; border-radius: 10px; padding: 12px;
+}
+.ea-pay-form-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.ea-pay-form-label { font-size: 11px; font-weight: 700; color: #1C1A18; letter-spacing: 0.3px; text-transform: uppercase; }
+.ea-pay-form-close {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: none; background: #EBEBEA; color: #6B6760;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.ea-pay-form-close:hover { background: #E0E0DC; }
+.ea-pay-form-row { display: flex; gap: 6px; }
+.ea-pay-inp {
+  flex: 1; min-width: 0;
+  border: 0.8px solid #E5E4E0; border-radius: 8px;
+  padding: 8px 12px; font-size: 13px; font-family: inherit;
+  outline: none; background: #fff; color: #1C1A18; transition: border-color 130ms, box-shadow 130ms;
+}
+.ea-pay-inp:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.12); }
+.ea-pay-submit {
+  padding: 8px 16px; border: none; border-radius: 8px;
+  background: #C9A84C; color: #fff; font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer; flex-shrink: 0; transition: background 130ms;
+}
+.ea-pay-submit:hover:not(:disabled) { background: #B8943E; }
+.ea-pay-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Payment history list */
+.ea-pay-history { margin-top: 14px; }
+.ea-pay-empty {
+  font-size: 12px; color: #C0BAB2; text-align: center;
+  padding: 16px 0; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0;
+}
+.ea-pay-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 0.8px solid #F2F2F0;
+}
+.ea-pay-item:last-child { border-bottom: none; }
+.ea-pay-ico {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: rgba(201,168,76,0.10);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ea-pay-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ea-pay-amt { font-size: 13px; font-weight: 700; color: #1C1A18; }
+.ea-pay-when { font-size: 11px; color: #8A8580; }
+.ea-pay-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.ea-pay-item-btn {
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 0.8px solid #E5E4E0; background: #FAFAF9; color: #6B6760;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 130ms;
+}
+.ea-pay-item-btn:hover { background: #EBEBEA; color: #1C1A18; border-color: #D0D0CC; }
+.ea-pay-item-btn--del:hover { background: rgba(255,59,48,0.08); color: #FF3B30; border-color: rgba(255,59,48,0.3); }
+.ea-pay-item-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Footer */
 .ea-drawer-added {

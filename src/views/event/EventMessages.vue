@@ -34,25 +34,89 @@
             <button v-for="c in displayCampaigns" :key="c.id"
               class="em-camp-tab" :class="{ 'em-camp-tab--active': activeCampaign === c.id }"
               @click="activeCampaign = c.id">
-              {{ c.label }}
+              {{ c.label }}<span class="em-camp-badge">{{ attendees.length }}</span>
             </button>
           </div>
         </div>
-        <button class="em-send-btn" @click="openSendDrawer">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-          </svg>
-          Send
-        </button>
+        <div class="em-toolbar-right">
+          <div class="em-export-wrap">
+            <button class="em-export-btn" @click="showExportMenu = !showExportMenu">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <Transition name="em-fade-down">
+              <div v-if="showExportMenu" class="em-export-menu" v-click-outside="() => showExportMenu = false">
+                <button class="em-export-item" @click="exportExcel">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8l8 8M16 8l-8 8"/></svg>
+                  Excel (.xlsx)
+                </button>
+                <button class="em-export-item" @click="exportPDF">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  PDF (Print)
+                </button>
+              </div>
+            </Transition>
+          </div>
+          <button class="em-send-btn" @click="openSendDrawer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            Send
+          </button>
+        </div>
       </div>
 
       <!-- Stats -->
       <div class="em-stats">
-        <div v-for="s in statCards" :key="s.label" class="em-stat">
-          <div class="em-stat-n" :style="{ color: s.color }">{{ s.n }}</div>
-          <div class="em-stat-lbl">{{ s.label }}</div>
-          <div v-if="s.pct != null" class="em-stat-pct">{{ s.pct }}%</div>
+        <div class="em-stat-block em-stat-block--wa">
+          <div class="em-stat-block-hd">
+            <svg width="11" height="11" viewBox="0 0 448 512" fill="#128C7E"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
+            <span class="em-stat-block-title">WhatsApp</span>
+          </div>
+          <div class="em-chips-wrap">
+            <button class="em-chips-arrow" @click="scrollRow($event, -1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <div class="em-stat-chips" v-drag-scroll>
+              <button v-for="s in channelStats.wa" :key="s.status"
+                class="em-stat-chip" :class="[`em-sc--${s.status}`, { 'em-sc--on': isActiveFilter('whatsapp', s.status) }]"
+                @click="toggleFilter('whatsapp', s.status)"
+              ><span class="em-sc-n">{{ s.n }}</span> <span class="em-sc-lbl">{{ s.label }}</span></button>
+            </div>
+            <button class="em-chips-arrow" @click="scrollRow($event, 1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+        <div class="em-stat-block em-stat-block--sms">
+          <div class="em-stat-block-hd">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="em-stat-block-title">SMS</span>
+          </div>
+          <div class="em-chips-wrap">
+            <button class="em-chips-arrow" @click="scrollRow($event, -1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <div class="em-stat-chips" v-drag-scroll>
+              <button v-for="s in channelStats.sms" :key="s.status"
+                class="em-stat-chip" :class="[`em-sc--${s.status}`, { 'em-sc--on': isActiveFilter('sms', s.status) }]"
+                @click="toggleFilter('sms', s.status)"
+              ><span class="em-sc-n">{{ s.n }}</span> <span class="em-sc-lbl">{{ s.label }}</span></button>
+            </div>
+            <button class="em-chips-arrow" @click="scrollRow($event, 1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+        <div class="em-stat-block em-stat-block--rsvp">
+          <div class="em-stat-block-hd">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8A8580" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="em-stat-block-title">RSVP</span>
+          </div>
+          <div class="em-chips-wrap">
+            <button class="em-chips-arrow" @click="scrollRow($event, -1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <div class="em-stat-chips" v-drag-scroll>
+              <button v-for="s in channelStats.rsvp" :key="s.status"
+                class="em-stat-chip" :class="[`em-sc--rsvp-${s.status.toLowerCase().replace(/\s+/g,'-')}`, { 'em-sc--on': isActiveRsvpFilter(s.status) }]"
+                @click="toggleRsvpFilter(s.status)"
+              ><span class="em-sc-n">{{ s.n }}</span> <span class="em-sc-lbl">{{ s.status }}</span></button>
+            </div>
+            <button class="em-chips-arrow" @click="scrollRow($event, 1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
         </div>
       </div>
 
@@ -140,9 +204,10 @@
                         <path d="M17 25l15 10 15-10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
                       </svg>
                     </div>
-                    <p class="em-empty-title">{{ searchQ ? `No results for "${searchQ}"` : 'No messages yet' }}</p>
-                    <p class="em-empty-sub">{{ searchQ ? 'Try a different name or phone number.' : 'Send your first invitation and delivery status will appear here in real time.' }}</p>
+                    <p class="em-empty-title">{{ searchQ ? `No results for "${searchQ}"` : activeFilter ? `No attendees with ${activeFilter.channel === 'whatsapp' ? 'WhatsApp' : 'SMS'} status "${STATUS_LABELS[activeFilter.status]}"` : 'No messages yet' }}</p>
+                    <p class="em-empty-sub">{{ searchQ ? 'Try a different name or phone number.' : activeFilter ? 'Try a different status filter.' : 'Send your first invitation and delivery status will appear here in real time.' }}</p>
                     <button v-if="searchQ" class="em-empty-cta" @click="searchQ = ''">Clear search</button>
+                    <button v-else-if="activeFilter" class="em-empty-cta" @click="activeFilter = null">Clear filter</button>
                     <button v-else class="em-empty-cta em-empty-cta--primary" @click="openSendDrawer">Send Invitations</button>
                   </div>
                 </td>
@@ -150,20 +215,20 @@
             </tbody>
           </table>
         </div>
-        <div class="em-table-footer" v-if="filteredList.length > PAGE_SIZE">
+        <div class="em-table-footer">
           <span class="em-range-lbl">
-            {{ (currentPage - 1) * PAGE_SIZE + 1 }}–{{ Math.min(currentPage * PAGE_SIZE, filteredList.length) }}
-            of {{ filteredList.length }}
+            {{ filteredList.length ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filteredList.length)}` : '0' }}
+            of {{ filteredList.length }}<template v-if="activeFilter"> · <button class="em-filter-clear" @click="activeFilter = null">{{ activeFilter.channel === 'whatsapp' ? 'WA' : 'SMS' }}: {{ STATUS_LABELS[activeFilter.status] }} ×</button></template>
           </span>
-          <div class="em-paginator" v-if="totalPages > 1">
-            <button class="em-page-btn em-page-btn--nav" :disabled="currentPage === 1" @click="goPage(currentPage - 1)">
+          <div class="em-paginator" :class="{ 'em-paginator--disabled': totalPages <= 1 }">
+            <button class="em-page-btn em-page-btn--nav" :disabled="currentPage === 1 || totalPages <= 1" @click="goPage(currentPage - 1)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
             <template v-for="p in pageNumbers" :key="String(p)">
               <span v-if="p === '…'" class="em-page-ellipsis">…</span>
-              <button v-else class="em-page-btn" :class="{ 'em-page-btn--active': currentPage === p }" @click="goPage(p)">{{ p }}</button>
+              <button v-else class="em-page-btn" :class="{ 'em-page-btn--active': currentPage === p }" :disabled="totalPages <= 1" @click="goPage(p)">{{ p }}</button>
             </template>
-            <button class="em-page-btn em-page-btn--nav" :disabled="currentPage === totalPages" @click="goPage(currentPage + 1)">
+            <button class="em-page-btn em-page-btn--nav" :disabled="currentPage === totalPages || totalPages <= 1" @click="goPage(currentPage + 1)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
@@ -282,8 +347,8 @@
             <span class="em-filter-lbl">STATUS</span>
             <div class="em-filter-pills">
               <button v-for="s in STATUS_OPTIONS" :key="s.v"
-                class="em-filter-pill" :class="{ 'em-filter-pill--on': customStatus === s.v }"
-                @click="customStatus = s.v">{{ s.l }}</button>
+                class="em-filter-pill" :class="[s.v !== 'all' ? `em-filter-pill--${s.v}` : 'em-filter-pill--all', { 'em-filter-pill--on': customStatus === s.v }]"
+                @click="customStatus = s.v"><span class="em-fp-n">{{ customStatusCounts[s.v] ?? 0 }}</span> {{ s.l }}</button>
             </div>
           </div>
           <div class="em-filter-group" v-if="props.event?.labels?.length">
@@ -663,6 +728,33 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, auth } from '../../firebase'
 import { collection, query, orderBy, where, getDocs, addDoc, setDoc, deleteDoc, doc } from 'firebase/firestore'
+import { utils, writeFile } from 'xlsx'
+
+const vClickOutside = {
+  mounted(el, binding) {
+    el._co = (e) => { if (!el.contains(e.target)) binding.value(e) }
+    document.addEventListener('mousedown', el._co)
+  },
+  unmounted(el) { document.removeEventListener('mousedown', el._co) }
+}
+
+const vDragScroll = {
+  mounted(el) {
+    let active = false, startX = 0, startScroll = 0
+    el.addEventListener('mousedown', e => {
+      active = true; startX = e.pageX; startScroll = el.scrollLeft
+      el.style.cursor = 'grabbing'; el.style.userSelect = 'none'
+    })
+    const stop = () => { active = false; el.style.cursor = ''; el.style.userSelect = '' }
+    el.addEventListener('mouseup', stop)
+    el.addEventListener('mouseleave', stop)
+    el.addEventListener('mousemove', e => {
+      if (!active) return
+      e.preventDefault()
+      el.scrollLeft = startScroll - (e.pageX - startX)
+    })
+  }
+}
 
 const props = defineProps({ event: Object, eventId: String })
 const route  = useRoute()
@@ -728,6 +820,8 @@ const loading      = ref(false)
 const searchQ      = ref('')
 const activeCampaign = ref('haflaway-invitation-campaign')
 const currentPage    = ref(1)
+const activeFilter   = ref(null) // { channel: string, status: string } | null
+const rsvpFilter     = ref(null) // string | null
 
 // ── Send drawer ───────────────────────────────────────────────────────────────
 const sendDrawerOpen   = ref(false)
@@ -930,6 +1024,27 @@ function getCustomStatus(att) {
   const match = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
   return match ? match.slice(match.lastIndexOf('_') + 1) : null
 }
+
+const customStatusCounts = computed(() => {
+  if (!selectedCustomCamp.value) return { all: 0, unsent: 0, sent: 0, delivered: 0, failed: 0 }
+  const campId   = selectedCustomCamp.value.id
+  const cardType = selectedCustomCamp.value.type
+  const labelId  = customLabelId.value
+  const prefix   = `sms_${campId}_`
+  const base = attendees.value.filter(att => {
+    if (!att.cards || att.cards[cardType] == null) return false
+    if (labelId && !(att.labelIds ?? []).includes(labelId)) return false
+    return true
+  })
+  const counts = { all: base.length, unsent: 0, sent: 0, delivered: 0, failed: 0 }
+  for (const att of base) {
+    const match = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
+    const s = match ? match.slice(match.lastIndexOf('_') + 1) : null
+    if (!s || s === 'unsent') counts.unsent++
+    else if (counts[s] !== undefined) counts[s]++
+  }
+  return counts
+})
 
 // ── Custom campaign: attendee pagination ──────────────────────────────────────
 const detailPage      = ref(1)
@@ -1155,14 +1270,26 @@ watch(displayCampaigns, (camps) => {
 // ── System mode: filter + pagination ─────────────────────────────────────────
 const filteredList = computed(() => {
   const q = searchQ.value.trim().toLowerCase()
-  if (!q) return attendees.value
-  return attendees.value.filter(a =>
-    (a.fullNameLower ?? a.fullName?.toLowerCase() ?? '').includes(q) ||
-    (a.phone ?? '').includes(q)
-  )
+  let list = q
+    ? attendees.value.filter(a =>
+        (a.fullNameLower ?? a.fullName?.toLowerCase() ?? '').includes(q) ||
+        (a.phone ?? '').includes(q)
+      )
+    : attendees.value
+  if (activeFilter.value) {
+    const { channel, status } = activeFilter.value
+    list = list.filter(a => {
+      const s = getStatus(a, channel)
+      return status === 'unsent' ? (!s || s === 'unsent') : s === status
+    })
+  }
+  if (rsvpFilter.value) {
+    list = list.filter(a => (a.attendanceStatus || 'Not Confirmed') === rsvpFilter.value)
+  }
+  return list
 })
-watch(searchQ,       () => { currentPage.value = 1 })
-watch(activeCampaign,() => { currentPage.value = 1 })
+watch(searchQ,        () => { currentPage.value = 1 })
+watch(activeCampaign, () => { currentPage.value = 1; activeFilter.value = null; rsvpFilter.value = null })
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredList.value.length / PAGE_SIZE)))
 const pageList   = computed(() => { const s = (currentPage.value - 1) * PAGE_SIZE; return filteredList.value.slice(s, s + PAGE_SIZE) })
 const pageNumbers = computed(() => {
@@ -1178,21 +1305,294 @@ const pageNumbers = computed(() => {
 function goPage(n) { if (n >= 1 && n <= totalPages.value) currentPage.value = n }
 
 // ── System mode: stats ────────────────────────────────────────────────────────
-const statCards = computed(() => {
-  const list = attendees.value, total = list.length
-  const reached = (ch) => list.filter(a => ['delivered', 'read'].includes(getStatus(a, ch))).length
-  const wspR = reached('whatsapp'), smsR = reached('sms')
-  const wspRead  = list.filter(a => getStatus(a, 'whatsapp') === 'read').length
-  const confirmed = list.filter(a => a.attendanceStatus === 'Confirmed').length
-  const pct = (n) => total ? Math.round(n / total * 100) : 0
-  return [
-    { label: 'Total',          n: total,     color: '#1C1A18', pct: null },
-    { label: 'WA Reached',     n: wspR,      color: '#128C7E', pct: pct(wspR) },
-    { label: 'WA Read',        n: wspRead,   color: '#0060A8', pct: pct(wspRead) },
-    { label: 'SMS Reached',    n: smsR,      color: '#5856D6', pct: pct(smsR) },
-    { label: 'RSVP Confirmed', n: confirmed, color: '#30D158', pct: pct(confirmed) },
-  ]
+const DISPLAY_STATUSES = ['unsent', 'sent', 'delivered', 'read', 'failed', 'pending', 'undelivered']
+const channelStats = computed(() => {
+  const list = attendees.value
+  const total = list.length
+  const countCh = (channel, status) => {
+    if (status === 'unsent') return list.filter(a => { const s = getStatus(a, channel); return !s || s === 'unsent' }).length
+    return list.filter(a => getStatus(a, channel) === status).length
+  }
+  const wa  = DISPLAY_STATUSES.map(s => ({ status: s, n: countCh('whatsapp', s), label: STATUS_LABELS[s] })).filter(s => s.n > 0)
+  const sms = DISPLAY_STATUSES.filter(s => s !== 'read').map(s => ({ status: s, n: countCh('sms', s), label: STATUS_LABELS[s] })).filter(s => s.n > 0)
+  const RSVP_STATUSES = ['Confirmed', 'Not Confirmed', 'Declined', 'Called', 'Unreachable']
+  const rsvp = RSVP_STATUSES
+    .map(s => ({ status: s, n: list.filter(a => (a.attendanceStatus || 'Not Confirmed') === s).length }))
+    .filter(s => s.n > 0)
+  return { total, wa, sms, rsvp }
 })
+
+// ── Export ────────────────────────────────────────────────────────────────────
+const showExportMenu = ref(false)
+
+function exportExcel() {
+  const campaignLabel = KNOWN_CAMPAIGNS.find(c => c.id === activeCampaign.value)?.label ?? activeCampaign.value
+  const eventName     = props.event?.title ?? 'Event'
+  const exportedOn    = new Date().toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' })
+  const rows          = filteredList.value
+
+  // ── palette ──────────────────────────────────────────────────────
+  const DARK    = '1C1A18'
+  const GOLD    = 'C9A84C'
+  const GOLDMID = 'A89A6A'
+  const WHITE   = 'FFFFFF'
+  const LIGHT   = 'F8F8F6'
+  const BORDER  = 'E5E4E0'
+  const GRAY    = '8A8580'
+  const COLS    = 'ABCDEF'
+
+  const ws = {}
+
+  // helpers
+  const put = (r, c, v, s, t) => {
+    ws[`${COLS[c]}${r}`] = { v, t: t ?? (typeof v === 'number' ? 'n' : 's'), s }
+  }
+  const blk = (r, c, bg) => put(r, c, '', { fill: { patternType: 'solid', fgColor: { rgb: bg } } })
+  const blkRow = (r, bg) => { for (let c = 0; c < 6; c++) blk(r, c, bg) }
+  const mkFont = (sz, bold, italic, rgb) => {
+    const o = { name: 'Calibri', sz, color: { rgb } }
+    if (bold)   o.bold   = true
+    if (italic) o.italic = true
+    return o
+  }
+  const fl = rgb => ({ patternType: 'solid', fgColor: { rgb } })
+
+  // ── Row 1: HAFLAWAY ──────────────────────────────────────────────
+  blkRow(1, DARK)
+  put(1, 0, 'HAFLAWAY', {
+    font: mkFont(24, true, false, GOLD),
+    fill: fl(DARK),
+    alignment: { horizontal: 'center', vertical: 'center' },
+  })
+
+  // ── Row 2: tagline ───────────────────────────────────────────────
+  blkRow(2, DARK)
+  put(2, 0, 'Invitations with Class  ·  Guests Welcomed  ·  Perfect Celebration', {
+    font: mkFont(9, false, true, GOLDMID),
+    fill: fl(DARK),
+    alignment: { horizontal: 'center', vertical: 'center' },
+  })
+
+  // ── Row 3: gold bar ──────────────────────────────────────────────
+  blkRow(3, GOLD)
+
+  // ── Rows 4-5: meta strip ─────────────────────────────────────────
+  const sLbl  = { font: mkFont(9, true, false, GRAY),  fill: fl(LIGHT), alignment: { vertical: 'center' } }
+  const sVal  = { font: mkFont(10, false, false, DARK), fill: fl(LIGHT), alignment: { vertical: 'center' } }
+  const sValB = { font: mkFont(10, true, false, DARK),  fill: fl(LIGHT), alignment: { vertical: 'center' } }
+
+  put(4, 0, 'EVENT',    sLbl); put(4, 1, eventName,      sValB); blk(4, 2, LIGHT)
+  put(4, 3, 'CAMPAIGN', sLbl); put(4, 4, campaignLabel,  sVal);  blk(4, 5, LIGHT)
+  put(5, 0, 'EXPORTED', sLbl); put(5, 1, exportedOn,     sVal);  blk(5, 2, LIGHT)
+  put(5, 3, 'TOTAL',    sLbl); put(5, 4, rows.length, { font: mkFont(10, true, false, DARK), fill: fl(LIGHT) }, 'n'); blk(5, 5, LIGHT)
+
+  // ── Row 6: spacer ────────────────────────────────────────────────
+  blkRow(6, WHITE)
+
+  // ── Row 7: column headers ────────────────────────────────────────
+  const sHdr = {
+    font: mkFont(10, true, false, WHITE),
+    fill: fl(GOLD),
+    alignment: { horizontal: 'center', vertical: 'center' },
+  }
+  ;['Name', 'Phone', 'WhatsApp', 'SMS', 'RSVP', 'Added'].forEach((h, c) => put(7, c, h, sHdr))
+
+  // ── Data rows ────────────────────────────────────────────────────
+  const bdr = { bottom: { style: 'thin', color: { rgb: BORDER } } }
+  rows.forEach((a, i) => {
+    const r  = i + 8
+    const bg = i % 2 === 0 ? WHITE : LIGHT
+    const d  = { font: mkFont(10, false, false, DARK), fill: fl(bg), border: bdr }
+    const dc = { font: mkFont(10, false, false, DARK), fill: fl(bg), border: bdr, alignment: { horizontal: 'center' } }
+    const vals = [
+      a.fullName || '', a.phone || '',
+      STATUS_LABELS[wspStatus(a)] || '—', STATUS_LABELS[smsStatus(a)] || '—',
+      a.attendanceStatus || 'Not Confirmed', formatDate(a.createdAt),
+    ]
+    vals.forEach((v, c) => put(r, c, v, c === 0 ? d : dc))
+  })
+
+  // ── Footer ───────────────────────────────────────────────────────
+  const fs  = rows.length + 9
+  const fH  = { font: mkFont(9, true, false, GOLD),    fill: fl(DARK), alignment: { vertical: 'center' } }
+  const fV  = { font: mkFont(9, false, false, 'D4C89A'), fill: fl(DARK), alignment: { vertical: 'center' } }
+
+  blkRow(fs, DARK)
+
+  put(fs+1, 0, 'CONTACT',   fH); blk(fs+1, 1, DARK); blk(fs+1, 2, DARK)
+  put(fs+1, 3, 'SOCIAL',    fH); blk(fs+1, 4, DARK); blk(fs+1, 5, DARK)
+
+  put(fs+2, 0, 'Email',     fH); put(fs+2, 1, 'haflaway@gmail.com',  fV); blk(fs+2, 2, DARK)
+  put(fs+2, 3, 'Instagram', fH); put(fs+2, 4, '@haflaway',           fV); blk(fs+2, 5, DARK)
+
+  put(fs+3, 0, 'Phone',     fH); put(fs+3, 1, '+255 754 980 535',    fV); blk(fs+3, 2, DARK)
+  put(fs+3, 3, 'TikTok',    fH); put(fs+3, 4, '@haflaway',           fV); blk(fs+3, 5, DARK)
+
+  put(fs+4, 0, 'Phone',     fH); put(fs+4, 1, '+255 615 675 680',    fV); blk(fs+4, 2, DARK)
+  put(fs+4, 3, 'Web',       fH); put(fs+4, 4, 'haflaway.com',        fV); blk(fs+4, 5, DARK)
+
+  put(fs+5, 0, 'Generated by Haflaway Event Management Platform  ·  haflaway.com', {
+    font: mkFont(8, false, true, GOLDMID), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' },
+  })
+  for (let c = 1; c < 6; c++) blk(fs+5, c, DARK)
+
+  put(fs+6, 0, '© 2026 Haflaway  ·  All rights reserved', {
+    font: mkFont(8, false, false, GRAY), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' },
+  })
+  for (let c = 1; c < 6; c++) blk(fs+6, c, DARK)
+
+  // ── Sheet metadata ───────────────────────────────────────────────
+  ws['!ref'] = `A1:F${fs + 6}`
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
+    { s: { r: 2, c: 0 }, e: { r: 2, c: 5 } },
+    { s: { r: fs + 4, c: 0 }, e: { r: fs + 4, c: 5 } },
+    { s: { r: fs + 5, c: 0 }, e: { r: fs + 5, c: 5 } },
+  ]
+  ws['!rows'] = [
+    { hpt: 38 }, { hpt: 16 }, { hpt: 5 },
+    { hpt: 18 }, { hpt: 18 }, { hpt: 8 }, { hpt: 22 },
+  ]
+  ws['!cols'] = [{ wch: 28 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }]
+
+  const wb = utils.book_new()
+  utils.book_append_sheet(wb, ws, 'Messages')
+  writeFile(wb, `haflaway-messages-${campaignLabel.toLowerCase().replace(/\s+/g, '-')}.xlsx`, { cellStyles: true })
+  showExportMenu.value = false
+}
+
+function exportPDF() {
+  const rows          = filteredList.value
+  const campaignLabel = KNOWN_CAMPAIGNS.find(c => c.id === activeCampaign.value)?.label ?? activeCampaign.value
+  const eventName     = props.event?.title ?? 'Event'
+  const exportedOn    = new Date().toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Haflaway — ${eventName} — ${campaignLabel}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Helvetica Neue',Arial,sans-serif;background:#fff;color:#1C1A18;font-size:12px;}
+    /* Header */
+    .hdr{background:#1C1A18;padding:28px 40px 24px;display:flex;align-items:flex-end;justify-content:space-between;}
+    .brand{font-size:32px;font-weight:900;letter-spacing:-1.5px;color:#C9A84C;line-height:1;}
+    .tagline{font-size:10px;color:rgba(255,255,255,0.45);margin-top:6px;letter-spacing:1.2px;text-transform:uppercase;}
+    .hdr-event{text-align:right;}
+    .hdr-event-name{font-size:15px;font-weight:700;color:#fff;}
+    .hdr-event-sub{font-size:10px;color:rgba(255,255,255,0.45);margin-top:3px;}
+    /* Gold bar */
+    .gold-bar{height:3px;background:linear-gradient(90deg,#C9A84C,#e8c76a,#C9A84C);}
+    /* Meta */
+    .meta{background:#F8F8F6;padding:14px 40px;display:flex;gap:40px;border-bottom:0.5px solid #E5E4E0;}
+    .meta-item{}
+    .meta-lbl{font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:#8A8580;font-weight:600;}
+    .meta-val{font-size:13px;font-weight:700;color:#1C1A18;margin-top:2px;}
+    /* Table */
+    .content{padding:24px 40px 0;}
+    .section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#C9A84C;margin-bottom:10px;}
+    table{width:100%;border-collapse:collapse;}
+    th{padding:8px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#8A8580;border-top:1.5px solid #C9A84C;border-bottom:1.5px solid #C9A84C;text-align:left;background:#fff;}
+    td{padding:8px 12px;border-bottom:0.5px solid #F0EFEC;font-size:11px;color:#1C1A18;}
+    tr:nth-child(even) td{background:#FAFAF9;}
+    tr:last-child td{border-bottom:none;}
+    /* Footer */
+    .footer{background:#1C1A18;padding:20px 40px;margin-top:32px;}
+    .footer-grid{display:flex;gap:40px;}
+    .footer-section{}
+    .footer-lbl{font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:#C9A84C;font-weight:700;margin-bottom:7px;}
+    .footer-line{font-size:11px;color:rgba(255,255,255,0.65);margin-bottom:4px;}
+    .footer-divider{border:none;border-top:0.5px solid rgba(255,255,255,0.1);margin:14px 0;}
+    .footer-bottom{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.3);}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.footer{page-break-inside:avoid;}}
+  </style></head><body>
+  <div class="hdr">
+    <div>
+      <div class="brand">Haflaway</div>
+      <div class="tagline">Invitations with Class · Guests Welcomed · Perfect Celebration</div>
+    </div>
+    <div class="hdr-event">
+      <div class="hdr-event-name">${eventName}</div>
+      <div class="hdr-event-sub">${campaignLabel} Campaign · ${exportedOn}</div>
+    </div>
+  </div>
+  <div class="gold-bar"></div>
+  <div class="meta">
+    <div class="meta-item"><div class="meta-lbl">Campaign</div><div class="meta-val">${campaignLabel}</div></div>
+    <div class="meta-item"><div class="meta-lbl">Total Exported</div><div class="meta-val">${rows.length} attendees</div></div>
+    <div class="meta-item"><div class="meta-lbl">WhatsApp Read</div><div class="meta-val">${rows.filter(a => wspStatus(a) === 'read').length}</div></div>
+    <div class="meta-item"><div class="meta-lbl">RSVP Confirmed</div><div class="meta-val">${rows.filter(a => a.attendanceStatus === 'Confirmed').length}</div></div>
+    <div class="meta-item"><div class="meta-lbl">Exported On</div><div class="meta-val">${exportedOn}</div></div>
+  </div>
+  <div class="content">
+    <div class="section-title">Attendee Details</div>
+    <table><thead><tr><th>#</th><th>Name</th><th>Phone</th><th>WhatsApp</th><th>SMS</th><th>RSVP</th><th>Added</th></tr></thead>
+    <tbody>${rows.map((a, i) => `<tr>
+      <td style="color:#B5B0A8;">${i + 1}</td>
+      <td style="font-weight:600;">${a.fullName || ''}</td>
+      <td style="color:#6B6A68;">${a.phone || '—'}</td>
+      <td>${STATUS_LABELS[wspStatus(a)] || '—'}</td>
+      <td>${STATUS_LABELS[smsStatus(a)] || '—'}</td>
+      <td>${a.attendanceStatus || 'Not Confirmed'}</td>
+      <td style="color:#8A8580;">${formatDate(a.createdAt)}</td>
+    </tr>`).join('')}</tbody></table>
+  </div>
+  <div class="footer">
+    <div class="footer-grid">
+      <div class="footer-section">
+        <div class="footer-lbl">Contact Us</div>
+        <div class="footer-line">✉ haflaway@gmail.com</div>
+        <div class="footer-line">📞 +255 754 980 535</div>
+        <div class="footer-line">📞 +255 615 675 680</div>
+      </div>
+      <div class="footer-section">
+        <div class="footer-lbl">Social Media</div>
+        <div class="footer-line">Instagram · @haflaway</div>
+        <div class="footer-line">TikTok · @haflaway</div>
+      </div>
+      <div class="footer-section">
+        <div class="footer-lbl">Platform</div>
+        <div class="footer-line">haflaway.com</div>
+        <div class="footer-line">Plan your perfect event</div>
+        <div class="footer-line">Digital invitations & guest management</div>
+      </div>
+    </div>
+    <hr class="footer-divider"/>
+    <div class="footer-bottom">
+      <span>© ${new Date().getFullYear()} Haflaway · All rights reserved</span>
+      <span>Generated by Haflaway Event Management Platform</span>
+    </div>
+  </div>
+</body></html>`
+
+  const win = window.open('', '_blank')
+  win.document.open()
+  win.document.write(html)
+  win.document.close()
+  win.focus()
+  setTimeout(() => { win.print() }, 400)
+  showExportMenu.value = false
+}
+
+function scrollRow(e, dir) {
+  const chips = e.currentTarget.parentElement.querySelector('.em-stat-chips')
+  if (chips) chips.scrollBy({ left: dir * 120, behavior: 'smooth' })
+}
+
+function toggleFilter(channel, status) {
+  if (activeFilter.value?.channel === channel && activeFilter.value?.status === status) {
+    activeFilter.value = null
+  } else {
+    activeFilter.value = { channel, status }
+    currentPage.value = 1
+  }
+}
+const isActiveFilter = (channel, status) => activeFilter.value?.channel === channel && activeFilter.value?.status === status
+
+function toggleRsvpFilter(status) {
+  rsvpFilter.value = rsvpFilter.value === status ? null : status
+  currentPage.value = 1
+}
+const isActiveRsvpFilter = (status) => rsvpFilter.value === status
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function initials(name) {
@@ -1212,7 +1612,9 @@ watch(eventId, () => { if (eventId.value) load() })
 
 <style scoped>
 .em-root {
-  display: flex; flex-direction: column; height: 100%;
+  display: flex; flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px 24px;
   background: #F8F8F6;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -1220,8 +1622,7 @@ watch(eventId, () => { if (eventId.value) load() })
 /* ── Mode bar ── */
 .em-mode-bar {
   flex-shrink: 0; display: flex; align-items: center; gap: 4px;
-  padding: 10px 20px 0;
-  background: #FFFFFF; border-bottom: 0.8px solid #EBEBEA;
+  padding: 0 4px;
 }
 .em-mode-tab {
   display: flex; align-items: center; gap: 6px;
@@ -1241,8 +1642,8 @@ watch(eventId, () => { if (eventId.value) load() })
 
 /* ── Toolbar (system mode) ── */
 .em-toolbar {
-  flex-shrink: 0; background: #FFFFFF; border-bottom: 0.8px solid #EBEBEA;
-  padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  flex-shrink: 0;
+  padding: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
 }
 .em-toolbar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-width: 0; }
 .em-search-wrap  { position: relative; display: flex; align-items: center; flex-shrink: 0; }
@@ -1260,6 +1661,36 @@ watch(eventId, () => { if (eventId.value) load() })
 }
 .em-camp-tab:hover { background: #F2F2F0; color: #1C1A18; }
 .em-camp-tab--active { background: #FFF8EC; color: #C9A84C; border-color: rgba(201,168,76,0.3); font-weight: 600; }
+.em-camp-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 16px; padding: 0 5px; margin-left: 5px;
+  border-radius: 8px; background: #F2F2F0; color: #8A8580;
+  font-size: 10px; font-weight: 700; transition: background 130ms, color 130ms;
+}
+.em-camp-tab--active .em-camp-badge { background: rgba(201,168,76,0.18); color: #C9A84C; }
+.em-toolbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.em-export-wrap { position: relative; }
+.em-export-btn {
+  display: flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 14px; border-radius: 8px;
+  border: 0.8px solid #E5E4E0; background: #FFFFFF; color: #1C1A18;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 130ms; font-family: inherit;
+}
+.em-export-btn:hover { border-color: #C9A84C; color: #C9A84C; }
+.em-export-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 100;
+  background: #FFFFFF; border: 0.8px solid #E5E4E0; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10); padding: 4px; min-width: 160px;
+}
+.em-export-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 12px; border-radius: 7px; border: none; background: none;
+  font-size: 13px; font-weight: 500; color: #1C1A18; cursor: pointer;
+  transition: background 120ms; font-family: inherit; text-align: left;
+}
+.em-export-item:hover { background: #F2F2F0; }
+.em-fade-down-enter-active, .em-fade-down-leave-active { transition: opacity 130ms, transform 130ms; }
+.em-fade-down-enter-from, .em-fade-down-leave-to { opacity: 0; transform: translateY(-4px); }
 .em-send-btn {
   display: flex; align-items: center; gap: 6px; flex-shrink: 0;
   height: 34px; padding: 0 16px; border-radius: 8px;
@@ -1269,16 +1700,63 @@ watch(eventId, () => { if (eventId.value) load() })
 .em-send-btn:hover { background: #C9A84C; }
 
 /* ── Stats ── */
-.em-stats { flex-shrink: 0; display: flex; background: #FFFFFF; border-bottom: 0.8px solid #EBEBEA; }
-.em-stat  { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 14px 8px; border-right: 0.8px solid #F2F2F0; min-width: 0; }
-.em-stat:last-child { border-right: none; }
-.em-stat-n   { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
-.em-stat-lbl { font-size: 10px; color: #8A8580; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; }
-.em-stat-pct { font-size: 11px; color: #B5B0A8; margin-top: 2px; }
+.em-stats { flex-shrink: 0; display: flex; align-items: stretch; background: #FFFFFF; border-bottom: 0.8px solid #EBEBEA; }
+.em-stat-block { display: flex; flex-direction: column; justify-content: center; padding: 12px 20px; border-right: 0.8px solid #F2F2F0; min-width: 0; }
+.em-chips-wrap { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.em-chips-arrow {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+  border: 0.8px solid #E5E4E0; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #8A8580; transition: all 130ms;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.em-chips-arrow:hover { border-color: #C9A84C; color: #C9A84C; box-shadow: 0 1px 5px rgba(201,168,76,0.2); }
+.em-stat-block:last-child { border-right: none; }
+.em-stat-block--wa    { flex: 1; min-width: 0; }
+.em-stat-block--sms   { flex: 1; min-width: 0; }
+.em-stat-block--rsvp  { flex: 1; min-width: 0; }
+.em-stat-big      { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; color: #1C1A18; }
+.em-stat-block-lbl{ font-size: 10px; color: #8A8580; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.em-stat-block-hd { display: flex; align-items: center; gap: 5px; margin-bottom: 7px; }
+.em-stat-block-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8A8580; }
+.em-stat-chips {
+  display: flex; flex-wrap: nowrap; gap: 4px;
+  overflow-x: auto; cursor: grab;
+  -ms-overflow-style: none; scrollbar-width: none;
+}
+.em-stat-chips::-webkit-scrollbar { display: none; }
+.em-stat-chip  { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; border: 0.8px solid transparent; cursor: pointer; transition: all 130ms; font-family: inherit; }
+.em-stat-chip:hover { filter: brightness(0.95); }
+.em-sc-n   { font-size: 13px; font-weight: 800; line-height: 1; }
+.em-sc-lbl { font-size: 11px; font-weight: 500; }
+.em-sc--unsent      { background: #F2F2F0; color: #8A8580; border-color: #E5E4E0; }
+.em-sc--sent        { background: rgba(255,159,10,0.10); color: #B36800; border-color: rgba(255,159,10,0.2); }
+.em-sc--delivered   { background: rgba(48,209,88,0.10); color: #1D7A38; border-color: rgba(48,209,88,0.2); }
+.em-sc--read        { background: rgba(0,122,255,0.08); color: #0060A8; border-color: rgba(0,122,255,0.15); }
+.em-sc--failed      { background: rgba(255,69,58,0.10); color: #C41E1E; border-color: rgba(255,69,58,0.2); }
+.em-sc--pending     { background: rgba(255,204,0,0.10); color: #8B6800; border-color: rgba(255,204,0,0.2); }
+.em-sc--undelivered { background: rgba(255,69,58,0.06); color: #C41E1E; border-color: rgba(255,69,58,0.15); }
+.em-sc--on.em-sc--unsent      { background: #8A8580; color: #fff; border-color: #8A8580; }
+.em-sc--on.em-sc--sent        { background: #B36800; color: #fff; border-color: #B36800; }
+.em-sc--on.em-sc--delivered   { background: #1D7A38; color: #fff; border-color: #1D7A38; }
+.em-sc--on.em-sc--read        { background: #0060A8; color: #fff; border-color: #0060A8; }
+.em-sc--on.em-sc--failed      { background: #C41E1E; color: #fff; border-color: #C41E1E; }
+.em-sc--on.em-sc--pending     { background: #8B6800; color: #fff; border-color: #8B6800; }
+.em-sc--on.em-sc--undelivered { background: #C41E1E; color: #fff; border-color: #C41E1E; }
+.em-sc--rsvp-confirmed     { background: rgba(48,209,88,0.10);  color: #1D7A38; border-color: rgba(48,209,88,0.2); }
+.em-sc--rsvp-not-confirmed { background: #F2F2F0; color: #8A8580; border-color: #E5E4E0; }
+.em-sc--rsvp-declined      { background: rgba(255,69,58,0.10);  color: #C41E1E; border-color: rgba(255,69,58,0.2); }
+.em-sc--rsvp-called        { background: rgba(100,210,255,0.12); color: #0077A8; border-color: rgba(100,210,255,0.25); }
+.em-sc--rsvp-unreachable   { background: rgba(255,159,10,0.10); color: #B36800; border-color: rgba(255,159,10,0.2); }
+.em-sc--on.em-sc--rsvp-confirmed     { background: #1D7A38; color: #fff; border-color: #1D7A38; }
+.em-sc--on.em-sc--rsvp-not-confirmed { background: #8A8580; color: #fff; border-color: #8A8580; }
+.em-sc--on.em-sc--rsvp-declined      { background: #C41E1E; color: #fff; border-color: #C41E1E; }
+.em-sc--on.em-sc--rsvp-called        { background: #0077A8; color: #fff; border-color: #0077A8; }
+.em-sc--on.em-sc--rsvp-unreachable   { background: #B36800; color: #fff; border-color: #B36800; }
 
 /* ── Table (shared) ── */
-.em-table-wrap  { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.em-table-scroll{ flex: 1; overflow: auto; }
+.em-table-wrap  { display: flex; flex-direction: column; background: #FFFFFF; border: 0.8px solid #EBEBEA; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.em-table-scroll{ overflow-x: auto; }
 .em-table { width: 100%; border-collapse: collapse; }
 .em-th {
   padding: 9px 16px; font-size: 11px; font-weight: 700; color: #8A8580;
@@ -1330,7 +1808,10 @@ watch(eventId, () => { if (eventId.value) load() })
 .em-empty-cta--primary:hover { background: #C9A84C; border-color: #C9A84C; }
 .em-table-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; background: #fff; border-top: 0.8px solid #EBEBEA; }
 .em-range-lbl   { font-size: 13px; color: #8A8580; }
+.em-filter-clear { background: none; border: none; cursor: pointer; font-size: 13px; color: #C9A84C; font-weight: 600; padding: 0; font-family: inherit; }
+.em-filter-clear:hover { color: #1C1A18; }
 .em-paginator   { display: flex; align-items: center; gap: 4px; }
+.em-paginator--disabled { opacity: 0.38; pointer-events: none; }
 .em-page-btn    { min-width: 32px; height: 32px; padding: 0 8px; border-radius: 8px; border: 0.8px solid #E5E4E0; background: #fff; font-size: 13px; font-weight: 500; color: #6B6A68; cursor: pointer; transition: all 130ms; display: flex; align-items: center; justify-content: center; }
 .em-page-btn:hover:not(:disabled) { background: #F2F2F0; }
 .em-page-btn:disabled { opacity: 0.4; cursor: default; }
@@ -1345,8 +1826,8 @@ watch(eventId, () => { if (eventId.value) load() })
 }
 .em-custom-title { font-size: 20px; font-weight: 800; color: #1C1A18; margin: 0 0 2px; letter-spacing: -0.3px; }
 .em-custom-sub   { font-size: 13px; color: #8A8580; margin: 0; }
-.em-custom-body  { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.em-custom-scroll { flex: 1; overflow-y: auto; }
+.em-custom-body  { display: flex; flex-direction: column; }
+.em-custom-scroll { overflow-x: auto; }
 .em-custom-loading { display: flex; align-items: center; gap: 10px; color: #8A8580; font-size: 14px; padding: 40px 0; justify-content: center; }
 .em-custom-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 24px; text-align: center; }
 .em-camp-table-wrap { }
@@ -1404,20 +1885,32 @@ watch(eventId, () => { if (eventId.value) load() })
 }
 .em-filter-group { display: flex; align-items: center; gap: 8px; }
 .em-filter-lbl   { font-size: 10px; font-weight: 700; color: #8A8580; text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
-.em-filter-pills { display: flex; gap: 4px; }
+.em-filter-pills { display: flex; gap: 4px; flex-wrap: wrap; }
 .em-filter-pill  {
-  height: 28px; padding: 0 10px; border-radius: 7px; border: 0.8px solid #E5E4E0;
-  background: #fff; font-size: 12px; font-weight: 500; color: #6B6A68; cursor: pointer; transition: all 130ms;
+  height: 28px; padding: 0 12px; border-radius: 20px; border: 0.8px solid transparent;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all 130ms; font-family: inherit;
 }
-.em-filter-pill:hover { border-color: #C9A84C; color: #1C1A18; }
-.em-filter-pill--on { background: #FFF8EC; border-color: rgba(201,168,76,0.5); color: #C9A84C; font-weight: 600; }
+.em-filter-pill:hover { filter: brightness(0.94); }
+/* per-status base colors */
+.em-filter-pill--all       { background: #F2F2F0; color: #8A8580; border-color: #E5E4E0; }
+.em-filter-pill--unsent    { background: #F2F2F0; color: #8A8580; border-color: #E5E4E0; }
+.em-filter-pill--sent      { background: rgba(255,159,10,0.10); color: #B36800; border-color: rgba(255,159,10,0.2); }
+.em-filter-pill--delivered { background: rgba(48,209,88,0.10);  color: #1D7A38; border-color: rgba(48,209,88,0.2); }
+.em-filter-pill--failed    { background: rgba(255,69,58,0.10);  color: #C41E1E; border-color: rgba(255,69,58,0.2); }
+/* active: filled solid */
+.em-filter-pill--all.em-filter-pill--on       { background: #1C1A18; color: #fff; border-color: #1C1A18; }
+.em-filter-pill--unsent.em-filter-pill--on    { background: #8A8580; color: #fff; border-color: #8A8580; }
+.em-filter-pill--sent.em-filter-pill--on      { background: #B36800; color: #fff; border-color: #B36800; }
+.em-filter-pill--delivered.em-filter-pill--on { background: #1D7A38; color: #fff; border-color: #1D7A38; }
+.em-filter-pill--failed.em-filter-pill--on    { background: #C41E1E; color: #fff; border-color: #C41E1E; }
+.em-fp-n { font-size: 13px; font-weight: 800; line-height: 1; }
 .em-filter-select {
   height: 28px; padding: 0 8px; border: 0.8px solid #E5E4E0; border-radius: 7px;
   background: #fff; font-size: 12px; color: #6B6A68; outline: none; cursor: pointer;
 }
 .em-filter-select:focus { border-color: #C9A84C; }
 .em-detail-count { margin-left: auto; font-size: 12px; color: #8A8580; white-space: nowrap; }
-.em-detail-table-wrap { flex: 1; overflow: auto; }
+.em-detail-table-wrap { overflow-x: auto; }
 
 /* ── Floating action bar ── */
 .em-action-bar {
@@ -1433,7 +1926,8 @@ watch(eventId, () => { if (eventId.value) load() })
   font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 130ms;
 }
 .em-action-btn:hover { opacity: 0.88; }
-.em-action-btn--sms { background: #5856D6; color: #fff; }
+.em-action-btn--sms { background: #C9A84C; color: #fff; }
+.em-action-btn--sms:hover { opacity: 1; background: #b8943e; }
 
 /* ── Send Drawer ── */
 .em-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.28); z-index: 1000; display: flex; align-items: stretch; justify-content: flex-end; }

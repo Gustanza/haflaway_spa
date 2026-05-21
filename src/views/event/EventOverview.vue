@@ -246,7 +246,7 @@ watch(() => props.event, loadStats)
 
 <style scoped>
 .eo-root {
-  padding: 28px 28px 64px;
+  padding: 20px 24px 48px;
   display: flex;
   flex-direction: column;
   gap: 20px;

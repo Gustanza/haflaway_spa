@@ -17,7 +17,13 @@ import EventLayout from '../views/event/EventLayout.vue'
 import EventOverview from '../views/event/EventOverview.vue'
 import EventAttendees from '../views/event/EventAttendees.vue'
 import EventMessages from '../views/event/EventMessages.vue'
+import EventCheckins from '../views/event/EventCheckins.vue'
+import EventCards from '../views/event/EventCards.vue'
+import EventGallery from '../views/event/EventGallery.vue'
+import EventZawadi from '../views/event/EventZawadi.vue'
 import EventComingSoon from '../views/event/EventComingSoon.vue'
+import EventTeam from '../views/event/EventTeam.vue'
+import EventPayments from '../views/event/EventPayments.vue'
 import EditEvent from '../views/EditEvent.vue'
 
 // Resolves once Firebase has restored the persisted session (or confirmed no user)
@@ -95,13 +101,13 @@ const routes = [
         children: [
             { path: 'overview', name: 'EventOverview', component: EventOverview, meta: { title: 'Overview' } },
             { path: 'attendees', name: 'EventAttendees', component: EventAttendees, meta: { title: 'Attendees' } },
-            { path: 'checkins', name: 'EventCheckins', component: EventComingSoon, meta: { title: 'Check-ins' } },
-            { path: 'cards', name: 'EventCards', component: EventComingSoon, meta: { title: 'Cards' } },
+            { path: 'checkins', name: 'EventCheckins', component: EventCheckins, meta: { title: 'Check-ins' } },
+            { path: 'cards', name: 'EventCards', component: EventCards, meta: { title: 'Cards' } },
             { path: 'messages', name: 'EventMessages', component: EventMessages, meta: { title: 'Messages' } },
-            { path: 'gallery', name: 'EventGallery', component: EventComingSoon, meta: { title: 'Gallery' } },
-            { path: 'zawadi', name: 'EventZawadi', component: EventComingSoon, meta: { title: 'Zawadi' } },
-            { path: 'payments', name: 'EventPayments', component: EventComingSoon, meta: { title: 'Payments' } },
-            { path: 'team', name: 'EventTeam', component: EventComingSoon, meta: { title: 'Team' } },
+            { path: 'gallery', name: 'EventGallery', component: EventGallery, meta: { title: 'Gallery' } },
+            { path: 'zawadi', name: 'EventZawadi', component: EventZawadi, meta: { title: 'Zawadi' } },
+            { path: 'payments', name: 'EventPayments', component: EventPayments, meta: { title: 'Payments' } },
+            { path: 'team', name: 'EventTeam', component: EventTeam, meta: { title: 'Team' } },
             { path: 'settings', name: 'EventSettings', component: EventComingSoon, meta: { title: 'Settings' } },
         ],
     },
