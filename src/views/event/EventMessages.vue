@@ -1702,7 +1702,7 @@ watch(eventId, () => { if (eventId.value) load() })
 /* ── Stats ── */
 .em-stats { flex-shrink: 0; display: flex; align-items: stretch; background: #FFFFFF; border-bottom: 0.8px solid #EBEBEA; }
 .em-stat-block { display: flex; flex-direction: column; justify-content: center; padding: 12px 20px; border-right: 0.8px solid #F2F2F0; min-width: 0; }
-.em-chips-wrap { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.em-chips-wrap { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1; }
 .em-chips-arrow {
   flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
   border: 0.8px solid #E5E4E0; background: #fff;
@@ -1721,11 +1721,11 @@ watch(eventId, () => { if (eventId.value) load() })
 .em-stat-block-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8A8580; }
 .em-stat-chips {
   display: flex; flex-wrap: nowrap; gap: 4px;
-  overflow-x: auto; cursor: grab;
+  overflow-x: auto; cursor: grab; flex: 1; min-width: 0;
   -ms-overflow-style: none; scrollbar-width: none;
 }
 .em-stat-chips::-webkit-scrollbar { display: none; }
-.em-stat-chip  { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; border: 0.8px solid transparent; cursor: pointer; transition: all 130ms; font-family: inherit; }
+.em-stat-chip  { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 8px; border-radius: 20px; border: 0.8px solid transparent; cursor: pointer; transition: all 130ms; font-family: inherit; flex: 1; min-width: max-content; white-space: nowrap; }
 .em-stat-chip:hover { filter: brightness(0.95); }
 .em-sc-n   { font-size: 13px; font-weight: 800; line-height: 1; }
 .em-sc-lbl { font-size: 11px; font-weight: 500; }

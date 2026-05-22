@@ -21,7 +21,7 @@ import EventCheckins from '../views/event/EventCheckins.vue'
 import EventCards from '../views/event/EventCards.vue'
 import EventGallery from '../views/event/EventGallery.vue'
 import EventZawadi from '../views/event/EventZawadi.vue'
-import EventComingSoon from '../views/event/EventComingSoon.vue'
+import EventSettings from '../views/event/EventSettings.vue'
 import EventTeam from '../views/event/EventTeam.vue'
 import EventPayments from '../views/event/EventPayments.vue'
 import EditEvent from '../views/EditEvent.vue'
@@ -108,7 +108,7 @@ const routes = [
             { path: 'zawadi', name: 'EventZawadi', component: EventZawadi, meta: { title: 'Zawadi' } },
             { path: 'payments', name: 'EventPayments', component: EventPayments, meta: { title: 'Payments' } },
             { path: 'team', name: 'EventTeam', component: EventTeam, meta: { title: 'Team' } },
-            { path: 'settings', name: 'EventSettings', component: EventComingSoon, meta: { title: 'Settings' } },
+            { path: 'settings', name: 'EventSettings', component: EventSettings, meta: { title: 'Settings' } },
         ],
     },
     {
