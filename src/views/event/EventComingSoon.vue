@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="cs-root">
     <div class="cs-card">
       <div class="cs-icon-wrap">
@@ -35,7 +35,7 @@ const sectionMeta = {
   },
   cards: {
     title: 'Cards',
-    icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
       <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/>
     </svg>`,
   },
@@ -64,7 +64,7 @@ const sectionMeta = {
   },
   payments: {
     title: 'Payments',
-    icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
       <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
     </svg>`,
   },
@@ -77,7 +77,7 @@ const sectionMeta = {
   },
   settings: {
     title: 'Event Settings',
-    icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8A8580" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6B6B72" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="3"/>
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>`,
@@ -104,7 +104,7 @@ const icon = computed(() => meta.value.icon)
   align-items: center;
   gap: 14px;
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 20px;
   padding: 48px 56px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
@@ -115,7 +115,7 @@ const icon = computed(() => meta.value.icon)
   width: 80px;
   height: 80px;
   border-radius: 20px;
-  background: #F8F8F6;
+  background: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -124,26 +124,26 @@ const icon = computed(() => meta.value.icon)
 .cs-title {
   font-size: 20px;
   font-weight: 700;
-  color: #1C1A18;
+  color: #0A0A0B;
   margin: 0;
 }
 .cs-sub {
   font-size: 14px;
-  color: #8A8580;
+  color: #6B6B72;
   margin: 0;
   line-height: 1.5;
 }
 .cs-back-btn {
   margin-top: 8px;
   background: none;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 10px;
   padding: 9px 18px;
   font-size: 13px;
   font-weight: 600;
-  color: #C9A84C;
+  color: #B8924D;
   cursor: pointer;
   transition: background 130ms;
 }
-.cs-back-btn:hover { background: #FFF8EC; }
+.cs-back-btn:hover { background: #FAFAFB; }
 </style>

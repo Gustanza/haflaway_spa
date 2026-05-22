@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="ea-root">
 
     <!-- ── Toolbar ── -->
     <div class="ea-toolbar">
       <div class="ea-search-wrap">
         <svg class="ea-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-          stroke="#8A8580" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          stroke="#6B6B72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
         <input v-model="searchQ" class="ea-search" placeholder="Search by name or phone…" />
@@ -215,14 +215,14 @@
                   <!-- Illustration -->
                   <div class="ea-empty-graphic">
                     <svg width="52" height="52" viewBox="0 0 64 64" fill="none">
-                      <circle cx="32" cy="32" r="32" fill="#F2F2F0"/>
+                      <circle cx="32" cy="32" r="32" fill="#F4F4F6"/>
                       <!-- People silhouette -->
                       <circle cx="26" cy="22" r="7" fill="#DDDBD6"/>
                       <path d="M12 44c0-7.732 6.268-14 14-14h0c7.732 0 14 6.268 14 14" stroke="#DDDBD6" stroke-width="3" stroke-linecap="round" fill="none"/>
                       <!-- Plus person -->
-                      <circle cx="44" cy="24" r="5" fill="#C9A84C" fill-opacity="0.25" stroke="#C9A84C" stroke-width="1.5"/>
-                      <line x1="44" y1="21" x2="44" y2="27" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"/>
-                      <line x1="41" y1="24" x2="47" y2="24" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"/>
+                      <circle cx="44" cy="24" r="5" fill="#B8924D" fill-opacity="0.25" stroke="#B8924D" stroke-width="1.5"/>
+                      <line x1="44" y1="21" x2="44" y2="27" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round"/>
+                      <line x1="41" y1="24" x2="47" y2="24" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round"/>
                     </svg>
                   </div>
 
@@ -375,7 +375,7 @@
                   <!-- Loading -->
                   <div v-if="fetchingTemplates" class="ea-tpl-state">
                     <svg class="ea-tpl-spin" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                      stroke="#B8924D" stroke-width="2.5" stroke-linecap="round">
                       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                     </svg>
                     Loading templates…
@@ -383,7 +383,7 @@
 
                   <!-- No templates found -->
                   <div v-else-if="!cardTemplates.length" class="ea-tpl-empty">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B5B0A8"
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B5B5BB"
                       stroke-width="1.8" stroke-linecap="round">
                       <rect x="2" y="5" width="20" height="14" rx="3"/>
                       <line x1="2" y1="10" x2="22" y2="10"/>
@@ -427,7 +427,7 @@
                       class="ea-label-toggle"
                       :style="{
                         borderColor: labelFg(lbl),
-                        color: form.labelIds.includes(lbl.id) ? labelFg(lbl) : '#8A8580',
+                        color: form.labelIds.includes(lbl.id) ? labelFg(lbl) : '#6B6B72',
                         background: form.labelIds.includes(lbl.id) ? labelBg(lbl) : 'transparent'
                       }"
                       @click="toggleLabel(lbl.id)">
@@ -512,7 +512,7 @@
 
                   <!-- Processing -->
                   <div v-else-if="importProcessing" class="ea-dropzone-inner">
-                    <svg class="ea-tpl-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                    <svg class="ea-tpl-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2.5" stroke-linecap="round">
                       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                     </svg>
                     <p class="ea-drop-sub" style="margin-top:10px">Parsing file…</p>
@@ -520,7 +520,7 @@
 
                   <!-- File chosen -->
                   <div v-else class="ea-file-chosen">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                       <polyline points="14 2 14 8 20 8"/>
                     </svg>
@@ -575,8 +575,8 @@
                       type="button" class="ea-imp-label-chip"
                       :class="{ 'ea-imp-label-chip--active': importSelectedLabels.includes(lbl.id) }"
                       :style="{
-                        borderColor: importSelectedLabels.includes(lbl.id) ? labelFg(lbl) : '#EBEBEA',
-                        color: importSelectedLabels.includes(lbl.id) ? labelFg(lbl) : '#8A8580',
+                        borderColor: importSelectedLabels.includes(lbl.id) ? labelFg(lbl) : '#ECECEF',
+                        color: importSelectedLabels.includes(lbl.id) ? labelFg(lbl) : '#6B6B72',
                         background: importSelectedLabels.includes(lbl.id) ? labelBg(lbl) : 'transparent',
                       }"
                       @click="toggleImportLabel(lbl.id)">
@@ -592,7 +592,7 @@
                   <!-- Name -->
                   <div class="ea-map-row">
                     <div class="ea-map-icon-wrap">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     </div>
                     <span class="ea-map-label">Name <span class="ea-required">*</span></span>
                     <div class="ea-map-select-wrap">
@@ -606,7 +606,7 @@
                   <!-- Phone -->
                   <div class="ea-map-row">
                     <div class="ea-map-icon-wrap">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.02z"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.02z"/></svg>
                     </div>
                     <span class="ea-map-label">Phone <span class="ea-required">*</span></span>
                     <div class="ea-map-select-wrap">
@@ -620,7 +620,7 @@
                   <!-- Pledges — contribution & contact only -->
                   <div v-if="importKardType === 'contribution' || importKardType === 'contact'" class="ea-map-row">
                     <div class="ea-map-icon-wrap">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                     </div>
                     <span class="ea-map-label">Pledges</span>
                     <div class="ea-map-toggle-group">
@@ -641,7 +641,7 @@
                   <!-- Contribution paid — contribution & contact only -->
                   <div v-if="importKardType === 'contribution' || importKardType === 'contact'" class="ea-map-row">
                     <div class="ea-map-icon-wrap">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                     </div>
                     <span class="ea-map-label">Contribution</span>
                     <div class="ea-map-toggle-group">
@@ -662,12 +662,12 @@
                   <!-- Card Template — invitation & contribution only -->
                   <div v-if="importKardType !== 'contact'" class="ea-map-row ea-map-row--card">
                     <div class="ea-map-icon-wrap">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                     </div>
                     <span class="ea-map-label">Card Template <span class="ea-required">*</span></span>
                     <div class="ea-map-select-wrap">
                       <div v-if="fetchingTemplates" class="ea-map-loading">
-                        <svg class="ea-tpl-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                        <svg class="ea-tpl-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                         Loading…
                       </div>
                       <div v-else-if="!cardTemplates.length" class="ea-map-empty">
@@ -969,7 +969,7 @@
                   <div class="ea-pay-history">
                     <p v-if="loadingPayments" class="ea-pay-empty">
                       <svg class="ea-spin" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="#C9A84C" stroke-width="2.2">
+                        stroke="#B8924D" stroke-width="2.2">
                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                       </svg>
                       Loading…
@@ -978,7 +978,7 @@
                     <template v-else>
                       <div v-for="p in drawerPayments" :key="p.id" class="ea-pay-item">
                         <div class="ea-pay-ico">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
                             stroke-width="2" stroke-linecap="round">
                             <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
                           </svg>
@@ -1228,7 +1228,7 @@ function avatarColor(name) { return `hsl(${avatarHue(name)}, 50%, 30%)` }
 
 function labelFg(lbl) {
   const v = lbl?.colorValue
-  if (!v) return '#C9A84C'
+  if (!v) return '#B8924D'
   if (typeof v === 'string') return v
   const r = (v >> 16) & 0xFF
   const g = (v >> 8) & 0xFF
@@ -1238,7 +1238,7 @@ function labelFg(lbl) {
 
 function labelBg(lbl) {
   const v = lbl?.colorValue
-  if (!v) return 'rgba(201,168,76,0.12)'
+  if (!v) return 'rgba(10,10,11,0.04)'
   if (typeof v === 'string') return v + '20'
   const r = (v >> 16) & 0xFF
   const g = (v >> 8) & 0xFF
@@ -1991,7 +1991,7 @@ function setImportPayment(attendeeId, amount) {
   flex-direction: column;
   gap: 16px;
   padding: 20px 24px 24px;
-  background: #F8F8F6;
+  background: #FFFFFF;
 }
 
 /* ── Toolbar ── */
@@ -2020,30 +2020,30 @@ function setImportPayment(attendeeId, amount) {
   width: 100%;
   padding: 9px 34px 9px 34px;
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 10px;
   font-size: 13px;
-  color: #1C1A18;
+  color: #0A0A0B;
   outline: none;
   transition: border-color 150ms;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
   font-family: inherit;
 }
-.ea-search:focus { border-color: #C9A84C; }
-.ea-search::placeholder { color: #B5B0A8; }
+.ea-search:focus { border-color: #B8924D; }
+.ea-search::placeholder { color: #B5B5BB; }
 .ea-search-clear {
   position: absolute;
   right: 10px;
   background: none;
   border: none;
-  color: #B5B0A8;
+  color: #B5B5BB;
   cursor: pointer;
   display: flex;
   align-items: center;
   padding: 3px;
   border-radius: 4px;
 }
-.ea-search-clear:hover { color: #6B6A68; }
+.ea-search-clear:hover { color: #6B6B72; }
 
 .ea-toolbar-right {
   display: flex;
@@ -2056,22 +2056,17 @@ function setImportPayment(attendeeId, amount) {
 .ea-chip {
   padding: 7px 13px;
   border-radius: 20px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   background: #FFFFFF;
   font-size: 12px;
   font-weight: 500;
-  color: #8A8580;
+  color: #6B6B72;
   cursor: pointer;
   transition: all 140ms;
   font-family: inherit;
 }
-.ea-chip:hover { background: #F2F2F0; color: #6B6A68; }
-.ea-chip--active {
-  background: #FFF8EC;
-  border-color: rgba(201,168,76,0.4);
-  color: #C9A84C;
-  font-weight: 600;
-}
+.ea-chip:hover { background: #F4F4F6; color: #6B6B72; }
+.ea-chip--active { background: #0A0A0B; border-color: #0A0A0B; color: #FFFFFF; font-weight: 600; }
 .ea-chip-cnt {
   display: inline-flex;
   align-items: center;
@@ -2086,17 +2081,14 @@ function setImportPayment(attendeeId, amount) {
   margin-left: 5px;
   line-height: 1.4;
 }
-.ea-chip--active .ea-chip-cnt {
-  background: rgba(201,168,76,0.2);
-  color: #9A7218;
-}
+.ea-chip--active .ea-chip-cnt { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.75); }
 
 .ea-add-btn {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: #1C1A18;
+  background: #0A0A0B;
   color: #FFFFFF;
   border: none;
   border-radius: 10px;
@@ -2116,7 +2108,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: space-between;
   padding: 11px 16px;
-  background: #1C1A18;
+  background: #0A0A0B;
   border-radius: 12px;
   gap: 12px;
 }
@@ -2147,10 +2139,10 @@ function setImportPayment(attendeeId, amount) {
   display: flex;
   flex-direction: column;
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
 .ea-table-scroll {
   overflow-x: auto;
@@ -2170,7 +2162,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-cb {
   width: 15px;
   height: 15px;
-  accent-color: #1C1A18;
+  accent-color: #0A0A0B;
   cursor: pointer;
   display: block;
 }
@@ -2180,20 +2172,20 @@ function setImportPayment(attendeeId, amount) {
   padding: 11px 16px;
   font-size: 11px;
   font-weight: 700;
-  color: #8A8580;
+  color: #6B6B72;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   text-align: left;
   white-space: nowrap;
   background: #FAFAF9;
-  border-bottom: 0.8px solid #EBEBEA;
+  border-bottom: 1px solid #ECECEF;
   user-select: none;
   position: sticky;
   top: 0;
   z-index: 1;
 }
 .ea-th--sortable { cursor: pointer; }
-.ea-th--sortable:hover { color: #1C1A18; }
+.ea-th--sortable:hover { color: #0A0A0B; }
 .ea-th--right { text-align: right; }
 
 /* Sort icon */
@@ -2204,12 +2196,12 @@ function setImportPayment(attendeeId, amount) {
   opacity: 0.3;
   transition: opacity 150ms, transform 200ms;
 }
-.ea-sort-icon--active { opacity: 1; color: #C9A84C; }
+.ea-sort-icon--active { opacity: 1; color: #B8924D; }
 .ea-sort-icon--desc { transform: rotate(180deg); }
 
 /* Rows */
 .ea-tr {
-  border-bottom: 0.8px solid #F2F2F0;
+  border-bottom: 1px solid #F4F4F6;
   cursor: pointer;
   transition: background 120ms;
 }
@@ -2223,11 +2215,11 @@ function setImportPayment(attendeeId, amount) {
 .ea-td {
   padding: 11px 16px;
   font-size: 13px;
-  color: #1C1A18;
+  color: #0A0A0B;
   vertical-align: middle;
   white-space: nowrap;
 }
-.ea-td--muted { color: #8A8580; font-size: 12px; }
+.ea-td--muted { color: #6B6B72; font-size: 12px; }
 .ea-td--right { text-align: right; }
 .ea-td--date  { font-size: 12px; }
 
@@ -2251,7 +2243,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-name-text {
   font-weight: 600;
-  color: #1C1A18;
+  color: #0A0A0B;
   white-space: nowrap;
 }
 
@@ -2265,7 +2257,7 @@ function setImportPayment(attendeeId, amount) {
   padding: 4px 10px 4px 8px;
   border-radius: 20px;
   white-space: nowrap;
-  border: 0.8px solid transparent;
+  border: 1px solid transparent;
 }
 .ea-type-badge::before {
   content: '';
@@ -2282,11 +2274,11 @@ function setImportPayment(attendeeId, amount) {
 .ea-type-badge--invitation::before { background: #007AFF; }
 
 .ea-type-badge--contribution {
-  background: rgba(201,168,76,0.09);
+  background: rgba(10,10,11,0.04);
   color: #9A7218;
-  border-color: rgba(201,168,76,0.28);
+  border-color: rgba(184,146,77,0.28);
 }
-.ea-type-badge--contribution::before { background: #C9A84C; }
+.ea-type-badge--contribution::before { background: linear-gradient(180deg, #2A2A2D 0%, #0A0A0B 100%); }
 
 .ea-type-badge--contact {
   background: rgba(142,142,147,0.08);
@@ -2314,18 +2306,18 @@ function setImportPayment(attendeeId, amount) {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   background: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 130ms;
-  color: #8A8580;
+  color: #6B6B72;
   flex-shrink: 0;
 }
-.ea-row-btn:hover { background: #F2F2F0; color: #1C1A18; border-color: #D8D6D0; }
-.ea-row-btn--edit:hover { color: #1C1A18; }
+.ea-row-btn:hover { background: #F4F4F6; color: #0A0A0B; border-color: #D8D6D0; }
+.ea-row-btn--edit:hover { color: #0A0A0B; }
 .ea-row-btn--refresh {
   color: #FF9F0A;
   border-color: rgba(255,159,10,0.3);
@@ -2346,7 +2338,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-tpl-name {
   font-size: 12px;
-  color: #8A8580;
+  color: #6B6B72;
 }
 .ea-pending-pill {
   display: inline-flex;
@@ -2357,7 +2349,7 @@ function setImportPayment(attendeeId, amount) {
   letter-spacing: 0.4px;
   color: #FF9F0A;
   background: rgba(255,159,10,0.08);
-  border: 0.8px solid rgba(255,159,10,0.28);
+  border: 1px solid rgba(255,159,10,0.28);
   border-radius: 6px;
   padding: 2px 7px 2px 5px;
   white-space: nowrap;
@@ -2398,7 +2390,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-sk-circle {
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: linear-gradient(90deg, #F2F2F0 25%, #E8E8E6 50%, #F2F2F0 75%);
+  background: linear-gradient(90deg, #F4F4F6 25%, #E8E8E6 50%, #F4F4F6 75%);
   background-size: 200% 100%;
   animation: ea-shimmer 1.3s infinite;
   flex-shrink: 0;
@@ -2406,7 +2398,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-sk-bar {
   height: 9px;
   border-radius: 5px;
-  background: linear-gradient(90deg, #F2F2F0 25%, #E8E8E6 50%, #F2F2F0 75%);
+  background: linear-gradient(90deg, #F4F4F6 25%, #E8E8E6 50%, #F4F4F6 75%);
   background-size: 200% 100%;
   animation: ea-shimmer 1.3s infinite;
 }
@@ -2425,7 +2417,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-top: 0.8px solid #EBEBEA;
+  border-top: 1px solid #ECECEF;
   background: #FFFFFF;
   gap: 12px;
   flex-wrap: wrap;
@@ -2433,7 +2425,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-range-label {
   font-size: 12px;
-  color: #8A8580;
+  color: #6B6B72;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -2447,12 +2439,12 @@ function setImportPayment(attendeeId, amount) {
   min-width: 32px;
   height: 32px;
   padding: 0 6px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 8px;
   background: #FFFFFF;
   font-size: 13px;
   font-weight: 500;
-  color: #6B6A68;
+  color: #6B6B72;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2461,18 +2453,18 @@ function setImportPayment(attendeeId, amount) {
   font-family: inherit;
 }
 .ea-page-btn:hover:not(:disabled):not(.ea-page-btn--active) {
-  background: #F2F2F0;
+  background: #F4F4F6;
   border-color: #D8D6D0;
-  color: #1C1A18;
+  color: #0A0A0B;
 }
 .ea-page-btn--active {
-  background: #1C1A18;
-  border-color: #1C1A18;
+  background: #0A0A0B;
+  border-color: #0A0A0B;
   color: #FFFFFF;
   font-weight: 600;
   cursor: default;
 }
-.ea-page-btn--nav { color: #8A8580; }
+.ea-page-btn--nav { color: #6B6B72; }
 .ea-page-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
@@ -2484,7 +2476,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  color: #B5B0A8;
+  color: #B5B5BB;
   letter-spacing: 1px;
 }
 
@@ -2504,12 +2496,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-empty-title {
   font-size: 15px;
   font-weight: 700;
-  color: #1C1A18;
+  color: #0A0A0B;
   margin: 0;
 }
 .ea-empty-sub {
   font-size: 13px;
-  color: #8A8580;
+  color: #6B6B72;
   margin: 0 0 14px;
   line-height: 1.5;
 }
@@ -2518,7 +2510,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 9px 18px;
-  background: #1C1A18;
+  background: #0A0A0B;
   color: #FFFFFF;
   border: none;
   border-radius: 10px;
@@ -2530,10 +2522,10 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-empty-cta:hover { opacity: 0.82; }
 .ea-empty-cta--ghost {
-  background: #F2F2F0;
-  color: #6B6A68;
+  background: #F4F4F6;
+  color: #6B6B72;
 }
-.ea-empty-cta--ghost:hover { opacity: 1; background: #EBEBEA; }
+.ea-empty-cta--ghost:hover { opacity: 1; background: #ECECEF; }
 
 /* ── Overlay ── */
 .ea-overlay {
@@ -2563,11 +2555,11 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: space-between;
   padding: 20px 22px 16px;
-  border-bottom: 0.8px solid #F2F2F0;
+  border-bottom: 1px solid #F4F4F6;
 }
-.ea-modal-title { font-size: 16px; font-weight: 700; color: #1C1A18; margin: 0; }
+.ea-modal-title { font-size: 16px; font-weight: 700; color: #0A0A0B; margin: 0; }
 .ea-modal-close {
-  background: #F2F2F0;
+  background: #F4F4F6;
   border: none;
   width: 28px; height: 28px;
   border-radius: 50%;
@@ -2575,10 +2567,10 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #6B6A68;
+  color: #6B6B72;
   transition: background 140ms;
 }
-.ea-modal-close:hover { background: #EBEBEA; }
+.ea-modal-close:hover { background: #ECECEF; }
 
 .ea-form {
   padding: 20px 22px;
@@ -2587,21 +2579,21 @@ function setImportPayment(attendeeId, amount) {
   gap: 16px;
 }
 .ea-field { display: flex; flex-direction: column; gap: 6px; }
-.ea-label { font-size: 12px; font-weight: 600; color: #6B6A68; }
+.ea-label { font-size: 12px; font-weight: 600; color: #6B6B72; }
 .ea-required { color: #FF453A; }
 
 .ea-input {
   padding: 9px 12px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 10px;
   font-size: 13px;
-  color: #1C1A18;
+  color: #0A0A0B;
   outline: none;
   background: #FAFAF9;
   transition: border-color 150ms, background 150ms;
   font-family: inherit;
 }
-.ea-input:focus { border-color: #C9A84C; background: #FFFFFF; }
+.ea-input:focus { border-color: #B8924D; background: #FFFFFF; }
 .ea-input--error { border-color: #FF453A; }
 .ea-field-error { font-size: 11px; color: #FF453A; }
 
@@ -2612,27 +2604,27 @@ function setImportPayment(attendeeId, amount) {
   margin: 0;
   padding: 6px 10px;
   background: rgba(255,159,10,0.07);
-  border: 0.8px solid rgba(255,159,10,0.25);
+  border: 1px solid rgba(255,159,10,0.25);
   border-radius: 8px;
 }
 .ea-type-opt {
   flex: 1;
   padding: 8px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 10px;
   background: #FAFAF9;
   font-size: 12px;
   font-weight: 600;
-  color: #8A8580;
+  color: #6B6B72;
   cursor: pointer;
   transition: all 140ms;
   font-family: inherit;
 }
-.ea-type-opt:hover { background: #F2F2F0; }
+.ea-type-opt:hover { background: #F4F4F6; }
 .ea-type-opt--active {
-  background: #FFF8EC;
-  border-color: rgba(201,168,76,0.4);
-  color: #C9A84C;
+  background: #FAFAFB;
+  border-color: rgba(10,10,11,0.15);
+  color: #B8924D;
 }
 
 /* ── Card template selector ── */
@@ -2641,7 +2633,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #8A8580;
+  color: #6B6B72;
   padding: 10px 0;
 }
 @keyframes ea-tpl-spin { to { transform: rotate(360deg); } }
@@ -2652,14 +2644,14 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #8A8580;
+  color: #6B6B72;
   background: #FAFAF9;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 10px;
   padding: 12px 14px;
   line-height: 1.4;
 }
-.ea-tpl-empty strong { color: #6B6A68; font-weight: 600; }
+.ea-tpl-empty strong { color: #6B6B72; font-weight: 600; }
 
 .ea-tpl-grid {
   display: flex;
@@ -2671,7 +2663,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 10px;
   padding: 11px 14px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 10px;
   background: #FAFAF9;
   font-size: 13px;
@@ -2682,15 +2674,15 @@ function setImportPayment(attendeeId, amount) {
   transition: all 140ms;
   font-family: inherit;
 }
-.ea-tpl-opt:hover { background: #F2F2F0; border-color: #D8D6D0; }
+.ea-tpl-opt:hover { background: #F4F4F6; border-color: #D8D6D0; }
 .ea-tpl-opt--active {
-  background: #FFF8EC;
-  border-color: rgba(201,168,76,0.5);
+  background: #FAFAFB;
+  border-color: rgba(184,146,77,0.5);
   color: #9A7218;
   font-weight: 600;
 }
-.ea-tpl-opt--active svg:first-child { stroke: #C9A84C; }
-.ea-tpl-check { margin-left: auto; color: #C9A84C; flex-shrink: 0; }
+.ea-tpl-opt--active svg:first-child { stroke: #B8924D; }
+.ea-tpl-check { margin-left: auto; color: #B8924D; flex-shrink: 0; }
 
 .ea-label-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .ea-label-toggle {
@@ -2709,7 +2701,7 @@ function setImportPayment(attendeeId, amount) {
   gap: 8px;
   justify-content: flex-end;
   padding-top: 4px;
-  border-top: 0.8px solid #F2F2F0;
+  border-top: 1px solid #F4F4F6;
 }
 .ea-btn {
   padding: 9px 18px;
@@ -2722,8 +2714,8 @@ function setImportPayment(attendeeId, amount) {
   font-family: inherit;
 }
 .ea-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.ea-btn--primary { background: #1C1A18; color: #FFFFFF; }
-.ea-btn--ghost   { background: #F2F2F0; color: #6B6A68; }
+.ea-btn--primary { background: #0A0A0B; color: #FFFFFF; }
+.ea-btn--ghost   { background: #F4F4F6; color: #6B6B72; }
 .ea-btn--danger  { background: rgba(255,69,58,0.1); color: #FF453A; }
 
 /* ── Drawer ── */
@@ -2753,27 +2745,27 @@ function setImportPayment(attendeeId, amount) {
   background: none;
   border: none;
   font-size: 13px;
-  color: #8A8580;
+  color: #6B6B72;
   cursor: pointer;
   padding: 5px 8px;
   border-radius: 8px;
   transition: all 130ms;
   font-family: inherit;
 }
-.ea-drawer-back:hover { background: #F2F2F0; color: #1C1A18; }
+.ea-drawer-back:hover { background: #F4F4F6; color: #0A0A0B; }
 .ea-drawer-edit-btn {
-  background: #F2F2F0;
+  background: #F4F4F6;
   border: none;
   font-size: 13px;
   font-weight: 600;
-  color: #6B6A68;
+  color: #6B6B72;
   padding: 6px 14px;
   border-radius: 8px;
   cursor: pointer;
   transition: background 130ms;
   font-family: inherit;
 }
-.ea-drawer-edit-btn:hover { background: #EBEBEA; }
+.ea-drawer-edit-btn:hover { background: #ECECEF; }
 
 /* Hero */
 .ea-drawer-hero {
@@ -2783,8 +2775,8 @@ function setImportPayment(attendeeId, amount) {
   text-align: center;
   padding: 20px 24px 22px;
   background: #FAFAF9;
-  border-top: 0.8px solid #F2F2F0;
-  border-bottom: 0.8px solid #F2F2F0;
+  border-top: 1px solid #F4F4F6;
+  border-bottom: 1px solid #F4F4F6;
   gap: 4px;
 }
 .ea-drawer-avatar {
@@ -2800,13 +2792,13 @@ function setImportPayment(attendeeId, amount) {
 .ea-drawer-name {
   font-size: 17px;
   font-weight: 700;
-  color: #1C1A18;
+  color: #0A0A0B;
   margin: 0;
   letter-spacing: -0.2px;
 }
 .ea-drawer-phone {
   font-size: 13px;
-  color: #8A8580;
+  color: #6B6B72;
   margin: 0;
 }
 .ea-drawer-hero-meta {
@@ -2820,7 +2812,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-drawer-tpl-name {
   font-size: 11px;
   font-weight: 600;
-  color: #B5B0A8;
+  color: #B5B5BB;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -2830,22 +2822,22 @@ function setImportPayment(attendeeId, amount) {
   display: flex;
   gap: 8px;
   padding: 14px 18px;
-  border-bottom: 0.8px solid #F2F2F0;
+  border-bottom: 1px solid #F4F4F6;
 }
 .ea-action-pill {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  background: #F2F2F0;
+  background: #F4F4F6;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
-  color: #1C1A18;
+  color: #0A0A0B;
   text-decoration: none;
   transition: background 140ms;
 }
-.ea-action-pill:hover { background: #EBEBEA; }
+.ea-action-pill:hover { background: #ECECEF; }
 .ea-action-pill--pending {
   color: #FF9F0A;
   background: rgba(255,159,10,0.08);
@@ -2890,18 +2882,18 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 6px 13px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 20px;
   background: #FFFFFF;
   font-size: 12px;
   font-weight: 600;
-  color: #6B6A68;
+  color: #6B6B72;
   cursor: pointer;
   transition: all 140ms;
   font-family: inherit;
   white-space: nowrap;
 }
-.ea-status-pill:hover:not(:disabled) { background: #F2F2F0; }
+.ea-status-pill:hover:not(:disabled) { background: #F4F4F6; }
 .ea-status-pill:disabled { opacity: 0.6; cursor: wait; }
 .ea-status-pill--active { font-weight: 700; }
 
@@ -2916,21 +2908,22 @@ function setImportPayment(attendeeId, amount) {
 .ea-contrib-card {
   flex: 1;
   background: #FAFAF9;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 12px;
   padding: 14px 16px;
 }
 .ea-contrib-label {
   display: block;
   font-size: 11px;
-  color: #8A8580;
+  color: #6B6B72;
   font-weight: 500;
   margin-bottom: 4px;
 }
 .ea-contrib-val {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 15px;
   font-weight: 700;
-  color: #1C1A18;
+  color: #0A0A0B;
 }
 .ea-contrib-val--paid { color: #30D158; }
 
@@ -2938,19 +2931,19 @@ function setImportPayment(attendeeId, amount) {
 .ea-contrib-card--clickable { cursor: pointer; transition: background 130ms; }
 .ea-contrib-card--clickable:hover { background: #F2F1EE; }
 .ea-contrib-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.ea-contrib-edit-ico { color: #C9A84C; opacity: 0.5; flex-shrink: 0; transition: opacity 130ms; }
+.ea-contrib-edit-ico { color: #B8924D; opacity: 0.5; flex-shrink: 0; transition: opacity 130ms; }
 .ea-contrib-card--clickable:hover .ea-contrib-edit-ico { opacity: 1; }
 
 .ea-inline-field { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
 .ea-inline-inp {
   flex: 1; min-width: 0;
-  border: 1px solid #C9A84C; border-radius: 6px;
+  border: 1px solid #B8924D; border-radius: 6px;
   padding: 4px 8px; font-size: 13px; font-family: inherit;
-  outline: none; background: #FFFDF5; color: #1C1A18;
+  outline: none; background: #FFFDF5; color: #0A0A0B;
 }
 .ea-inline-ok {
   width: 26px; height: 26px; border-radius: 6px;
-  border: none; background: #C9A84C; color: #fff;
+  border: none; background: linear-gradient(180deg, #2A2A2D 0%, #0A0A0B 100%); color: #fff;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; transition: background 130ms;
 }
@@ -2958,53 +2951,53 @@ function setImportPayment(attendeeId, amount) {
 .ea-inline-ok:disabled { opacity: 0.5; cursor: not-allowed; }
 .ea-inline-x {
   width: 26px; height: 26px; border-radius: 6px;
-  border: 0.8px solid #E5E4E0; background: #F2F2F0; color: #6B6760;
+  border: 1px solid #E5E4E0; background: #F4F4F6; color: #6B6760;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; transition: background 130ms;
 }
-.ea-inline-x:hover { background: #EBEBEA; }
+.ea-inline-x:hover { background: #ECECEF; }
 
 /* Progress bar */
 .ea-pledge-bar-wrap { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.ea-pledge-bar { flex: 1; height: 5px; background: #EBEBEA; border-radius: 99px; overflow: hidden; }
+.ea-pledge-bar { flex: 1; height: 5px; background: #ECECEF; border-radius: 99px; overflow: hidden; }
 .ea-pledge-bar-fill { height: 100%; background: #30D158; border-radius: 99px; transition: width 500ms ease; }
 .ea-pledge-pct { font-size: 10px; font-weight: 700; color: #30D158; white-space: nowrap; flex-shrink: 0; }
 
 /* Add payment button */
 .ea-add-pay-btn {
   width: 100%; margin-top: 14px; padding: 9px 16px;
-  border: 1px dashed #C9A84C; border-radius: 10px;
-  background: rgba(201,168,76,0.04); color: #C9A84C;
+  border: 1px dashed #B8924D; border-radius: 10px;
+  background: rgba(184,146,77,0.04); color: #B8924D;
   font-size: 12px; font-weight: 600; font-family: inherit;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   gap: 6px; transition: background 130ms;
 }
-.ea-add-pay-btn:hover { background: rgba(201,168,76,0.10); }
+.ea-add-pay-btn:hover { background: rgba(184,146,77,0.10); }
 
 /* Inline add-payment form */
 .ea-pay-form {
   margin-top: 14px; background: #FAFAF9;
-  border: 0.8px solid #EBEBEA; border-radius: 10px; padding: 12px;
+  border: 1px solid #ECECEF; border-radius: 10px; padding: 12px;
 }
 .ea-pay-form-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.ea-pay-form-label { font-size: 11px; font-weight: 700; color: #1C1A18; letter-spacing: 0.3px; text-transform: uppercase; }
+.ea-pay-form-label { font-size: 11px; font-weight: 700; color: #0A0A0B; letter-spacing: 0.3px; text-transform: uppercase; }
 .ea-pay-form-close {
   width: 22px; height: 22px; border-radius: 50%;
-  border: none; background: #EBEBEA; color: #6B6760;
+  border: none; background: #ECECEF; color: #6B6760;
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 .ea-pay-form-close:hover { background: #E0E0DC; }
 .ea-pay-form-row { display: flex; gap: 6px; }
 .ea-pay-inp {
   flex: 1; min-width: 0;
-  border: 0.8px solid #E5E4E0; border-radius: 8px;
+  border: 1px solid #E5E4E0; border-radius: 8px;
   padding: 8px 12px; font-size: 13px; font-family: inherit;
-  outline: none; background: #fff; color: #1C1A18; transition: border-color 130ms, box-shadow 130ms;
+  outline: none; background: #fff; color: #0A0A0B; transition: border-color 130ms, box-shadow 130ms;
 }
-.ea-pay-inp:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.12); }
+.ea-pay-inp:focus { border-color: #B8924D; box-shadow: 0 0 0 3px rgba(10,10,11,0.04); }
 .ea-pay-submit {
   padding: 8px 16px; border: none; border-radius: 8px;
-  background: #C9A84C; color: #fff; font-size: 13px; font-weight: 600;
+  background: linear-gradient(180deg, #2A2A2D 0%, #0A0A0B 100%); color: #fff; font-size: 13px; font-weight: 600;
   font-family: inherit; cursor: pointer; flex-shrink: 0; transition: background 130ms;
 }
 .ea-pay-submit:hover:not(:disabled) { background: #B8943E; }
@@ -3018,25 +3011,26 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-pay-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 0; border-bottom: 0.8px solid #F2F2F0;
+  padding: 10px 0; border-bottom: 1px solid #F4F4F6;
 }
 .ea-pay-item:last-child { border-bottom: none; }
 .ea-pay-ico {
   width: 32px; height: 32px; border-radius: 8px;
-  background: rgba(201,168,76,0.10);
+  background: rgba(184,146,77,0.10);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .ea-pay-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.ea-pay-amt { font-size: 13px; font-weight: 700; color: #1C1A18; }
-.ea-pay-when { font-size: 11px; color: #8A8580; }
+.ea-pay-amt {
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #0A0A0B; }
+.ea-pay-when { font-size: 11px; color: #6B6B72; }
 .ea-pay-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .ea-pay-item-btn {
   width: 28px; height: 28px; border-radius: 6px;
-  border: 0.8px solid #E5E4E0; background: #FAFAF9; color: #6B6760;
+  border: 1px solid #E5E4E0; background: #FAFAF9; color: #6B6760;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all 130ms;
 }
-.ea-pay-item-btn:hover { background: #EBEBEA; color: #1C1A18; border-color: #D0D0CC; }
+.ea-pay-item-btn:hover { background: #ECECEF; color: #0A0A0B; border-color: #D0D0CC; }
 .ea-pay-item-btn--del:hover { background: rgba(255,59,48,0.08); color: #FF3B30; border-color: rgba(255,59,48,0.3); }
 .ea-pay-item-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -3066,7 +3060,7 @@ function setImportPayment(attendeeId, amount) {
 :deep(.ea-tel-input.vue-tel-input) {
   display: flex;
   align-items: stretch;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 10px;
   background: #FAFAF9;
   box-shadow: none;
@@ -3075,9 +3069,9 @@ function setImportPayment(attendeeId, amount) {
   overflow: visible;
 }
 :deep(.ea-tel-input.vue-tel-input:focus-within) {
-  border-color: #C9A84C;
+  border-color: #B8924D;
   background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(201,168,76,0.10);
+  box-shadow: 0 0 0 3px rgba(184,146,77,0.10);
 }
 :deep(.ea-tel-input--valid.vue-tel-input) { border-color: rgba(48,209,88,0.55); }
 :deep(.ea-tel-input--invalid.vue-tel-input) { border-color: rgba(255,69,58,0.55); }
@@ -3085,7 +3079,7 @@ function setImportPayment(attendeeId, amount) {
 /* Country dropdown button */
 :deep(.ea-tel-input .vti__dropdown) {
   border: none;
-  border-right: 0.8px solid #EBEBEA;
+  border-right: 1px solid #ECECEF;
   border-radius: 10px 0 0 10px;
   background: transparent;
   padding: 0 10px;
@@ -3098,7 +3092,7 @@ function setImportPayment(attendeeId, amount) {
 }
 :deep(.ea-tel-input .vti__dropdown:hover),
 :deep(.ea-tel-input .vti__dropdown.open) {
-  background: #F2F2F0;
+  background: #F4F4F6;
 }
 
 /* Flag */
@@ -3118,7 +3112,7 @@ function setImportPayment(attendeeId, amount) {
 /* Dropdown arrow */
 :deep(.ea-tel-input .vti__dropdown-arrow) {
   font-size: 9px;
-  color: #B5B0A8;
+  color: #B5B5BB;
   margin-left: 2px;
 }
 
@@ -3130,16 +3124,16 @@ function setImportPayment(attendeeId, amount) {
   background: transparent;
   padding: 9px 12px;
   font-size: 13px;
-  color: #1C1A18;
+  color: #0A0A0B;
   font-family: inherit;
   border-radius: 0 10px 10px 0;
   min-width: 0;
 }
-:deep(.ea-tel-input .vti__input::placeholder) { color: #B5B0A8; }
+:deep(.ea-tel-input .vti__input::placeholder) { color: #B5B5BB; }
 
 /* Dropdown list */
 :deep(.ea-tel-input .vti__dropdown-list) {
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.10);
   background: #FFFFFF;
@@ -3157,16 +3151,16 @@ function setImportPayment(attendeeId, amount) {
   width: calc(100% - 16px);
   margin: 0 8px 6px;
   padding: 7px 10px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 8px;
   font-size: 12px;
   font-family: inherit;
   outline: none;
   background: #FAFAF9;
-  color: #1C1A18;
+  color: #0A0A0B;
   display: block;
 }
-:deep(.ea-tel-input .vti__search_box:focus) { border-color: #C9A84C; }
+:deep(.ea-tel-input .vti__search_box:focus) { border-color: #B8924D; }
 
 /* Country list items */
 :deep(.ea-tel-input .vti__dropdown-item) {
@@ -3184,15 +3178,15 @@ function setImportPayment(attendeeId, amount) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-:deep(.ea-tel-input .vti__dropdown-item:hover) { background: #F2F2F0; }
+:deep(.ea-tel-input .vti__dropdown-item:hover) { background: #F4F4F6; }
 :deep(.ea-tel-input .vti__dropdown-item.highlighted) {
-  background: #FFF8EC;
+  background: #FAFAFB;
   color: #9A7218;
   font-weight: 600;
 }
 :deep(.ea-tel-input .vti__dropdown-item strong) {
   font-weight: 600;
-  color: #6B6A68;
+  color: #6B6B72;
   font-size: 11px;
   margin-left: auto;
   flex-shrink: 0;
@@ -3209,8 +3203,8 @@ function setImportPayment(attendeeId, amount) {
   gap: 6px;
   padding: 8px 14px;
   background: #FFFFFF;
-  color: #6B6A68;
-  border: 0.8px solid #EBEBEA;
+  color: #6B6B72;
+  border: 1px solid #ECECEF;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
@@ -3218,12 +3212,12 @@ function setImportPayment(attendeeId, amount) {
   transition: all 150ms;
   font-family: inherit;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
 .ea-import-btn:hover {
-  background: #FFF8EC;
-  border-color: rgba(201,168,76,0.4);
-  color: #C9A84C;
+  background: #FAFAFB;
+  border-color: rgba(10,10,11,0.15);
+  color: #B8924D;
 }
 
 /* ── Import modal sizing ── */
@@ -3246,7 +3240,7 @@ function setImportPayment(attendeeId, amount) {
 /* ── Type hint ── */
 .ea-imp-type-hint {
   font-size: 11px;
-  color: #8A8580;
+  color: #6B6B72;
   margin: 4px 0 0;
   line-height: 1.5;
 }
@@ -3264,12 +3258,12 @@ function setImportPayment(attendeeId, amount) {
   justify-content: center;
 }
 .ea-dropzone--over {
-  border-color: #C9A84C;
-  background: #FFF8EC;
+  border-color: #B8924D;
+  background: #FAFAFB;
 }
 .ea-dropzone--filled {
   border-style: solid;
-  border-color: rgba(201,168,76,0.45);
+  border-color: rgba(10,10,11,0.16);
   background: #FFFCF5;
 }
 .ea-file-input {
@@ -3292,18 +3286,18 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-drop-icon {
   width: 52px; height: 52px;
-  background: #F2F2F0;
+  background: #F4F4F6;
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #B5B0A8;
+  color: #B5B5BB;
   margin-bottom: 4px;
   transition: background 180ms, color 180ms;
 }
 .ea-dropzone--over .ea-drop-icon {
-  background: rgba(201,168,76,0.12);
-  color: #C9A84C;
+  background: rgba(10,10,11,0.04);
+  color: #B8924D;
 }
 .ea-drop-title {
   font-size: 13px;
@@ -3313,10 +3307,10 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-drop-sub {
   font-size: 12px;
-  color: #8A8580;
+  color: #6B6B72;
   margin: 0;
 }
-.ea-drop-link { color: #C9A84C; font-weight: 600; }
+.ea-drop-link { color: #B8924D; font-weight: 600; }
 
 /* ── File chosen state ── */
 .ea-file-chosen {
@@ -3336,7 +3330,7 @@ function setImportPayment(attendeeId, amount) {
   text-overflow: ellipsis;
 }
 .ea-file-clear {
-  background: #F2F2F0;
+  background: #F4F4F6;
   border: none;
   width: 24px; height: 24px;
   border-radius: 50%;
@@ -3344,11 +3338,11 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #6B6A68;
+  color: #6B6B72;
   flex-shrink: 0;
   transition: background 140ms;
 }
-.ea-file-clear:hover { background: #EBEBEA; }
+.ea-file-clear:hover { background: #ECECEF; }
 
 /* ── Import error ── */
 .ea-imp-error {
@@ -3357,7 +3351,7 @@ function setImportPayment(attendeeId, amount) {
   margin: 0;
   padding: 8px 12px;
   background: rgba(255,69,58,0.06);
-  border: 0.8px solid rgba(255,69,58,0.2);
+  border: 1px solid rgba(255,69,58,0.2);
   border-radius: 8px;
 }
 
@@ -3368,7 +3362,7 @@ function setImportPayment(attendeeId, amount) {
   gap: 8px;
 }
 .ea-imp-back {
-  background: #F2F2F0;
+  background: #F4F4F6;
   border: none;
   width: 28px; height: 28px;
   border-radius: 8px;
@@ -3376,10 +3370,10 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #6B6A68;
+  color: #6B6B72;
   transition: background 130ms;
 }
-.ea-imp-back:hover { background: #EBEBEA; }
+.ea-imp-back:hover { background: #ECECEF; }
 
 /* ── File pill (phase 2) ── */
 .ea-imp-file-pill {
@@ -3387,11 +3381,11 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  background: #F2F2F0;
+  background: #F4F4F6;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 500;
-  color: #6B6A68;
+  color: #6B6B72;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3403,12 +3397,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-section-label {
   font-size: 12px;
   font-weight: 700;
-  color: #C9A84C;
+  color: #B8924D;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0;
 }
-.ea-imp-opt { font-weight: 500; color: #B5B0A8; text-transform: none; letter-spacing: 0; }
+.ea-imp-opt { font-weight: 500; color: #B5B5BB; text-transform: none; letter-spacing: 0; }
 
 /* ── Label chip scroller ── */
 .ea-imp-label-scroller {
@@ -3419,7 +3413,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-label-chip {
   padding: 5px 13px;
   border-radius: 20px;
-  border: 1px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   background: transparent;
   font-size: 12px;
   font-weight: 600;
@@ -3435,12 +3429,12 @@ function setImportPayment(attendeeId, amount) {
   gap: 10px;
   padding: 11px 14px;
   background: #FAFAF9;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 12px;
 }
 .ea-map-icon-wrap {
   width: 28px; height: 28px;
-  background: rgba(201,168,76,0.1);
+  background: rgba(10,10,11,0.04);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -3458,11 +3452,11 @@ function setImportPayment(attendeeId, amount) {
 .ea-map-select {
   width: 100%;
   padding: 7px 10px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 8px;
   background: #FFFFFF;
   font-size: 12px;
-  color: #1C1A18;
+  color: #0A0A0B;
   outline: none;
   cursor: pointer;
   font-family: inherit;
@@ -3473,7 +3467,7 @@ function setImportPayment(attendeeId, amount) {
   background-position: right 9px center;
   padding-right: 28px;
 }
-.ea-map-select:focus { border-color: #C9A84C; }
+.ea-map-select:focus { border-color: #B8924D; }
 .ea-map-toggle-group {
   flex: 1;
   display: flex;
@@ -3485,11 +3479,11 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: #8A8580;
+  color: #6B6B72;
 }
 .ea-map-skip {
   font-size: 11px;
-  color: #B5B0A8;
+  color: #B5B5BB;
   font-style: italic;
 }
 
@@ -3509,7 +3503,7 @@ function setImportPayment(attendeeId, amount) {
   position: relative;
   transition: background 200ms;
 }
-.ea-toggle input:checked + .ea-toggle-track { background: #C9A84C; }
+.ea-toggle input:checked + .ea-toggle-track { background: linear-gradient(180deg, #2A2A2D 0%, #0A0A0B 100%); }
 .ea-toggle-thumb {
   position: absolute;
   top: 2px; left: 2px;
@@ -3531,7 +3525,7 @@ function setImportPayment(attendeeId, amount) {
   gap: 7px;
   width: 100%;
   padding: 12px;
-  background: #1C1A18;
+  background: #0A0A0B;
   color: #FFFFFF;
   border: none;
   border-radius: 12px;
@@ -3553,12 +3547,12 @@ function setImportPayment(attendeeId, amount) {
   justify-content: space-between;
   padding: 14px 18px;
   flex-shrink: 0;
-  border-bottom: 0.8px solid #F2F2F0;
+  border-bottom: 1px solid #F4F4F6;
 }
 
 .ea-imp-preview-hero {
   padding: 16px 20px 12px;
-  border-bottom: 0.8px solid #F2F2F0;
+  border-bottom: 1px solid #F4F4F6;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -3567,12 +3561,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-preview-title {
   font-size: 17px;
   font-weight: 700;
-  color: #1C1A18;
+  color: #0A0A0B;
   margin: 0;
 }
 .ea-imp-preview-sub {
   font-size: 12px;
-  color: #8A8580;
+  color: #6B6B72;
   margin: 0;
 }
 .ea-imp-preview-labels { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -3583,9 +3577,9 @@ function setImportPayment(attendeeId, amount) {
   gap: 6px;
   padding: 8px 20px;
   background: #FAFAF9;
-  border-bottom: 0.8px solid #F2F2F0;
+  border-bottom: 1px solid #F4F4F6;
   font-size: 11px;
-  color: #8A8580;
+  color: #6B6B72;
   flex-shrink: 0;
 }
 .ea-imp-tpl-banner strong { color: #3A3936; }
@@ -3605,21 +3599,21 @@ function setImportPayment(attendeeId, amount) {
   gap: 10px;
   padding: 11px 13px;
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 12px;
   transition: background 120ms;
 }
 .ea-imp-preview-row:hover { background: #FAFAF9; }
 .ea-imp-row-num {
   width: 24px; height: 24px;
-  background: #F2F2F0;
+  background: #F4F4F6;
   border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   font-weight: 700;
-  color: #6B6A68;
+  color: #6B6B72;
   flex-shrink: 0;
 }
 .ea-imp-row-info {
@@ -3632,12 +3626,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-row-name {
   font-size: 13px;
   font-weight: 600;
-  color: #1C1A18;
+  color: #0A0A0B;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ea-imp-row-phone { font-size: 11px; color: #8A8580; }
+.ea-imp-row-phone { font-size: 11px; color: #6B6B72; }
 .ea-imp-row-amounts {
   display: flex;
   flex-wrap: wrap;
@@ -3650,7 +3644,7 @@ function setImportPayment(attendeeId, amount) {
   padding: 2px 8px;
   border-radius: 6px;
 }
-.ea-imp-amount--pledge  { background: rgba(201,168,76,0.10); color: #9A7218; }
+.ea-imp-amount--pledge  { background: rgba(184,146,77,0.10); color: #9A7218; }
 .ea-imp-amount--paid    { background: rgba(48,209,88,0.10);  color: #1A8C3A; }
 
 .ea-imp-row-remove {
@@ -3684,7 +3678,7 @@ function setImportPayment(attendeeId, amount) {
 /* ── Footer: run button ── */
 .ea-imp-drawer-footer {
   padding: 14px 16px;
-  border-top: 0.8px solid #F2F2F0;
+  border-top: 1px solid #F4F4F6;
   flex-shrink: 0;
 }
 .ea-imp-run-btn {
@@ -3694,7 +3688,7 @@ function setImportPayment(attendeeId, amount) {
   justify-content: center;
   gap: 8px;
   padding: 13px;
-  background: #1C1A18;
+  background: #0A0A0B;
   color: #FFFFFF;
   border: none;
   border-radius: 12px;

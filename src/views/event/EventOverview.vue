@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="eo-root">
     <!-- KPI row -->
     <div class="eo-kpi-row">
@@ -185,8 +185,8 @@ const quickActions = computed(() => [
   {
     label: 'Payments',
     to: `/event/${id.value}/payments`,
-    bg: 'rgba(201,168,76,0.12)',
-    icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    bg: 'rgba(10,10,11,0.04)',
+    icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
     </svg>`,
   },
@@ -261,10 +261,10 @@ watch(() => props.event, loadStats)
 }
 .eo-kpi-card {
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 14px;
   padding: 16px 18px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -278,7 +278,7 @@ watch(() => props.event, loadStats)
 .eo-kpi-label {
   font-size: 12px;
   font-weight: 500;
-  color: #8A8580;
+  color: #6B6B72;
 }
 .eo-kpi-icon {
   width: 28px;
@@ -290,19 +290,20 @@ watch(() => props.event, loadStats)
 }
 .eo-kpi-icon--blue  { background: rgba(0,122,255,0.1);  color: #007AFF; }
 .eo-kpi-icon--green { background: rgba(52,199,89,0.1);  color: #34C759; }
-.eo-kpi-icon--gold  { background: rgba(201,168,76,0.12); color: #C9A84C; }
+.eo-kpi-icon--gold  { background: rgba(10,10,11,0.04); color: #B8924D; }
 .eo-kpi-icon--purple{ background: rgba(175,82,222,0.1); color: #AF52DE; }
 
 .eo-kpi-num {
+  font-family: 'Instrument Serif', Georgia, serif;
   font-size: 26px;
   font-weight: 800;
-  color: #1C1A18;
+  color: #0A0A0B;
   letter-spacing: -0.5px;
   line-height: 1;
 }
 .eo-kpi-sub {
   font-size: 11px;
-  color: #B5B0A8;
+  color: #B5B5BB;
   margin: 0;
 }
 
@@ -314,10 +315,10 @@ watch(() => props.event, loadStats)
 }
 .eo-panel {
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 14px;
   padding: 20px 22px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
 .eo-panel-head {
   display: flex;
@@ -326,29 +327,31 @@ watch(() => props.event, loadStats)
   margin-bottom: 14px;
 }
 .eo-panel-title {
+  font-family: 'Instrument Serif', Georgia, serif;
   font-size: 14px;
   font-weight: 600;
-  color: #1C1A18;
+  color: #0A0A0B;
 }
 .eo-panel-badge {
+  font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  color: #8A8580;
+  color: #6B6B72;
 }
 .eo-progress-track {
   height: 8px;
-  background: #F2F2F0;
+  background: #F4F4F6;
   border-radius: 4px;
   overflow: hidden;
 }
 .eo-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #C9A84C, #E8C86A);
+  background: linear-gradient(90deg, #1F1F22, #0A0A0B);
   border-radius: 4px;
   transition: width 600ms ease;
 }
 .eo-progress-sub {
   font-size: 12px;
-  color: #8A8580;
+  color: #6B6B72;
   margin: 8px 0 0;
 }
 
@@ -359,38 +362,40 @@ watch(() => props.event, loadStats)
   gap: 16px;
 }
 .eo-date-badge-big {
-  background: #FFF8EC;
-  border: 0.8px solid rgba(201,168,76,0.25);
+  background: #FAFAFB;
+  border: 1px solid rgba(10,10,11,0.1);
   border-radius: 12px;
   padding: 12px 14px;
   text-align: center;
   flex-shrink: 0;
 }
 .eo-date-month {
+  letter-spacing: 1.5px;
   display: block;
   font-size: 10px;
   font-weight: 700;
-  color: #C9A84C;
+  color: #B8924D;
   letter-spacing: 0.5px;
 }
 .eo-date-day {
+  font-family: 'Instrument Serif', Georgia, serif;
   display: block;
   font-size: 28px;
   font-weight: 900;
-  color: #1C1A18;
+  color: #0A0A0B;
   line-height: 1;
 }
 .eo-date-year {
   display: block;
   font-size: 11px;
-  color: #8A8580;
+  color: #6B6B72;
   margin-top: 2px;
 }
 .eo-date-info {}
 .eo-date-label {
   font-size: 14px;
   font-weight: 700;
-  color: #1C1A18;
+  color: #0A0A0B;
   margin: 0 0 4px;
 }
 .eo-date-loc {
@@ -398,21 +403,22 @@ watch(() => props.event, loadStats)
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #8A8580;
+  color: #6B6B72;
   margin: 0 0 6px;
 }
 .eo-date-countdown {
   font-size: 12px;
   font-weight: 600;
-  color: #C9A84C;
+  color: #B8924D;
   margin: 0;
 }
 
 /* ── Quick access ── */
 .eo-section-title {
+  font-family: 'Instrument Serif', Georgia, serif; font-style: italic;
   font-size: 13px;
   font-weight: 600;
-  color: #6B6A68;
+  color: #6B6B72;
   letter-spacing: 0.2px;
 }
 .eo-quick-grid {
@@ -425,13 +431,13 @@ watch(() => props.event, loadStats)
   align-items: center;
   gap: 12px;
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 12px;
   padding: 14px 16px;
   cursor: pointer;
   transition: box-shadow 150ms, transform 150ms;
   text-align: left;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
 .eo-quick-card:hover {
   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
@@ -450,10 +456,10 @@ watch(() => props.event, loadStats)
   flex: 1;
   font-size: 13px;
   font-weight: 600;
-  color: #1C1A18;
+  color: #0A0A0B;
 }
 .eo-quick-arrow {
-  color: #B5B0A8;
+  color: #B5B5BB;
   flex-shrink: 0;
 }
 </style>

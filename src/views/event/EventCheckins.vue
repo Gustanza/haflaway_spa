@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ec-root">
 
     <!-- ══ Toolbar ══ -->
@@ -7,7 +7,7 @@
         <!-- Search -->
         <div class="ec-search-wrap">
           <svg class="ec-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-            stroke="#8A8580" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            stroke="#6B6B72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input v-model="searchQ" class="ec-search" placeholder="Search by name or phone…" />
@@ -87,7 +87,7 @@
       <div class="ec-stat-sep"/>
       <div class="ec-stat ec-stat--link" :class="{ 'ec-stat--active': statusFilter === 'none' }"
         @click="statusFilter = statusFilter === 'none' ? 'all' : 'none'; currentPage = 1">
-        <span class="ec-stat-n" style="color:#8A8580">{{ checkinStats.none }}</span>
+        <span class="ec-stat-n" style="color:#6B6B72">{{ checkinStats.none }}</span>
         <span class="ec-stat-lbl">Not Checked</span>
       </div>
       <div class="ec-stat-sep"/>
@@ -135,7 +135,7 @@
             <tr v-if="loading">
               <td colspan="6" class="ec-td-empty">
                 <svg class="ec-spin" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
+                  stroke="#B8924D" stroke-width="2.2" stroke-linecap="round">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 Loading…
@@ -632,7 +632,7 @@ async function toggleSlotGeneric(att, slotIndex) {
   flex-direction: column;
   gap: 16px;
   padding: 20px 24px 24px;
-  background: #F8F8F6;
+  background: #FFFFFF;
 }
 
 /* ══ Toolbar ══ */
@@ -660,75 +660,75 @@ async function toggleSlotGeneric(att, slotIndex) {
 .ec-search {
   width: 100%;
   padding: 8px 32px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 10px;
   font-size: 13px;
   font-family: inherit;
   outline: none;
   background: #FAFAF9;
-  color: #1C1A18;
+  color: #0A0A0B;
   transition: border-color 150ms, box-shadow 150ms;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
-.ec-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.10); background: #fff; }
+.ec-search:focus { border-color: #B8924D; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: #fff; }
 .ec-search-clear {
   position: absolute; right: 8px;
-  background: none; border: none; cursor: pointer; color: #8A8580; padding: 2px;
+  background: none; border: none; cursor: pointer; color: #6B6B72; padding: 2px;
   display: flex; align-items: center; justify-content: center;
 }
-.ec-search-clear:hover { color: #1C1A18; }
+.ec-search-clear:hover { color: #0A0A0B; }
 
 /* Filter chips */
 .ec-filter-chips { display: flex; gap: 4px; }
 .ec-chip {
   padding: 6px 12px; border-radius: 20px;
-  border: 0.8px solid #EBEBEA; background: #FFFFFF;
-  font-size: 12px; font-weight: 500; color: #8A8580;
+  border: 1px solid #ECECEF; background: #FFFFFF;
+  font-size: 12px; font-weight: 500; color: #6B6B72;
   cursor: pointer; transition: all 140ms; font-family: inherit;
 }
-.ec-chip:hover { background: #F2F2F0; color: #6B6A68; }
-.ec-chip--active { background: #FFF8EC; border-color: rgba(201,168,76,0.4); color: #C9A84C; font-weight: 600; }
+.ec-chip:hover { background: #F4F4F6; color: #6B6B72; }
+.ec-chip--active { background: #0A0A0B; border-color: #0A0A0B; color: #FFFFFF; font-weight: 600; }
 .ec-chip-cnt {
   display: inline-flex; min-width: 18px; padding: 1px 5px;
   background: #EDEDEB; border-radius: 10px;
   font-size: 11px; font-weight: 600; color: #9A9690; margin-left: 5px;
 }
-.ec-chip--active .ec-chip-cnt { background: rgba(201,168,76,0.2); color: #9A7218; }
+.ec-chip--active .ec-chip-cnt { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.75); }
 
 /* Checkpoint dropdown */
 .ec-cp-wrap { position: relative; }
 .ec-cp-btn {
   display: flex; align-items: center; gap: 5px;
   padding: 6px 12px; border-radius: 10px;
-  border: 0.8px solid #EBEBEA; background: #fff;
-  font-size: 12px; font-weight: 500; color: #8A8580;
+  border: 1px solid #ECECEF; background: #fff;
+  font-size: 12px; font-weight: 500; color: #6B6B72;
   cursor: pointer; transition: all 140ms; font-family: inherit;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
-.ec-cp-btn:hover { background: #F2F2F0; }
-.ec-cp-btn--active { border-color: rgba(201,168,76,0.4); color: #C9A84C; background: #FFF8EC; }
+.ec-cp-btn:hover { background: #F4F4F6; }
+.ec-cp-btn--active { background: #0A0A0B; border-color: #0A0A0B; color: #FFFFFF; }
 .ec-cp-menu {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 100;
-  background: #fff; border: 0.8px solid #E5E4E0; border-radius: 10px;
+  background: #fff; border: 1px solid #E5E4E0; border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.10); padding: 4px; min-width: 180px;
 }
 .ec-cp-item {
   display: block; width: 100%; text-align: left;
   padding: 8px 12px; border: none; background: none; border-radius: 7px;
-  font-size: 13px; font-family: inherit; color: #1C1A18; cursor: pointer; transition: background 130ms;
+  font-size: 13px; font-family: inherit; color: #0A0A0B; cursor: pointer; transition: background 130ms;
 }
-.ec-cp-item:hover { background: #F2F2F0; }
-.ec-cp-item--on { color: #C9A84C; font-weight: 600; background: #FFF8EC; }
+.ec-cp-item:hover { background: #F4F4F6; }
+.ec-cp-item--on { color: #B8924D; font-weight: 600; background: #FAFAFB; }
 
 /* Refresh button */
 .ec-refresh-btn {
   width: 32px; height: 32px; border-radius: 8px;
-  border: 0.8px solid #EBEBEA; background: #FFFFFF; color: #8A8580;
+  border: 1px solid #ECECEF; background: #FFFFFF; color: #6B6B72;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all 140ms;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
-.ec-refresh-btn:hover:not(:disabled) { background: #F2F2F0; color: #1C1A18; }
+.ec-refresh-btn:hover:not(:disabled) { background: #F4F4F6; color: #0A0A0B; }
 .ec-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ══ Stats Bar ══ */
@@ -739,9 +739,9 @@ async function toggleSlotGeneric(att, slotIndex) {
   flex-shrink: 0;
   padding: 0 16px;
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
   min-height: 56px;
 }
 .ec-stat {
@@ -754,19 +754,19 @@ async function toggleSlotGeneric(att, slotIndex) {
   transition: background 130ms;
 }
 .ec-stat--link { cursor: pointer; }
-.ec-stat--link:hover { background: #F8F8F6; }
-.ec-stat--active { background: #FFF8EC !important; }
+.ec-stat--link:hover { background: #FFFFFF; }
+.ec-stat--active { background: #FAFAFB !important; }
 .ec-stat-n {
   font-size: 18px;
   font-weight: 700;
-  color: #1C1A18;
+  color: #0A0A0B;
   line-height: 1;
 }
-.ec-stat-n--gold { color: #C9A84C; }
+.ec-stat-n--gold { color: #B8924D; }
 .ec-stat-lbl {
   font-size: 10px;
   font-weight: 600;
-  color: #B5B0A8;
+  color: #B5B5BB;
   text-transform: uppercase;
   letter-spacing: 0.4px;
   white-space: nowrap;
@@ -774,7 +774,7 @@ async function toggleSlotGeneric(att, slotIndex) {
 .ec-stat-sep {
   width: 0.8px;
   height: 28px;
-  background: #EBEBEA;
+  background: #ECECEF;
   flex-shrink: 0;
 }
 
@@ -783,10 +783,10 @@ async function toggleSlotGeneric(att, slotIndex) {
   display: flex;
   flex-direction: column;
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
 .ec-table-scroll { overflow-x: auto; }
 .ec-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -796,11 +796,11 @@ async function toggleSlotGeneric(att, slotIndex) {
   padding: 11px 16px;
   font-size: 11px;
   font-weight: 700;
-  color: #8A8580;
+  color: #6B6B72;
   text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  border-bottom: 0.8px solid #EBEBEA;
+  border-bottom: 1px solid #ECECEF;
   background: #FAFAF9;
   position: sticky;
   top: 0;
@@ -810,7 +810,7 @@ async function toggleSlotGeneric(att, slotIndex) {
 }
 .ec-th-name  { width: 240px; }
 .ec-th--sortable { cursor: pointer; }
-.ec-th--sortable:hover { color: #1C1A18; }
+.ec-th--sortable:hover { color: #0A0A0B; }
 
 .ec-sort-ico {
   display: inline-block;
@@ -826,23 +826,23 @@ async function toggleSlotGeneric(att, slotIndex) {
 .ec-row {
   cursor: pointer;
   transition: background 120ms;
-  border-bottom: 0.8px solid #F2F2F0;
+  border-bottom: 1px solid #F4F4F6;
 }
 .ec-row:nth-child(even) { background: #FAFAF9; }
 .ec-row:nth-child(odd)  { background: #FFFFFF; }
-.ec-row:hover           { background: #FFF8EC; }
+.ec-row:hover           { background: #FAFAFB; }
 
 .ec-td {
   padding: 12px 16px;
   font-size: 13px;
-  color: #1C1A18;
+  color: #0A0A0B;
   vertical-align: middle;
   white-space: nowrap;
 }
 .ec-td-empty {
   padding: 48px 16px;
   text-align: center;
-  color: #B5B0A8;
+  color: #B5B5BB;
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -850,7 +850,7 @@ async function toggleSlotGeneric(att, slotIndex) {
   gap: 8px;
 }
 .ec-td-mono  { font-variant-numeric: tabular-nums; color: #6B6760; font-size: 12px; }
-.ec-td-date  { color: #8A8580; font-size: 12px; }
+.ec-td-date  { color: #6B6B72; font-size: 12px; }
 
 /* Name cell */
 .ec-name-cell { display: flex; align-items: center; gap: 10px; }
@@ -859,7 +859,7 @@ async function toggleSlotGeneric(att, slotIndex) {
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700; flex-shrink: 0;
 }
-.ec-name { font-weight: 600; font-size: 13px; color: #1C1A18; }
+.ec-name { font-weight: 600; font-size: 13px; color: #0A0A0B; }
 
 /* Type badge */
 .ec-type-badge {
@@ -870,7 +870,7 @@ async function toggleSlotGeneric(att, slotIndex) {
   font-weight: 600;
   white-space: nowrap;
 }
-.ec-type--invitation   { background: rgba(201,168,76,0.12); color: #9A7218; }
+.ec-type--invitation   { background: rgba(10,10,11,0.04); color: #9A7218; }
 .ec-type--contribution { background: rgba(48,209,88,0.12);  color: #1A7A35; }
 .ec-type--contact      { background: rgba(138,133,128,0.12); color: #5A5550; }
 
@@ -895,15 +895,15 @@ async function toggleSlotGeneric(att, slotIndex) {
 .ec-sb--partial { background: rgba(255,159,10,0.12);   color: #9A5A00; }
 .ec-sb--partial .ec-sb-dot { background: #FF9F0A; }
 .ec-sb--none    { background: rgba(138,133,128,0.10);  color: #5A5550; }
-.ec-sb--none    .ec-sb-dot { background: #8A8580; }
-.ec-sb--nocard  { background: rgba(192,186,178,0.10);  color: #B5B0A8; }
+.ec-sb--none    .ec-sb-dot { background: #6B6B72; }
+.ec-sb--nocard  { background: rgba(192,186,178,0.10);  color: #B5B5BB; }
 .ec-sb--nocard  .ec-sb-dot { background: #C0BAB2; }
 
 /* Slots fraction */
 .ec-td-slots { font-variant-numeric: tabular-nums; }
 .ec-slots-checked { font-weight: 700; color: #30D158; }
 .ec-slots-sep     { color: #C0BAB2; margin: 0 2px; }
-.ec-slots-total   { color: #8A8580; }
+.ec-slots-total   { color: #6B6B72; }
 .ec-slots-na      { color: #C0BAB2; }
 
 /* ══ Paginator ══ */
@@ -912,7 +912,7 @@ async function toggleSlotGeneric(att, slotIndex) {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-top: 0.8px solid #EBEBEA;
+  border-top: 1px solid #ECECEF;
   background: #FFFFFF;
   gap: 12px;
   flex-wrap: wrap;
@@ -920,12 +920,12 @@ async function toggleSlotGeneric(att, slotIndex) {
 }
 .ec-range-lbl {
   font-size: 12px;
-  color: #8A8580;
+  color: #6B6B72;
   font-weight: 500;
   white-space: nowrap;
 }
 .ec-filter-clear {
-  background: none; border: none; color: #C9A84C;
+  background: none; border: none; color: #B8924D;
   font-size: 12px; font-family: inherit; cursor: pointer; padding: 0;
 }
 .ec-filter-clear:hover { text-decoration: underline; }
@@ -935,12 +935,12 @@ async function toggleSlotGeneric(att, slotIndex) {
   min-width: 32px;
   height: 32px;
   padding: 0 6px;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 8px;
   background: #FFFFFF;
   font-size: 13px;
   font-weight: 500;
-  color: #6B6A68;
+  color: #6B6B72;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -949,18 +949,18 @@ async function toggleSlotGeneric(att, slotIndex) {
   font-family: inherit;
 }
 .ec-page-btn:hover:not(:disabled):not(.ec-page-btn--active) {
-  background: #F2F2F0;
+  background: #F4F4F6;
   border-color: #D8D6D0;
-  color: #1C1A18;
+  color: #0A0A0B;
 }
 .ec-page-btn--active {
-  background: #1C1A18;
-  border-color: #1C1A18;
+  background: #0A0A0B;
+  border-color: #0A0A0B;
   color: #FFFFFF;
   font-weight: 600;
   cursor: default;
 }
-.ec-page-btn--nav { color: #8A8580; }
+.ec-page-btn--nav { color: #6B6B72; }
 .ec-page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .ec-page-ellipsis {
   min-width: 28px;
@@ -969,7 +969,7 @@ async function toggleSlotGeneric(att, slotIndex) {
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  color: #B5B0A8;
+  color: #B5B5BB;
   letter-spacing: 1px;
 }
 
@@ -987,22 +987,22 @@ async function toggleSlotGeneric(att, slotIndex) {
 }
 .ec-drawer-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 0.8px solid #F2F2F0; flex-shrink: 0;
+  padding: 14px 16px; border-bottom: 1px solid #F4F4F6; flex-shrink: 0;
 }
 .ec-drawer-back {
   display: flex; align-items: center; gap: 5px;
   padding: 6px 10px; border-radius: 8px;
-  border: none; background: #F2F2F0; color: #6B6760;
+  border: none; background: #F4F4F6; color: #6B6760;
   font-size: 13px; font-weight: 500; cursor: pointer;
   transition: all 130ms; font-family: inherit;
 }
-.ec-drawer-back:hover { background: #EBEBEA; color: #1C1A18; }
+.ec-drawer-back:hover { background: #ECECEF; color: #0A0A0B; }
 
 /* Hero */
 .ec-drawer-hero {
   display: flex; flex-direction: column; align-items: center;
   padding: 24px 20px 20px; gap: 4px;
-  border-bottom: 0.8px solid #F2F2F0;
+  border-bottom: 1px solid #F4F4F6;
 }
 .ec-drawer-avatar {
   width: 60px; height: 60px; border-radius: 50%;
@@ -1010,47 +1010,47 @@ async function toggleSlotGeneric(att, slotIndex) {
   font-size: 18px; font-weight: 700; margin-bottom: 8px;
 }
 .ec-drawer-name {
-  font-size: 17px; font-weight: 700; color: #1C1A18;
+  font-size: 17px; font-weight: 700; color: #0A0A0B;
   margin: 0; text-align: center; letter-spacing: -0.2px;
 }
-.ec-drawer-phone { font-size: 13px; color: #8A8580; margin: 0 0 4px; }
+.ec-drawer-phone { font-size: 13px; color: #6B6B72; margin: 0 0 4px; }
 
 /* Body */
 .ec-drawer-body { display: flex; flex-direction: column; padding: 6px 0 24px; }
 .ec-drawer-block { padding: 16px 20px; }
 .ec-block-lbl {
-  font-size: 10px; font-weight: 700; color: #B5B0A8;
+  font-size: 10px; font-weight: 700; color: #B5B5BB;
   text-transform: uppercase; letter-spacing: 0.6px; margin: 0 0 14px;
 }
 .ec-block-lbl-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .ec-block-lbl-row .ec-block-lbl { margin: 0; }
-.ec-slots-summary { font-size: 12px; color: #8A8580; font-weight: 500; }
+.ec-slots-summary { font-size: 12px; color: #6B6B72; font-weight: 500; }
 .ec-drawer-added { font-size: 12px; color: #C0BAB2; margin: 0; padding: 4px 20px 0; }
 
 /* No card */
 .ec-no-card {
   display: flex; flex-direction: column; align-items: center;
-  gap: 8px; padding: 24px 0; color: #B5B0A8; text-align: center;
+  gap: 8px; padding: 24px 0; color: #B5B5BB; text-align: center;
 }
 .ec-no-card p { font-size: 13px; margin: 0; line-height: 1.5; }
 
 /* Slot rows */
 .ec-slot {
   padding: 12px 0;
-  border-bottom: 0.8px solid #F2F2F0;
+  border-bottom: 1px solid #F4F4F6;
 }
 .ec-slot:last-child { border-bottom: none; }
 .ec-slot-head {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 10px;
 }
-.ec-slot-name { font-size: 13px; font-weight: 600; color: #1C1A18; }
+.ec-slot-name { font-size: 13px; font-weight: 600; color: #0A0A0B; }
 .ec-slot-badge {
   font-size: 10px; font-weight: 700;
   padding: 2px 8px; border-radius: 20px;
 }
 .ec-slot-badge--on  { background: rgba(48,209,88,0.12);   color: #1A7A35; }
-.ec-slot-badge--off { background: rgba(138,133,128,0.10); color: #8A8580; }
+.ec-slot-badge--off { background: rgba(138,133,128,0.10); color: #6B6B72; }
 
 /* Checkpoint toggles */
 .ec-cp-toggles { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1061,8 +1061,8 @@ async function toggleSlotGeneric(att, slotIndex) {
   cursor: pointer; transition: all 160ms; border: none;
 }
 .ec-cp-toggle--on  { background: #30D158; color: #fff; box-shadow: 0 2px 8px rgba(48,209,88,0.30); }
-.ec-cp-toggle--off { background: #F2F2F0; color: #8A8580; }
-.ec-cp-toggle--off:hover:not(:disabled) { background: #EBEBEA; color: #1C1A18; }
+.ec-cp-toggle--off { background: #F4F4F6; color: #6B6B72; }
+.ec-cp-toggle--off:hover:not(:disabled) { background: #ECECEF; color: #0A0A0B; }
 .ec-cp-toggle--on:hover:not(:disabled)  { background: #28BA4E; }
 .ec-cp-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
 

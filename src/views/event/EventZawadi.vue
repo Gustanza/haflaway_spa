@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ez-root">
 
     <!-- ══ Toolbar ══ -->
@@ -6,7 +6,7 @@
       <div class="ez-toolbar-left">
         <div class="ez-search-wrap">
           <svg class="ez-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-            stroke="#8A8580" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            stroke="#6B6B72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input v-model="searchQ" class="ez-search" placeholder="Search gift items…" />
@@ -45,7 +45,7 @@
         </div>
         <div class="ez-sum-sep"/>
         <div class="ez-sum-stat">
-          <span class="ez-sum-n" :style="pctDone >= 100 ? { color: '#30D158' } : { color: '#C9A84C' }">
+          <span class="ez-sum-n" :style="pctDone >= 100 ? { color: '#30D158' } : { color: '#B8924D' }">
             {{ pctDone.toFixed(0) }}%
           </span>
           <span class="ez-sum-lbl">Done</span>
@@ -57,7 +57,7 @@
         </div>
         <div class="ez-sum-sep"/>
         <div class="ez-sum-stat">
-          <span class="ez-sum-n" style="color:#C9A84C">{{ fmtAmt(totalFunded) }}</span>
+          <span class="ez-sum-n" style="color:#B8924D">{{ fmtAmt(totalFunded) }}</span>
           <span class="ez-sum-lbl">TZS Funded</span>
         </div>
       </div>
@@ -68,7 +68,7 @@
         </div>
         <div class="ez-sum-bar-track">
           <div class="ez-sum-bar-fill"
-            :style="{ width: `${Math.min(100, pctDone)}%`, background: pctDone >= 100 ? '#30D158' : '#C9A84C' }"/>
+            :style="{ width: `${Math.min(100, pctDone)}%`, background: pctDone >= 100 ? '#30D158' : '#B8924D' }"/>
         </div>
       </div>
     </div>
@@ -92,7 +92,7 @@
       <!-- Loading -->
       <div v-if="loading" class="ez-empty">
         <svg class="ez-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
+          stroke="#B8924D" stroke-width="2.2" stroke-linecap="round">
           <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
         </svg>
         <p>Loading gift items…</p>
@@ -101,7 +101,7 @@
       <!-- Empty -->
       <div v-else-if="!filteredItems.length" class="ez-empty">
         <div class="ez-empty-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
             stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 12 20 22 4 22 4 12"/>
             <rect x="2" y="7" width="20" height="5"/>
@@ -123,7 +123,7 @@
           <!-- Header row -->
           <div class="ez-item-head">
             <div class="ez-item-ico">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 12 20 22 4 22 4 12"/>
                 <rect x="2" y="7" width="20" height="5"/>
@@ -174,7 +174,7 @@
             <div class="ez-item-bar-fill"
               :style="{
                 width: `${Math.min(100, itemPct(item) * 100)}%`,
-                background: itemPct(item) >= 1 ? '#30D158' : '#C9A84C'
+                background: itemPct(item) >= 1 ? '#30D158' : '#B8924D'
               }"/>
           </div>
 
@@ -188,7 +188,7 @@
                 {{ (itemPct(item) * 100).toFixed(0) }}%
               </span>
               <span class="ez-item-gifts-badge">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="#C9A84C" stroke="none">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="#B8924D" stroke="none">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
                 {{ item.contributorCount }}
@@ -228,7 +228,7 @@
               <!-- Item title + badge -->
               <div class="ez-drawer-title-row">
                 <div class="ez-drawer-ico">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="20 12 20 22 4 22 4 12"/>
                     <rect x="2" y="7" width="20" height="5"/>
@@ -251,16 +251,16 @@
                 <div class="ez-prog-row">
                   <!-- SVG ring -->
                   <svg class="ez-ring" width="76" height="76" viewBox="0 0 76 76">
-                    <circle cx="38" cy="38" r="29" fill="none" stroke="#EBEBEA" stroke-width="6"/>
+                    <circle cx="38" cy="38" r="29" fill="none" stroke="#ECECEF" stroke-width="6"/>
                     <circle cx="38" cy="38" r="29" fill="none"
-                      :stroke="itemPct(selectedItem) >= 1 ? '#30D158' : '#C9A84C'"
+                      :stroke="itemPct(selectedItem) >= 1 ? '#30D158' : '#B8924D'"
                       stroke-width="6"
                       :stroke-dasharray="182.2"
                       :stroke-dashoffset="182.2 * (1 - itemPct(selectedItem))"
                       stroke-linecap="round"
                       transform="rotate(-90 38 38)"/>
                     <text x="38" y="43" text-anchor="middle" font-size="13" font-weight="800"
-                      :fill="itemPct(selectedItem) >= 1 ? '#30D158' : '#C9A84C'">
+                      :fill="itemPct(selectedItem) >= 1 ? '#30D158' : '#B8924D'">
                       {{ (itemPct(selectedItem) * 100).toFixed(0) }}%
                     </text>
                   </svg>
@@ -269,7 +269,7 @@
                   <div class="ez-prog-stats">
                     <div class="ez-prog-stat-row">
                       <span class="ez-prog-stat-lbl">Funded</span>
-                      <span class="ez-prog-stat-val" style="color:#C9A84C">
+                      <span class="ez-prog-stat-val" style="color:#B8924D">
                         TZS {{ fmtAmt(selectedItem.totalFunded) }}
                       </span>
                     </div>
@@ -291,7 +291,7 @@
                   <div class="ez-prog-bar-fill"
                     :style="{
                       width: `${Math.min(100, itemPct(selectedItem) * 100)}%`,
-                      background: itemPct(selectedItem) >= 1 ? '#30D158' : '#C9A84C'
+                      background: itemPct(selectedItem) >= 1 ? '#30D158' : '#B8924D'
                     }"/>
                 </div>
 
@@ -308,7 +308,7 @@
               <!-- Contributors section -->
               <div class="ez-drawer-section">
                 <div class="ez-section-head">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#C9A84C" stroke="none">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#B8924D" stroke="none">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                   </svg>
                   <span class="ez-section-lbl">Contributors</span>
@@ -319,7 +319,7 @@
 
                 <div v-if="loadingContribs" class="ez-contribs-loading">
                   <svg class="ez-spin" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
+                    stroke="#B8924D" stroke-width="2.2" stroke-linecap="round">
                     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                   </svg>
                 </div>
@@ -365,7 +365,7 @@
             <!-- Header -->
             <div class="ez-modal-head">
               <div class="ez-modal-ico">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
                   stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 12 20 22 4 22 4 12"/>
                   <rect x="2" y="7" width="20" height="5"/>
@@ -620,7 +620,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   flex-direction: column;
   padding: 20px 24px 24px;
   gap: 16px;
-  background: #F8F8F6;
+  background: #FFFFFF;
 }
 
 /* ══ Toolbar ══ */
@@ -639,31 +639,31 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 .ez-search-icon { position: absolute; left: 10px; pointer-events: none; }
 .ez-search {
   width: 100%; padding: 8px 32px;
-  border: 0.8px solid #EBEBEA; border-radius: 10px;
+  border: 1px solid #ECECEF; border-radius: 10px;
   font-size: 13px; font-family: inherit; outline: none;
-  background: #FAFAF9; color: #1C1A18;
+  background: #FAFAF9; color: #0A0A0B;
   transition: border-color 150ms, box-shadow 150ms;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
-.ez-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.10); background: #fff; }
+.ez-search:focus { border-color: #B8924D; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: #fff; }
 .ez-search-clear {
   position: absolute; right: 8px; background: none; border: none;
-  cursor: pointer; color: #8A8580; padding: 2px;
+  cursor: pointer; color: #6B6B72; padding: 2px;
   display: flex; align-items: center;
 }
-.ez-search-clear:hover { color: #1C1A18; }
+.ez-search-clear:hover { color: #0A0A0B; }
 .ez-refresh-btn {
   width: 32px; height: 32px; border-radius: 8px;
-  border: 0.8px solid #EBEBEA; background: #FFFFFF; color: #8A8580;
+  border: 1px solid #ECECEF; background: #FFFFFF; color: #6B6B72;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 140ms; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  cursor: pointer; transition: all 140ms; box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
-.ez-refresh-btn:hover:not(:disabled) { background: #F2F2F0; color: #1C1A18; }
+.ez-refresh-btn:hover:not(:disabled) { background: #F4F4F6; color: #0A0A0B; }
 .ez-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .ez-new-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: 10px;
-  background: #1C1A18; color: #FFFFFF; border: none;
+  background: #0A0A0B; color: #FFFFFF; border: none;
   font-size: 13px; font-weight: 600; font-family: inherit;
   cursor: pointer; transition: background 140ms; box-shadow: 0 1px 4px rgba(0,0,0,0.14);
 }
@@ -672,22 +672,22 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 /* ══ Summary strip ══ */
 .ez-summary {
   flex-shrink: 0; padding: 14px 16px;
-  background: #FFFDF5; border: 0.8px solid rgba(201,168,76,0.18); border-radius: 12px;
+  background: #FFFDF5; border: 1px solid rgba(184,146,77,0.18); border-radius: 12px;
 }
 .ez-summary-stats {
   display: flex; align-items: center; gap: 0; margin-bottom: 12px;
 }
 .ez-sum-stat { display: flex; flex-direction: column; align-items: center; padding: 0 18px; gap: 2px; }
 .ez-sum-stat:first-child { padding-left: 0; }
-.ez-sum-n   { font-size: 18px; font-weight: 700; color: #1C1A18; line-height: 1; }
-.ez-sum-lbl { font-size: 10px; font-weight: 600; color: #B5B0A8; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
-.ez-sum-sep { width: 0.8px; height: 28px; background: rgba(201,168,76,0.2); flex-shrink: 0; }
+.ez-sum-n   { font-size: 18px; font-weight: 700; color: #0A0A0B; line-height: 1; }
+.ez-sum-lbl { font-size: 10px; font-weight: 600; color: #B5B5BB; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+.ez-sum-sep { width: 0.8px; height: 28px; background: rgba(10,10,11,0.08); flex-shrink: 0; }
 .ez-sum-bar-labels {
   display: flex; justify-content: space-between;
-  font-size: 11px; color: #8A8580; margin-bottom: 5px;
+  font-size: 11px; color: #6B6B72; margin-bottom: 5px;
 }
 .ez-sum-bar-track {
-  height: 5px; border-radius: 3px; background: #EBEBEA; overflow: hidden;
+  height: 5px; border-radius: 3px; background: #ECECEF; overflow: hidden;
 }
 .ez-sum-bar-fill {
   height: 100%; border-radius: 3px; transition: width 400ms ease;
@@ -696,13 +696,13 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 /* ══ Fallback stats bar (empty state) ══ */
 .ez-stats-bar {
   display: flex; align-items: center; flex-shrink: 0;
-  padding: 0 16px; background: #FFFFFF; border: 0.8px solid #EBEBEA; border-radius: 12px; min-height: 52px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  padding: 0 16px; background: #FFFFFF; border: 1px solid #ECECEF; border-radius: 12px; min-height: 52px;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
 .ez-stat { display: flex; flex-direction: column; align-items: center; padding: 10px 20px; gap: 2px; }
-.ez-stat-n { font-size: 18px; font-weight: 700; color: #1C1A18; line-height: 1; }
-.ez-stat-lbl { font-size: 10px; font-weight: 600; color: #B5B0A8; text-transform: uppercase; letter-spacing: 0.4px; }
-.ez-stat-sep { width: 0.8px; height: 28px; background: #EBEBEA; flex-shrink: 0; }
+.ez-stat-n { font-size: 18px; font-weight: 700; color: #0A0A0B; line-height: 1; }
+.ez-stat-lbl { font-size: 10px; font-weight: 600; color: #B5B5BB; text-transform: uppercase; letter-spacing: 0.4px; }
+.ez-stat-sep { width: 0.8px; height: 28px; background: #ECECEF; flex-shrink: 0; }
 
 /* ══ Content ══ */
 .ez-content { flex: 1; padding: 0; }
@@ -710,18 +710,18 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 /* Empty state */
 .ez-empty {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; min-height: 300px; color: #B5B0A8;
+  justify-content: center; gap: 10px; min-height: 300px; color: #B5B5BB;
 }
 .ez-empty-icon {
   width: 64px; height: 64px; border-radius: 50%;
-  background: rgba(201,168,76,0.08); border: 0.8px solid rgba(201,168,76,0.2);
+  background: rgba(10,10,11,0.03); border: 1px solid rgba(10,10,11,0.08);
   display: flex; align-items: center; justify-content: center;
 }
 .ez-empty-title { font-size: 15px; font-weight: 600; color: #6B6760; margin: 0; }
-.ez-empty-sub   { font-size: 13px; color: #B5B0A8; margin: 0; text-align: center; max-width: 300px; }
+.ez-empty-sub   { font-size: 13px; color: #B5B5BB; margin: 0; text-align: center; max-width: 300px; }
 .ez-empty-cta {
   margin-top: 6px; padding: 9px 20px; border-radius: 10px;
-  background: #1C1A18; color: #fff; font-size: 13px; font-weight: 600;
+  background: #0A0A0B; color: #fff; font-size: 13px; font-weight: 600;
   border: none; cursor: pointer; transition: background 140ms; font-family: inherit;
 }
 .ez-empty-cta:hover { background: #2E2B28; }
@@ -730,7 +730,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 .ez-items-list { display: flex; flex-direction: column; gap: 12px; max-width: 720px; }
 
 .ez-item-card {
-  background: #FFFFFF; border: 0.8px solid #EBEBEA; border-radius: 16px;
+  background: #FFFFFF; border: 1px solid #ECECEF; border-radius: 16px;
   padding: 16px 16px 14px; cursor: pointer;
   transition: box-shadow 150ms, border-color 150ms;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
@@ -741,56 +741,56 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 .ez-item-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
 .ez-item-ico {
   width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  background: rgba(201,168,76,0.10); border: 0.8px solid rgba(201,168,76,0.2);
+  background: rgba(184,146,77,0.10); border: 1px solid rgba(10,10,11,0.08);
   display: flex; align-items: center; justify-content: center;
 }
 .ez-item-info { flex: 1; min-width: 0; }
-.ez-item-title { font-size: 15px; font-weight: 600; color: #1C1A18; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ez-item-desc  { font-size: 12px; color: #8A8580; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ez-item-title { font-size: 15px; font-weight: 600; color: #0A0A0B; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ez-item-desc  { font-size: 12px; color: #6B6B72; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ez-item-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 .ez-del-lbl { font-size: 12px; font-weight: 600; color: #FF3B30; }
 .ez-del-yes {
   padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
-  border: 0.8px solid rgba(255,59,48,0.3); background: rgba(255,59,48,0.08); color: #FF3B30;
+  border: 1px solid rgba(255,59,48,0.3); background: rgba(255,59,48,0.08); color: #FF3B30;
   cursor: pointer; font-family: inherit; transition: background 120ms;
 }
 .ez-del-yes:hover:not(:disabled) { background: rgba(255,59,48,0.16); }
 .ez-del-yes:disabled { opacity: 0.6; cursor: not-allowed; }
 .ez-del-no {
   padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
-  border: 0.8px solid #EBEBEA; background: #FAFAF9; color: #6B6760;
+  border: 1px solid #ECECEF; background: #FAFAF9; color: #6B6760;
   cursor: pointer; font-family: inherit;
 }
-.ez-del-no:hover { background: #F2F2F0; }
+.ez-del-no:hover { background: #F4F4F6; }
 .ez-action-btn {
-  width: 28px; height: 28px; border-radius: 8px; border: 0.8px solid #EBEBEA;
-  background: #FAFAF9; color: #8A8580;
+  width: 28px; height: 28px; border-radius: 8px; border: 1px solid #ECECEF;
+  background: #FAFAF9; color: #6B6B72;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all 130ms;
 }
-.ez-action-btn--edit:hover { border-color: rgba(201,168,76,0.4); color: #C9A84C; background: #FFF8EC; }
+.ez-action-btn--edit:hover { border-color: rgba(10,10,11,0.15); color: #B8924D; background: #FAFAFB; }
 .ez-action-btn--del:hover  { border-color: rgba(255,59,48,0.3); color: #FF3B30; background: rgba(255,59,48,0.05); }
 
 /* Progress bar */
-.ez-item-bar-track { height: 5px; border-radius: 3px; background: #EBEBEA; overflow: hidden; margin-bottom: 10px; }
+.ez-item-bar-track { height: 5px; border-radius: 3px; background: #ECECEF; overflow: hidden; margin-bottom: 10px; }
 .ez-item-bar-fill  { height: 100%; border-radius: 3px; transition: width 400ms ease; }
 
 /* Foot row */
 .ez-item-foot { display: flex; align-items: center; gap: 4px; }
-.ez-item-funded { font-size: 13px; font-weight: 700; color: #C9A84C; }
-.ez-item-target { font-size: 12px; color: #8A8580; flex: 1; }
+.ez-item-funded { font-size: 13px; font-weight: 700; color: #B8924D; }
+.ez-item-target { font-size: 12px; color: #6B6B72; flex: 1; }
 .ez-item-badges { display: flex; gap: 6px; }
 .ez-item-pct-badge {
   padding: 2px 8px; border-radius: 20px;
   font-size: 11px; font-weight: 600;
-  background: #EBEBEA; color: #6B6760; border: 0.8px solid #EBEBEA;
+  background: #ECECEF; color: #6B6760; border: 1px solid #ECECEF;
 }
 .ez-item-pct-badge--done { background: rgba(48,209,88,0.12); color: #136B2A; border-color: transparent; }
 .ez-item-gifts-badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 8px; border-radius: 20px;
   font-size: 11px; font-weight: 600;
-  background: rgba(201,168,76,0.10); color: #9A7218; border: 0.8px solid rgba(201,168,76,0.2);
+  background: rgba(184,146,77,0.10); color: #9A7218; border: 1px solid rgba(10,10,11,0.08);
 }
 
 /* ══ Drawer ══ */
@@ -806,56 +806,56 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 }
 .ez-drawer-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 0.8px solid #F2F2F0; flex-shrink: 0;
+  padding: 14px 16px; border-bottom: 1px solid #F4F4F6; flex-shrink: 0;
 }
 .ez-drawer-back {
   display: flex; align-items: center; gap: 5px;
   padding: 6px 10px; border-radius: 8px;
-  border: none; background: #F2F2F0; color: #6B6760;
+  border: none; background: #F4F4F6; color: #6B6760;
   font-size: 13px; font-weight: 500; cursor: pointer;
   transition: all 130ms; font-family: inherit;
 }
-.ez-drawer-back:hover { background: #EBEBEA; color: #1C1A18; }
+.ez-drawer-back:hover { background: #ECECEF; color: #0A0A0B; }
 .ez-drawer-edit-btn {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 12px; border-radius: 8px;
-  border: 0.8px solid #EBEBEA; background: #FAFAF9; color: #6B6760;
+  border: 1px solid #ECECEF; background: #FAFAF9; color: #6B6760;
   font-size: 12px; font-weight: 500; font-family: inherit;
   text-decoration: none; cursor: pointer; transition: all 130ms;
 }
-.ez-drawer-edit-btn:hover { border-color: rgba(201,168,76,0.5); color: #C9A84C; background: #FFF8EC; }
+.ez-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: #B8924D; background: #FAFAFB; }
 
 /* Item title row in drawer */
 .ez-drawer-title-row {
   display: flex; align-items: center; gap: 12px;
-  padding: 16px 20px; border-bottom: 0.8px solid #F2F2F0;
+  padding: 16px 20px; border-bottom: 1px solid #F4F4F6;
 }
 .ez-drawer-ico {
   width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
-  background: rgba(201,168,76,0.10); border: 0.8px solid rgba(201,168,76,0.2);
+  background: rgba(184,146,77,0.10); border: 1px solid rgba(10,10,11,0.08);
   display: flex; align-items: center; justify-content: center;
 }
-.ez-drawer-item-title { font-size: 17px; font-weight: 700; color: #1C1A18; margin: 0 0 5px; }
+.ez-drawer-item-title { font-size: 17px; font-weight: 700; color: #0A0A0B; margin: 0 0 5px; }
 .ez-drawer-badge {
   display: inline-block; padding: 2px 8px; border-radius: 20px;
   font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
-  background: rgba(201,168,76,0.12); color: #9A7218;
-  border: 0.8px solid rgba(201,168,76,0.25);
+  background: rgba(10,10,11,0.04); color: #9A7218;
+  border: 1px solid rgba(10,10,11,0.1);
 }
 
 /* Progress card */
 .ez-prog-card {
   margin: 16px 20px; padding: 18px;
-  background: #FAFAF9; border: 0.8px solid #EBEBEA; border-radius: 16px;
+  background: #FAFAF9; border: 1px solid #ECECEF; border-radius: 16px;
 }
 .ez-prog-desc { font-size: 13px; color: #6B6760; margin: 0 0 14px; line-height: 1.5; }
 .ez-prog-row  { display: flex; align-items: center; gap: 18px; }
 .ez-ring      { flex-shrink: 0; }
 .ez-prog-stats { flex: 1; display: flex; flex-direction: column; gap: 7px; }
 .ez-prog-stat-row { display: flex; align-items: center; gap: 6px; }
-.ez-prog-stat-lbl { font-size: 12px; color: #8A8580; min-width: 64px; }
-.ez-prog-stat-val { font-size: 13px; font-weight: 600; color: #1C1A18; }
-.ez-prog-bar-track { height: 6px; border-radius: 3px; background: #EBEBEA; overflow: hidden; }
+.ez-prog-stat-lbl { font-size: 12px; color: #6B6B72; min-width: 64px; }
+.ez-prog-stat-val { font-size: 13px; font-weight: 600; color: #0A0A0B; }
+.ez-prog-bar-track { height: 6px; border-radius: 3px; background: #ECECEF; overflow: hidden; }
 .ez-prog-bar-fill  { height: 100%; border-radius: 3px; transition: width 400ms ease; }
 .ez-goal-reached {
   display: flex; align-items: center; gap: 5px; justify-content: center;
@@ -868,10 +868,10 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   display: flex; align-items: center; gap: 7px;
   margin-bottom: 12px;
 }
-.ez-section-lbl { font-size: 13px; font-weight: 600; color: #1C1A18; }
+.ez-section-lbl { font-size: 13px; font-weight: 600; color: #0A0A0B; }
 .ez-section-cnt {
   padding: 1px 7px; border-radius: 20px;
-  background: rgba(201,168,76,0.12); color: #9A7218;
+  background: rgba(10,10,11,0.04); color: #9A7218;
   font-size: 11px; font-weight: 600;
 }
 .ez-contribs-loading {
@@ -881,12 +881,12 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   padding: 28px; color: #C0BAB2;
 }
-.ez-contribs-empty p { margin: 0; font-size: 14px; font-weight: 500; color: #8A8580; }
+.ez-contribs-empty p { margin: 0; font-size: 14px; font-weight: 500; color: #6B6B72; }
 .ez-contribs-empty-sub { font-size: 12px; color: #C0BAB2 !important; }
 .ez-contribs-list { display: flex; flex-direction: column; gap: 0; }
 .ez-contrib-tile {
   display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 0; border-bottom: 0.8px solid #F2F2F0;
+  padding: 12px 0; border-bottom: 1px solid #F4F4F6;
 }
 .ez-contrib-tile:last-of-type { border-bottom: none; }
 .ez-contrib-avatar {
@@ -899,10 +899,10 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   margin-bottom: 2px;
 }
-.ez-contrib-name { font-size: 13px; font-weight: 600; color: #1C1A18; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ez-contrib-amt  { font-size: 13px; font-weight: 700; color: #C9A84C; flex-shrink: 0; }
+.ez-contrib-name { font-size: 13px; font-weight: 600; color: #0A0A0B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ez-contrib-amt  { font-size: 13px; font-weight: 700; color: #B8924D; flex-shrink: 0; }
 .ez-contrib-note { font-size: 12px; color: #6B6760; margin: 0 0 2px; font-style: italic; line-height: 1.4; }
-.ez-contrib-date { font-size: 11px; color: #B5B0A8; margin: 0; }
+.ez-contrib-date { font-size: 11px; color: #B5B5BB; margin: 0; }
 
 /* ══ Add/Edit Modal ══ */
 .ez-modal-overlay {
@@ -917,45 +917,45 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 }
 .ez-modal-head {
   display: flex; align-items: center; gap: 12px;
-  padding: 20px 24px 16px; border-bottom: 0.8px solid #F2F2F0;
+  padding: 20px 24px 16px; border-bottom: 1px solid #F4F4F6;
 }
 .ez-modal-ico {
   width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  background: rgba(201,168,76,0.10); border: 0.8px solid rgba(201,168,76,0.2);
+  background: rgba(184,146,77,0.10); border: 1px solid rgba(10,10,11,0.08);
   display: flex; align-items: center; justify-content: center;
 }
-.ez-modal-title { font-size: 17px; font-weight: 700; color: #1C1A18; margin: 0; }
+.ez-modal-title { font-size: 17px; font-weight: 700; color: #0A0A0B; margin: 0; }
 .ez-modal-body { padding: 18px 24px; display: flex; flex-direction: column; }
 .ez-field-lbl {
-  font-size: 12px; font-weight: 500; color: #8A8580;
+  font-size: 12px; font-weight: 500; color: #6B6B72;
   display: block; margin-bottom: 6px;
 }
 .ez-required { color: #FF3B30; }
-.ez-optional { color: #B5B0A8; font-weight: 400; }
+.ez-optional { color: #B5B5BB; font-weight: 400; }
 .ez-field-inp {
   width: 100%; padding: 10px 14px; box-sizing: border-box;
-  border: 0.8px solid #EBEBEA; border-radius: 10px;
-  font-size: 14px; font-family: inherit; outline: none; color: #1C1A18;
+  border: 1px solid #ECECEF; border-radius: 10px;
+  font-size: 14px; font-family: inherit; outline: none; color: #0A0A0B;
   background: #FAFAF9; transition: border-color 150ms, box-shadow 150ms;
 }
-.ez-field-inp:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.12); }
+.ez-field-inp:focus { border-color: #B8924D; box-shadow: 0 0 0 3px rgba(10,10,11,0.04); }
 .ez-field-inp--err { border-color: rgba(255,59,48,0.5); }
 .ez-field-ta { resize: none; line-height: 1.5; }
 .ez-field-err { font-size: 11px; color: #FF3B30; margin: 4px 0 0; }
 .ez-modal-actions {
   display: flex; gap: 10px;
-  padding: 16px 24px; border-top: 0.8px solid #F2F2F0;
+  padding: 16px 24px; border-top: 1px solid #F4F4F6;
 }
 .ez-modal-cancel {
   flex: 1; padding: 11px; border-radius: 10px;
-  border: 0.8px solid #EBEBEA; background: #F2F2F0; color: #6B6760;
+  border: 1px solid #ECECEF; background: #F4F4F6; color: #6B6760;
   font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
   transition: background 130ms;
 }
-.ez-modal-cancel:hover { background: #EBEBEA; }
+.ez-modal-cancel:hover { background: #ECECEF; }
 .ez-modal-save {
   flex: 1; padding: 11px; border-radius: 10px;
-  border: none; background: #1C1A18; color: #FFFFFF;
+  border: none; background: #0A0A0B; color: #FFFFFF;
   font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
   transition: background 130ms;
 }

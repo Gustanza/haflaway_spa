@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="ep-root">
 
     <!-- Stat cards -->
@@ -42,7 +42,7 @@
     <!-- Toolbar -->
     <div class="ep-toolbar">
       <div class="ep-search-wrap">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A8580" stroke-width="2" stroke-linecap="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6B72" stroke-width="2" stroke-linecap="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
         <input v-model="searchQ" class="ep-search" placeholder="Search transactions…" />
@@ -301,105 +301,106 @@ onMounted(() => {
 /* ── Stat cards ── */
 .ep-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .ep-stat-card {
-  background: #fff; border: 0.8px solid #EBEBEA; border-radius: 12px;
+  background: #fff; border: 1px solid #ECECEF; border-radius: 12px;
   padding: 16px 18px; display: flex; align-items: center; gap: 14px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
 .ep-stat-icon {
   width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
-  background: rgba(201,168,76,0.1); color: #C9A84C;
+  background: rgba(10,10,11,0.04); color: #B8924D;
   display: flex; align-items: center; justify-content: center;
 }
 .ep-stat-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.ep-stat-val  { font-size: 17px; font-weight: 700; color: #1C1A18; }
-.ep-stat-lbl  { font-size: 11px; color: #8A8580; font-weight: 500; }
+.ep-stat-val  { font-size: 17px; font-weight: 700; color: #0A0A0B; }
+.ep-stat-lbl  { font-size: 11px; color: #6B6B72; font-weight: 500; }
 
 /* ── Toolbar ── */
 .ep-toolbar { display: flex; align-items: center; gap: 12px; }
 .ep-search-wrap {
   display: flex; align-items: center; gap: 8px;
-  background: #FAFAF9; border: 0.8px solid #EBEBEA; border-radius: 10px;
+  background: #FAFAF9; border: 1px solid #ECECEF; border-radius: 10px;
   padding: 0 12px; height: 36px; flex: 1; max-width: 360px;
   transition: border-color 150ms;
 }
-.ep-search-wrap:focus-within { border-color: #C9A84C; background: #fff; }
-.ep-search { flex: 1; border: none; outline: none; font-size: 13px; color: #1C1A18; background: transparent; }
-.ep-search::placeholder { color: #B5B0A8; }
-.ep-search-clear { background: none; border: none; cursor: pointer; color: #B5B0A8; display: flex; align-items: center; padding: 0; }
-.ep-search-clear:hover { color: #1C1A18; }
-.ep-toolbar-count { font-size: 12px; color: #8A8580; margin-left: auto; }
+.ep-search-wrap:focus-within { border-color: #B8924D; background: #fff; }
+.ep-search { flex: 1; border: none; outline: none; font-size: 13px; color: #0A0A0B; background: transparent; }
+.ep-search::placeholder { color: #B5B5BB; }
+.ep-search-clear { background: none; border: none; cursor: pointer; color: #B5B5BB; display: flex; align-items: center; padding: 0; }
+.ep-search-clear:hover { color: #0A0A0B; }
+.ep-toolbar-count { font-size: 12px; color: #6B6B72; margin-left: auto; }
 
 /* ── Table ── */
-.ep-table-wrap { background: #fff; border: 0.8px solid #EBEBEA; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.ep-table-wrap { background: #fff; border: 1px solid #ECECEF; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10); }
 .ep-table { width: 100%; border-collapse: collapse; }
 
 .ep-th {
   padding: 11px 16px; text-align: left;
-  font-size: 11px; font-weight: 700; color: #8A8580; letter-spacing: 0.4px; text-transform: uppercase;
-  background: #FAFAF9; border-bottom: 0.8px solid #EBEBEA; white-space: nowrap;
+  font-size: 11px; font-weight: 700; color: #6B6B72; letter-spacing: 0.4px; text-transform: uppercase;
+  background: #FAFAF9; border-bottom: 1px solid #ECECEF; white-space: nowrap;
 }
 .ep-th--right  { text-align: right; }
 .ep-th--num    { width: 48px; color: #D0CEC9; }
 .ep-th--sortable { cursor: pointer; user-select: none; }
-.ep-th--sortable:hover { color: #1C1A18; }
+.ep-th--sortable:hover { color: #0A0A0B; }
 
 .ep-sort-icon { margin-left: 4px; vertical-align: middle; transition: transform 0.15s; }
 .ep-sort-icon--desc { transform: rotate(180deg); }
 
-.ep-tr { border-bottom: 0.8px solid #F2F2F0; transition: background 0.1s; }
+.ep-tr { border-bottom: 1px solid #F4F4F6; transition: background 0.1s; }
 .ep-tr:last-child { border-bottom: none; }
 .ep-tr:hover { background: #FAFAF9; }
 
-.ep-td { padding: 13px 16px; font-size: 13px; color: #1C1A18; vertical-align: middle; }
+.ep-td { padding: 13px 16px; font-size: 13px; color: #0A0A0B; vertical-align: middle; }
 .ep-td--num    { color: #D0CEC9; font-size: 12px; text-align: center; width: 48px; }
 .ep-td--right  { text-align: right; }
-.ep-td--date   { color: #8A8580; white-space: nowrap; }
-.ep-td--mono   { font-family: monospace; font-size: 11px; color: #B5B0A8; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ep-td--date   { color: #6B6B72; white-space: nowrap; }
+.ep-td--mono   { font-family: monospace; font-size: 11px; color: #B5B5BB; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .ep-desc-cell  { display: flex; align-items: center; gap: 10px; }
 .ep-receipt-icon {
   width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
-  background: rgba(201,168,76,0.08); color: #C9A84C;
+  background: rgba(10,10,11,0.03); color: #B8924D;
   display: flex; align-items: center; justify-content: center;
 }
-.ep-reason { font-weight: 500; color: #1C1A18; }
+.ep-reason { font-weight: 500; color: #0A0A0B; }
 
-.ep-amount { font-weight: 600; color: #1C1A18; }
-.ep-amount--neg { color: #C9A84C; }
+.ep-amount {
+  font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #0A0A0B; }
+.ep-amount--neg { color: #B8924D; }
 
 /* ── Footer + Paginator ── */
 .ep-table-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; border-top: 0.8px solid #EBEBEA;
+  padding: 12px 16px; border-top: 1px solid #ECECEF;
   background: #fff; gap: 12px; flex-wrap: wrap; flex-shrink: 0;
 }
-.ep-range-label { font-size: 12px; color: #8A8580; font-weight: 500; white-space: nowrap; }
+.ep-range-label { font-size: 12px; color: #6B6B72; font-weight: 500; white-space: nowrap; }
 .ep-paginator { display: flex; align-items: center; gap: 3px; }
 .ep-paginator--disabled { opacity: 0.38; pointer-events: none; }
 .ep-page-btn {
   min-width: 32px; height: 32px; padding: 0 6px;
-  border: 0.8px solid #EBEBEA; border-radius: 8px; background: #fff;
-  font-size: 13px; font-weight: 500; color: #6B6A68; cursor: pointer;
+  border: 1px solid #ECECEF; border-radius: 8px; background: #fff;
+  font-size: 13px; font-weight: 500; color: #6B6B72; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 140ms; font-family: inherit;
 }
 .ep-page-btn:hover:not(:disabled):not(.ep-page-btn--active) {
-  background: #F2F2F0; border-color: #D8D6D0; color: #1C1A18;
+  background: #F4F4F6; border-color: #D8D6D0; color: #0A0A0B;
 }
 .ep-page-btn--active {
-  background: #1C1A18; border-color: #1C1A18; color: #fff;
+  background: #0A0A0B; border-color: #0A0A0B; color: #fff;
   font-weight: 600; cursor: default;
 }
-.ep-page-btn--nav { color: #8A8580; }
+.ep-page-btn--nav { color: #6B6B72; }
 .ep-page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .ep-page-ellipsis {
   min-width: 28px; height: 32px; display: flex; align-items: center; justify-content: center;
-  font-size: 13px; color: #B5B0A8; letter-spacing: 1px;
+  font-size: 13px; color: #B5B5BB; letter-spacing: 1px;
 }
 
 /* ── Skeleton ── */
 .ep-skel {
-  height: 20px; border-radius: 6px; background: #F2F2F0; margin: 8px 16px;
+  height: 20px; border-radius: 6px; background: #F4F4F6; margin: 8px 16px;
   animation: ep-shimmer 1.4s ease-in-out infinite;
 }
 @keyframes ep-shimmer { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
@@ -409,6 +410,6 @@ onMounted(() => {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 60px 20px; gap: 8px;
 }
-.ep-empty-title { font-size: 14px; font-weight: 600; color: #6B6A68; margin: 4px 0 0; }
-.ep-empty-sub   { font-size: 13px; color: #B5B0A8; margin: 0; }
+.ep-empty-title { font-size: 14px; font-weight: 600; color: #6B6B72; margin: 4px 0 0; }
+.ep-empty-sub   { font-size: 13px; color: #B5B5BB; margin: 0; }
 </style>

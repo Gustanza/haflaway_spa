@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="eg-root">
 
     <!-- ══════════════════════════════════════════════════════════
@@ -11,7 +11,7 @@
         <div class="eg-toolbar-left">
           <div class="eg-search-wrap">
             <svg class="eg-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-              stroke="#8A8580" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              stroke="#6B6B72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input v-model="searchQ" class="eg-search" placeholder="Search folders…" />
@@ -50,7 +50,7 @@
         </div>
         <div class="eg-stat-sep"/>
         <div class="eg-stat">
-          <span class="eg-stat-n" style="color:#C9A84C">{{ totalMediaCount }}</span>
+          <span class="eg-stat-n" style="color:#B8924D">{{ totalMediaCount }}</span>
           <span class="eg-stat-lbl">Total Media</span>
         </div>
       </div>
@@ -60,7 +60,7 @@
 
         <div v-if="loading" class="eg-empty">
           <svg class="eg-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-            stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
+            stroke="#B8924D" stroke-width="2.2" stroke-linecap="round">
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
           </svg>
           <p>Loading folders…</p>
@@ -68,7 +68,7 @@
 
         <div v-else-if="!filteredFolders.length" class="eg-empty">
           <div class="eg-empty-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
               stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
@@ -95,7 +95,7 @@
               </template>
               <template v-else>
                 <div class="eg-fc-thumb-placeholder">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
                     stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                   </svg>
@@ -157,7 +157,7 @@
         </button>
 
         <div class="eg-folder-header-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
@@ -247,7 +247,7 @@
 
         <div v-if="loadingMedia" class="eg-empty">
           <svg class="eg-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-            stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
+            stroke="#B8924D" stroke-width="2.2" stroke-linecap="round">
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
           </svg>
           <p>Loading media…</p>
@@ -255,7 +255,7 @@
 
         <div v-else-if="!folderMedia.length && !uploading" class="eg-empty">
           <div class="eg-empty-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
               stroke-width="1.4" stroke-linecap="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/>
               <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -279,13 +279,13 @@
 
             <!-- Video placeholder -->
             <div v-else class="eg-tile-video">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A8580"
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6B6B72"
                 stroke-width="1.5" stroke-linecap="round">
                 <polygon points="23 7 16 12 23 17 23 7"/>
                 <rect x="1" y="5" width="15" height="14" rx="2"/>
               </svg>
               <div class="eg-tile-video-badge">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="#C9A84C" stroke="none">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="#B8924D" stroke="none">
                   <polygon points="5 3 19 12 5 21 5 3"/>
                 </svg>
                 VIDEO
@@ -330,7 +330,7 @@
         <div v-if="showCreateFolder" class="eg-modal-overlay" @click.self="showCreateFolder = false">
           <div class="eg-modal">
             <div class="eg-modal-ico-wrap">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
@@ -704,7 +704,7 @@ function formatDate(val) {
   flex-direction: column;
   padding: 20px 24px 24px;
   gap: 16px;
-  background: #F8F8F6;
+  background: #FFFFFF;
 }
 
 /* ══ Toolbar ══ */
@@ -728,33 +728,33 @@ function formatDate(val) {
 .eg-search-icon { position: absolute; left: 10px; pointer-events: none; }
 .eg-search {
   width: 100%; padding: 8px 32px;
-  border: 0.8px solid #EBEBEA; border-radius: 10px;
+  border: 1px solid #ECECEF; border-radius: 10px;
   font-size: 13px; font-family: inherit; outline: none;
-  background: #FAFAF9; color: #1C1A18;
+  background: #FAFAF9; color: #0A0A0B;
   transition: border-color 150ms, box-shadow 150ms;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
-.eg-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.10); background: #fff; }
+.eg-search:focus { border-color: #B8924D; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: #fff; }
 .eg-search-clear {
   position: absolute; right: 8px;
-  background: none; border: none; cursor: pointer; color: #8A8580; padding: 2px;
+  background: none; border: none; cursor: pointer; color: #6B6B72; padding: 2px;
   display: flex; align-items: center;
 }
-.eg-search-clear:hover { color: #1C1A18; }
+.eg-search-clear:hover { color: #0A0A0B; }
 
 /* Buttons */
 .eg-refresh-btn {
   width: 32px; height: 32px; border-radius: 8px;
-  border: 0.8px solid #EBEBEA; background: #FFFFFF; color: #8A8580;
+  border: 1px solid #ECECEF; background: #FFFFFF; color: #6B6B72;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 140ms; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  cursor: pointer; transition: all 140ms; box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
-.eg-refresh-btn:hover:not(:disabled) { background: #F2F2F0; color: #1C1A18; }
+.eg-refresh-btn:hover:not(:disabled) { background: #F4F4F6; color: #0A0A0B; }
 .eg-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .eg-new-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: 10px;
-  background: #1C1A18; color: #FFFFFF;
+  background: #0A0A0B; color: #FFFFFF;
   font-size: 13px; font-weight: 600; font-family: inherit; border: none;
   text-decoration: none; cursor: pointer;
   transition: background 140ms; box-shadow: 0 1px 4px rgba(0,0,0,0.14);
@@ -764,19 +764,19 @@ function formatDate(val) {
 /* ══ Stats bar ══ */
 .eg-stats-bar {
   display: flex; align-items: center; gap: 0; flex-shrink: 0;
-  padding: 0 16px; background: #FFFFFF; border: 0.8px solid #EBEBEA; border-radius: 12px; min-height: 52px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  padding: 0 16px; background: #FFFFFF; border: 1px solid #ECECEF; border-radius: 12px; min-height: 52px;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
 .eg-stat {
   display: flex; flex-direction: column; align-items: center;
   padding: 10px 20px; gap: 2px;
 }
-.eg-stat-n { font-size: 18px; font-weight: 700; color: #1C1A18; line-height: 1; }
+.eg-stat-n { font-size: 18px; font-weight: 700; color: #0A0A0B; line-height: 1; }
 .eg-stat-lbl {
-  font-size: 10px; font-weight: 600; color: #B5B0A8;
+  font-size: 10px; font-weight: 600; color: #B5B5BB;
   text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap;
 }
-.eg-stat-sep { width: 0.8px; height: 28px; background: #EBEBEA; flex-shrink: 0; }
+.eg-stat-sep { width: 0.8px; height: 28px; background: #ECECEF; flex-shrink: 0; }
 
 /* ══ Content ══ */
 .eg-content { flex: 1; padding: 0; }
@@ -784,19 +784,19 @@ function formatDate(val) {
 /* Empty state */
 .eg-empty {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; min-height: 300px; color: #B5B0A8;
+  justify-content: center; gap: 10px; min-height: 300px; color: #B5B5BB;
 }
 .eg-empty-icon {
   width: 64px; height: 64px; border-radius: 50%;
-  background: rgba(201,168,76,0.08);
-  border: 0.8px solid rgba(201,168,76,0.2);
+  background: rgba(10,10,11,0.03);
+  border: 1px solid rgba(10,10,11,0.08);
   display: flex; align-items: center; justify-content: center;
 }
 .eg-empty-title { font-size: 15px; font-weight: 600; color: #6B6760; margin: 0; }
-.eg-empty-sub   { font-size: 13px; color: #B5B0A8; margin: 0; text-align: center; max-width: 280px; }
+.eg-empty-sub   { font-size: 13px; color: #B5B5BB; margin: 0; text-align: center; max-width: 280px; }
 .eg-empty-cta {
   margin-top: 6px; padding: 9px 20px; border-radius: 10px;
-  background: #1C1A18; color: #fff; font-size: 13px; font-weight: 600;
+  background: #0A0A0B; color: #fff; font-size: 13px; font-weight: 600;
   border: none; cursor: pointer; transition: background 140ms; font-family: inherit;
 }
 .eg-empty-cta:hover { background: #2E2B28; }
@@ -810,7 +810,7 @@ function formatDate(val) {
 
 .eg-folder-card {
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
@@ -834,7 +834,7 @@ function formatDate(val) {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 2px;
-  background: #EBEBEA;
+  background: #ECECEF;
 }
 .eg-fc-thumb-cell {
   background: #F0EDE8;
@@ -858,10 +858,10 @@ function formatDate(val) {
 /* Card footer */
 .eg-fc-body { padding: 12px 14px 14px; }
 .eg-fc-name {
-  font-size: 14px; font-weight: 700; color: #1C1A18; margin: 0 0 4px;
+  font-size: 14px; font-weight: 700; color: #0A0A0B; margin: 0 0 4px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.eg-fc-meta { font-size: 12px; color: #8A8580; margin: 0; }
+.eg-fc-meta { font-size: 12px; color: #6B6B72; margin: 0; }
 
 /* Delete controls (overlay top-right) */
 .eg-fc-del-wrap {
@@ -885,14 +885,14 @@ function formatDate(val) {
 .eg-fc-del-confirm span { font-size: 11px; font-weight: 600; color: #FF3B30; }
 .eg-del-yes  {
   padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700;
-  border: 0.8px solid rgba(255,59,48,0.4); background: rgba(255,59,48,0.22); color: #FF3B30;
+  border: 1px solid rgba(255,59,48,0.4); background: rgba(255,59,48,0.22); color: #FF3B30;
   cursor: pointer; font-family: inherit; transition: background 120ms;
 }
 .eg-del-yes:hover:not(:disabled) { background: rgba(255,59,48,0.38); }
 .eg-del-yes:disabled { opacity: 0.6; cursor: not-allowed; }
 .eg-del-no {
   padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600;
-  border: 0.8px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.12); color: #fff;
+  border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.12); color: #fff;
   cursor: pointer; font-family: inherit; transition: background 120ms;
 }
 .eg-del-no:hover { background: rgba(255,255,255,0.22); }
@@ -901,22 +901,22 @@ function formatDate(val) {
 .eg-folder-header {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   flex-shrink: 0; padding: 12px 20px;
-  background: #FFFFFF; border-bottom: 0.8px solid #EBEBEA;
+  background: #FFFFFF; border-bottom: 1px solid #ECECEF;
 }
 .eg-back-btn {
   display: flex; align-items: center; gap: 5px;
   padding: 7px 12px; border-radius: 10px;
-  border: 0.8px solid #EBEBEA; background: #F2F2F0; color: #6B6760;
+  border: 1px solid #ECECEF; background: #F4F4F6; color: #6B6760;
   font-size: 13px; font-weight: 500; cursor: pointer;
   transition: all 130ms; font-family: inherit; flex-shrink: 0;
 }
-.eg-back-btn:hover { background: #EBEBEA; color: #1C1A18; }
+.eg-back-btn:hover { background: #ECECEF; color: #0A0A0B; }
 
 .eg-folder-header-title {
   display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
 }
 .eg-folder-header-name {
-  font-size: 17px; font-weight: 700; color: #1C1A18;
+  font-size: 17px; font-weight: 700; color: #0A0A0B;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -927,7 +927,7 @@ function formatDate(val) {
 .eg-add-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 10px;
-  background: #1C1A18; color: #FFFFFF;
+  background: #0A0A0B; color: #FFFFFF;
   font-size: 13px; font-weight: 600; font-family: inherit; border: none;
   cursor: pointer; transition: background 140ms;
 }
@@ -938,7 +938,7 @@ function formatDate(val) {
 }
 .eg-add-menu {
   position: absolute; right: 0; top: calc(100% + 6px); z-index: 50;
-  background: #FFFFFF; border: 0.8px solid #EBEBEA; border-radius: 14px;
+  background: #FFFFFF; border: 1px solid #ECECEF; border-radius: 14px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
   padding: 8px; min-width: 240px;
   display: flex; flex-direction: column; gap: 4px;
@@ -949,38 +949,38 @@ function formatDate(val) {
   background: transparent; cursor: pointer; font-family: inherit;
   transition: background 120ms; text-align: left;
 }
-.eg-add-menu-item:hover { background: #F8F8F6; }
+.eg-add-menu-item:hover { background: #FFFFFF; }
 .eg-add-menu-ico {
   width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
 }
-.eg-add-menu-ico--photo { background: rgba(90,200,250,0.12); color: #0A7EE3; border: 0.8px solid rgba(90,200,250,0.2); }
-.eg-add-menu-ico--video { background: rgba(255,159,10,0.12); color: #B86B00; border: 0.8px solid rgba(255,159,10,0.2); }
+.eg-add-menu-ico--photo { background: rgba(90,200,250,0.12); color: #0A7EE3; border: 1px solid rgba(90,200,250,0.2); }
+.eg-add-menu-ico--video { background: rgba(255,159,10,0.12); color: #B86B00; border: 1px solid rgba(255,159,10,0.2); }
 .eg-add-menu-info { display: flex; flex-direction: column; gap: 2px; }
-.eg-add-menu-lbl  { font-size: 14px; font-weight: 600; color: #1C1A18; }
-.eg-add-menu-sub  { font-size: 12px; color: #8A8580; }
+.eg-add-menu-lbl  { font-size: 14px; font-weight: 600; color: #0A0A0B; }
+.eg-add-menu-sub  { font-size: 12px; color: #6B6B72; }
 
 /* ══ Upload banner ══ */
 .eg-upload-banner {
   flex-shrink: 0; padding: 12px 20px;
-  background: #FFFDF5; border-bottom: 0.8px solid rgba(201,168,76,0.2);
+  background: #FFFDF5; border-bottom: 1px solid rgba(10,10,11,0.08);
 }
 .eg-upload-banner-top {
   display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
 }
-.eg-upload-lbl   { font-size: 13px; font-weight: 600; color: #1C1A18; flex: 1; }
-.eg-upload-count { font-size: 12px; color: #8A8580; }
+.eg-upload-lbl   { font-size: 13px; font-weight: 600; color: #0A0A0B; flex: 1; }
+.eg-upload-count { font-size: 12px; color: #6B6B72; }
 .eg-upload-cancel {
   padding: 4px 10px; border-radius: 7px;
-  border: 0.8px solid rgba(255,59,48,0.3); background: rgba(255,59,48,0.07); color: #FF3B30;
+  border: 1px solid rgba(255,59,48,0.3); background: rgba(255,59,48,0.07); color: #FF3B30;
   font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer;
 }
 .eg-upload-cancel:hover { background: rgba(255,59,48,0.13); }
 .eg-upload-track {
-  height: 5px; border-radius: 3px; background: #EBEBEA; overflow: hidden;
+  height: 5px; border-radius: 3px; background: #ECECEF; overflow: hidden;
 }
 .eg-upload-fill {
-  height: 100%; border-radius: 3px; background: #C9A84C;
+  height: 100%; border-radius: 3px; background: linear-gradient(180deg, #2A2A2D 0%, #0A0A0B 100%);
   transition: width 200ms linear;
 }
 
@@ -997,7 +997,7 @@ function formatDate(val) {
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  background: #EBEBEA;
+  background: #ECECEF;
 }
 .eg-media-tile:hover .eg-tile-actions { opacity: 1; }
 
@@ -1019,7 +1019,7 @@ function formatDate(val) {
   position: absolute; bottom: 6px; right: 6px;
   padding: 3px 6px; border-radius: 5px;
   background: rgba(0,0,0,0.65);
-  font-size: 8px; font-weight: 800; color: #C9A84C; letter-spacing: 0.4px;
+  font-size: 8px; font-weight: 800; color: #B8924D; letter-spacing: 0.4px;
   display: flex; align-items: center; gap: 3px;
 }
 
@@ -1047,14 +1047,14 @@ function formatDate(val) {
 .eg-tile-confirm span { font-size: 11px; font-weight: 600; color: #FF3B30; }
 .eg-tile-yes {
   padding: 3px 9px; border-radius: 6px;
-  background: rgba(255,59,48,0.22); border: 0.8px solid rgba(255,59,48,0.4);
+  background: rgba(255,59,48,0.22); border: 1px solid rgba(255,59,48,0.4);
   color: #FF3B30; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
 }
 .eg-tile-yes:hover:not(:disabled) { background: rgba(255,59,48,0.35); }
 .eg-tile-yes:disabled { opacity: 0.6; cursor: not-allowed; }
 .eg-tile-no {
   padding: 3px 9px; border-radius: 6px;
-  background: rgba(255,255,255,0.12); border: 0.8px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
   color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 .eg-tile-no:hover { background: rgba(255,255,255,0.22); }
@@ -1076,35 +1076,35 @@ function formatDate(val) {
 }
 .eg-modal-ico-wrap {
   width: 56px; height: 56px; border-radius: 50%;
-  background: rgba(201,168,76,0.10);
-  border: 0.8px solid rgba(201,168,76,0.25);
+  background: rgba(184,146,77,0.10);
+  border: 1px solid rgba(10,10,11,0.1);
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 14px;
 }
-.eg-modal-title { font-size: 18px; font-weight: 700; color: #1C1A18; margin: 0 0 5px; }
-.eg-modal-sub   { font-size: 13px; color: #8A8580; margin: 0 0 18px; }
+.eg-modal-title { font-size: 18px; font-weight: 700; color: #0A0A0B; margin: 0 0 5px; }
+.eg-modal-sub   { font-size: 13px; color: #6B6B72; margin: 0 0 18px; }
 .eg-modal-input {
   width: 100%; padding: 10px 14px;
-  border: 0.8px solid #EBEBEA; border-radius: 10px;
-  font-size: 14px; font-family: inherit; outline: none; color: #1C1A18;
+  border: 1px solid #ECECEF; border-radius: 10px;
+  font-size: 14px; font-family: inherit; outline: none; color: #0A0A0B;
   background: #FAFAF9; box-sizing: border-box; margin-bottom: 18px;
   transition: border-color 150ms, box-shadow 150ms;
 }
-.eg-modal-input:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.12); }
+.eg-modal-input:focus { border-color: #B8924D; box-shadow: 0 0 0 3px rgba(10,10,11,0.04); }
 .eg-modal-actions {
   display: flex; gap: 10px; width: 100%;
-  padding-top: 16px; border-top: 0.8px solid #F2F2F0;
+  padding-top: 16px; border-top: 1px solid #F4F4F6;
 }
 .eg-modal-cancel {
   flex: 1; padding: 11px; border-radius: 10px;
-  border: 0.8px solid #EBEBEA; background: #F2F2F0; color: #6B6760;
+  border: 1px solid #ECECEF; background: #F4F4F6; color: #6B6760;
   font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
   transition: background 130ms;
 }
-.eg-modal-cancel:hover { background: #EBEBEA; }
+.eg-modal-cancel:hover { background: #ECECEF; }
 .eg-modal-create {
   flex: 1; padding: 11px; border-radius: 10px;
-  border: none; background: #1C1A18; color: #FFFFFF;
+  border: none; background: #0A0A0B; color: #FFFFFF;
   font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
   transition: background 130ms;
 }

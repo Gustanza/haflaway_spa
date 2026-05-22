@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="evc-root">
 
     <!-- ══ Toolbar ══ -->
@@ -7,7 +7,7 @@
         <!-- Search -->
         <div class="evc-search-wrap">
           <svg class="evc-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-            stroke="#8A8580" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            stroke="#6B6B72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input v-model="searchQ" class="evc-search" placeholder="Search by type or purpose…" />
@@ -54,7 +54,7 @@
       <!-- Loading -->
       <div v-if="loading" class="evc-empty">
         <svg class="evc-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
+          stroke="#B8924D" stroke-width="2.2" stroke-linecap="round">
           <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
         </svg>
         <p>Loading templates…</p>
@@ -237,7 +237,7 @@
                   <p class="evc-block-lbl">Valid At Checkpoints</p>
                   <div class="evc-cp-list">
                     <div v-for="cpId in selectedCard.clearAt" :key="cpId" class="evc-cp-item">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
                         stroke-width="2" stroke-linecap="round">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                         <circle cx="12" cy="10" r="3"/>
@@ -314,7 +314,7 @@ const PURPOSE_LABELS = {
 }
 
 const PURPOSE_STYLES = {
-  invitation:    { bg: 'rgba(201,168,76,0.18)',  color: '#7A5A10' },
+  invitation:    { bg: 'rgba(184,146,77,0.18)',  color: '#7A5A10' },
   contribution:  { bg: 'rgba(48,209,88,0.18)',   color: '#136B2A' },
   save_the_date: { bg: 'rgba(94,154,255,0.18)',  color: '#1A3A8A' },
   contact:       { bg: 'rgba(138,133,128,0.15)', color: '#5A5550' },
@@ -324,7 +324,7 @@ const PURPOSE_GRADIENTS = {
   invitation:    'linear-gradient(145deg, #F5EDD5 0%, #EDD89A 100%)',
   contribution:  'linear-gradient(145deg, #D5F0DC 0%, #9ADAB0 100%)',
   save_the_date: 'linear-gradient(145deg, #D5E5F8 0%, #9AC0EE 100%)',
-  contact:       'linear-gradient(145deg, #EBEBEA 0%, #D0CBC4 100%)',
+  contact:       'linear-gradient(145deg, #ECECEF 0%, #D0CBC4 100%)',
 }
 
 const PURPOSE_FILTERS = [
@@ -390,7 +390,7 @@ onMounted(loadData)
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function purposeStyle(purpose) {
   const s = PURPOSE_STYLES[purpose]
-  return s ? { background: s.bg, color: s.color } : { background: '#EBEBEA', color: '#5A5550' }
+  return s ? { background: s.bg, color: s.color } : { background: '#ECECEF', color: '#5A5550' }
 }
 function purposeGradient(purpose) {
   return PURPOSE_GRADIENTS[purpose] ?? PURPOSE_GRADIENTS.contact
@@ -465,7 +465,7 @@ const filteredCards = computed(() => {
 
 const statsItems = computed(() => [
   { val: 'all',          label: 'Total',         count: cards.value.length,                              color: null        },
-  { val: 'invitation',   label: 'Invitation',    count: cards.value.filter(c => c.purpose === 'invitation').length,   color: '#C9A84C'  },
+  { val: 'invitation',   label: 'Invitation',    count: cards.value.filter(c => c.purpose === 'invitation').length,   color: '#B8924D'  },
   { val: 'contribution', label: 'Contribution',  count: cards.value.filter(c => c.purpose === 'contribution').length, color: '#30D158'  },
   { val: 'save_the_date',label: 'Save the Date', count: cards.value.filter(c => c.purpose === 'save_the_date').length,color: '#5E9AFF'  },
 ])
@@ -500,7 +500,7 @@ async function deleteCard(card) {
   flex-direction: column;
   gap: 16px;
   padding: 20px 24px 24px;
-  background: #F8F8F6;
+  background: #FFFFFF;
 }
 
 /* ══ Toolbar ══ */
@@ -524,50 +524,50 @@ async function deleteCard(card) {
 .evc-search-icon { position: absolute; left: 10px; pointer-events: none; }
 .evc-search {
   width: 100%; padding: 8px 32px;
-  border: 0.8px solid #EBEBEA; border-radius: 10px;
+  border: 1px solid #ECECEF; border-radius: 10px;
   font-size: 13px; font-family: inherit; outline: none;
-  background: #FAFAF9; color: #1C1A18;
+  background: #FAFAF9; color: #0A0A0B;
   transition: border-color 150ms, box-shadow 150ms;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
-.evc-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.10); background: #fff; }
+.evc-search:focus { border-color: #B8924D; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: #fff; }
 .evc-search-clear {
   position: absolute; right: 8px;
-  background: none; border: none; cursor: pointer; color: #8A8580; padding: 2px;
+  background: none; border: none; cursor: pointer; color: #6B6B72; padding: 2px;
   display: flex; align-items: center;
 }
-.evc-search-clear:hover { color: #1C1A18; }
+.evc-search-clear:hover { color: #0A0A0B; }
 
 /* Filter chips */
 .evc-filter-chips { display: flex; gap: 4px; }
 .evc-chip {
   padding: 6px 12px; border-radius: 20px;
-  border: 0.8px solid #EBEBEA; background: #FFFFFF;
-  font-size: 12px; font-weight: 500; color: #8A8580;
+  border: 1px solid #ECECEF; background: #FFFFFF;
+  font-size: 12px; font-weight: 500; color: #6B6B72;
   cursor: pointer; transition: all 140ms; font-family: inherit;
 }
-.evc-chip:hover { background: #F2F2F0; color: #6B6A68; }
-.evc-chip--active { background: #FFF8EC; border-color: rgba(201,168,76,0.4); color: #C9A84C; font-weight: 600; }
+.evc-chip:hover { background: #F4F4F6; color: #6B6B72; }
+.evc-chip--active { background: #0A0A0B; border-color: #0A0A0B; color: #FFFFFF; font-weight: 600; }
 .evc-chip-cnt {
   display: inline-flex; min-width: 18px; padding: 1px 5px;
   background: #EDEDEB; border-radius: 10px;
   font-size: 11px; font-weight: 600; color: #9A9690; margin-left: 5px;
 }
-.evc-chip--active .evc-chip-cnt { background: rgba(201,168,76,0.2); color: #9A7218; }
+.evc-chip--active .evc-chip-cnt { background: rgba(10,10,11,0.08); color: #9A7218; }
 
 /* Refresh + New Template */
 .evc-refresh-btn {
   width: 32px; height: 32px; border-radius: 8px;
-  border: 0.8px solid #EBEBEA; background: #FFFFFF; color: #8A8580;
+  border: 1px solid #ECECEF; background: #FFFFFF; color: #6B6B72;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 140ms; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  cursor: pointer; transition: all 140ms; box-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 4px 12px -2px rgba(0,0,0,0.08), 0 16px 32px -8px rgba(0,0,0,0.10);
 }
-.evc-refresh-btn:hover:not(:disabled) { background: #F2F2F0; color: #1C1A18; }
+.evc-refresh-btn:hover:not(:disabled) { background: #F4F4F6; color: #0A0A0B; }
 .evc-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .evc-new-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: 10px;
-  background: #1C1A18; color: #FFFFFF;
+  background: #0A0A0B; color: #FFFFFF;
   font-size: 13px; font-weight: 600; font-family: inherit;
   text-decoration: none; cursor: pointer;
   transition: background 140ms; box-shadow: 0 1px 4px rgba(0,0,0,0.14);
@@ -580,13 +580,13 @@ async function deleteCard(card) {
 
 .evc-empty {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; min-height: 300px; color: #B5B0A8;
+  justify-content: center; gap: 10px; min-height: 300px; color: #B5B5BB;
 }
 .evc-empty-title { font-size: 15px; font-weight: 600; color: #6B6760; margin: 0; }
-.evc-empty-sub   { font-size: 13px; color: #B5B0A8; margin: 0; }
+.evc-empty-sub   { font-size: 13px; color: #B5B5BB; margin: 0; }
 .evc-empty-cta {
   margin-top: 6px; padding: 9px 20px; border-radius: 10px;
-  background: #1C1A18; color: #fff; font-size: 13px; font-weight: 600;
+  background: #0A0A0B; color: #fff; font-size: 13px; font-weight: 600;
   text-decoration: none; transition: background 140ms;
 }
 .evc-empty-cta:hover { background: #2E2B28; }
@@ -601,7 +601,7 @@ async function deleteCard(card) {
 /* Card tile */
 .evc-card {
   background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  border: 1px solid #ECECEF;
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
@@ -609,7 +609,7 @@ async function deleteCard(card) {
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 .evc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); border-color: #D8D4CC; transform: translateY(-1px); }
-.evc-card--selected { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+.evc-card--selected { border-color: #B8924D; box-shadow: 0 0 0 3px rgba(184,146,77,0.15); }
 
 .evc-card-thumb {
   width: 100%;
@@ -630,7 +630,7 @@ async function deleteCard(card) {
 .evc-thumb-placeholder {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  color: #8A8580;
+  color: #6B6B72;
 }
 .evc-thumb-badge {
   position: relative; z-index: 1;
@@ -642,31 +642,31 @@ async function deleteCard(card) {
 
 .evc-card-body { padding: 12px 14px 10px; display: flex; align-items: center; gap: 10px; }
 .evc-card-type {
-  font-size: 14px; font-weight: 700; color: #1C1A18;
+  font-size: 14px; font-weight: 700; color: #0A0A0B;
   margin: 0; letter-spacing: -0.1px; white-space: nowrap;
 }
 .evc-card-meta { display: flex; align-items: center; gap: 10px; }
 .evc-meta-chip {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: 11px; color: #8A8580; font-weight: 500;
+  font-size: 11px; color: #6B6B72; font-weight: 500;
 }
 
 /* Card action row */
 .evc-card-actions {
   display: flex; align-items: center; gap: 6px;
   padding: 10px 14px;
-  border-top: 0.8px solid #F2F2F0;
+  border-top: 1px solid #F4F4F6;
 }
 .evc-del-confirm-lbl { font-size: 12px; color: #FF3B30; font-weight: 600; flex: 1; }
 .evc-action-btn {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 5px 11px; border-radius: 7px;
   font-size: 12px; font-weight: 500; font-family: inherit;
-  border: 0.8px solid #EBEBEA; background: #FAFAF9; color: #6B6760;
+  border: 1px solid #ECECEF; background: #FAFAF9; color: #6B6760;
   cursor: pointer; transition: all 130ms; text-decoration: none;
 }
-.evc-action-btn:hover { background: #F2F2F0; color: #1C1A18; }
-.evc-action-btn--edit:hover { border-color: rgba(201,168,76,0.5); color: #C9A84C; background: #FFF8EC; }
+.evc-action-btn:hover { background: #F4F4F6; color: #0A0A0B; }
+.evc-action-btn--edit:hover { border-color: rgba(184,146,77,0.5); color: #B8924D; background: #FAFAFB; }
 .evc-action-btn--del-ghost:hover { border-color: rgba(255,59,48,0.3); color: #FF3B30; background: rgba(255,59,48,0.05); }
 .evc-action-btn--danger { border-color: rgba(255,59,48,0.4); color: #FF3B30; background: rgba(255,59,48,0.06); }
 .evc-action-btn--danger:hover { background: rgba(255,59,48,0.12); }
@@ -685,48 +685,48 @@ async function deleteCard(card) {
 }
 .evc-drawer-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 0.8px solid #F2F2F0; flex-shrink: 0;
+  padding: 14px 16px; border-bottom: 1px solid #F4F4F6; flex-shrink: 0;
 }
 .evc-drawer-back {
   display: flex; align-items: center; gap: 5px;
   padding: 6px 10px; border-radius: 8px;
-  border: none; background: #F2F2F0; color: #6B6760;
+  border: none; background: #F4F4F6; color: #6B6760;
   font-size: 13px; font-weight: 500; cursor: pointer;
   transition: all 130ms; font-family: inherit;
 }
-.evc-drawer-back:hover { background: #EBEBEA; color: #1C1A18; }
+.evc-drawer-back:hover { background: #ECECEF; color: #0A0A0B; }
 .evc-drawer-edit-btn {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 12px; border-radius: 8px;
-  border: 0.8px solid #EBEBEA; background: #FAFAF9; color: #6B6760;
+  border: 1px solid #ECECEF; background: #FAFAF9; color: #6B6760;
   font-size: 12px; font-weight: 500; font-family: inherit;
   text-decoration: none; cursor: pointer; transition: all 130ms;
 }
-.evc-drawer-edit-btn:hover { border-color: rgba(201,168,76,0.5); color: #C9A84C; background: #FFF8EC; }
+.evc-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: #B8924D; background: #FAFAFB; }
 
 /* Template preview */
-.evc-preview-wrap { padding: 16px 20px; background: #F8F8F6; border-bottom: 0.8px solid #EBEBEA; flex-shrink: 0; }
+.evc-preview-wrap { padding: 16px 20px; background: #FFFFFF; border-bottom: 1px solid #ECECEF; flex-shrink: 0; }
 .evc-preview-img {
   width: 100%; aspect-ratio: 3 / 2;
   background-size: contain; background-position: center; background-repeat: no-repeat;
-  border-radius: 10px; border: 0.8px solid #EBEBEA; background-color: #FFFFFF;
+  border-radius: 10px; border: 1px solid #ECECEF; background-color: #FFFFFF;
 }
 .evc-preview-placeholder {
   width: 100%; aspect-ratio: 3 / 2;
-  border-radius: 10px; border: 0.8px solid #EBEBEA;
+  border-radius: 10px; border: 1px solid #ECECEF;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; color: #8A8580;
+  gap: 8px; color: #6B6B72;
 }
-.evc-preview-placeholder p { font-size: 12px; margin: 0; color: #B5B0A8; }
+.evc-preview-placeholder p { font-size: 12px; margin: 0; color: #B5B5BB; }
 
 /* Drawer body */
 .evc-drawer-body { display: flex; flex-direction: column; padding: 0 0 24px; }
 
 .evc-detail-head {
   display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 16px 20px 12px; border-bottom: 0.8px solid #F2F2F0;
+  padding: 16px 20px 12px; border-bottom: 1px solid #F4F4F6;
 }
-.evc-detail-type { font-size: 18px; font-weight: 700; color: #1C1A18; margin: 0 0 6px; }
+.evc-detail-type { font-size: 18px; font-weight: 700; color: #0A0A0B; margin: 0 0 6px; }
 .evc-purpose-badge {
   display: inline-block; padding: 3px 10px; border-radius: 20px;
   font-size: 11px; font-weight: 700;
@@ -734,17 +734,17 @@ async function deleteCard(card) {
 
 .evc-detail-stats {
   display: flex; align-items: center;
-  padding: 14px 20px; border-bottom: 0.8px solid #F2F2F0;
+  padding: 14px 20px; border-bottom: 1px solid #F4F4F6;
 }
 .evc-detail-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
-.evc-detail-stat-n { font-size: 18px; font-weight: 700; color: #1C1A18; line-height: 1; }
-.evc-detail-stat-lbl { font-size: 10px; font-weight: 600; color: #B5B0A8; text-transform: uppercase; letter-spacing: 0.4px; }
-.evc-detail-stat-sep { width: 0.8px; height: 28px; background: #EBEBEA; flex-shrink: 0; }
+.evc-detail-stat-n { font-size: 18px; font-weight: 700; color: #0A0A0B; line-height: 1; }
+.evc-detail-stat-lbl { font-size: 10px; font-weight: 600; color: #B5B5BB; text-transform: uppercase; letter-spacing: 0.4px; }
+.evc-detail-stat-sep { width: 0.8px; height: 28px; background: #ECECEF; flex-shrink: 0; }
 
-.evc-drawer-block { padding: 14px 20px; border-bottom: 0.8px solid #F2F2F0; }
+.evc-drawer-block { padding: 14px 20px; border-bottom: 1px solid #F4F4F6; }
 .evc-drawer-block:last-of-type { border-bottom: none; }
 .evc-block-lbl {
-  font-size: 10px; font-weight: 700; color: #B5B0A8;
+  font-size: 10px; font-weight: 700; color: #B5B5BB;
   text-transform: uppercase; letter-spacing: 0.6px; margin: 0 0 10px;
 }
 .evc-detail-none { font-size: 13px; color: #C0BAB2; font-style: italic; }
@@ -753,14 +753,14 @@ async function deleteCard(card) {
 .evc-cp-list { display: flex; flex-direction: column; gap: 6px; }
 .evc-cp-item {
   display: flex; align-items: center; gap: 7px;
-  font-size: 13px; color: #1C1A18; font-weight: 500;
+  font-size: 13px; color: #0A0A0B; font-weight: 500;
 }
 
 /* Attendees list */
 .evc-att-list { display: flex; flex-direction: column; gap: 0; }
 .evc-att-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 8px 0; border-bottom: 0.8px solid #F8F8F6;
+  padding: 8px 0; border-bottom: 1px solid #FFFFFF;
 }
 .evc-att-row:last-of-type { border-bottom: none; }
 .evc-att-avatar {
@@ -769,12 +769,12 @@ async function deleteCard(card) {
   font-size: 10px; font-weight: 700; flex-shrink: 0;
 }
 .evc-att-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.evc-att-name  { font-size: 12px; font-weight: 600; color: #1C1A18; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.evc-att-phone { font-size: 11px; color: #8A8580; }
+.evc-att-name  { font-size: 12px; font-weight: 600; color: #0A0A0B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.evc-att-phone { font-size: 11px; color: #6B6B72; }
 .evc-att-card-status { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
 .evc-att-ready   { background: rgba(48,209,88,0.12);  color: #136B2A; }
 .evc-att-pending { background: rgba(255,159,10,0.12); color: #7A4500; }
-.evc-att-more { font-size: 12px; color: #8A8580; margin: 8px 0 0; padding: 0; }
+.evc-att-more { font-size: 12px; color: #6B6B72; margin: 8px 0 0; padding: 0; }
 
 .evc-drawer-added { font-size: 12px; color: #C0BAB2; margin: 0; padding: 4px 20px 0; }
 
