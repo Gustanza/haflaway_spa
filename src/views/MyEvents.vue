@@ -13,9 +13,44 @@
           <span class="me-bc-page">My Events</span>
         </div>
         <div class="me-topbar-right">
-          <div class="me-admin-pill">
-            <span class="me-admin-dot" />
-            <span class="me-admin-label">Admin · {{ userDisplayName }}</span>
+          <div class="me-admin-wrap" ref="adminWrapRef">
+            <button class="me-admin-pill" @click="showAdminDropdown = !showAdminDropdown">
+              <span class="me-admin-dot" />
+              <span class="me-admin-label">Admin · {{ userDisplayName }}</span>
+              <svg class="me-admin-chevron" :class="{ 'me-admin-chevron--open': showAdminDropdown }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            <div v-if="showAdminDropdown" class="me-admin-dropdown">
+              <div class="me-dropdown-header">
+                <span class="me-admin-dot me-dropdown-dot" />
+                <div class="me-dropdown-header-text">
+                  <span class="me-dropdown-name">{{ userDisplayName }}</span>
+                  <span class="me-dropdown-email">{{ userEmail }}</span>
+                </div>
+              </div>
+              <!-- Wallet balance card -->
+              <div class="me-dropdown-balance">
+                <div class="me-dbal-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
+                </div>
+                <div class="me-dbal-body">
+                  <span class="me-dbal-label">Wallet Balance</span>
+                  <span class="me-dbal-amount" :class="{ 'me-dbal-amount--loading': userBalance === null }">
+                    {{ userBalance !== null ? formatBalance(userBalance) : '—' }}
+                  </span>
+                </div>
+              </div>
+              <div class="me-dropdown-divider" />
+              <button class="me-dropdown-item me-dropdown-item--signout" @click="showAdminDropdown = false; showLogoutModal = true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Sign out
+              </button>
+            </div>
           </div>
           <button class="me-create-btn" @click="$router.push('/create-event')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -27,41 +62,20 @@
       </div>
     </nav>
 
-    <!-- ── Page shell ── -->
-    <div class="me-page">
-
-      <!-- Intro -->
-      <div class="me-intro">
-        <div class="me-intro-left">
-          <div class="me-eyebrow-chip">
-            <span class="me-eyebrow-sparkle">✦</span>
-            Workspace
-          </div>
-          <h1 class="me-headline">My events.</h1>
-          <p class="me-subtitle">All the moments you're curating, in one place.</p>
-        </div>
-        <div class="me-intro-stats">
-          <div class="me-stat-block">
-            <span class="me-stat-value">{{ events.length }}</span>
-            <span class="me-stat-label">Total</span>
-          </div>
-          <div class="me-stat-divider" />
-          <div class="me-stat-block">
-            <span class="me-stat-value">{{ statusFilters.find(f => f.value === 'upcoming')?.count ?? 0 }}</span>
-            <span class="me-stat-label">Upcoming</span>
-          </div>
-          <div class="me-stat-divider" />
-          <div class="me-stat-block me-stat-block--emerald">
-            <span class="me-stat-value">{{ statusFilters.find(f => f.value === 'ongoing')?.count ?? 0 }}</span>
-            <span class="me-stat-label">Ongoing</span>
-          </div>
-          <div class="me-stat-divider" />
-          <div class="me-stat-block me-stat-block--dim">
-            <span class="me-stat-value">{{ statusFilters.find(f => f.value === 'completed')?.count ?? 0 }}</span>
-            <span class="me-stat-label">Completed</span>
-          </div>
+    <!-- ── Logout confirm modal ── -->
+    <div v-if="showLogoutModal" class="me-modal-backdrop" @click.self="showLogoutModal = false">
+      <div class="me-modal">
+        <p class="me-modal-title">Sign out?</p>
+        <p class="me-modal-body">You'll need to sign back in to access your events.</p>
+        <div class="me-modal-actions">
+          <button class="me-modal-cancel" @click="showLogoutModal = false">Cancel</button>
+          <button class="me-modal-confirm" @click="logout">Sign out</button>
         </div>
       </div>
+    </div>
+
+    <!-- ── Page shell ── -->
+    <div class="me-page">
 
       <!-- Filter bar -->
       <div class="me-filterbar">
@@ -333,11 +347,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { db, auth } from '../firebase'
+import { signOut } from 'firebase/auth'
 import {
-  collection, query, where, orderBy, getDocs, limit,
+  collection, query, where, orderBy, getDocs, limit, getDoc, doc,
 } from 'firebase/firestore'
 
 const PAGE_SIZE = 10
@@ -358,11 +373,48 @@ let searchTimer = null
 
 const rotations = [-0.35, 0.45, -0.25, 0.5, -0.4, 0.3]
 
+const showLogoutModal = ref(false)
+const showAdminDropdown = ref(false)
+const adminWrapRef = ref(null)
+const userBalance = ref(null)   // null = loading, number = fetched
+
 const userDisplayName = computed(() => {
   const u = auth.currentUser
   if (!u) return 'Admin'
   return u.displayName || u.email?.split('@')[0] || 'Admin'
 })
+
+const userEmail = computed(() => auth.currentUser?.email ?? '')
+
+function formatBalance(n) {
+  if (n == null) return '—'
+  return 'TZS ' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 })
+}
+
+async function loadUserBalance() {
+  if (!uid) return
+  try {
+    const snap = await getDoc(doc(db, 'users', uid))
+    if (snap.exists()) {
+      const b = snap.data().balance
+      userBalance.value = b != null ? Number(b) : 0
+    }
+  } catch (e) {
+    console.error('Failed to load user balance', e)
+  }
+}
+
+function onClickOutside(e) {
+  if (adminWrapRef.value && !adminWrapRef.value.contains(e.target)) {
+    showAdminDropdown.value = false
+  }
+}
+
+async function logout() {
+  showLogoutModal.value = false
+  await signOut(auth)
+  router.push('/login')
+}
 
 // ── Firestore (unchanged) ──────────────────────────────────────────────────
 async function loadEvents() {
@@ -622,6 +674,12 @@ onMounted(() => {
   const qPage = parseInt(route.query.page)
   if (qPage > 1) currentPage.value = qPage
   loadEvents()
+  loadUserBalance()
+  document.addEventListener('click', onClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onClickOutside)
 })
 </script>
 
@@ -641,7 +699,7 @@ onMounted(() => {
   --emerald-soft: #E5F5EE;
   min-height: 100vh;
   background: #FFFFFF;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif;
   color: var(--ink);
 }
 
@@ -677,6 +735,86 @@ onMounted(() => {
 .me-bc-page { font-size: 14px; font-weight: 500; color: var(--ink-muted); }
 
 .me-topbar-right { display: flex; align-items: center; gap: 10px; }
+
+/* Admin dropdown */
+.me-admin-wrap { position: relative; }
+.me-admin-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 130ms, color 130ms;
+}
+.me-admin-pill:hover { background: var(--paper-soft); color: var(--ink); }
+.me-admin-chevron {
+  color: var(--ink-dim);
+  transition: transform 180ms ease;
+  flex-shrink: 0;
+}
+.me-admin-chevron--open { transform: rotate(180deg); }
+
+.me-admin-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 210px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 3px 6px 0 rgba(0,0,0,0.10), 1px 2px 0 rgba(0,0,0,0.06);
+  overflow: hidden;
+  z-index: 200;
+}
+.me-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.me-dropdown-dot { flex-shrink: 0; }
+.me-dropdown-header-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.me-dropdown-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.me-dropdown-email {
+  font-size: 11.5px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.me-dropdown-divider { height: 1px; background: var(--line); }
+.me-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 16px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 120ms, color 120ms;
+}
+.me-dropdown-item:hover { background: var(--paper-soft); color: var(--ink); }
+.me-dropdown-item--signout:hover { background: #FEF2F2; color: #C0392B; }
 .me-admin-pill {
   display: flex;
   align-items: center;
@@ -695,6 +833,60 @@ onMounted(() => {
   background: var(--emerald);
   flex-shrink: 0;
 }
+.me-pill-balance {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(201,168,76,0.10);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9A7218;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Wallet card inside dropdown */
+.me-dropdown-balance {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 12px;
+}
+.me-dbal-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(201,168,76,0.10);
+  border: 1px solid rgba(201,168,76,0.20);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #B8924D;
+  flex-shrink: 0;
+}
+.me-dbal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.me-dbal-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9A9690;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.me-dbal-amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0A0A0B;
+  letter-spacing: -0.3px;
+}
+.me-dbal-amount--loading { color: #B5B5BB; }
 
 .me-create-btn {
   display: flex;
@@ -727,7 +919,7 @@ onMounted(() => {
 .me-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 52px 32px 80px;
+  padding: 28px 32px 80px;
   display: flex;
   flex-direction: column;
   gap: 36px;
@@ -1465,6 +1657,75 @@ onMounted(() => {
   user-select: none;
 }
 
+/* ── Logout modal ── */
+.me-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.32);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.me-modal {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px 28px 24px;
+  width: 340px;
+  box-shadow: 4px 8px 0 rgba(0,0,0,0.10), 1px 2px 0 rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.me-modal-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+.me-modal-body {
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.me-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.me-modal-cancel {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-muted);
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 130ms, color 130ms;
+}
+.me-modal-cancel:hover { background: var(--paper-soft); color: var(--ink); }
+.me-modal-confirm {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 130ms;
+}
+.me-modal-confirm:hover { opacity: 0.85; }
+
 /* ── Responsive ── */
 @media (max-width: 1024px) {
   .me-featured { grid-template-columns: 180px 1fr 180px; gap: 24px; }
@@ -1472,8 +1733,7 @@ onMounted(() => {
   .me-row { grid-template-columns: 140px 1fr 150px; gap: 20px; padding: 20px 22px; }
 }
 @media (max-width: 860px) {
-  .me-page { padding: 36px 20px 60px; gap: 28px; }
-  .me-headline { font-size: 48px; }
+  .me-page { padding: 20px 20px 60px; gap: 28px; }
   .me-featured { grid-template-columns: 1fr; gap: 20px; }
   .me-feat-thumb-col { display: none; }
   .me-feat-countdown { flex-direction: row; align-items: center; justify-content: flex-start; }
@@ -1484,11 +1744,7 @@ onMounted(() => {
 @media (max-width: 600px) {
   .me-topbar-inner { padding: 12px 16px; }
   .me-admin-pill { display: none; }
-  .me-page { padding: 28px 16px 48px; gap: 24px; }
-  .me-headline { font-size: 38px; }
-  .me-intro-stats { gap: 0; }
-  .me-stat-block { padding: 0 14px; }
-  .me-stat-value { font-size: 28px; }
+  .me-page { padding: 16px 16px 48px; gap: 24px; }
   .me-filterbar { padding: 8px 12px; gap: 8px; }
   .me-status-chips { gap: 2px; }
   .me-status-chip { padding: 4px 8px; font-size: 12px; }

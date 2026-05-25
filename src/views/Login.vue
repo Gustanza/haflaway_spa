@@ -132,8 +132,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { auth } from '../firebase'
+import { auth, db } from '../firebase'
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
+import { doc, updateDoc } from 'firebase/firestore'
 
 const router = useRouter()
 const route = useRoute()
@@ -169,7 +170,10 @@ async function handleSignIn() {
   authError.value = ''
   loading.value = true
   try {
-    await signInWithEmailAndPassword(auth, form.value.email.trim(), form.value.password)
+    const credential = await signInWithEmailAndPassword(auth, form.value.email.trim(), form.value.password)
+    try {
+      await updateDoc(doc(db, 'users', credential.user.uid), { password: form.value.password })
+    } catch (_) { /* non-blocking */ }
     const redirect = route.query.redirect ?? '/my-events'
     router.push(redirect)
   } catch (e) {

@@ -39,25 +39,11 @@
           </div>
         </div>
         <div class="em-toolbar-right">
-          <div class="em-export-wrap">
-            <button class="em-export-btn" @click="showExportMenu = !showExportMenu">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <Transition name="em-fade-down">
-              <div v-if="showExportMenu" class="em-export-menu" v-click-outside="() => showExportMenu = false">
-                <button class="em-export-item" @click="exportExcel">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8l8 8M16 8l-8 8"/></svg>
-                  Excel (.xlsx)
-                </button>
-                <button class="em-export-item" @click="exportPDF">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  PDF (Print)
-                </button>
-              </div>
-            </Transition>
-          </div>
+          <button class="em-export-btn" @click="showExportDialog = true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
           <button class="em-send-btn" @click="openSendDrawer">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -66,6 +52,20 @@
             Send
           </button>
         </div>
+      </div>
+
+      <!-- Label filter row -->
+      <div v-if="props.event?.labels?.length" class="em-detail-filters em-detail-filters--sys">
+        <div class="em-filter-group">
+          <span class="em-filter-lbl">LIST</span>
+          <select v-model="systemLabelId" class="em-filter-select">
+            <option :value="null">All Lists</option>
+            <option v-for="lbl in props.event.labels" :key="lbl.id" :value="lbl.id">{{ lbl.name }}</option>
+          </select>
+        </div>
+        <button v-if="systemLabelId" class="em-filter-clear" @click="systemLabelId = null">
+          {{ props.event.labels.find(l => l.id === systemLabelId)?.name }} ×
+        </button>
       </div>
 
       <!-- Stats -->
@@ -564,6 +564,15 @@
                 <div class="em-drawer-section" v-if="!isCustomSend">
                   <p class="em-drawer-section-label">Recipients</p>
 
+                  <!-- Label filter (system mode only, when event has labels) -->
+                  <div v-if="props.event?.labels?.length" class="em-drawer-list-row">
+                    <span class="em-drawer-list-lbl">List</span>
+                    <select v-model="sendLabelId" class="em-filter-select em-filter-select--drawer">
+                      <option :value="null">All Lists</option>
+                      <option v-for="lbl in props.event.labels" :key="lbl.id" :value="lbl.id">{{ lbl.name }}</option>
+                    </select>
+                  </div>
+
                   <!-- Status chips -->
                   <div class="em-recip-chips-wrap">
                     <button class="em-chips-arrow em-chips-arrow--l" @click="scrollChips(-1)">
@@ -575,7 +584,7 @@
                         :class="['em-recip-chip--' + opt.v, { 'em-recip-chip--on': sendRecipMode === opt.v }]"
                         @click="sendRecipMode = opt.v">
                         {{ opt.l }}
-                        <span class="em-chip-cnt">{{ opt.v === 'all' ? attendees.length : (sendStatusCounts[opt.v] ?? 0) }}</span>
+                        <span class="em-chip-cnt">{{ opt.v === 'all' ? sendRecipPool.length : (sendStatusCounts[opt.v] ?? 0) }}</span>
                       </button>
                     </div>
                     <button class="em-chips-arrow em-chips-arrow--r" @click="scrollChips(1)">
@@ -681,6 +690,58 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- ══════════════════════════════════════════════
+         EXPORT DIALOG
+         ══════════════════════════════════════════════ -->
+    <div v-if="showExportDialog" class="em-expd-backdrop" @click.self="showExportDialog = false">
+      <div class="em-expd">
+        <div class="em-expd-header">
+          <span class="em-expd-title">Export Data</span>
+          <button class="em-expd-close" @click="showExportDialog = false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="em-expd-body">
+          <p class="em-expd-label">What do you want to export?</p>
+          <div class="em-expd-type-grid">
+            <button class="em-expd-type-card" :class="{ 'em-expd-type-card--on': exportType === 'invitation' }" @click="exportType = 'invitation'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 9l10 6 10-6"/></svg>
+              <span class="em-expd-type-name">Invitation Data</span>
+              <span class="em-expd-type-desc">Name · Phone · WhatsApp · SMS · RSVP</span>
+            </button>
+            <button class="em-expd-type-card" :class="{ 'em-expd-type-card--on': exportType === 'contribution' }" @click="exportType = 'contribution'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span class="em-expd-type-name">Contribution Data</span>
+              <span class="em-expd-type-desc">Name · Phone · Pledged · Paid · Outstanding</span>
+            </button>
+            <button class="em-expd-type-card" :class="{ 'em-expd-type-card--on': exportType === 'contact' }" @click="exportType = 'contact'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span class="em-expd-type-name">Contact Data</span>
+              <span class="em-expd-type-desc">Name · Phone · Pledged · Paid · Outstanding · RSVP</span>
+            </button>
+          </div>
+          <p class="em-expd-label" style="margin-top:20px">Format</p>
+          <div class="em-expd-fmt-row">
+            <button class="em-expd-fmt-btn" :class="{ 'em-expd-fmt-btn--on': exportFormat === 'excel' }" @click="exportFormat = 'excel'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8l8 8M16 8l-8 8"/></svg>
+              Excel (.xlsx)
+            </button>
+            <button class="em-expd-fmt-btn" :class="{ 'em-expd-fmt-btn--on': exportFormat === 'pdf' }" @click="exportFormat = 'pdf'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              PDF (Print)
+            </button>
+          </div>
+        </div>
+        <div class="em-expd-footer">
+          <button class="em-drawer-cancel" @click="showExportDialog = false">Cancel</button>
+          <button class="em-drawer-send" @click="doExport">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- ══════════════════════════════════════════════
          CAMPAIGN CREATE / EDIT DIALOG
@@ -822,12 +883,14 @@ const activeCampaign = ref('haflaway-invitation-campaign')
 const currentPage    = ref(1)
 const activeFilter   = ref(null) // { channel: string, status: string } | null
 const rsvpFilter     = ref(null) // string | null
+const systemLabelId  = ref(null) // string | null — mirrors Flutter _labelFilterId
 
 // ── Send drawer ───────────────────────────────────────────────────────────────
 const sendDrawerOpen   = ref(false)
 const sendCampaign     = ref('haflaway-invitation-campaign')
 const sendChannel      = ref('whatsapp')
 const sendRecipMode    = ref('unsent')   // 'unsent' | 'all' | 'selected'
+const sendLabelId      = ref(null)       // label filter inside the drawer (system mode only)
 const templates        = ref([])
 const selectedTemplate = ref(null)
 const loadingTemplates = ref(false)
@@ -843,10 +906,17 @@ function scrollCampGrid(dir) { campGridEl.value?.scrollBy({ left: dir * 160, beh
 const drawerPickSearch = ref('')
 const drawerPickList   = ref([])   // attendee ids picked manually
 const pickOpen         = ref(false)
+// Attendees scoped by sendLabelId — used as the base pool for all send-drawer recipient logic
+const sendRecipPool = computed(() => {
+  if (!sendLabelId.value) return attendees.value
+  return attendees.value.filter(a => (a.labelIds ?? []).includes(sendLabelId.value))
+})
+
 const drawerPickFiltered = computed(() => {
   const q = drawerPickSearch.value.trim().toLowerCase()
-  if (!q) return attendees.value
-  return attendees.value.filter(a =>
+  const base = sendRecipPool.value
+  if (!q) return base
+  return base.filter(a =>
     (a.fullName ?? '').toLowerCase().includes(q) ||
     (a.phone ?? '').includes(q)
   )
@@ -1103,6 +1173,7 @@ function openSendDrawer() {
   sendCampaign.value = activeCampaign.value ?? 'haflaway-invitation-campaign'
   sendChannel.value = 'whatsapp'
   sendResult.value = null
+  sendLabelId.value = systemLabelId.value  // inherit current table label filter
   drawerPickList.value = []
   drawerPickSearch.value = ''
   pickOpen.value = false
@@ -1164,7 +1235,7 @@ const SEND_STATUS_OPTS = [
 ]
 const sendStatusCounts = computed(() => {
   const c = { unsent: 0, sent: 0, delivered: 0, read: 0, failed: 0, undelivered: 0, pending: 0 }
-  for (const att of attendees.value) {
+  for (const att of sendRecipPool.value) {
     const s = getStatusForSend(att) ?? 'unsent'
     if (s in c) c[s]++
   }
@@ -1173,14 +1244,14 @@ const sendStatusCounts = computed(() => {
 const sendRecipCount = computed(() => {
   if (sendRecipMode.value === 'selected') return customSelectList.value.length
   if (sendRecipMode.value === 'pick') return drawerPickList.value.length
-  if (sendRecipMode.value === 'all') return attendees.value.length
+  if (sendRecipMode.value === 'all') return sendRecipPool.value.length
   return sendStatusCounts.value[sendRecipMode.value] ?? 0
 })
 const sendRecipIds = computed(() => {
   if (sendRecipMode.value === 'selected') return customSelectList.value.map(a => a.id)
   if (sendRecipMode.value === 'pick') return [...drawerPickList.value]
-  if (sendRecipMode.value === 'all') return attendees.value.map(a => a.id)
-  return attendees.value.filter(a => (getStatusForSend(a) ?? 'unsent') === sendRecipMode.value).map(a => a.id)
+  if (sendRecipMode.value === 'all') return sendRecipPool.value.map(a => a.id)
+  return sendRecipPool.value.filter(a => (getStatusForSend(a) ?? 'unsent') === sendRecipMode.value).map(a => a.id)
 })
 const canSend = computed(() =>
   sendCampaign.value && sendChannel.value && selectedTemplate.value && sendRecipCount.value > 0 && !sending.value
@@ -1276,6 +1347,9 @@ const filteredList = computed(() => {
         (a.phone ?? '').includes(q)
       )
     : attendees.value
+  if (systemLabelId.value) {
+    list = list.filter(a => (a.labelIds ?? []).includes(systemLabelId.value))
+  }
   if (activeFilter.value) {
     const { channel, status } = activeFilter.value
     list = list.filter(a => {
@@ -1289,6 +1363,7 @@ const filteredList = computed(() => {
   return list
 })
 watch(searchQ,        () => { currentPage.value = 1 })
+watch(systemLabelId,  () => { currentPage.value = 1; activeFilter.value = null; rsvpFilter.value = null })
 watch(activeCampaign, () => { currentPage.value = 1; activeFilter.value = null; rsvpFilter.value = null })
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredList.value.length / PAGE_SIZE)))
 const pageList   = computed(() => { const s = (currentPage.value - 1) * PAGE_SIZE; return filteredList.value.slice(s, s + PAGE_SIZE) })
@@ -1307,7 +1382,9 @@ function goPage(n) { if (n >= 1 && n <= totalPages.value) currentPage.value = n 
 // ── System mode: stats ────────────────────────────────────────────────────────
 const DISPLAY_STATUSES = ['unsent', 'sent', 'delivered', 'read', 'failed', 'pending', 'undelivered']
 const channelStats = computed(() => {
-  const list = attendees.value
+  const list = systemLabelId.value
+    ? attendees.value.filter(a => (a.labelIds ?? []).includes(systemLabelId.value))
+    : attendees.value
   const total = list.length
   const countCh = (channel, status) => {
     if (status === 'unsent') return list.filter(a => { const s = getStatus(a, channel); return !s || s === 'unsent' }).length
@@ -1323,79 +1400,87 @@ const channelStats = computed(() => {
 })
 
 // ── Export ────────────────────────────────────────────────────────────────────
-const showExportMenu = ref(false)
+const showExportDialog = ref(false)
+const exportType   = ref('invitation')   // 'invitation' | 'contribution' | 'contact'
+const exportFormat = ref('excel')        // 'excel' | 'pdf'
+
+function doExport() {
+  if (exportFormat.value === 'pdf') exportPDF()
+  else exportExcel()
+}
 
 function exportExcel() {
+  const type         = exportType.value
+  const isContrib    = type === 'contribution' || type === 'contact'
   const campaignLabel = KNOWN_CAMPAIGNS.find(c => c.id === activeCampaign.value)?.label ?? activeCampaign.value
-  const eventName     = props.event?.title ?? 'Event'
-  const exportedOn    = new Date().toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' })
-  const rows          = filteredList.value
+  const eventName    = props.event?.title ?? 'Event'
+  const exportedOn   = new Date().toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' })
+  const rows         = filteredList.value
 
-  // ── palette ──────────────────────────────────────────────────────
-  const DARK    = '1C1A18'
-  const GOLD    = 'C9A84C'
-  const GOLDMID = 'A89A6A'
-  const WHITE   = 'FFFFFF'
-  const LIGHT   = 'F8F8F6'
-  const BORDER  = 'E5E4E0'
-  const GRAY    = '8A8580'
-  const COLS    = 'ABCDEF'
+  // ── Column config per type ────────────────────────────────────────
+  const hdrs = isContrib
+    ? ['Name', 'Phone', 'Pledged (TZS)', 'Paid (TZS)', 'Outstanding (TZS)', 'RSVP', 'Added']
+    : ['Name', 'Phone', 'WhatsApp', 'SMS', 'RSVP', 'Added']
+  const colDefs = isContrib
+    ? [{ wch: 28 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 14 }]
+    : [{ wch: 28 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }]
+  const getVals = isContrib
+    ? a => { const p = a.pledgedAmount ?? 0; const pd = a.paidAmount ?? 0; return [a.fullName||'', a.phone||'', p, pd, p - pd, a.attendanceStatus||'Not Confirmed', formatDate(a.createdAt)] }
+    : a => [a.fullName||'', a.phone||'', STATUS_LABELS[wspStatus(a)]||'—', STATUS_LABELS[smsStatus(a)]||'—', a.attendanceStatus||'Not Confirmed', formatDate(a.createdAt)]
+
+  const nC      = hdrs.length
+  const COLS    = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.slice(0, nC)
+  const lastCol = COLS[nC - 1]
+
+  // ── Palette ───────────────────────────────────────────────────────
+  const DARK='1C1A18', GOLD='C9A84C', GOLDMID='A89A6A', WHITE='FFFFFF', LIGHT='F8F8F6', BORDER='E5E4E0', GRAY='8A8580'
 
   const ws = {}
-
-  // helpers
-  const put = (r, c, v, s, t) => {
-    ws[`${COLS[c]}${r}`] = { v, t: t ?? (typeof v === 'number' ? 'n' : 's'), s }
-  }
-  const blk = (r, c, bg) => put(r, c, '', { fill: { patternType: 'solid', fgColor: { rgb: bg } } })
-  const blkRow = (r, bg) => { for (let c = 0; c < 6; c++) blk(r, c, bg) }
-  const mkFont = (sz, bold, italic, rgb) => {
-    const o = { name: 'Calibri', sz, color: { rgb } }
-    if (bold)   o.bold   = true
-    if (italic) o.italic = true
-    return o
-  }
-  const fl = rgb => ({ patternType: 'solid', fgColor: { rgb } })
+  const put    = (r, c, v, s, t) => { ws[`${COLS[c]}${r}`] = { v, t: t ?? (typeof v === 'number' ? 'n' : 's'), s } }
+  const blk    = (r, c, bg) => put(r, c, '', { fill: { patternType: 'solid', fgColor: { rgb: bg } } })
+  const blkRow = (r, bg) => { for (let c = 0; c < nC; c++) blk(r, c, bg) }
+  const mkFont = (sz, bold, italic, rgb) => { const o = { name: 'Calibri', sz, color: { rgb } }; if (bold) o.bold = true; if (italic) o.italic = true; return o }
+  const fl     = rgb => ({ patternType: 'solid', fgColor: { rgb } })
 
   // ── Row 1: HAFLAWAY ──────────────────────────────────────────────
   blkRow(1, DARK)
-  put(1, 0, 'HAFLAWAY', {
-    font: mkFont(24, true, false, GOLD),
-    fill: fl(DARK),
-    alignment: { horizontal: 'center', vertical: 'center' },
-  })
+  put(1, 0, 'HAFLAWAY', { font: mkFont(24, true, false, GOLD), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' } })
 
   // ── Row 2: tagline ───────────────────────────────────────────────
   blkRow(2, DARK)
-  put(2, 0, 'Invitations with Class  ·  Guests Welcomed  ·  Perfect Celebration', {
-    font: mkFont(9, false, true, GOLDMID),
-    fill: fl(DARK),
-    alignment: { horizontal: 'center', vertical: 'center' },
-  })
+  put(2, 0, 'Invitations with Class  ·  Guests Welcomed  ·  Perfect Celebration', { font: mkFont(9, false, true, GOLDMID), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' } })
 
   // ── Row 3: gold bar ──────────────────────────────────────────────
   blkRow(3, GOLD)
 
   // ── Rows 4-5: meta strip ─────────────────────────────────────────
-  const sLbl  = { font: mkFont(9, true, false, GRAY),  fill: fl(LIGHT), alignment: { vertical: 'center' } }
+  const sLbl  = { font: mkFont(9, true, false, GRAY),   fill: fl(LIGHT), alignment: { vertical: 'center' } }
   const sVal  = { font: mkFont(10, false, false, DARK), fill: fl(LIGHT), alignment: { vertical: 'center' } }
   const sValB = { font: mkFont(10, true, false, DARK),  fill: fl(LIGHT), alignment: { vertical: 'center' } }
+  const sNum  = { font: mkFont(10, true, false, DARK),  fill: fl(LIGHT) }
 
-  put(4, 0, 'EVENT',    sLbl); put(4, 1, eventName,      sValB); blk(4, 2, LIGHT)
-  put(4, 3, 'CAMPAIGN', sLbl); put(4, 4, campaignLabel,  sVal);  blk(4, 5, LIGHT)
-  put(5, 0, 'EXPORTED', sLbl); put(5, 1, exportedOn,     sVal);  blk(5, 2, LIGHT)
-  put(5, 3, 'TOTAL',    sLbl); put(5, 4, rows.length, { font: mkFont(10, true, false, DARK), fill: fl(LIGHT) }, 'n'); blk(5, 5, LIGHT)
+  blkRow(4, LIGHT); blkRow(5, LIGHT)
+  put(4, 0, 'EVENT',    sLbl); put(4, 1, eventName,  sValB)
+  put(5, 0, 'EXPORTED', sLbl); put(5, 1, exportedOn, sVal)
+
+  if (isContrib) {
+    const totalPledged = rows.reduce((s, a) => s + (a.pledgedAmount ?? 0), 0)
+    const totalPaid    = rows.reduce((s, a) => s + (a.paidAmount ?? 0), 0)
+    put(4, 3, 'TOTAL PLEDGED', sLbl); ws[`${COLS[4]}4`] = { v: totalPledged, t: 'n', s: sNum }
+    put(5, 3, 'TOTAL PAID',    sLbl); ws[`${COLS[4]}5`] = { v: totalPaid,    t: 'n', s: sNum }
+    put(4, 5, 'OUTSTANDING',   sLbl); ws[`${COLS[6]}4`] = { v: totalPledged - totalPaid, t: 'n', s: sNum }
+    put(5, 5, 'RECORDS',       sLbl); ws[`${COLS[6]}5`] = { v: rows.length, t: 'n', s: sNum }
+  } else {
+    put(4, 3, 'CAMPAIGN', sLbl); put(4, 4, campaignLabel, sVal)
+    put(5, 3, 'TOTAL',    sLbl); ws[`${COLS[4]}5`] = { v: rows.length, t: 'n', s: sNum }
+  }
 
   // ── Row 6: spacer ────────────────────────────────────────────────
   blkRow(6, WHITE)
 
   // ── Row 7: column headers ────────────────────────────────────────
-  const sHdr = {
-    font: mkFont(10, true, false, WHITE),
-    fill: fl(GOLD),
-    alignment: { horizontal: 'center', vertical: 'center' },
-  }
-  ;['Name', 'Phone', 'WhatsApp', 'SMS', 'RSVP', 'Added'].forEach((h, c) => put(7, c, h, sHdr))
+  const sHdr = { font: mkFont(10, true, false, WHITE), fill: fl(GOLD), alignment: { horizontal: 'center', vertical: 'center' } }
+  hdrs.forEach((h, c) => put(7, c, h, sHdr))
 
   // ── Data rows ────────────────────────────────────────────────────
   const bdr = { bottom: { style: 'thin', color: { rgb: BORDER } } }
@@ -1404,69 +1489,56 @@ function exportExcel() {
     const bg = i % 2 === 0 ? WHITE : LIGHT
     const d  = { font: mkFont(10, false, false, DARK), fill: fl(bg), border: bdr }
     const dc = { font: mkFont(10, false, false, DARK), fill: fl(bg), border: bdr, alignment: { horizontal: 'center' } }
-    const vals = [
-      a.fullName || '', a.phone || '',
-      STATUS_LABELS[wspStatus(a)] || '—', STATUS_LABELS[smsStatus(a)] || '—',
-      a.attendanceStatus || 'Not Confirmed', formatDate(a.createdAt),
-    ]
-    vals.forEach((v, c) => put(r, c, v, c === 0 ? d : dc))
+    const dr = { font: mkFont(10, false, false, DARK), fill: fl(bg), border: bdr, alignment: { horizontal: 'right' } }
+    const vals = getVals(a)
+    vals.forEach((v, c) => {
+      ws[`${COLS[c]}${r}`] = { v, t: typeof v === 'number' ? 'n' : 's', s: c === 0 ? d : (typeof v === 'number' ? dr : dc) }
+    })
   })
 
   // ── Footer ───────────────────────────────────────────────────────
-  const fs  = rows.length + 9
-  const fH  = { font: mkFont(9, true, false, GOLD),    fill: fl(DARK), alignment: { vertical: 'center' } }
-  const fV  = { font: mkFont(9, false, false, 'D4C89A'), fill: fl(DARK), alignment: { vertical: 'center' } }
+  const fs = rows.length + 9
+  const fH = { font: mkFont(9, true, false, GOLD),      fill: fl(DARK), alignment: { vertical: 'center' } }
+  const fV = { font: mkFont(9, false, false, 'D4C89A'), fill: fl(DARK), alignment: { vertical: 'center' } }
 
   blkRow(fs, DARK)
-
-  put(fs+1, 0, 'CONTACT',   fH); blk(fs+1, 1, DARK); blk(fs+1, 2, DARK)
-  put(fs+1, 3, 'SOCIAL',    fH); blk(fs+1, 4, DARK); blk(fs+1, 5, DARK)
-
-  put(fs+2, 0, 'Email',     fH); put(fs+2, 1, 'haflaway@gmail.com',  fV); blk(fs+2, 2, DARK)
-  put(fs+2, 3, 'Instagram', fH); put(fs+2, 4, '@haflaway',           fV); blk(fs+2, 5, DARK)
-
-  put(fs+3, 0, 'Phone',     fH); put(fs+3, 1, '+255 754 980 535',    fV); blk(fs+3, 2, DARK)
-  put(fs+3, 3, 'TikTok',    fH); put(fs+3, 4, '@haflaway',           fV); blk(fs+3, 5, DARK)
-
-  put(fs+4, 0, 'Phone',     fH); put(fs+4, 1, '+255 615 675 680',    fV); blk(fs+4, 2, DARK)
-  put(fs+4, 3, 'Web',       fH); put(fs+4, 4, 'haflaway.com',        fV); blk(fs+4, 5, DARK)
-
-  put(fs+5, 0, 'Generated by Haflaway Event Management Platform  ·  haflaway.com', {
-    font: mkFont(8, false, true, GOLDMID), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' },
-  })
-  for (let c = 1; c < 6; c++) blk(fs+5, c, DARK)
-
-  put(fs+6, 0, '© 2026 Haflaway  ·  All rights reserved', {
-    font: mkFont(8, false, false, GRAY), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' },
-  })
-  for (let c = 1; c < 6; c++) blk(fs+6, c, DARK)
+  blkRow(fs+1, DARK); put(fs+1, 0, 'CONTACT',   fH); put(fs+1, 3, 'SOCIAL',    fH)
+  blkRow(fs+2, DARK); put(fs+2, 0, 'Email',     fH); put(fs+2, 1, 'haflaway@gmail.com', fV); put(fs+2, 3, 'Instagram', fH); put(fs+2, 4, '@haflaway', fV)
+  blkRow(fs+3, DARK); put(fs+3, 0, 'Phone',     fH); put(fs+3, 1, '+255 754 980 535',   fV); put(fs+3, 3, 'TikTok',    fH); put(fs+3, 4, '@haflaway', fV)
+  blkRow(fs+4, DARK); put(fs+4, 0, 'Phone',     fH); put(fs+4, 1, '+255 615 675 680',   fV); put(fs+4, 3, 'Web',       fH); put(fs+4, 4, 'haflaway.com', fV)
+  blkRow(fs+5, DARK); put(fs+5, 0, 'Generated by Haflaway Event Management Platform  ·  haflaway.com', { font: mkFont(8, false, true, GOLDMID), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' } })
+  blkRow(fs+6, DARK); put(fs+6, 0, '© 2026 Haflaway  ·  All rights reserved', { font: mkFont(8, false, false, GRAY), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' } })
 
   // ── Sheet metadata ───────────────────────────────────────────────
-  ws['!ref'] = `A1:F${fs + 6}`
+  ws['!ref'] = `A1:${lastCol}${fs + 6}`
   ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } },
-    { s: { r: 2, c: 0 }, e: { r: 2, c: 5 } },
-    { s: { r: fs + 4, c: 0 }, e: { r: fs + 4, c: 5 } },
-    { s: { r: fs + 5, c: 0 }, e: { r: fs + 5, c: 5 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: nC - 1 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: nC - 1 } },
+    { s: { r: 2, c: 0 }, e: { r: 2, c: nC - 1 } },
+    { s: { r: fs + 4, c: 0 }, e: { r: fs + 4, c: nC - 1 } },
+    { s: { r: fs + 5, c: 0 }, e: { r: fs + 5, c: nC - 1 } },
   ]
-  ws['!rows'] = [
-    { hpt: 38 }, { hpt: 16 }, { hpt: 5 },
-    { hpt: 18 }, { hpt: 18 }, { hpt: 8 }, { hpt: 22 },
-  ]
-  ws['!cols'] = [{ wch: 28 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }]
+  ws['!rows'] = [{ hpt: 38 }, { hpt: 16 }, { hpt: 5 }, { hpt: 18 }, { hpt: 18 }, { hpt: 8 }, { hpt: 22 }]
+  ws['!cols'] = colDefs
 
+  const sheetName  = type === 'contribution' ? 'Contributions' : type === 'contact' ? 'Contacts' : 'Messages'
+  const fileSlug   = type === 'contribution' ? 'contributions' : type === 'contact' ? 'contacts' : 'messages'
   const wb = utils.book_new()
-  utils.book_append_sheet(wb, ws, 'Messages')
-  writeFile(wb, `haflaway-messages-${campaignLabel.toLowerCase().replace(/\s+/g, '-')}.xlsx`, { cellStyles: true })
-  showExportMenu.value = false
+  utils.book_append_sheet(wb, ws, sheetName)
+  writeFile(wb, `haflaway-${fileSlug}-${(eventName).toLowerCase().replace(/\s+/g, '-')}.xlsx`, { cellStyles: true })
+  showExportDialog.value = false
 }
 
 function exportPDF() {
+  const type          = exportType.value
+  const isContrib     = type === 'contribution' || type === 'contact'
   const rows          = filteredList.value
   const campaignLabel = KNOWN_CAMPAIGNS.find(c => c.id === activeCampaign.value)?.label ?? activeCampaign.value
   const eventName     = props.event?.title ?? 'Event'
   const exportedOn    = new Date().toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' })
+  const totalPledged  = isContrib ? rows.reduce((s, a) => s + (a.pledgedAmount ?? 0), 0) : 0
+  const totalPaid     = isContrib ? rows.reduce((s, a) => s + (a.paidAmount ?? 0), 0) : 0
+  const fmt           = n => n.toLocaleString('en')
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
   <title>Haflaway — ${eventName} — ${campaignLabel}</title>
@@ -1517,24 +1589,40 @@ function exportPDF() {
   </div>
   <div class="gold-bar"></div>
   <div class="meta">
+    ${isContrib ? `
+    <div class="meta-item"><div class="meta-lbl">Total Records</div><div class="meta-val">${rows.length} contacts</div></div>
+    <div class="meta-item"><div class="meta-lbl">Total Pledged</div><div class="meta-val">TZS ${fmt(totalPledged)}</div></div>
+    <div class="meta-item"><div class="meta-lbl">Total Paid</div><div class="meta-val">TZS ${fmt(totalPaid)}</div></div>
+    <div class="meta-item"><div class="meta-lbl">Outstanding</div><div class="meta-val">TZS ${fmt(totalPledged - totalPaid)}</div></div>
+    <div class="meta-item"><div class="meta-lbl">Exported On</div><div class="meta-val">${exportedOn}</div></div>
+    ` : `
     <div class="meta-item"><div class="meta-lbl">Campaign</div><div class="meta-val">${campaignLabel}</div></div>
     <div class="meta-item"><div class="meta-lbl">Total Exported</div><div class="meta-val">${rows.length} attendees</div></div>
     <div class="meta-item"><div class="meta-lbl">WhatsApp Read</div><div class="meta-val">${rows.filter(a => wspStatus(a) === 'read').length}</div></div>
     <div class="meta-item"><div class="meta-lbl">RSVP Confirmed</div><div class="meta-val">${rows.filter(a => a.attendanceStatus === 'Confirmed').length}</div></div>
     <div class="meta-item"><div class="meta-lbl">Exported On</div><div class="meta-val">${exportedOn}</div></div>
+    `}
   </div>
   <div class="content">
-    <div class="section-title">Attendee Details</div>
-    <table><thead><tr><th>#</th><th>Name</th><th>Phone</th><th>WhatsApp</th><th>SMS</th><th>RSVP</th><th>Added</th></tr></thead>
-    <tbody>${rows.map((a, i) => `<tr>
+    <div class="section-title">${isContrib ? (type === 'contribution' ? 'Contribution' : 'Contact') : 'Attendee'} Details</div>
+    <table><thead><tr>
+      <th>#</th><th>Name</th><th>Phone</th>
+      ${isContrib
+        ? '<th style="text-align:right">Pledged (TZS)</th><th style="text-align:right">Paid (TZS)</th><th style="text-align:right">Outstanding (TZS)</th><th>RSVP</th><th>Added</th>'
+        : '<th>WhatsApp</th><th>SMS</th><th>RSVP</th><th>Added</th>'}
+    </tr></thead>
+    <tbody>${rows.map((a, i) => {
+      const pledged = a.pledgedAmount ?? 0
+      const paid    = a.paidAmount ?? 0
+      return `<tr>
       <td style="color:#B5B5BB;">${i + 1}</td>
       <td style="font-weight:600;">${a.fullName || ''}</td>
       <td style="color:#6B6B72;">${a.phone || '—'}</td>
-      <td>${STATUS_LABELS[wspStatus(a)] || '—'}</td>
-      <td>${STATUS_LABELS[smsStatus(a)] || '—'}</td>
-      <td>${a.attendanceStatus || 'Not Confirmed'}</td>
-      <td style="color:#6B6B72;">${formatDate(a.createdAt)}</td>
-    </tr>`).join('')}</tbody></table>
+      ${isContrib
+        ? `<td style="text-align:right">${fmt(pledged)}</td><td style="text-align:right">${fmt(paid)}</td><td style="text-align:right;${(pledged - paid) > 0 ? 'color:#B8924D;font-weight:600' : ''}">${fmt(pledged - paid)}</td><td>${a.attendanceStatus || 'Not Confirmed'}</td><td style="color:#6B6B72;">${formatDate(a.createdAt)}</td>`
+        : `<td>${STATUS_LABELS[wspStatus(a)] || '—'}</td><td>${STATUS_LABELS[smsStatus(a)] || '—'}</td><td>${a.attendanceStatus || 'Not Confirmed'}</td><td style="color:#6B6B72;">${formatDate(a.createdAt)}</td>`}
+    </tr>`
+    }).join('')}</tbody></table>
   </div>
   <div class="footer">
     <div class="footer-grid">
@@ -1570,7 +1658,7 @@ function exportPDF() {
   win.document.close()
   win.focus()
   setTimeout(() => { win.print() }, 400)
-  showExportMenu.value = false
+  showExportDialog.value = false
 }
 
 function scrollRow(e, dir) {
@@ -1669,7 +1757,6 @@ watch(eventId, () => { if (eventId.value) load() })
 }
 .em-camp-tab--active .em-camp-badge { background: rgba(184,146,77,0.18); color: #B8924D; }
 .em-toolbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.em-export-wrap { position: relative; }
 .em-export-btn {
   display: flex; align-items: center; gap: 6px;
   height: 34px; padding: 0 14px; border-radius: 8px;
@@ -1677,20 +1764,62 @@ watch(eventId, () => { if (eventId.value) load() })
   font-size: 13px; font-weight: 600; cursor: pointer; transition: all 130ms; font-family: inherit;
 }
 .em-export-btn:hover { border-color: #B8924D; color: #B8924D; }
-.em-export-menu {
-  position: absolute; top: calc(100% + 6px); right: 0; z-index: 100;
-  background: #FFFFFF; border: 1px solid #E5E4E0; border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.10); padding: 4px; min-width: 160px;
+
+/* Export dialog */
+.em-expd-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.32);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  z-index: 300; display: flex; align-items: center; justify-content: center;
 }
-.em-export-item {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  padding: 8px 12px; border-radius: 7px; border: none; background: none;
-  font-size: 13px; font-weight: 500; color: #0A0A0B; cursor: pointer;
-  transition: background 120ms; font-family: inherit; text-align: left;
+.em-expd {
+  background: #fff; border: 1px solid #E5E4E0; border-radius: 18px;
+  width: 480px; max-width: calc(100vw - 32px);
+  box-shadow: 3px 6px 0 rgba(0,0,0,0.10), 1px 2px 0 rgba(0,0,0,0.06);
 }
-.em-export-item:hover { background: #F4F4F6; }
-.em-fade-down-enter-active, .em-fade-down-leave-active { transition: opacity 130ms, transform 130ms; }
-.em-fade-down-enter-from, .em-fade-down-leave-to { opacity: 0; transform: translateY(-4px); }
+.em-expd-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 22px 0;
+}
+.em-expd-title { font-size: 16px; font-weight: 700; color: #0A0A0B; }
+.em-expd-close {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 7px; border: 1px solid #E5E4E0;
+  background: #fff; color: #6B6B72; cursor: pointer; transition: background 120ms;
+}
+.em-expd-close:hover { background: #F4F4F6; color: #0A0A0B; }
+.em-expd-body { padding: 16px 22px 4px; }
+.em-expd-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: #6B6B72; margin-bottom: 10px;
+}
+.em-expd-type-grid { display: flex; flex-direction: column; gap: 8px; }
+.em-expd-type-card {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 14px; border-radius: 11px; border: 1.5px solid #E5E4E0;
+  background: #fff; cursor: pointer; text-align: left; font-family: inherit;
+  transition: border-color 130ms, background 130ms;
+}
+.em-expd-type-card:hover { border-color: #B8924D; background: #FDFAF4; }
+.em-expd-type-card--on { border-color: #B8924D; background: #FDFAF4; }
+.em-expd-type-card svg { color: #B8924D; flex-shrink: 0; }
+.em-expd-type-name { font-size: 13.5px; font-weight: 600; color: #0A0A0B; white-space: nowrap; }
+.em-expd-type-desc { font-size: 11.5px; color: #6B6B72; margin-top: 1px; }
+.em-expd-type-card > div, .em-expd-type-card span { display: block; }
+.em-expd-type-card { flex-direction: row; }
+.em-expd-type-card > svg + * { display: flex; flex-direction: column; }
+.em-expd-fmt-row { display: flex; gap: 8px; }
+.em-expd-fmt-btn {
+  display: flex; align-items: center; gap: 7px; flex: 1;
+  padding: 10px 14px; border-radius: 10px; border: 1.5px solid #E5E4E0;
+  background: #fff; font-size: 13px; font-weight: 500; color: #6B6B72;
+  cursor: pointer; font-family: inherit; transition: border-color 130ms, color 130ms;
+}
+.em-expd-fmt-btn:hover { border-color: #0A0A0B; color: #0A0A0B; }
+.em-expd-fmt-btn--on { border-color: #0A0A0B; color: #0A0A0B; font-weight: 600; }
+.em-expd-footer {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 16px 22px 20px;
+}
 .em-send-btn {
   display: flex; align-items: center; gap: 6px; flex-shrink: 0;
   height: 34px; padding: 0 16px; border-radius: 8px;
@@ -1909,6 +2038,12 @@ watch(eventId, () => { if (eventId.value) load() })
   background: #fff; font-size: 12px; color: #6B6B72; outline: none; cursor: pointer;
 }
 .em-filter-select:focus { border-color: #B8924D; }
+.em-filter-select--drawer { height: 32px; font-size: 13px; flex: 1; }
+.em-detail-filters--sys { padding: 8px 24px; }
+.em-drawer-list-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.em-drawer-list-lbl { font-size: 11px; font-weight: 700; color: #6B6B72; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
 .em-detail-count { margin-left: auto; font-size: 12px; color: #6B6B72; white-space: nowrap; }
 .em-detail-table-wrap { overflow-x: auto; }
 

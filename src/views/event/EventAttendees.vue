@@ -47,6 +47,33 @@
       </div>
     </div>
 
+    <!-- ── Label filter row ── -->
+    <div v-if="localLabels.length" class="ea-label-filter-row">
+      <button class="ea-lf-pill" :class="{ 'ea-lf-pill--active': !filterLabelId }" @click="filterLabelId = null">
+        All
+      </button>
+      <button v-for="lbl in localLabels" :key="lbl.id"
+        class="ea-lf-pill"
+        :class="{ 'ea-lf-pill--active': filterLabelId === lbl.id }"
+        :style="filterLabelId === lbl.id ? { background: labelBg(lbl), color: labelFg(lbl), borderColor: labelFg(lbl) } : {}"
+        @click="filterLabelId = filterLabelId === lbl.id ? null : lbl.id">
+        <span class="ea-lf-dot" :style="{ background: labelFg(lbl) }"></span>
+        {{ lbl.name }}
+      </button>
+      <button class="ea-lf-manage" @click="showLabelManager = true" title="Manage labels">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        Manage
+      </button>
+    </div>
+    <div v-else class="ea-label-filter-row ea-label-filter-row--empty">
+      <button class="ea-lf-manage ea-lf-manage--ghost" @click="showLabelManager = true">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Create Labels
+      </button>
+    </div>
+
 
     <!-- ── Selection bar ── -->
     <Transition name="ea-fade">
@@ -54,6 +81,24 @@
         <span class="ea-sel-count">{{ selectedIds.size }} selected</span>
         <div class="ea-sel-actions">
           <button class="ea-sel-btn ea-sel-btn--ghost" @click="clearSelection">Clear</button>
+          <div class="ea-sel-label-wrap" v-if="localLabels.length">
+            <button class="ea-sel-btn ea-sel-btn--label" @click="bulkLabelOpen = !bulkLabelOpen">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              Label
+            </button>
+            <div v-if="bulkLabelOpen" class="ea-bulk-label-drop">
+              <button v-for="lbl in localLabels" :key="lbl.id"
+                class="ea-bld-item" @click="applyBulkLabel(lbl.id)">
+                <span class="ea-bld-dot" :style="{ background: labelFg(lbl) }"></span>
+                {{ lbl.name }}
+              </button>
+              <div class="ea-bld-divider"></div>
+              <button class="ea-bld-item ea-bld-item--clear" @click="applyBulkLabel(null)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Remove all labels
+              </button>
+            </div>
+          </div>
           <button class="ea-sel-btn ea-sel-btn--danger" :disabled="bulkDeleting" @click="bulkDelete">
             {{ bulkDeleting ? 'Deleting…' : 'Delete' }}
           </button>
@@ -1039,7 +1084,87 @@
       </Transition>
     </Teleport>
 
-  </div>
+  <!-- ══ Label Manager Modal ══ -->
+  <Teleport to="body">
+    <Transition name="ea-fade">
+      <div v-if="showLabelManager" class="ea-overlay ea-overlay--center" @click.self="showLabelManager = false">
+        <Transition name="ea-scale">
+          <div class="ea-modal ea-lm-modal" v-if="showLabelManager">
+
+            <div class="ea-modal-header">
+              <h3 class="ea-modal-title">Manage Labels</h3>
+              <button class="ea-modal-close" @click="showLabelManager = false">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div class="ea-lm-body">
+
+              <!-- Existing labels list -->
+              <div v-if="localLabels.length" class="ea-lm-list">
+                <template v-for="lbl in localLabels" :key="lbl.id">
+                  <!-- View row -->
+                  <div v-if="editingLabel?.id !== lbl.id" class="ea-lm-row">
+                    <span class="ea-lm-dot" :style="{ background: labelFg(lbl) }"></span>
+                    <span class="ea-lm-name">{{ lbl.name }}</span>
+                    <button class="ea-lm-action" title="Edit" @click="startEditLabel(lbl)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="ea-lm-action ea-lm-action--del" title="Delete" @click="deleteLabel(lbl)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                    </button>
+                  </div>
+                  <!-- Inline edit row -->
+                  <div v-else class="ea-lm-edit-row">
+                    <div class="ea-lm-palette">
+                      <button v-for="c in LABEL_COLORS" :key="c"
+                        class="ea-lm-color" :class="{ 'ea-lm-color--on': editLabelColor === c }"
+                        :style="{ background: c }"
+                        @click="editLabelColor = c" />
+                    </div>
+                    <div class="ea-lm-edit-fields">
+                      <input v-model="editLabelName" class="ea-lm-input" placeholder="Label name" @keydown.enter="saveEditLabel" @keydown.escape="editingLabel = null" />
+                      <div class="ea-lm-edit-actions">
+                        <button class="ea-lm-edit-cancel" @click="editingLabel = null">Cancel</button>
+                        <button class="ea-lm-save-btn" :disabled="!editLabelName.trim() || savingLabel" @click="saveEditLabel">
+                          {{ savingLabel ? '…' : 'Save' }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+              <p v-else class="ea-lm-empty">No labels yet. Create your first one below.</p>
+
+              <div class="ea-lm-divider"></div>
+
+              <!-- Create new label -->
+              <div class="ea-lm-create">
+                <p class="ea-lm-section-hd">New Label</p>
+                <div class="ea-lm-palette">
+                  <button v-for="c in LABEL_COLORS" :key="c"
+                    class="ea-lm-color" :class="{ 'ea-lm-color--on': newLabelColor === c }"
+                    :style="{ background: c }"
+                    @click="newLabelColor = c" />
+                </div>
+                <div class="ea-lm-create-row">
+                  <span class="ea-lm-preview-dot" :style="{ background: newLabelColor }"></span>
+                  <input v-model="newLabelName" class="ea-lm-input" placeholder="Label name…"
+                    @keydown.enter="createLabel" />
+                  <button class="ea-lm-save-btn" :disabled="!newLabelName.trim() || savingLabel" @click="createLabel">
+                    {{ savingLabel ? '…' : 'Add' }}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
+  </Teleport>
+
+</div>
 </template>
 
 <script setup>
@@ -1049,6 +1174,7 @@ import { db, auth } from '../../firebase'
 import {
   collection, query, orderBy, where,
   getDocs, updateDoc, deleteDoc, deleteField, doc, addDoc,
+  arrayUnion, arrayRemove,
 } from 'firebase/firestore'
 import * as XLSX from 'xlsx'
 import { VueTelInput } from 'vue-tel-input'
@@ -1063,7 +1189,59 @@ const props = defineProps({
 
 const route = useRoute()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
-const eventLabels = computed(() => props.event?.labels ?? [])
+
+// Labels — local copy so we can mutate optimistically without prop mutation
+const localLabels = ref([])
+watch(() => props.event?.labels, (v) => { localLabels.value = v ? [...v] : [] }, { immediate: true })
+const eventLabels = localLabels  // alias so existing code still works
+
+// Label filter (table row filter)
+const filterLabelId = ref(null)
+
+// Label color helpers — Flutter stores colorValue as 0xFFRRGGBB int
+// Web must write the same integer so Flutter's `map['colorValue'] as int` never sees a String.
+function hexToColorInt(hex) {
+  // '#RRGGBB' → 0xFFRRGGBB as a JS number (safe, stays within float-64 precision)
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return 0xFF000000 + r * 65536 + g * 256 + b
+}
+function colorIntToHex(v) {
+  // 0xFFRRGGBB int → '#RRGGBB' (uppercase)
+  // Use >>> (unsigned right shift) to avoid JS signed-int issues with values > 2^31
+  const r = (v >>> 16) & 0xFF
+  const g = (v >>> 8)  & 0xFF
+  const b =  v         & 0xFF
+  return '#' + [r, g, b].map(x => x.toString(16).toUpperCase().padStart(2, '0')).join('')
+}
+
+// Palette matches Flutter's _colorPalette in label_manager.dart (same 0xFFRRGGBB values)
+const LABEL_COLORS = [
+  '#C9A84C', // Gold   (0xFFC9A84C)
+  '#4CAF50', // Green  (0xFF4CAF50)
+  '#2196F3', // Blue   (0xFF2196F3)
+  '#F44336', // Red    (0xFFF44336)
+  '#FF9800', // Orange (0xFFFF9800)
+  '#9C27B0', // Purple (0xFF9C27B0)
+  '#00BCD4', // Cyan   (0xFF00BCD4)
+  '#E91E63', // Pink   (0xFFE91E63)
+  '#795548', // Brown  (0xFF795548)
+  '#607D8B', // Blue Grey (0xFF607D8B)
+]
+
+// Label Manager state
+const showLabelManager = ref(false)
+const newLabelName   = ref('')
+const newLabelColor  = ref(LABEL_COLORS[0])   // default Gold
+const editingLabel   = ref(null)
+const editLabelName  = ref('')
+const editLabelColor = ref('')
+const savingLabel    = ref(false)
+
+// Bulk-label state
+const bulkLabelOpen = ref(false)
+const bulkLabeling  = ref(false)
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 10
@@ -1100,6 +1278,9 @@ const filteredList = computed(() => {
   let list = attendees.value
   if (activeType.value !== 'all') {
     list = list.filter(a => getKardType(a) === activeType.value)
+  }
+  if (filterLabelId.value) {
+    list = list.filter(a => (a.labelIds ?? []).includes(filterLabelId.value))
   }
   const q = searchQ.value.trim().toLowerCase()
   if (q) {
@@ -1164,7 +1345,7 @@ function toggleSelect(id) {
   else selectedIds.add(id)
 }
 
-watch([searchQ, activeType, sortKey, sortDir], () => {
+watch([searchQ, activeType, sortKey, sortDir, filterLabelId], () => {
   currentPage.value = 1
   selectedIds.clear()
 })
@@ -1669,11 +1850,108 @@ async function deleteAttendee() {
   }
 }
 
+// ── Label manager ─────────────────────────────────────────────────────────────
+async function createLabel() {
+  const name = newLabelName.value.trim()
+  if (!name || savingLabel.value) return
+  savingLabel.value = true
+  // colorValue stored as 0xFFRRGGBB integer — Flutter reads it as int without crashing
+  const newLbl = { id: Date.now().toString(), name, colorValue: hexToColorInt(newLabelColor.value) }
+  try {
+    await updateDoc(doc(db, 'events', eventId.value), { labels: arrayUnion(newLbl) })
+    localLabels.value = [...localLabels.value, newLbl]
+    newLabelName.value = ''
+    newLabelColor.value = LABEL_COLORS[0]
+  } catch (e) {
+    console.error('Failed to create label', e)
+  } finally {
+    savingLabel.value = false
+  }
+}
+
+function startEditLabel(lbl) {
+  editingLabel.value = lbl
+  editLabelName.value = lbl.name
+  // Convert existing colorValue to hex for the palette picker regardless of whether it
+  // was stored as an int (Flutter) or a legacy hex string (old web labels).
+  if (typeof lbl.colorValue === 'number') {
+    editLabelColor.value = colorIntToHex(lbl.colorValue)
+  } else {
+    // Legacy string — normalise to uppercase so palette === comparison works
+    editLabelColor.value = (lbl.colorValue ?? LABEL_COLORS[0]).toUpperCase()
+  }
+}
+
+async function saveEditLabel() {
+  const name = editLabelName.value.trim()
+  const lbl  = editingLabel.value
+  if (!name || !lbl || savingLabel.value) return
+  savingLabel.value = true
+  // Always write colorValue as integer so Flutter never receives a String
+  const updated = { ...lbl, name, colorValue: hexToColorInt(editLabelColor.value) }
+  try {
+    await updateDoc(doc(db, 'events', eventId.value), { labels: arrayRemove(lbl) })
+    await updateDoc(doc(db, 'events', eventId.value), { labels: arrayUnion(updated) })
+    const idx = localLabels.value.findIndex(l => l.id === lbl.id)
+    if (idx !== -1) localLabels.value[idx] = updated
+    editingLabel.value = null
+  } catch (e) {
+    console.error('Failed to update label', e)
+  } finally {
+    savingLabel.value = false
+  }
+}
+
+async function deleteLabel(lbl) {
+  if (!confirm(`Delete label "${lbl.name}"? Attendees will lose this label.`)) return
+  try {
+    await updateDoc(doc(db, 'events', eventId.value), { labels: arrayRemove(lbl) })
+    localLabels.value = localLabels.value.filter(l => l.id !== lbl.id)
+    if (filterLabelId.value === lbl.id) filterLabelId.value = null
+  } catch (e) {
+    console.error('Failed to delete label', e)
+  }
+}
+
+// ── Bulk label ────────────────────────────────────────────────────────────────
+async function applyBulkLabel(labelId) {
+  bulkLabelOpen.value = false
+  const ids = [...selectedIds]
+  if (!ids.length || bulkLabeling.value) return
+  bulkLabeling.value = true
+  try {
+    if (labelId === null) {
+      await Promise.all(ids.map(id =>
+        updateDoc(doc(db, 'events', eventId.value, 'attendees', id), { labelIds: [] })
+      ))
+    } else {
+      await Promise.all(ids.map(id =>
+        updateDoc(doc(db, 'events', eventId.value, 'attendees', id), { labelIds: arrayUnion(labelId) })
+      ))
+    }
+    // Reflect changes locally
+    attendees.value = attendees.value.map(a => {
+      if (!ids.includes(a.id)) return a
+      const current = a.labelIds ?? []
+      return {
+        ...a,
+        labelIds: labelId === null
+          ? []
+          : current.includes(labelId) ? current : [...current, labelId],
+      }
+    })
+  } catch (e) {
+    console.error('Failed to apply label', e)
+  } finally {
+    bulkLabeling.value = false
+  }
+}
+
 // ── Bulk actions ──────────────────────────────────────────────────────────────
 const bulkDeleting = ref(false)
 const headerCb = ref(null)
 
-function clearSelection() { selectedIds.clear() }
+function clearSelection() { selectedIds.clear(); bulkLabelOpen.value = false }
 
 async function bulkDelete() {
   const ids = [...selectedIds]
@@ -3700,4 +3978,182 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-imp-run-btn:hover:not(:disabled) { opacity: 0.85; }
 .ea-imp-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Label filter row ── */
+.ea-label-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0;
+  min-height: 30px;
+}
+.ea-label-filter-row--empty { opacity: 0.6; }
+.ea-lf-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid #E5E4E0;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6B6B72;
+  cursor: pointer;
+  transition: all 130ms;
+  font-family: inherit;
+}
+.ea-lf-pill:hover { background: #F4F4F6; }
+.ea-lf-pill--active { background: #0A0A0B; color: #fff; border-color: #0A0A0B; font-weight: 600; }
+.ea-lf-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ea-lf-manage {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1px dashed #CFCDC8;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9A9690;
+  cursor: pointer;
+  transition: all 130ms;
+  font-family: inherit;
+  margin-left: 2px;
+}
+.ea-lf-manage:hover { border-color: #B8924D; color: #B8924D; }
+.ea-lf-manage--ghost { border-style: dashed; }
+
+/* ── Bulk label dropdown ── */
+.ea-sel-label-wrap { position: relative; }
+.ea-sel-btn--label {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 130ms;
+}
+.ea-sel-btn--label:hover { background: rgba(255,255,255,0.22); }
+.ea-bulk-label-drop {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  background: #fff;
+  border: 1px solid #ECECEF;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  min-width: 180px;
+  padding: 6px;
+  z-index: 200;
+}
+.ea-bld-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0A0A0B;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 120ms;
+}
+.ea-bld-item:hover { background: #F4F4F6; }
+.ea-bld-item--clear { color: #8E8E93; font-size: 12px; }
+.ea-bld-divider { height: 1px; background: #F0EFEC; margin: 4px 0; }
+.ea-bld-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Label Manager modal ── */
+.ea-lm-modal { max-width: 420px; }
+.ea-lm-body { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 0; }
+.ea-lm-list { display: flex; flex-direction: column; gap: 2px; }
+.ea-lm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  transition: background 120ms;
+}
+.ea-lm-row:hover { background: #F4F4F6; }
+.ea-lm-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+.ea-lm-name { flex: 1; font-size: 13px; font-weight: 500; color: #0A0A0B; }
+.ea-lm-action {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: transparent;
+  border-radius: 7px; cursor: pointer; color: #9A9690;
+  transition: all 120ms;
+}
+.ea-lm-action:hover { background: #EDEDEB; color: #0A0A0B; }
+.ea-lm-action--del:hover { background: rgba(255,69,58,0.08); color: #FF453A; }
+.ea-lm-edit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: #F9F8F6;
+  border-radius: 10px;
+  border: 1px solid #E8E6E0;
+}
+.ea-lm-palette { display: flex; gap: 6px; flex-wrap: wrap; }
+.ea-lm-color {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 120ms, border-color 120ms;
+  flex-shrink: 0;
+}
+.ea-lm-color:hover { transform: scale(1.15); }
+.ea-lm-color--on { border-color: #0A0A0B; transform: scale(1.15); }
+.ea-lm-edit-fields { display: flex; flex-direction: column; gap: 6px; }
+.ea-lm-edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.ea-lm-edit-cancel {
+  padding: 5px 12px; border: 1px solid #E5E4E0; border-radius: 7px;
+  background: #fff; font-size: 12px; font-weight: 500; color: #6B6B72;
+  cursor: pointer; font-family: inherit;
+}
+.ea-lm-input {
+  width: 100%; padding: 8px 11px;
+  border: 1px solid #E5E4E0; border-radius: 8px;
+  font-size: 13px; color: #0A0A0B; outline: none;
+  font-family: inherit; box-sizing: border-box;
+  transition: border-color 150ms;
+}
+.ea-lm-input:focus { border-color: #B8924D; }
+.ea-lm-save-btn {
+  padding: 6px 14px; border: none; border-radius: 8px;
+  background: #0A0A0B; color: #fff;
+  font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: opacity 140ms; white-space: nowrap;
+}
+.ea-lm-save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ea-lm-save-btn:not(:disabled):hover { opacity: 0.82; }
+.ea-lm-empty { font-size: 13px; color: #9A9690; text-align: center; padding: 12px 0 8px; }
+.ea-lm-divider { height: 1px; background: #F0EFEC; margin: 14px 0; }
+.ea-lm-section-hd { font-size: 11px; font-weight: 700; color: #6B6B72; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.ea-lm-create { display: flex; flex-direction: column; gap: 10px; }
+.ea-lm-create-row { display: flex; align-items: center; gap: 8px; }
+.ea-lm-preview-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
 </style>
