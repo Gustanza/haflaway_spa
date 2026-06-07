@@ -1176,6 +1176,15 @@ import {
   getDocs, updateDoc, deleteDoc, deleteField, doc, addDoc,
   arrayUnion, arrayRemove,
 } from 'firebase/firestore'
+function genAttendeeId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let id = ''
+  const arr = new Uint8Array(4)
+  crypto.getRandomValues(arr)
+  arr.forEach(b => { id += chars[b % chars.length] })
+  return id
+}
+
 import * as XLSX from 'xlsx'
 import { VueTelInput } from 'vue-tel-input'
 import 'vue-tel-input/vue-tel-input.css'
@@ -1774,7 +1783,7 @@ async function submitForm() {
     // billing deduction, and correct atomic type-switching (the function replaces the
     // entire cards map so changing type cleanly removes the old card key).
     const uid = auth.currentUser.uid
-    const attendeeId = existingAtt?.id ?? doc(collection(db, 'events', eventId.value, 'attendees')).id
+    const attendeeId = existingAtt?.id ?? genAttendeeId()
     const attendeeData = {
       id:               attendeeId,
       cards:            {},
@@ -2178,7 +2187,7 @@ function buildPreviewList() {
         ? cleanNumeric(row[importMapping.mchango]) : null
 
       return {
-        _id:           crypto.randomUUID(),
+        _id:           genAttendeeId(),
         fullName:      rawName.toUpperCase(),
         fullNameLower: rawName.toLowerCase(),
         phone,
