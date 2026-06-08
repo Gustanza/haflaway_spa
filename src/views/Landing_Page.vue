@@ -64,7 +64,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 </script>
 
 <template>
-    <div class="min-h-screen font-sans overflow-x-hidden relative" style="background:#F8F8F6; color:#1C1A18;">
+    <div class="min-h-screen font-sans overflow-x-hidden relative" style="background:#0a0e1c; color:#e2e8f0;">
 
         <!-- ░░ AMBIENT ORBS ░░ -->
         <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -73,10 +73,10 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
         </div>
 
         <!-- ░░ NAV ░░ -->
-        <nav class="sticky top-0 z-[100] backdrop-blur-xl border-b" style="background:rgba(248,248,246,0.92); border-color:#EBEBEA;">
+        <nav class="sticky top-0 z-[100] backdrop-blur-xl border-b" style="background:rgba(10,14,28,0.92); border-color:#1e2d44;">
             <div class="max-w-4xl mx-auto px-3 py-4 flex justify-between items-center gap-4">
                 <div class="flex items-center gap-3 cursor-pointer" @click="$router.push('/')">
-                    <div class="size-8 rounded-xl overflow-hidden border" style="border-color:#EBEBEA;">
+                    <div class="size-8 rounded-xl overflow-hidden border" style="border-color:#1e2d44;">
                         <img src="/src/assets/icon-512.png" alt="Haflaway" class="size-full object-cover" />
                     </div>
                     <span class="text-xl font-black tracking-tighter uppercase amber-text">Haflaway</span>
@@ -113,13 +113,13 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 
                         <h1 class="font-black tracking-tighter leading-[1.15] mb-5 animate-in fade-in slide-in-from-bottom-6 duration-1000"
                             style="font-size:clamp(2rem,4vw,2.8rem);">
-                            <span style="color:#1C1A18;">Invitations with Class.</span><br />
+                            <span style="color:#e2e8f0;">Invitations with Class.</span><br />
                             <span class="amber-text">Guests Welcomed.</span><br />
                             <span style="color:#C4BBAE;">Perfect Celebration.</span>
                         </h1>
 
                         <p class="text-sm sm:text-base font-medium leading-relaxed mb-6 max-w-md animate-in fade-in duration-1000 delay-150"
-                            style="color:#8A8580;">
+                            style="color:#8892a4;">
                             Haflaway helps you plan weddings, sendoffs, kitchen parties and any event — digital invitations with QR codes, guest management, and contributions tracking, all from one app.
                         </p>
 
@@ -139,7 +139,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                             <div class="flex -space-x-3">
                                 <div v-for="(c, i) in ['#C9A84C','#8E6E2C','#E8C87C','#A07830']" :key="i"
                                     class="size-9 rounded-full border-2 flex items-center justify-center text-xs font-black"
-                                    :style="`background:${c}18; border-color:#F8F8F6; color:${c};`">
+                                    :style="`background:${c}18; border-color:#0a0e1c; color:${c};`">
                                     {{ ['A','F','Z','J'][i] }}
                                 </div>
                             </div>
@@ -147,8 +147,8 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                                 <div class="flex items-center gap-1 mb-0.5">
                                     <span class="text-[11px] amber-text font-black">★★★★★</span>
                                 </div>
-                                <p class="text-[11px] font-medium" style="color:#8A8580;">
-                                    <span style="color:#1C1A18; font-weight:800;">500+</span> organizers trust Haflaway
+                                <p class="text-[11px] font-medium" style="color:#8892a4;">
+                                    <span style="color:#e2e8f0; font-weight:800;">500+</span> organizers trust Haflaway
                                 </p>
                             </div>
                         </div>
@@ -335,31 +335,31 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 
                         <!-- ── Floating pills ── -->
                         <div class="absolute top-8 -right-2 sm:right-0 lg:-right-4 z-30 pill-drift-a" :style="pill1Style">
-                            <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-lg" style="background:#FFFFFF; border-color:#EBEBEA;">
+                            <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-lg" style="background:#111827; border-color:#1e2d44;">
                                 <span class="text-base leading-none">📲</span>
                                 <div>
-                                    <p style="font-size:9px; font-weight:800; color:#1C1A18; line-height:1.3;">Sent · 247 guests</p>
-                                    <p style="font-size:8px; color:#8A8580;">WhatsApp ✓✓</p>
+                                    <p style="font-size:9px; font-weight:800; color:#e2e8f0; line-height:1.3;">Sent · 247 guests</p>
+                                    <p style="font-size:8px; color:#8892a4;">WhatsApp ✓✓</p>
                                 </div>
                             </div>
                         </div>
 
                         <div class="absolute bottom-24 right-[160px] z-30 pill-drift-b" :style="pill2Style">
-                            <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-lg" style="background:#FFFFFF; border-color:#EBEBEA;">
+                            <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-lg" style="background:#111827; border-color:#1e2d44;">
                                 <span class="size-2 rounded-full flex-shrink-0" style="background:#C9A84C;"></span>
                                 <div>
                                     <p style="font-size:9px; font-weight:800; color:#C9A84C; line-height:1.3;">Amina Hassan checked in</p>
-                                    <p style="font-size:8px; color:#8A8580;">Just now · Main Entrance</p>
+                                    <p style="font-size:8px; color:#8892a4;">Just now · Main Entrance</p>
                                 </div>
                             </div>
                         </div>
 
                         <div class="absolute top-1/3 -right-2 sm:right-0 lg:-right-6 z-30 pill-drift-c hidden sm:block" :style="pill3Style">
-                            <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-lg" style="background:#FFFFFF; border-color:#EBEBEA;">
+                            <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-lg" style="background:#111827; border-color:#1e2d44;">
                                 <span class="text-base leading-none">💰</span>
                                 <div>
                                     <p style="font-size:9px; font-weight:800; font-family:system-ui; line-height:1.3;" class="amber-text">TZS 2.4M</p>
-                                    <p style="font-size:8px; color:#8A8580;">Contributions collected</p>
+                                    <p style="font-size:8px; color:#8892a4;">Contributions collected</p>
                                 </div>
                             </div>
                         </div>
@@ -367,7 +367,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                     </div><!-- end right col -->
                 </div>
 
-                <div class="mt-16 h-px w-full" style="background:linear-gradient(90deg,transparent,#EBEBEA 30%,#EBEBEA 70%,transparent);"></div>
+                <div class="mt-16 h-px w-full" style="background:linear-gradient(90deg,transparent,#1e2d44 30%,#1e2d44 70%,transparent);"></div>
             </section>
 
             <!-- ╔═══════════════╗ -->
@@ -387,12 +387,12 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
             <!-- ╔══════════════════╗ -->
             <!-- ║  FEATURES GRID   ║ -->
             <!-- ╚══════════════════╝ -->
-            <section id="features" class="max-w-4xl mx-auto px-3 py-16 border-t" style="border-color:#EBEBEA;">
+            <section id="features" class="max-w-4xl mx-auto px-3 py-16 border-t" style="border-color:#1e2d44;">
                 <div class="flex items-center gap-3 mb-4 reveal">
                     <div class="w-0.5 h-3.5 rounded-full" style="background:#C9A84C;"></div>
-                    <span class="text-[11px] font-black uppercase tracking-[0.4em]" style="color:#8A8580;">Our Features</span>
+                    <span class="text-[11px] font-black uppercase tracking-[0.4em]" style="color:#8892a4;">Our Features</span>
                 </div>
-                <h2 class="text-3xl sm:text-4xl font-black tracking-tighter mb-12 reveal" style="color:#1C1A18;">
+                <h2 class="text-3xl sm:text-4xl font-black tracking-tighter mb-12 reveal" style="color:#e2e8f0;">
                     Everything You Need<br /><span class="amber-text">In One Place.</span>
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -425,10 +425,10 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                                 {name:'John Makwela',   status:'Checked In',     dot:'#C9A84C'},
                                 {name:'Fatma Omar',     status:'Pending',        dot:'#C4BBAE'},
                                 {name:'Khalid Juma',    status:'No Response',    dot:'#D8D2C8'},
-                            ]" :key="i" class="flex items-center justify-between px-4 py-3 rounded-2xl border" style="background:#F2F2F0; border-color:#EBEBEA;">
+                            ]" :key="i" class="flex items-center justify-between px-4 py-3 rounded-2xl border" style="background:#111827; border-color:#1e2d44;">
                                 <div class="flex items-center gap-3">
-                                    <div class="size-8 rounded-full flex items-center justify-center text-[11px] font-black" style="background:#EBEBEA; color:#8A8580;">{{ g.name[0] }}</div>
-                                    <span class="text-sm font-medium" style="color:#6B6A68;">{{ g.name }}</span>
+                                    <div class="size-8 rounded-full flex items-center justify-center text-[11px] font-black" style="background:#1e2d44; color:#8892a4;">{{ g.name[0] }}</div>
+                                    <span class="text-sm font-medium" style="color:#8892a4;">{{ g.name }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="size-1.5 rounded-full" :style="`background:${g.dot};`"></span>
@@ -446,7 +446,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                                 <span style="color:#C4BBAE;">Total Pledged</span>
                                 <span class="amber-text">TZS 4.8M</span>
                             </div>
-                            <div class="h-1.5 rounded-full overflow-hidden" style="background:#EBEBEA;">
+                            <div class="h-1.5 rounded-full overflow-hidden" style="background:#1e2d44;">
                                 <div class="h-full rounded-full" style="width:72%; background:linear-gradient(90deg,#C9A84C,#E8C87C);"></div>
                             </div>
                             <div class="flex justify-between text-[10px] font-black uppercase tracking-widest">
@@ -462,9 +462,9 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                         <div class="grid grid-cols-4 gap-2 mt-auto">
                             <div v-for="(item, i) in [
                                 {bg:'#FFF8EC', opacity:1},
-                                {bg:'#F2F2F0', opacity:1},
+                                {bg:'#111827', opacity:1},
                                 {bg:'#FFF8EC', opacity:0.7},
-                                {bg:'#F2F2F0', opacity:0.9},
+                                {bg:'#111827', opacity:0.9},
                             ]" :key="i"
                                 class="rounded-xl flex items-center justify-center"
                                 :style="`background:${item.bg}; aspect-ratio:1.8; opacity:${item.opacity};`">
@@ -482,9 +482,9 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                             <div class="flex-shrink-0 grid grid-cols-3 gap-3">
                                 <div v-for="svc in [{n:'MC',e:'🎤'},{n:'Decor',e:'🌸'},{n:'Venue',e:'🏛️'},{n:'Artists',e:'🎵'},{n:'Photos',e:'📸'},{n:'Catering',e:'🍽️'}]" :key="svc.n"
                                     class="flex flex-col items-center gap-2 p-4 rounded-2xl border hover:border-[#C9A84C]/40 transition-all cursor-pointer group/svc"
-                                    style="background:#F2F2F0; border-color:#EBEBEA;">
+                                    style="background:#111827; border-color:#1e2d44;">
                                     <span class="text-2xl">{{ svc.e }}</span>
-                                    <span class="text-[9px] font-black uppercase tracking-widest transition-colors group-hover/svc:text-[#C9A84C]" style="color:#8A8580;">{{ svc.n }}</span>
+                                    <span class="text-[9px] font-black uppercase tracking-widest transition-colors group-hover/svc:text-[#C9A84C]" style="color:#8892a4;">{{ svc.n }}</span>
                                 </div>
                             </div>
                         </div>
@@ -495,12 +495,12 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
             <!-- ╔═══════════════╗ -->
             <!-- ║  HOW IT WORKS ║ -->
             <!-- ╚═══════════════╝ -->
-            <section id="how" class="max-w-4xl mx-auto px-3 py-16 border-t" style="border-color:#EBEBEA;">
+            <section id="how" class="max-w-4xl mx-auto px-3 py-16 border-t" style="border-color:#1e2d44;">
                 <div class="flex items-center gap-3 mb-4 reveal">
                     <div class="w-0.5 h-3.5 rounded-full" style="background:#C9A84C;"></div>
-                    <span class="text-[11px] font-black uppercase tracking-[0.4em]" style="color:#8A8580;">Guide</span>
+                    <span class="text-[11px] font-black uppercase tracking-[0.4em]" style="color:#8892a4;">Guide</span>
                 </div>
-                <h2 class="text-3xl sm:text-4xl font-black tracking-tighter mb-12 reveal" style="color:#1C1A18;">
+                <h2 class="text-3xl sm:text-4xl font-black tracking-tighter mb-12 reveal" style="color:#e2e8f0;">
                     How It <span class="amber-text">Works.</span>
                 </h2>
                 <div class="relative">
@@ -511,8 +511,8 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                             <div class="flex-shrink-0 size-[54px] rounded-2xl border flex items-center justify-center text-lg font-black group-hover:scale-110 transition-transform duration-300 z-10"
                                 style="background:#FFF8EC; border-color:rgba(201,168,76,0.35); color:#C9A84C;">{{ i + 1 }}</div>
                             <div class="flex-1 pt-1">
-                                <h3 class="text-lg font-black mb-2" style="color:#1C1A18;">{{ step.title }}</h3>
-                                <p class="font-medium leading-relaxed text-sm" style="color:#8A8580;">{{ step.desc }}</p>
+                                <h3 class="text-lg font-black mb-2" style="color:#e2e8f0;">{{ step.title }}</h3>
+                                <p class="font-medium leading-relaxed text-sm" style="color:#8892a4;">{{ step.desc }}</p>
                             </div>
                             <component :is="step.icon" class="size-5 flex-shrink-0 mt-1.5" style="color:#C4BBAE;" />
                         </div>
@@ -524,14 +524,14 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
             <!-- ║  FINAL CTA    ║ -->
             <!-- ╚═══════════════╝ -->
             <section id="cta" class="max-w-4xl mx-auto px-3 py-16 reveal">
-                <div class="rounded-[48px] border p-14 sm:p-24 relative overflow-hidden text-center" style="background:#FFFFFF; border-color:#EBEBEA; box-shadow:0 8px 48px rgba(201,168,76,0.08), 0 2px 8px rgba(0,0,0,0.04);">
+                <div class="rounded-[48px] border p-14 sm:p-24 relative overflow-hidden text-center" style="background:#111827; border-color:#1e2d44; box-shadow:0 8px 48px rgba(201,168,76,0.08), 0 2px 8px rgba(0,0,0,0.04);">
                     <div class="absolute inset-0 pointer-events-none cta-glow"></div>
                     <div class="relative z-10">
                         <div class="icon-badge mx-auto mb-10"><SparklesIcon class="size-8 amber-icon" /></div>
-                        <h2 class="text-3xl sm:text-5xl font-black tracking-tighter mb-6 leading-tight" style="color:#1C1A18;">
+                        <h2 class="text-3xl sm:text-5xl font-black tracking-tighter mb-6 leading-tight" style="color:#e2e8f0;">
                             Ready to Transform<br /><span class="amber-text">Your Event?</span>
                         </h2>
-                        <p class="text-lg font-medium mb-14 max-w-lg mx-auto leading-relaxed" style="color:#8A8580;">
+                        <p class="text-lg font-medium mb-14 max-w-lg mx-auto leading-relaxed" style="color:#8892a4;">
                             Join thousands of event organizers using Haflaway to make their weddings, sendoffs, and kitchen parties truly unforgettable.
                         </p>
                         <div class="flex flex-col sm:flex-row gap-5 justify-center">
@@ -547,10 +547,10 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
         </main>
 
         <!-- ░░ FOOTER ░░ -->
-        <footer class="max-w-4xl mx-auto px-3 py-14 border-t" style="border-color:#EBEBEA;">
+        <footer class="max-w-4xl mx-auto px-3 py-14 border-t" style="border-color:#1e2d44;">
             <div class="flex flex-col md:flex-row justify-between items-center gap-8">
                 <div class="flex items-center gap-3 cursor-pointer opacity-50 hover:opacity-80 transition-opacity" @click="$router.push('/')">
-                    <div class="size-8 rounded-xl overflow-hidden border" style="border-color:#EBEBEA;"><img src="/src/assets/icon-512.png" alt="Logo" class="size-full object-cover" /></div>
+                    <div class="size-8 rounded-xl overflow-hidden border" style="border-color:#1e2d44;"><img src="/src/assets/icon-512.png" alt="Logo" class="size-full object-cover" /></div>
                     <span class="text-sm font-black tracking-tighter uppercase amber-text">Haflaway</span>
                 </div>
                 <div class="flex items-center gap-8">
@@ -584,8 +584,8 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 }
 
 /* ── Utilities ── */
-.nav-link { font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.2em; color:#8A8580; transition:color .2s; }
-.nav-link:hover { color:#1C1A18; }
+.nav-link { font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.2em; color:#8892a4; transition:color .2s; }
+.nav-link:hover { color:#e2e8f0; }
 
 .btn-primary { background:#C9A84C; color:#fff; transition:transform .15s, box-shadow .15s; box-shadow:0 8px 24px rgba(201,168,76,0.3); }
 .btn-primary:hover  { box-shadow:0 12px 36px rgba(201,168,76,0.45); }
@@ -598,8 +598,8 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 .event-pill { padding:.4rem .9rem; border-radius:100px; border:1px solid rgba(201,168,76,0.25); background:#FFF8EC; color:#C9A84C; font-size:11px; font-weight:800; }
 
 .feature-card  {
-    background:#FFFFFF;
-    border:1px solid #EBEBEA;
+    background:#111827;
+    border:1px solid #1e2d44;
     border-radius:32px;
     box-shadow:0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
     transition:border-color .3s, box-shadow .3s;
@@ -609,8 +609,8 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
     box-shadow:0 4px 24px rgba(201,168,76,0.10), 0 1px 3px rgba(0,0,0,0.04);
 }
 
-.feature-title { font-weight:900; color:#1C1A18; letter-spacing:-.03em; margin-bottom:.75rem; }
-.feature-desc  { color:#8A8580; line-height:1.65; font-weight:500; }
+.feature-title { font-weight:900; color:#e2e8f0; letter-spacing:-.03em; margin-bottom:.75rem; }
+.feature-desc  { color:#8892a4; line-height:1.65; font-weight:500; }
 
 .icon-badge { width:3.5rem; height:3.5rem; background:#FFF8EC; border:1px solid rgba(201,168,76,0.25); border-radius:1rem; display:flex; align-items:center; justify-content:center; transition:transform .3s; }
 .feature-card:hover .icon-badge { transform:scale(1.08); }
@@ -619,7 +619,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
 .tag { padding:.35rem .75rem; border-radius:100px; background:#FFF8EC; border:1px solid rgba(201,168,76,0.22); color:#C9A84C; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.1em; }
 
 .footer-link { font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.15em; color:#C4BBAE; transition:color .2s; }
-.footer-link:hover { color:#8A8580; }
+.footer-link:hover { color:#8892a4; }
 
 .cta-glow { background:radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.08) 0%, transparent 65%); }
 

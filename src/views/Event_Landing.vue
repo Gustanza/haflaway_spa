@@ -2088,7 +2088,7 @@ const toggleLike = async (item) => {
 
 .hero-dot-active {
     width: 20px;
-    background: #fff;
+    background: #111827;
     cursor: default;
 }
 

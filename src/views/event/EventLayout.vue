@@ -15,7 +15,7 @@
         <div class="el-event-thumb">
           <img v-if="event?.eventThumbnail" :src="event.eventThumbnail" :alt="event.title" />
           <div v-else class="el-event-thumb-ph">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DCDCE0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f617a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="3"/>
               <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
               <line x1="3" y1="10" x2="21" y2="10"/>
@@ -221,23 +221,23 @@ onMounted(async () => {
 <style scoped>
 /* ── Tokens ── */
 .el-root {
-  --ink: #0A0A0B;
-  --ink-soft: #1F1F22;
-  --ink-muted: #6B6B72;
-  --ink-dim: #B5B5BB;
-  --line: #ECECEF;
-  --line-soft: #F4F4F6;
-  --line-strong: #DCDCE0;
-  --paper-soft: #FAFAFB;
-  --gold: #B8924D;
-  --emerald: #0A9C5F;
-  --emerald-soft: #E5F5EE;
+  --ink: #e2e8f0;
+  --ink-soft: #c8d4e0;
+  --ink-muted: #8892a4;
+  --ink-dim: #4f617a;
+  --line: #1e2d44;
+  --line-soft: #1a2a3e;
+  --line-strong: #2a3a52;
+  --paper-soft: #0d1326;
+  --gold: #C9A84C;
+  --emerald: #34d399;
+  --emerald-soft: rgba(52,211,153,0.12);
 
   display: flex;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: #FFFFFF;
+  background: #0a0e1c;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--ink);
 }
@@ -246,7 +246,7 @@ onMounted(async () => {
 .el-sidebar {
   width: 220px;
   flex-shrink: 0;
-  background: #FFFFFF;
+  background: #0d1326;
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -396,10 +396,11 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 24px;
-  background: rgba(255,255,255,0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(10,14,28,0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
 }
 .el-topbar-left {
   display: flex;
@@ -470,8 +471,8 @@ onMounted(async () => {
 }
 .el-status-pill--upcoming .el-status-dot { background: var(--ink-dim); }
 .el-status-pill--ongoing {
-  background: rgba(184,146,77,0.10);
-  color: #96660A;
+  background: rgba(201,168,76,0.10);
+  color: #C9A84C;
 }
 .el-status-pill--ongoing .el-status-dot {
   background: var(--gold);
@@ -491,6 +492,6 @@ onMounted(async () => {
 .el-content {
   flex: 1;
   overflow-y: auto;
-  background: #FFFFFF;
+  background: #0a0e1c;
 }
 </style>

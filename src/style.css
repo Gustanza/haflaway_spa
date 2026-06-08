@@ -1,5 +1,28 @@
 @import "tailwindcss";
 
+/* ── Global dark theme tokens ── */
+:root {
+  --ink:        #e2e8f0;
+  --ink-soft:   #c8d4e0;
+  --ink-muted:  #8892a4;
+  --ink-dim:    #4f617a;
+  --line:       #1e2d44;
+  --line-strong:#2a3a52;
+  --paper:      #111827;
+  --gold:       #C9A84C;
+  --emerald:    #34d399;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #0a0e1c;
+  color: #e2e8f0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
 @layer components {
   .apple-glass {
     background: rgba(255, 255, 255, 0.03);
@@ -120,9 +143,16 @@
   animation: radial-glow 15s ease-in-out infinite alternate;
 }
 
+body {
+  --ink: #e2e8f0;
+  --gold: #C9A84C;
+  background: #0a0e1c;
+  color: #e2e8f0;
+}
+
 .bg-mesh {
   background:
-    radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.05) 0%, transparent 60%);
+    radial-gradient(circle at 20% 20%, rgba(201, 168, 76, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(52, 211, 153, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(10, 14, 28, 0.8) 0%, transparent 60%);
 }
