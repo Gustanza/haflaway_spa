@@ -314,17 +314,17 @@ const PURPOSE_LABELS = {
 }
 
 const PURPOSE_STYLES = {
-  invitation:    { bg: 'rgba(184,146,77,0.18)',  color: '#7A5A10' },
-  contribution:  { bg: 'rgba(48,209,88,0.18)',   color: '#136B2A' },
-  save_the_date: { bg: 'rgba(94,154,255,0.18)',  color: '#1A3A8A' },
-  contact:       { bg: 'rgba(138,133,128,0.15)', color: '#5A5550' },
+  invitation:    { bg: 'linear-gradient(180deg, #2e3a58 0%, #1e2d46 100%)', color: '#e2e8f0' },
+  contribution:  { bg: 'linear-gradient(180deg, #2e3a58 0%, #1e2d46 100%)', color: '#e2e8f0' },
+  save_the_date: { bg: 'linear-gradient(180deg, #2e3a58 0%, #1e2d46 100%)', color: '#e2e8f0' },
+  contact:       { bg: 'linear-gradient(180deg, #2e3a58 0%, #1e2d46 100%)', color: '#e2e8f0' },
 }
 
 const PURPOSE_GRADIENTS = {
-  invitation:    'linear-gradient(145deg, #F5EDD5 0%, #EDD89A 100%)',
-  contribution:  'linear-gradient(145deg, #D5F0DC 0%, #9ADAB0 100%)',
-  save_the_date: 'linear-gradient(145deg, #D5E5F8 0%, #9AC0EE 100%)',
-  contact:       'linear-gradient(145deg, #ECECEF 0%, #D0CBC4 100%)',
+  invitation:    'linear-gradient(145deg, #1c1a14 0%, #2a2418 100%)',
+  contribution:  'linear-gradient(145deg, #101a14 0%, #162418 100%)',
+  save_the_date: 'linear-gradient(145deg, #101620 0%, #16202e 100%)',
+  contact:       'linear-gradient(145deg, #141618 0%, #1e2228 100%)',
 }
 
 const PURPOSE_FILTERS = [

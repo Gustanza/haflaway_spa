@@ -717,7 +717,7 @@ onUnmounted(() => {
 .me-topbar-inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 14px 32px;
+  padding: 28px 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -893,7 +893,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  background: linear-gradient(180deg, #2A2A2D 0%, #0A0A0B 100%);
+  background: linear-gradient(180deg, #2e3a58 0%, #1e2d46 100%);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.28);
   color: #fff;
   border: none;
@@ -907,8 +907,8 @@ onUnmounted(() => {
   letter-spacing: 0.1px;
 }
 .me-create-btn:hover {
-  opacity: 0.88;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 16px rgba(0,0,0,0.36);
+  opacity: 0.90;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 16px rgba(0,0,0,0.4);
 }
 .me-create-btn--lg {
   padding: 10px 24px;
@@ -1069,8 +1069,9 @@ onUnmounted(() => {
 }
 .me-status-chip:hover { background: var(--paper-soft); color: var(--ink); }
 .me-status-chip--active {
-  background: var(--ink);
-  color: #fff;
+  background: rgba(226,232,240,0.12);
+  border: 1px solid rgba(226,232,240,0.16);
+  color: #e2e8f0;
 }
 .me-chip-count {
   font-size: 10.5px;
@@ -1080,7 +1081,7 @@ onUnmounted(() => {
   padding: 1px 6px;
   border-radius: 8px;
 }
-.me-chip-count--active { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.8); }
+.me-chip-count--active { background: rgba(226,232,240,0.10); color: rgba(226,232,240,0.7); }
 .me-fb-select {
   padding: 6px 10px;
   border: 1px solid var(--line);
@@ -1160,7 +1161,7 @@ onUnmounted(() => {
   padding: 2px 8px;
   border-radius: 6px;
 }
-.me-role-badge--owner { background: var(--ink); color: #fff; }
+.me-role-badge--owner { background: rgba(226,232,240,0.12); border: 1px solid rgba(226,232,240,0.16); color: #e2e8f0; }
 .me-role-badge--admin { background: transparent; border: 1px solid var(--line-strong); color: var(--ink-muted); }
 
 /* ── Featured hero ── */
@@ -1284,8 +1285,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  background: var(--ink);
-  color: #fff;
+  background: linear-gradient(180deg, #2e3a58 0%, #1e2d46 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 2px 8px rgba(0,0,0,0.28);
+  color: #e2e8f0;
   border: none;
   padding: 8px 16px;
   border-radius: 9px;
@@ -1346,14 +1348,14 @@ onUnmounted(() => {
   margin-bottom: 14px;
 }
 .me-feat-cd-ticket {
-  background: var(--ink);
-  color: #fff;
+  background: linear-gradient(180deg, #2e3a58 0%, #1e2d46 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 4px 12px rgba(0,0,0,0.35);
+  color: #e2e8f0;
   border-radius: 10px;
   padding: 10px 16px;
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.22);
 }
 .me-feat-cd-num {
   font-family: 'Instrument Serif', Georgia, serif;
@@ -1574,9 +1576,9 @@ onUnmounted(() => {
   letter-spacing: 0.1px;
 }
 .me-row-days-pill--soon {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+  background: rgba(226,232,240,0.12);
+  border-color: rgba(226,232,240,0.16);
+  color: #e2e8f0;
 }
 .me-row-days-pill--live {
   background: var(--emerald-soft);
@@ -1605,9 +1607,9 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 .me-row:hover .me-row-manage-btn {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+  background: rgba(226,232,240,0.12);
+  border-color: rgba(226,232,240,0.18);
+  color: #e2e8f0;
 }
 
 /* ── Pagination ── */
@@ -1641,9 +1643,9 @@ onUnmounted(() => {
   color: var(--ink);
 }
 .me-page-btn--active {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+  background: rgba(226,232,240,0.12);
+  border-color: rgba(226,232,240,0.18);
+  color: #e2e8f0;
   font-weight: 700;
 }
 .me-page-btn--nav { color: var(--ink-dim); }
@@ -1712,8 +1714,9 @@ onUnmounted(() => {
 }
 .me-modal-cancel:hover { background: var(--paper-soft); color: var(--ink); }
 .me-modal-confirm {
-  background: var(--ink);
-  color: #fff;
+  background: rgba(255,255,255,0.12);
+  color: #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.12);
   border: none;
   padding: 8px 18px;
   border-radius: 9px;

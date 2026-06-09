@@ -15,7 +15,7 @@
         <div class="el-event-thumb">
           <img v-if="event?.eventThumbnail" :src="event.eventThumbnail" :alt="event.title" />
           <div v-else class="el-event-thumb-ph">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f617a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DCDCE0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="3"/>
               <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
               <line x1="3" y1="10" x2="21" y2="10"/>
@@ -244,39 +244,40 @@ onMounted(async () => {
 
 /* ── Sidebar ── */
 .el-sidebar {
-  width: 220px;
+  width: 224px;
   flex-shrink: 0;
   background: #0d1326;
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  padding: 0 12px 20px;
+  padding: 0;
   z-index: 10;
   overflow-y: auto;
+  box-shadow: 2px 0 20px rgba(0,0,0,0.4);
 }
 
-/* Brand */
+/* Brand — same vertical padding as topbar so the divider lines align */
 .el-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 18px 8px 16px;
+  gap: 9px;
+  padding: 28px 18px;
   border-bottom: 1px solid var(--line);
-  margin-bottom: 12px;
   cursor: pointer;
   flex-shrink: 0;
 }
 .el-brand-glyph {
-  font-size: 12px;
+  font-size: 16px;
   color: var(--gold);
   line-height: 1;
+  flex-shrink: 0;
 }
 .el-brand-name {
   font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 400;
   color: var(--ink);
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
 }
 
 /* Event identity */
@@ -284,18 +285,20 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 6px 12px;
+  padding: 12px 14px 14px;
   border-bottom: 1px solid var(--line);
-  margin-bottom: 10px;
 }
 .el-event-thumb {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 9px;
   overflow: hidden;
   flex-shrink: 0;
   background: var(--paper-soft);
   border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .el-event-thumb img {
   width: 100%;
@@ -308,6 +311,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--ink-dim);
 }
 .el-event-info { min-width: 0; }
 .el-event-name {
@@ -330,17 +334,19 @@ onMounted(async () => {
 .el-back-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   background: none;
   border: none;
-  font-size: 12px;
+  font-size: 13.5px;
+  font-weight: 500;
   color: var(--ink-muted);
   cursor: pointer;
-  padding: 6px 8px;
-  border-radius: 8px;
-  margin-bottom: 8px;
+  padding: 9px 8px;
+  border-radius: 10px;
+  margin: 8px 10px 4px;
   transition: color 130ms, background 130ms;
   font-family: inherit;
+  white-space: nowrap;
 }
 .el-back-btn:hover { color: var(--ink); background: var(--paper-soft); }
 
@@ -348,18 +354,20 @@ onMounted(async () => {
 .el-nav {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  padding: 0 10px;
 }
 .el-nav-item {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  gap: 10px;
+  padding: 9px 8px;
+  border-radius: 10px;
   text-decoration: none;
   color: var(--ink-muted);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
+  min-height: 38px;
   transition: background 130ms, color 130ms;
 }
 .el-nav-item:hover {
@@ -367,18 +375,22 @@ onMounted(async () => {
   color: var(--ink);
 }
 .el-nav-item--active {
-  background: var(--ink);
-  color: #FFFFFF;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: #e2e8f0;
   font-weight: 600;
 }
-.el-nav-item--active .el-nav-icon { opacity: 1; }
+.el-nav-item--active:hover { background: rgba(255,255,255,0.13); }
 .el-nav-icon {
+  width: 24px;
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   opacity: 0.7;
 }
 .el-nav-item--active .el-nav-icon { opacity: 1; }
+.el-nav-label { flex: 1; }
 
 /* ── Main ── */
 .el-main {
@@ -395,7 +407,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
+  padding: 28px 32px;
   background: rgba(10,14,28,0.88);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
