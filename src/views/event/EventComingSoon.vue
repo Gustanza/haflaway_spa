@@ -77,7 +77,7 @@ const sectionMeta = {
   },
   settings: {
     title: 'Event Settings',
-    icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6B6B72" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4f617a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="3"/>
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>`,
@@ -103,11 +103,11 @@ const icon = computed(() => meta.value.icon)
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  background: #FFFFFF;
-  border: 1px solid #ECECEF;
+  background: #111827;
+  border: 1px solid #1e2d44;
   border-radius: 20px;
   padding: 48px 56px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   text-align: center;
   max-width: 380px;
 }
@@ -115,7 +115,7 @@ const icon = computed(() => meta.value.icon)
   width: 80px;
   height: 80px;
   border-radius: 20px;
-  background: #FFFFFF;
+  background: #0d1326;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -124,26 +124,26 @@ const icon = computed(() => meta.value.icon)
 .cs-title {
   font-size: 20px;
   font-weight: 700;
-  color: #0A0A0B;
+  color: #e2e8f0;
   margin: 0;
 }
 .cs-sub {
   font-size: 14px;
-  color: #6B6B72;
+  color: #8892a4;
   margin: 0;
   line-height: 1.5;
 }
 .cs-back-btn {
   margin-top: 8px;
   background: none;
-  border: 1px solid #ECECEF;
+  border: 1px solid #2a3a52;
   border-radius: 10px;
   padding: 9px 18px;
   font-size: 13px;
   font-weight: 600;
-  color: #B8924D;
+  color: #C9A84C;
   cursor: pointer;
   transition: background 130ms;
 }
-.cs-back-btn:hover { background: #FAFAFB; }
+.cs-back-btn:hover { background: #1a2236; }
 </style>

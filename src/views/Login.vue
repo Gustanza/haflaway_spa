@@ -216,7 +216,7 @@ function friendlyError(code) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F8F8F6;
+  background: #0a0e1c;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   position: relative;
   padding: 24px;
@@ -237,11 +237,11 @@ function friendlyError(code) {
 .login-card {
   width: 100%;
   max-width: 420px;
-  background: #FFFFFF;
-  border: 0.8px solid #EBEBEA;
+  background: #111827;
+  border: 1px solid #1e2d44;
   border-radius: 20px;
   padding: 36px 36px 28px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   position: relative;
   z-index: 1;
   display: flex;
@@ -264,7 +264,7 @@ function friendlyError(code) {
 .brand-name {
   font-size: 16px;
   font-weight: 700;
-  color: #1C1A18;
+  color: #e2e8f0;
   letter-spacing: -0.3px;
 }
 
@@ -273,13 +273,13 @@ function friendlyError(code) {
 .login-title {
   font-size: 24px;
   font-weight: 800;
-  color: #1C1A18;
+  color: #e2e8f0;
   letter-spacing: -0.5px;
   margin: 0 0 5px;
 }
 .login-sub {
   font-size: 14px;
-  color: #8A8580;
+  color: #8892a4;
   margin: 0;
 }
 
@@ -298,7 +298,7 @@ function friendlyError(code) {
 .field-label {
   font-size: 12px;
   font-weight: 600;
-  color: #6B6A68;
+  color: #8892a4;
   letter-spacing: 0.1px;
 }
 .field-wrap {
@@ -309,7 +309,7 @@ function friendlyError(code) {
 .field-icon {
   position: absolute;
   left: 13px;
-  color: #B5B0A8;
+  color: #4f617a;
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -317,21 +317,21 @@ function friendlyError(code) {
 .field-input {
   width: 100%;
   padding: 11px 12px 11px 40px;
-  border: 0.8px solid #EBEBEA;
+  border: 0.8px solid #1e2d44;
   border-radius: 11px;
-  background: #FAFAF8;
+  background: #111827;
   font-size: 14px;
-  color: #1C1A18;
+  color: #e2e8f0;
   outline: none;
   transition: border-color 140ms, box-shadow 140ms;
   font-family: inherit;
   box-sizing: border-box;
 }
-.field-input::placeholder { color: #B5B0A8; }
+.field-input::placeholder { color: #4f617a; }
 .field-input:focus {
   border-color: rgba(201,168,76,0.5);
-  box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
-  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.10);
+  background: #0d1326;
 }
 .field-group--error .field-input {
   border-color: rgba(255,59,48,0.5);
@@ -343,13 +343,13 @@ function friendlyError(code) {
   background: none;
   border: none;
   cursor: pointer;
-  color: #B5B0A8;
+  color: #4f617a;
   display: flex;
   align-items: center;
   padding: 4px;
   transition: color 130ms;
 }
-.field-toggle:hover { color: #6B6A68; }
+.field-toggle:hover { color: #8892a4; }
 .field-error {
   font-size: 12px;
   color: #FF453A;
@@ -385,7 +385,7 @@ function friendlyError(code) {
   border-radius: 10px;
   padding: 10px 14px;
   font-size: 13px;
-  color: #D93025;
+  color: #FF453A;
 }
 
 /* Submit button */
@@ -425,7 +425,7 @@ function friendlyError(code) {
 /* Register link */
 .login-register {
   font-size: 13px;
-  color: #8A8580;
+  color: #8892a4;
   text-align: center;
   margin: 0;
 }
@@ -441,7 +441,8 @@ function friendlyError(code) {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(28,26,24,0.4);
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -449,12 +450,13 @@ function friendlyError(code) {
   padding: 24px;
 }
 .reset-modal {
-  background: #FFFFFF;
+  background: #111827;
+  border: 1px solid #1e2d44;
   border-radius: 18px;
   padding: 28px;
   width: 100%;
   max-width: 360px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.16);
+  box-shadow: 4px 8px 0 rgba(0,0,0,0.4);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -462,19 +464,19 @@ function friendlyError(code) {
 .reset-title {
   font-size: 18px;
   font-weight: 700;
-  color: #1C1A18;
+  color: #e2e8f0;
   margin: 0;
 }
 .reset-sub {
   font-size: 13px;
-  color: #8A8580;
+  color: #8892a4;
   margin: 0;
 }
 .reset-success {
   font-size: 13px;
-  color: #1D7A38;
-  background: rgba(52,199,89,0.08);
-  border: 0.8px solid rgba(52,199,89,0.25);
+  color: #34d399;
+  background: rgba(52,211,153,0.12);
+  border: 0.8px solid rgba(52,211,153,0.25);
   border-radius: 8px;
   padding: 10px 12px;
   margin: 0;
@@ -486,13 +488,13 @@ function friendlyError(code) {
   margin-top: 4px;
 }
 .reset-cancel {
-  background: #F2F2F0;
-  border: none;
+  background: transparent;
+  border: 1px solid #2a3a52;
   border-radius: 10px;
   padding: 9px 16px;
   font-size: 13px;
   font-weight: 600;
-  color: #6B6A68;
+  color: #8892a4;
   cursor: pointer;
   font-family: inherit;
 }
