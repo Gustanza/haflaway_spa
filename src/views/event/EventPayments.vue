@@ -412,4 +412,14 @@ onMounted(() => {
 }
 .ep-empty-title { font-size: 14px; font-weight: 600; color: #8892a4; margin: 4px 0 0; }
 .ep-empty-sub   { font-size: 13px; color: #4f617a; margin: 0; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .ep-root { padding: 12px 14px 20px; gap: 12px; }
+  .ep-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ep-toolbar { flex-wrap: wrap; gap: 8px; }
+}
+@media (max-width: 400px) {
+  .ep-stats { grid-template-columns: 1fr; }
+}
 </style>

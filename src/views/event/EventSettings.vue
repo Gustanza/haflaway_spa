@@ -1492,4 +1492,10 @@ function showToast(msg, isErr = false) {
 .es-toast-leave-active { transition: opacity 180ms, transform 180ms; }
 .es-toast-enter-from   { opacity: 0; transform: translateX(-50%) translateY(12px); }
 .es-toast-leave-to     { opacity: 0; transform: translateX(-50%) translateY(8px); }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .es-root { padding: 16px 14px 48px; }
+  .es-header { padding: 14px 14px 12px; }
+}
 </style>

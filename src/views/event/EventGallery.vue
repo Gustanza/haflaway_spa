@@ -1143,4 +1143,14 @@ function formatDate(val) {
 /* Spin */
 .eg-spin { animation: eg-spin-anim 1.1s linear infinite; }
 @keyframes eg-spin-anim { to { transform: rotate(360deg); } }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .eg-root { padding: 12px 14px 20px; gap: 12px; }
+  .eg-toolbar { flex-wrap: wrap; gap: 8px; }
+  .eg-toolbar-left { flex: 1; min-width: 0; }
+  .eg-toolbar-right { flex-wrap: wrap; gap: 6px; }
+  .eg-search-wrap { flex: 1; min-width: 0; }
+  .eg-search { min-width: 0; width: 100%; }
+}
 </style>

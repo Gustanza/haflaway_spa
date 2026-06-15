@@ -1075,4 +1075,14 @@ async function toggleSlotGeneric(att, slotIndex) {
 /* Spin animation */
 .ec-spin { animation: ec-spin-anim 1.1s linear infinite; }
 @keyframes ec-spin-anim { to { transform: rotate(360deg); } }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .ec-root { padding: 12px 14px 20px; gap: 12px; }
+  .ec-toolbar { flex-wrap: wrap; gap: 8px; }
+  .ec-toolbar-left { flex: 1; min-width: 0; }
+  .ec-toolbar-right { flex-wrap: wrap; gap: 6px; width: 100%; }
+  .ec-search-wrap { flex: 1; min-width: 0; }
+  .ec-search { min-width: 0; max-width: 100%; width: 100%; }
+}
 </style>

@@ -18,6 +18,24 @@
       </div>
 
       <div class="ea-toolbar-right">
+        <div class="ea-tb-acts">
+          <button class="ea-import-btn" @click="openImport">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span class="ea-btn-label">Import</span>
+          </button>
+          <button class="ea-add-btn" @click="openAdd">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add Attendee
+          </button>
+        </div>
         <div class="ea-filter-chips">
           <button v-for="f in typeFilters" :key="f.val"
             class="ea-chip" :class="{ 'ea-chip--active': activeType === f.val }"
@@ -28,22 +46,6 @@
             </span>
           </button>
         </div>
-        <button class="ea-import-btn" @click="openImport">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Import
-        </button>
-        <button class="ea-add-btn" @click="openAdd">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.5" stroke-linecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Add
-        </button>
       </div>
     </div>
 
@@ -2339,6 +2341,13 @@ function setImportPayment(attendeeId, amount) {
   flex-shrink: 0;
 }
 
+.ea-tb-acts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .ea-filter-chips { display: flex; gap: 4px; }
 .ea-chip {
   padding: 7px 13px;
@@ -2375,18 +2384,19 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: #0A0A0B;
-  color: #FFFFFF;
+  background: #B8924D;
+  color: #fff;
   border: none;
   border-radius: 10px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: opacity 150ms;
+  transition: background 150ms, box-shadow 150ms;
   font-family: inherit;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(184,146,77,0.30);
 }
-.ea-add-btn:hover { opacity: 0.82; }
+.ea-add-btn:hover { background: #a07840; box-shadow: 0 4px 14px rgba(184,146,77,0.40); }
 
 
 /* ── Selection bar ── */
@@ -4210,4 +4220,28 @@ function setImportPayment(attendeeId, amount) {
 .ea-lm-create { display: flex; flex-direction: column; gap: 10px; }
 .ea-lm-create-row { display: flex; align-items: center; gap: 8px; }
 .ea-lm-preview-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+  .ea-root { padding: 12px 14px 20px; gap: 12px; }
+  /* Toolbar restructure: acts row first (visible), chips row second (scrollable) */
+  .ea-toolbar { gap: 8px; flex-wrap: wrap; }
+  .ea-toolbar-right {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+  .ea-tb-acts { width: 100%; gap: 8px; }
+  .ea-import-btn { flex: 1; justify-content: center; }
+  .ea-add-btn { flex: 1; justify-content: center; padding: 10px 16px; font-size: 14px; }
+  .ea-filter-chips { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; gap: 6px; }
+  .ea-chip { flex-shrink: 0; padding: 6px 12px; font-size: 12px; }
+  .ea-label-filter-row { gap: 6px; padding: 4px 0; }
+}
+@media (max-width: 400px) {
+  .ea-btn-label { display: none; }
+  .ea-import-btn { flex: 0 0 auto; padding: 10px 14px; }
+  .ea-add-btn { flex: 1; }
+}
 </style>

@@ -524,7 +524,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
             <!-- ║  FINAL CTA    ║ -->
             <!-- ╚═══════════════╝ -->
             <section id="cta" class="max-w-4xl mx-auto px-3 py-16 reveal">
-                <div class="rounded-[48px] border p-14 sm:p-24 relative overflow-hidden text-center" style="background:#111827; border-color:#1e2d44; box-shadow:0 8px 48px rgba(201,168,76,0.08), 0 2px 8px rgba(0,0,0,0.04);">
+                <div class="rounded-[28px] sm:rounded-[48px] border p-14 sm:p-24 relative overflow-hidden text-center" style="background:#111827; border-color:#1e2d44; box-shadow:0 8px 48px rgba(201,168,76,0.08), 0 2px 8px rgba(0,0,0,0.04);">
                     <div class="absolute inset-0 pointer-events-none cta-glow"></div>
                     <div class="relative z-10">
                         <div class="icon-badge mx-auto mb-10"><SparklesIcon class="size-8 amber-icon" /></div>

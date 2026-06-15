@@ -1,8 +1,18 @@
 <template>
   <div class="el-root">
 
+    <!-- ── Mobile backdrop ── -->
+    <div v-if="showMobileNav" class="el-mobile-backdrop" @click="showMobileNav = false" />
+
     <!-- ── Sidebar ── -->
-    <aside class="el-sidebar">
+    <aside class="el-sidebar" :class="{ 'el-sidebar--open': showMobileNav }">
+
+      <!-- Mobile close button -->
+      <button class="el-sidebar-close" @click="showMobileNav = false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
 
       <!-- Brand -->
       <div class="el-brand" @click="$router.push('/')">
@@ -57,6 +67,11 @@
       <!-- Topbar -->
       <header class="el-topbar">
         <div class="el-topbar-left">
+          <button class="el-hamburger" @click="showMobileNav = true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
           <div class="el-tb-brand" @click="$router.push('/')">
             <span class="el-tb-glyph">✦</span>
             <span class="el-tb-name">Haflaway</span>
@@ -85,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../../firebase'
 import { doc, getDoc } from 'firebase/firestore'
@@ -94,6 +109,9 @@ const route = useRoute()
 const router = useRouter()
 const eventId = computed(() => route.params.eventId)
 const event = ref(null)
+const showMobileNav = ref(false)
+
+watch(() => route.path, () => { showMobileNav.value = false })
 
 const navItems = [
   {
@@ -504,6 +522,81 @@ onMounted(async () => {
 .el-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   background: #0a0e1c;
+}
+
+/* ── Mobile nav ── */
+.el-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-muted);
+  padding: 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  transition: background 130ms, color 130ms;
+}
+.el-hamburger:hover { background: var(--paper-soft); color: var(--ink); }
+
+.el-sidebar-close {
+  display: none;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-muted);
+  padding: 6px;
+  border-radius: 8px;
+  transition: background 130ms, color 130ms;
+}
+.el-sidebar-close:hover { background: var(--paper-soft); color: var(--ink); }
+
+.el-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 150;
+}
+
+@media (max-width: 767px) {
+  .el-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    transform: translateX(-100%);
+    transition: transform 280ms cubic-bezier(.2, .7, .2, 1);
+    z-index: 200;
+  }
+  .el-sidebar--open {
+    transform: translateX(0);
+  }
+  .el-sidebar-close { display: flex; }
+  .el-hamburger { display: flex; }
+
+  .el-topbar { padding: 14px 16px; }
+  .el-tb-brand { display: none; }
+  .el-sep { display: none; }
+  .el-crumb { display: none; }
+  .el-crumb--page {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: default;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60vw;
+  }
+  .el-crumb--page:hover { color: var(--ink); }
 }
 </style>

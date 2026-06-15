@@ -632,4 +632,11 @@ function avatarStyle(u) {
 /* Spin */
 .et-spin { animation: et-spin-anim 1.1s linear infinite; }
 @keyframes et-spin-anim { to { transform: rotate(360deg); } }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .et-root { padding: 12px 14px 20px; gap: 14px; }
+  .et-toolbar { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .et-toolbar-right { width: 100%; justify-content: flex-end; }
+}
 </style>

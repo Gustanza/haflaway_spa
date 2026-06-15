@@ -787,4 +787,14 @@ async function deleteCard(card) {
 /* Spin */
 .evc-spin { animation: evc-spin-anim 1.1s linear infinite; }
 @keyframes evc-spin-anim { to { transform: rotate(360deg); } }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .evc-root { padding: 12px 14px 20px; gap: 12px; }
+  .evc-toolbar { flex-wrap: wrap; gap: 8px; }
+  .evc-toolbar-left { flex: 1; min-width: 0; }
+  .evc-toolbar-right { flex-wrap: wrap; gap: 6px; width: 100%; }
+  .evc-search-wrap { flex: 1; min-width: 0; }
+  .evc-search { min-width: 0; max-width: 100%; width: 100%; }
+}
 </style>

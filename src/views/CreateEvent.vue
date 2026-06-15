@@ -818,5 +818,6 @@ onMounted(async () => {
   .ce-field--full { grid-column: 1; }
   .ce-actions { flex-direction: column-reverse; }
   .ce-cancel-btn, .ce-submit-btn { width: 100%; justify-content: center; }
+  .ce-breadcrumb { display: none; }
 }
 </style>

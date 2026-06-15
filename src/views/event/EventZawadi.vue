@@ -971,4 +971,15 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 /* Spin */
 .ez-spin { animation: ez-spin-anim 1.1s linear infinite; }
 @keyframes ez-spin-anim { to { transform: rotate(360deg); } }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .ez-root { padding: 12px 14px 20px; gap: 12px; }
+  .ez-toolbar { flex-wrap: wrap; gap: 8px; }
+  .ez-toolbar-left { flex: 1; min-width: 0; width: 100%; }
+  .ez-toolbar-right { flex-wrap: wrap; gap: 6px; }
+  .ez-search-wrap { min-width: 0; max-width: 100%; width: 100%; }
+  .ez-search { width: 100%; }
+  .ez-drawer { width: 100%; }
+}
 </style>

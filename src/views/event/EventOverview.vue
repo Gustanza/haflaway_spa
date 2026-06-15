@@ -408,13 +408,14 @@ watch(() => props.event, loadStats)
   .eo-kpi-row { grid-template-columns: repeat(2, 1fr); }
   .eo-mid-row { grid-template-columns: 1fr; }
   .eo-nav-grid { grid-template-columns: repeat(2, 1fr); }
-  .eo-hero-title { font-size: 26px; }
-  .eo-hd-day { font-size: 30px; }
 }
 @media (max-width: 560px) {
-  .eo-root { padding: 14px 16px 40px; }
-  .eo-hero { flex-direction: column; align-items: flex-start; }
-  .eo-kpi-row { grid-template-columns: 1fr 1fr; }
-  .eo-nav-grid { grid-template-columns: 1fr 1fr; }
+  .eo-root { padding: 14px 16px 40px; gap: 14px; }
+  .eo-kpi-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .eo-nav-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .eo-goal-body { flex-direction: column; gap: 16px; }
+  .eo-arc-wrap { width: 110px; align-self: center; }
+  .eo-nav-desc { display: none; }
+  .eo-panel { padding: 16px; }
 }
 </style>

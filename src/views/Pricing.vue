@@ -238,7 +238,7 @@ onMounted(() => {
             <!-- ║  BOTTOM CTA   ║ -->
             <!-- ╚═══════════════╝ -->
             <section class="max-w-4xl mx-auto px-6 pb-28 reveal">
-                <div class="rounded-[48px] border p-12 sm:p-20 relative overflow-hidden text-center" style="background:#1C1C1E; border-color:#2C2C2E;">
+                <div class="rounded-[28px] sm:rounded-[48px] border p-12 sm:p-20 relative overflow-hidden text-center" style="background:#1C1C1E; border-color:#2C2C2E;">
                     <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.07) 0%, transparent 65%);"></div>
                     <div class="relative z-10">
                         <div class="size-14 rounded-2xl border flex items-center justify-center mx-auto mb-8" style="background:#2A2210; border-color:rgba(201,168,76,0.2);">

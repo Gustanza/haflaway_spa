@@ -2209,4 +2209,15 @@ watch(eventId, () => { if (eventId.value) load() })
 .em-slide-right-enter-from,  .em-slide-right-leave-to     { transform: translateX(100%); }
 .em-slide-up-enter-active, .em-slide-up-leave-active { transition: transform 220ms cubic-bezier(0.4,0,0.2,1), opacity 180ms; }
 .em-slide-up-enter-from,   .em-slide-up-leave-to    { transform: translateX(-50%) translateY(20px); opacity: 0; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .em-root { padding: 12px 14px 20px; gap: 12px; }
+  .em-search { width: 100%; }
+  .em-search-wrap { flex: 1; min-width: 0; }
+  .em-toolbar { gap: 8px; }
+  .em-toolbar-left { width: 100%; gap: 8px; }
+  .em-toolbar-right { flex-wrap: wrap; gap: 6px; }
+  .em-send-btn, .em-export-btn { padding: 7px 12px; font-size: 12px; }
+}
 </style>

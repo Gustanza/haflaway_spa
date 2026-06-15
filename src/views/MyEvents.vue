@@ -56,7 +56,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
-            Create event
+            <span class="me-create-label">Create event</span>
           </button>
         </div>
       </div>
@@ -1747,10 +1747,17 @@ onUnmounted(() => {
   .me-topbar-inner { padding: 12px 16px; }
   .me-admin-pill { display: none; }
   .me-page { padding: 16px 16px 48px; gap: 24px; }
-  .me-filterbar { padding: 8px 12px; gap: 8px; }
-  .me-status-chips { gap: 2px; }
+  .me-filterbar { padding: 8px 12px; gap: 8px; overflow-x: auto; flex-wrap: nowrap; }
+  .me-status-chips { gap: 2px; flex-shrink: 0; }
   .me-status-chip { padding: 4px 8px; font-size: 12px; }
+  .me-fb-divider { display: none; }
+  .me-fb-select { flex-shrink: 0; }
   .me-row { grid-template-columns: 100px 1fr; gap: 12px; }
   .me-row-title { font-size: 20px; }
+}
+@media (max-width: 400px) {
+  .me-create-label { display: none; }
+  .me-bc-page { display: none; }
+  .me-bc-sep { display: none; }
 }
 </style>
