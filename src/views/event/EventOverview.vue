@@ -269,7 +269,6 @@ watch(() => props.event, loadStats)
   display: flex;
   flex-direction: column;
   gap: 18px;
-  max-width: 1080px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 

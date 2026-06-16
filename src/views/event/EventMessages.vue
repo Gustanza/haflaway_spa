@@ -70,10 +70,17 @@
 
       <!-- Stats -->
       <div class="em-stats">
+
+        <!-- WhatsApp -->
         <div class="em-stat-block em-stat-block--wa">
-          <div class="em-stat-block-hd">
-            <svg width="11" height="11" viewBox="0 0 448 512" fill="#128C7E"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
-            <span class="em-stat-block-title">WhatsApp</span>
+          <div class="em-stat-card-top">
+            <div class="em-stat-card-icon em-stat-card-icon--wa">
+              <svg width="16" height="16" viewBox="0 0 448 512" fill="#128C7E"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
+            </div>
+            <div class="em-stat-card-body">
+              <span class="em-stat-card-val">{{ channelStats.wa.find(s => s.status === 'read')?.n ?? channelStats.wa.find(s => s.status === 'delivered')?.n ?? 0 }}</span>
+              <span class="em-stat-card-lbl">WhatsApp Read</span>
+            </div>
           </div>
           <div class="em-chips-wrap">
             <button class="em-chips-arrow" @click="scrollRow($event, -1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
@@ -86,10 +93,17 @@
             <button class="em-chips-arrow" @click="scrollRow($event, 1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
           </div>
         </div>
+
+        <!-- SMS -->
         <div class="em-stat-block em-stat-block--sms">
-          <div class="em-stat-block-hd">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span class="em-stat-block-title">SMS</span>
+          <div class="em-stat-card-top">
+            <div class="em-stat-card-icon em-stat-card-icon--sms">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="em-stat-card-body">
+              <span class="em-stat-card-val">{{ channelStats.sms.find(s => s.status === 'delivered')?.n ?? 0 }}</span>
+              <span class="em-stat-card-lbl">SMS Delivered</span>
+            </div>
           </div>
           <div class="em-chips-wrap">
             <button class="em-chips-arrow" @click="scrollRow($event, -1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
@@ -102,10 +116,17 @@
             <button class="em-chips-arrow" @click="scrollRow($event, 1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
           </div>
         </div>
+
+        <!-- RSVP -->
         <div class="em-stat-block em-stat-block--rsvp">
-          <div class="em-stat-block-hd">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#4f617a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span class="em-stat-block-title">RSVP</span>
+          <div class="em-stat-card-top">
+            <div class="em-stat-card-icon em-stat-card-icon--rsvp">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div class="em-stat-card-body">
+              <span class="em-stat-card-val">{{ channelStats.rsvp.find(s => s.status === 'Confirmed')?.n ?? 0 }}</span>
+              <span class="em-stat-card-lbl">RSVP Confirmed</span>
+            </div>
           </div>
           <div class="em-chips-wrap">
             <button class="em-chips-arrow" @click="scrollRow($event, -1)"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
@@ -1829,9 +1850,27 @@ watch(eventId, () => { if (eventId.value) load() })
 .em-send-btn:hover { opacity: 0.85; }
 
 /* ── Stats ── */
-.em-stats { flex-shrink: 0; display: flex; align-items: stretch; background: #111827; border-bottom: 1px solid #1e2d44; }
-.em-stat-block { display: flex; flex-direction: column; justify-content: center; padding: 12px 20px; border-right: 1px solid #1e2d44; min-width: 0; }
-.em-chips-wrap { display: flex; align-items: center; gap: 4px; min-width: 0; flex: 1; }
+.em-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.em-stat-block {
+  background: #111827; border: 1px solid #1e2d44; border-radius: 12px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3); min-width: 0;
+}
+
+/* Card top: icon + headline number */
+.em-stat-card-top { display: flex; align-items: center; gap: 14px; }
+.em-stat-card-icon {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.em-stat-card-icon--wa   { background: rgba(18,140,126,0.10); }
+.em-stat-card-icon--sms  { background: rgba(88,86,214,0.10); }
+.em-stat-card-icon--rsvp { background: rgba(52,211,153,0.10); }
+.em-stat-card-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.em-stat-card-val { font-size: 22px; font-weight: 700; color: #e2e8f0; line-height: 1; }
+.em-stat-card-lbl { font-size: 11px; color: #8892a4; font-weight: 500; }
+
+.em-chips-wrap { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .em-chips-arrow {
   flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
   border: 1px solid #2a3a52; background: #111827;
@@ -1840,10 +1879,6 @@ watch(eventId, () => { if (eventId.value) load() })
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .em-chips-arrow:hover { border-color: #C9A84C; color: #C9A84C; }
-.em-stat-block:last-child { border-right: none; }
-.em-stat-block--wa    { flex: 1; min-width: 0; }
-.em-stat-block--sms   { flex: 1; min-width: 0; }
-.em-stat-block--rsvp  { flex: 1; min-width: 0; }
 .em-stat-big      { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; color: #e2e8f0; }
 .em-stat-block-lbl{ font-size: 10px; color: #8892a4; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 .em-stat-block-hd { display: flex; align-items: center; gap: 5px; margin-bottom: 7px; }
@@ -2211,6 +2246,9 @@ watch(eventId, () => { if (eventId.value) load() })
 .em-slide-up-enter-from,   .em-slide-up-leave-to    { transform: translateX(-50%) translateY(20px); opacity: 0; }
 
 /* ── Responsive ── */
+@media (max-width: 860px) {
+  .em-stats { grid-template-columns: 1fr; }
+}
 @media (max-width: 600px) {
   .em-root { padding: 12px 14px 20px; gap: 12px; }
   .em-search { width: 100%; }

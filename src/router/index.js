@@ -24,6 +24,7 @@ import EventZawadi from '../views/event/EventZawadi.vue'
 import EventSettings from '../views/event/EventSettings.vue'
 import EventTeam from '../views/event/EventTeam.vue'
 import EventPayments from '../views/event/EventPayments.vue'
+import EventBudget from '../views/event/EventBudget.vue'
 import EditEvent from '../views/EditEvent.vue'
 
 // Resolves once Firebase has restored the persisted session (or confirmed no user)
@@ -107,6 +108,7 @@ const routes = [
             { path: 'gallery', name: 'EventGallery', component: EventGallery, meta: { title: 'Gallery' } },
             { path: 'zawadi', name: 'EventZawadi', component: EventZawadi, meta: { title: 'Zawadi' } },
             { path: 'payments', name: 'EventPayments', component: EventPayments, meta: { title: 'Payments' } },
+            { path: 'budget', name: 'EventBudget', component: EventBudget, meta: { title: 'Budget' } },
             { path: 'team', name: 'EventTeam', component: EventTeam, meta: { title: 'Team' } },
             { path: 'settings', name: 'EventSettings', component: EventSettings, meta: { title: 'Settings' } },
         ],
