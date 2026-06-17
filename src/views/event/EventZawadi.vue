@@ -620,7 +620,6 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   flex-direction: column;
   padding: 20px 24px 24px;
   gap: 16px;
-  background: #111827;
 }
 
 /* ══ Toolbar ══ */

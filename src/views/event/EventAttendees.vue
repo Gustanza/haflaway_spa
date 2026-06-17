@@ -2352,7 +2352,6 @@ function setImportPayment(attendeeId, amount) {
   flex-direction: column;
   gap: 16px;
   padding: 20px 24px 24px;
-  background: #111827;
 }
 
 /* ── Toolbar ── */

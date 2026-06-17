@@ -20,24 +20,6 @@
         <span class="el-brand-name">Haflaway</span>
       </div>
 
-      <!-- Event identity -->
-      <div class="el-event-block">
-        <div class="el-event-thumb">
-          <img v-if="event?.eventThumbnail" :src="event.eventThumbnail" :alt="event.title" />
-          <div v-else class="el-event-thumb-ph">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DCDCE0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="3"/>
-              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
-        </div>
-        <div class="el-event-info">
-          <p class="el-event-name">{{ event?.title ?? '…' }}</p>
-          <p class="el-event-type">{{ event?.categoryId ?? 'Event' }}</p>
-        </div>
-      </div>
-
       <!-- Back link -->
       <button class="el-back-btn" @click="goAllEvents">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -72,16 +54,7 @@
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
-          <div class="el-tb-brand" @click="$router.push('/')">
-            <span class="el-tb-glyph">✦</span>
-            <span class="el-tb-name">Haflaway</span>
-          </div>
-          <span class="el-sep">/</span>
-          <span class="el-crumb" @click="$router.push('/my-events')">My Events</span>
-          <span class="el-sep">/</span>
-          <span class="el-crumb el-crumb--event" @click="$router.push(`/event/${eventId}/overview`)">{{ event?.title ?? '…' }}</span>
-          <span class="el-sep">/</span>
-          <span class="el-crumb el-crumb--page">{{ route.meta.title }}</span>
+          <span class="el-event-title">{{ event?.title ?? '…' }}</span>
         </div>
         <div class="el-topbar-right">
           <div class="el-status-pill" :class="`el-status-pill--${eventStatus}`">
@@ -157,6 +130,13 @@ const navItems = [
     to: 'messages',
     icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>`,
+  },
+  {
+    label: 'Notifications',
+    to: 'campaigns',
+    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
     </svg>`,
   },
   {
@@ -306,56 +286,6 @@ onMounted(async () => {
   letter-spacing: -0.3px;
 }
 
-/* Event identity */
-.el-event-block {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px 14px;
-  border-bottom: 1px solid var(--line);
-}
-.el-event-thumb {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: var(--paper-soft);
-  border: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.el-event-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.el-event-thumb-ph {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink-dim);
-}
-.el-event-info { min-width: 0; }
-.el-event-name {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.el-event-type {
-  font-size: 10.5px;
-  color: var(--ink-dim);
-  margin: 2px 0 0;
-  text-transform: capitalize;
-}
-
 /* Back button */
 .el-back-btn {
   display: flex;
@@ -446,45 +376,15 @@ onMounted(async () => {
   gap: 8px;
   min-width: 0;
 }
-.el-tb-brand {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.el-tb-glyph { font-size: 11px; color: var(--gold); }
-.el-tb-name {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 17px;
-  font-weight: 400;
+.el-event-title {
+  font-size: 16px;
+  font-weight: 600;
   color: var(--ink);
-  letter-spacing: -0.2px;
-}
-.el-sep {
-  font-size: 15px;
-  color: var(--line-strong);
-  font-weight: 300;
-  flex-shrink: 0;
-}
-.el-crumb {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink-muted);
-  cursor: pointer;
-  transition: color 130ms;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 360px;
 }
-.el-crumb:hover { color: var(--ink); }
-.el-crumb--event { max-width: 160px; }
-.el-crumb--page {
-  font-weight: 600;
-  color: var(--ink);
-  cursor: default;
-}
-.el-crumb--page:hover { color: var(--ink); }
 .el-topbar-right { flex-shrink: 0; }
 
 /* Status pill */
@@ -591,20 +491,6 @@ onMounted(async () => {
   .el-hamburger { display: flex; }
 
   .el-topbar { padding: 14px 16px; }
-  .el-tb-brand { display: none; }
-  .el-sep { display: none; }
-  .el-crumb { display: none; }
-  .el-crumb--page {
-    display: block;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--ink);
-    cursor: default;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 60vw;
-  }
-  .el-crumb--page:hover { color: var(--ink); }
+  .el-event-title { font-size: 15px; max-width: 55vw; }
 }
 </style>

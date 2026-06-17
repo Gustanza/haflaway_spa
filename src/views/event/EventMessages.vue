@@ -1,19 +1,9 @@
 ﻿<template>
   <div class="em-root">
 
-    <!-- ══ Mode bar ══ -->
-    <div class="em-mode-bar">
-      <button class="em-mode-tab" :class="{ 'em-mode-tab--on': mode === 'system' }" @click="mode = 'system'">System</button>
-      <button class="em-mode-tab" :class="{ 'em-mode-tab--on': mode === 'custom' }" @click="switchToCustom">
-        Custom Campaigns
-        <span v-if="customCampaigns.length" class="em-mode-badge">{{ customCampaigns.length }}</span>
-      </button>
-    </div>
-
     <!-- ══════════════════════════════════════════════
-         SYSTEM MODE
+         MESSAGES
          ══════════════════════════════════════════════ -->
-    <template v-if="mode === 'system'">
 
       <!-- Toolbar -->
       <div class="em-toolbar">
@@ -256,232 +246,6 @@
         </div>
       </div>
 
-    </template>
-
-    <!-- ══════════════════════════════════════════════
-         CUSTOM CAMPAIGNS MODE
-         ══════════════════════════════════════════════ -->
-    <template v-else>
-
-      <!-- ── Campaign grid (no campaign selected) ── -->
-      <template v-if="!selectedCustomCamp">
-        <div class="em-custom-toolbar">
-          <div>
-            <h2 class="em-custom-title">Custom Campaigns</h2>
-            <p class="em-custom-sub">Named SMS campaigns you can send to any group of attendees</p>
-          </div>
-          <button class="em-send-btn" @click="openCampDialog(null)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            New Campaign
-          </button>
-        </div>
-
-        <div class="em-custom-body">
-          <div class="em-custom-scroll">
-          <div v-if="loadingCustomCamps" class="em-custom-loading">
-            <svg class="em-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2.5" stroke-linecap="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-            <span>Loading campaigns…</span>
-          </div>
-
-          <div v-else-if="!customCampaigns.length" class="em-custom-empty">
-            <div class="em-empty-icon">
-              <svg width="52" height="52" viewBox="0 0 64 64" fill="none">
-                <circle cx="32" cy="32" r="32" fill="#1e2d44"/>
-                <path d="M42 22H22a2 2 0 0 0-2 2v16l6-4h16a2 2 0 0 0 2-2V24a2 2 0 0 0-2-2z" fill="#DDDBD6"/>
-              </svg>
-            </div>
-            <p class="em-empty-title">No campaigns yet</p>
-            <p class="em-empty-sub">Create a named campaign to send targeted SMS messages to specific attendees.</p>
-            <button class="em-empty-cta em-empty-cta--primary" @click="openCampDialog(null)">Create First Campaign</button>
-          </div>
-
-          <div v-else class="em-camp-table-wrap">
-            <table class="em-camp-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Created</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="camp in pagedCampaigns" :key="camp.id" class="em-camp-row" @click="selectCustomCamp(camp)">
-                  <td class="em-ct-name">{{ camp.name }}</td>
-                  <td class="em-ct-type"><span class="em-ct-type-badge">{{ camp.type }}</span></td>
-                  <td class="em-ct-date">{{ formatDate(camp.createdAt) }}</td>
-                  <td class="em-ct-actions" @click.stop>
-                    <button class="em-camp-item-btn" @click="openCampDialog(camp)" title="Edit">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button class="em-camp-item-btn em-camp-item-btn--del" @click="deleteCustomCampaign(camp)" title="Delete">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                    </button>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8892a4" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          </div><!-- /em-custom-scroll -->
-        </div>
-
-        <!-- Sticky paginator footer -->
-        <div v-if="!loadingCustomCamps && customCampaigns.length" class="em-table-footer" :class="{ 'em-camp-footer--disabled': campTotalPages === 1 }">
-          <span class="em-range-lbl">
-            {{ (campPage - 1) * CAMP_PAGE_SIZE + 1 }}–{{ Math.min(campPage * CAMP_PAGE_SIZE, customCampaigns.length) }}
-            of {{ customCampaigns.length }}
-          </span>
-          <div class="em-paginator">
-            <button class="em-page-btn em-page-btn--nav" :disabled="campPage === 1" @click="campGoPage(campPage - 1)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            <template v-for="p in campPageNumbers" :key="String(p)">
-              <span v-if="p === '…'" class="em-page-ellipsis">…</span>
-              <button v-else class="em-page-btn" :class="{ 'em-page-btn--active': campPage === p }" @click="campGoPage(p)">{{ p }}</button>
-            </template>
-            <button class="em-page-btn em-page-btn--nav" :disabled="campPage === campTotalPages" @click="campGoPage(campPage + 1)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </div>
-        </div>
-      </template>
-
-      <!-- ── Campaign detail (campaign selected) ── -->
-      <template v-else>
-
-        <!-- Detail header -->
-        <div class="em-detail-top">
-          <button class="em-detail-back" @click="selectedCustomCamp = null; customSelectList = []">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Campaigns
-          </button>
-          <h2 class="em-detail-title">{{ selectedCustomCamp.name }}</h2>
-          <span class="em-detail-type">{{ selectedCustomCamp.type }}</span>
-        </div>
-
-        <!-- Filters -->
-        <div class="em-detail-filters">
-          <div class="em-filter-group">
-            <span class="em-filter-lbl">STATUS</span>
-            <div class="em-filter-pills">
-              <button v-for="s in STATUS_OPTIONS" :key="s.v"
-                class="em-filter-pill" :class="[s.v !== 'all' ? `em-filter-pill--${s.v}` : 'em-filter-pill--all', { 'em-filter-pill--on': customStatus === s.v }]"
-                @click="customStatus = s.v"><span class="em-fp-n">{{ customStatusCounts[s.v] ?? 0 }}</span> {{ s.l }}</button>
-            </div>
-          </div>
-          <div class="em-filter-group" v-if="props.event?.labels?.length">
-            <span class="em-filter-lbl">LIST</span>
-            <select v-model="customLabelId" class="em-filter-select">
-              <option :value="null">All Lists</option>
-              <option v-for="lbl in props.event.labels" :key="lbl.id" :value="lbl.id">{{ lbl.name }}</option>
-            </select>
-          </div>
-          <div class="em-detail-count">
-            {{ customFilteredAttendees.length }} attendee{{ customFilteredAttendees.length !== 1 ? 's' : '' }}
-          </div>
-        </div>
-
-        <!-- Detail table -->
-        <div class="em-detail-table-wrap">
-          <table class="em-table">
-            <thead>
-              <tr>
-                <th class="em-th em-th--cb">
-                  <input type="checkbox"
-                    :checked="allCustomSelected"
-                    :indeterminate.prop="someCustomSelected && !allCustomSelected"
-                    @change="toggleCustomSelectAll" />
-                </th>
-                <th class="em-th">Name</th>
-                <th class="em-th">Phone</th>
-                <th class="em-th">SMS Status</th>
-                <th class="em-th">Added</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-if="loading && !attendees.length">
-                <tr v-for="n in 8" :key="`csk-${n}`" class="em-tr em-tr--sk">
-                  <td class="em-td em-td--cb"><div class="em-sk-bar em-sk-bar--sm" style="width:16px;height:16px;border-radius:3px"/></td>
-                  <td class="em-td"><div class="em-sk-name"><div class="em-sk-circle"/><div class="em-sk-bar em-sk-bar--lg"/></div></td>
-                  <td class="em-td"><div class="em-sk-bar"/></td>
-                  <td class="em-td"><div class="em-sk-bar em-sk-bar--sm"/></td>
-                  <td class="em-td"><div class="em-sk-bar"/></td>
-                </tr>
-              </template>
-              <tr v-for="att in pagedDetailAttendees" :key="att.id"
-                class="em-tr em-tr--cb" :class="{ 'em-tr--sel': isCustomSelected(att) }"
-                @click="toggleCustomSelect(att)">
-                <td class="em-td em-td--cb" @click.stop>
-                  <input type="checkbox" :checked="isCustomSelected(att)" @change="toggleCustomSelect(att)" />
-                </td>
-                <td class="em-td">
-                  <div class="em-name-cell">
-                    <div class="em-avatar" :style="{ background: avatarBg(att.fullName), color: avatarFg(att.fullName) }">
-                      {{ initials(att.fullName) }}
-                    </div>
-                    <span class="em-name-text">{{ att.fullName }}</span>
-                  </div>
-                </td>
-                <td class="em-td em-td--muted">{{ att.phone || '—' }}</td>
-                <td class="em-td">
-                  <span class="em-badge" :class="`em-badge--${getCustomStatus(att) ?? 'unsent'}`">
-                    <svg v-if="['delivered','read'].includes(getCustomStatus(att))" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    <svg v-else-if="getCustomStatus(att) === 'failed'" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                    {{ STATUS_LABELS[getCustomStatus(att)] ?? 'Unsent' }}
-                  </span>
-                </td>
-                <td class="em-td em-td--muted">{{ formatDate(att.createdAt) }}</td>
-              </tr>
-              <tr v-if="!loading && !customFilteredAttendees.length">
-                <td colspan="5" class="em-td-empty">
-                  <div class="em-empty">
-                    <p class="em-empty-title">No attendees match these filters</p>
-                    <p class="em-empty-sub">Try changing the status or list filter.</p>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Detail attendees paginator -->
-        <div class="em-table-footer" :class="{ 'em-camp-footer--disabled': detailTotalPages === 1 }">
-          <span class="em-range-lbl">
-            {{ customFilteredAttendees.length === 0 ? '0' : (detailPage - 1) * DETAIL_PAGE_SIZE + 1 }}–{{ Math.min(detailPage * DETAIL_PAGE_SIZE, customFilteredAttendees.length) }}
-            of {{ customFilteredAttendees.length }}
-          </span>
-          <div class="em-paginator">
-            <button class="em-page-btn em-page-btn--nav" :disabled="detailPage === 1" @click="detailGoPage(detailPage - 1)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            <template v-for="p in detailPageNumbers" :key="String(p)">
-              <span v-if="p === '…'" class="em-page-ellipsis">…</span>
-              <button v-else class="em-page-btn" :class="{ 'em-page-btn--active': detailPage === p }" @click="detailGoPage(p)">{{ p }}</button>
-            </template>
-            <button class="em-page-btn em-page-btn--nav" :disabled="detailPage === detailTotalPages" @click="detailGoPage(detailPage + 1)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Floating action bar -->
-        <Transition name="em-slide-up">
-          <div v-if="customSelectList.length" class="em-action-bar">
-            <span class="em-action-count">{{ customSelectList.length }} selected</span>
-            <button class="em-action-btn em-action-btn--sms" @click="openCustomSend">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-              Send SMS
-            </button>
-          </div>
-        </Transition>
-
-      </template>
-    </template>
 
     <!-- ══════════════════════════════════════════════
          SEND DRAWER  (shared between both modes)
@@ -498,7 +262,7 @@
                     stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                   </svg>
-                  <span class="em-drawer-title">{{ isCustomSend ? 'Send SMS Campaign' : 'Send Messages' }}</span>
+                  <span class="em-drawer-title">Send Messages</span>
                 </div>
                 <button class="em-drawer-close" @click="closeSendDrawer">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -521,8 +285,8 @@
 
               <div class="em-drawer-body">
 
-                <!-- Campaign — system mode: picker; custom mode: locked display -->
-                <div class="em-drawer-section" v-if="!isCustomSend">
+                <!-- Campaign -->
+                <div class="em-drawer-section">
                   <p class="em-drawer-section-label">Campaign</p>
                   <div class="em-camp-grid-wrap">
                     <button class="em-chips-arrow em-chips-arrow--l" @click="scrollCampGrid(-1)">
@@ -541,17 +305,9 @@
                     </button>
                   </div>
                 </div>
-                <div class="em-drawer-section" v-else>
-                  <p class="em-drawer-section-label">Campaign</p>
-                  <div class="em-custom-camp-display">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    {{ selectedCustomCamp?.name }}
-                    <span class="em-custom-camp-type">{{ selectedCustomCamp?.type }}</span>
-                  </div>
-                </div>
 
-                <!-- Channel — system mode: both; custom mode: SMS only -->
-                <div class="em-drawer-section" v-if="!isCustomSend">
+                <!-- Channel -->
+                <div class="em-drawer-section">
                   <p class="em-drawer-section-label">Channel</p>
                   <div class="em-send-ch-toggle">
                     <button class="em-send-ch-btn" :class="{ 'em-send-ch-btn--wsp': sendChannel === 'whatsapp' }" @click="onChannelChange('whatsapp')">
@@ -564,25 +320,9 @@
                     </button>
                   </div>
                 </div>
-                <div class="em-drawer-section" v-else>
-                  <p class="em-drawer-section-label">Channel</p>
-                  <div class="em-ch-sms-card">
-                    <div class="em-ch-sms-icon">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    </div>
-                    <div class="em-ch-sms-info">
-                      <span class="em-ch-sms-name">SMS Channel</span>
-                      <span class="em-ch-sms-note">Custom campaigns are SMS only</span>
-                    </div>
-                    <div class="em-ch-sms-badge">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      Active
-                    </div>
-                  </div>
-                </div>
 
-                <!-- Recipients — system mode: status chips + pick; custom mode: selected count -->
-                <div class="em-drawer-section" v-if="!isCustomSend">
+                <!-- Recipients -->
+                <div class="em-drawer-section">
                   <p class="em-drawer-section-label">Recipients</p>
 
                   <!-- Label filter (system mode only, when event has labels) -->
@@ -653,13 +393,6 @@
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#4f617a" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                     {{ sendRecipCount }} recipient{{ sendRecipCount !== 1 ? 's' : '' }} will receive this message
                   </p>
-                </div>
-                <div class="em-drawer-section" v-else>
-                  <p class="em-drawer-section-label">Recipients</p>
-                  <div class="em-selected-recip-display">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <span><strong>{{ customSelectList.length }}</strong> attendees selected</span>
-                  </div>
                 </div>
 
                 <!-- Template -->
@@ -764,44 +497,6 @@
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════
-         CAMPAIGN CREATE / EDIT DIALOG
-         ══════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition name="em-fade">
-        <div v-if="campDialogOpen" class="em-overlay em-overlay--center" @click.self="campDialogOpen = false">
-          <div class="em-dialog">
-            <div class="em-dialog-header">
-              <h3 class="em-dialog-title">{{ editingCamp ? 'Edit Campaign' : 'New Campaign' }}</h3>
-              <button class="em-drawer-close" @click="campDialogOpen = false">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div class="em-dialog-body">
-              <label class="em-dialog-lbl">Campaign Name</label>
-              <input v-model="campDialogName" class="em-dialog-input" placeholder="e.g. Thank You Messages"
-                @keydown.enter="saveCamp" autofocus />
-              <template v-if="!editingCamp">
-                <label class="em-dialog-lbl" style="margin-top:14px">Type</label>
-                <div class="em-dialog-type-row">
-                  <button class="em-dialog-type-btn" :class="{ 'em-dialog-type-btn--on': campDialogType === 'invitation' }" @click="campDialogType = 'invitation'">Invitation</button>
-                  <button class="em-dialog-type-btn" :class="{ 'em-dialog-type-btn--on': campDialogType === 'contribution' }" @click="campDialogType = 'contribution'">Contribution</button>
-                  <button class="em-dialog-type-btn" :class="{ 'em-dialog-type-btn--on': campDialogType === 'contact' }" @click="campDialogType = 'contact'">Contact</button>
-                </div>
-              </template>
-            </div>
-            <div class="em-dialog-footer">
-              <button class="em-drawer-cancel" @click="campDialogOpen = false">Cancel</button>
-              <button class="em-drawer-send" :disabled="!campDialogName.trim() || savingCamp" @click="saveCamp">
-                <svg v-if="savingCamp" class="em-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                {{ savingCamp ? 'Saving…' : (editingCamp ? 'Save' : 'Create') }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
   </div>
 </template>
 
@@ -809,7 +504,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, auth } from '../../firebase'
-import { collection, query, orderBy, where, getDocs, addDoc, setDoc, deleteDoc, doc } from 'firebase/firestore'
+import { collection, query, orderBy, where, getDocs } from 'firebase/firestore'
 import { utils, writeFile } from 'xlsx'
 
 const vClickOutside = {
@@ -846,14 +541,6 @@ const PAGE_SIZE = 15
 
 const STATUS_LABELS = { unsent: 'Unsent', sent: 'Sent', delivered: 'Delivered', read: 'Read', failed: 'Failed', pending: 'Pending', undelivered: 'Undelivered' }
 const STATUS_RANK   = { read: 5, delivered: 4, sent: 3, failed: 2, unsent: 1 }
-
-const STATUS_OPTIONS = [
-  { v: 'unsent',    l: 'Unsent'    },
-  { v: 'sent',      l: 'Sent'      },
-  { v: 'delivered', l: 'Delivered' },
-  { v: 'failed',    l: 'Failed'    },
-  { v: 'all',       l: 'All'       },
-]
 
 const KNOWN_CAMPAIGN_IDS = new Set([
   'haflaway-invitation-campaign',
@@ -893,10 +580,7 @@ const KNOWN_CAMPAIGNS = [
 const WSP_URL = 'https://sendwhatsappinvitationmessages-frbu33fema-uc.a.run.app'
 const SMS_URL = 'https://sendsmsaction-frbu33fema-uc.a.run.app'
 
-// ── Mode ──────────────────────────────────────────────────────────────────────
-const mode = ref('system')
-
-// ── System mode state ─────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 const attendees    = ref([])
 const loading      = ref(false)
 const searchQ      = ref('')
@@ -918,7 +602,6 @@ const loadingTemplates = ref(false)
 const sending          = ref(false)
 const sendResult       = ref(null)
 
-const isCustomSend     = computed(() => sendRecipMode.value === 'selected')
 const chipsScrollEl    = ref(null)
 function scrollChips(dir) { chipsScrollEl.value?.scrollBy({ left: dir * 120, behavior: 'smooth' }) }
 
@@ -955,41 +638,6 @@ function drawerPickSelectAll() {
   else ids.forEach(id => { if (!drawerPickList.value.includes(id)) drawerPickList.value.push(id) })
 }
 
-// ── Custom campaigns state ────────────────────────────────────────────────────
-const customCampaigns     = ref([])
-const loadingCustomCamps  = ref(false)
-const campPage            = ref(1)
-const CAMP_PAGE_SIZE      = 10
-const campTotalPages      = computed(() => Math.max(1, Math.ceil(customCampaigns.value.length / CAMP_PAGE_SIZE)))
-const pagedCampaigns      = computed(() => {
-  const start = (campPage.value - 1) * CAMP_PAGE_SIZE
-  return customCampaigns.value.slice(start, start + CAMP_PAGE_SIZE)
-})
-const campPageNumbers = computed(() => {
-  const total = campTotalPages.value, cur = campPage.value
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const pages = [1]
-  if (cur > 3) pages.push('…')
-  const start = Math.max(2, cur - 1)
-  const end   = Math.min(total - 1, cur + 1)
-  for (let i = start; i <= end; i++) pages.push(i)
-  if (cur < total - 2) pages.push('…')
-  if (total > 1) pages.push(total)
-  return pages
-})
-function campGoPage(n) { if (n >= 1 && n <= campTotalPages.value) campPage.value = n }
-const selectedCustomCamp  = ref(null)
-const customStatus        = ref('unsent')
-const customLabelId       = ref(null)
-const customSelectList    = ref([])
-
-// Campaign dialog state
-const campDialogOpen  = ref(false)
-const editingCamp     = ref(null)
-const campDialogName  = ref('')
-const campDialogType  = ref('invitation')
-const savingCamp      = ref(false)
-
 // ── Firestore: load attendees ─────────────────────────────────────────────────
 async function load() {
   if (!eventId.value) return
@@ -1007,188 +655,7 @@ async function load() {
   }
 }
 
-// ── Firestore: custom campaigns ───────────────────────────────────────────────
-async function loadCustomCampaigns() {
-  if (!eventId.value) return
-  loadingCustomCamps.value = true
-  try {
-    const snap = await getDocs(
-      query(collection(db, 'events', eventId.value, 'campaigns'), orderBy('createdAt', 'desc'))
-    )
-    customCampaigns.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-  } catch (e) {
-    console.error('Failed to load campaigns', e)
-  } finally {
-    loadingCustomCamps.value = false
-  }
-}
-
-function openCampDialog(camp) {
-  editingCamp.value = camp ?? null
-  campDialogName.value = camp?.name ?? ''
-  campDialogType.value = camp?.type ?? 'invitation'
-  campDialogOpen.value = true
-}
-
-async function saveCamp() {
-  if (!campDialogName.value.trim()) return
-  savingCamp.value = true
-  try {
-    if (editingCamp.value) {
-      await setDoc(
-        doc(db, 'events', eventId.value, 'campaigns', editingCamp.value.id),
-        { name: campDialogName.value.trim(), updatedAt: new Date().toISOString() },
-        { merge: true }
-      )
-      if (selectedCustomCamp.value?.id === editingCamp.value.id) {
-        selectedCustomCamp.value = { ...selectedCustomCamp.value, name: campDialogName.value.trim() }
-      }
-    } else {
-      await addDoc(collection(db, 'events', eventId.value, 'campaigns'), {
-        name: campDialogName.value.trim(),
-        type: campDialogType.value,
-        createdAt: new Date().toISOString(),
-      })
-    }
-    campDialogOpen.value = false
-    await loadCustomCampaigns()
-  } catch (e) {
-    console.error('Failed to save campaign', e)
-  } finally {
-    savingCamp.value = false
-  }
-}
-
-async function deleteCustomCampaign(camp) {
-  if (!confirm(`Delete campaign "${camp.name}"? This cannot be undone.`)) return
-  try {
-    await deleteDoc(doc(db, 'events', eventId.value, 'campaigns', camp.id))
-    if (selectedCustomCamp.value?.id === camp.id) {
-      selectedCustomCamp.value = null
-      customSelectList.value = []
-    }
-    await loadCustomCampaigns()
-  } catch (e) {
-    console.error('Failed to delete campaign', e)
-  }
-}
-
-function selectCustomCamp(camp) {
-  selectedCustomCamp.value = camp
-  customSelectList.value = []
-  customStatus.value = 'unsent'
-  customLabelId.value = null
-}
-
-function switchToCustom() {
-  mode.value = 'custom'
-  if (!customCampaigns.value.length && !loadingCustomCamps.value) loadCustomCampaigns()
-}
-
-// ── Custom campaign: filtered attendees ───────────────────────────────────────
-const customFilteredAttendees = computed(() => {
-  if (!selectedCustomCamp.value) return []
-  const campId = selectedCustomCamp.value.id
-  const status = customStatus.value
-  const labelId = customLabelId.value
-
-  const cardType = selectedCustomCamp.value.type
-  return attendees.value.filter(att => {
-    // Mirror attendees.dart: only include attendees who have a card of this campaign's type
-    if (!att.cards || att.cards[cardType] == null) return false
-
-    if (labelId && !(att.labelIds ?? []).includes(labelId)) return false
-
-    const prefix = `sms_${campId}_`
-    const match = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
-    const attStatus = match ? match.slice(match.lastIndexOf('_') + 1) : null
-
-    if (status === 'all') return true
-    if (status === 'unsent') return attStatus === null || attStatus === 'unsent'
-    return attStatus === status
-  })
-})
-
-function getCustomStatus(att) {
-  if (!selectedCustomCamp.value) return null
-  const prefix = `sms_${selectedCustomCamp.value.id}_`
-  const match = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
-  return match ? match.slice(match.lastIndexOf('_') + 1) : null
-}
-
-const customStatusCounts = computed(() => {
-  if (!selectedCustomCamp.value) return { all: 0, unsent: 0, sent: 0, delivered: 0, failed: 0 }
-  const campId   = selectedCustomCamp.value.id
-  const cardType = selectedCustomCamp.value.type
-  const labelId  = customLabelId.value
-  const prefix   = `sms_${campId}_`
-  const base = attendees.value.filter(att => {
-    if (!att.cards || att.cards[cardType] == null) return false
-    if (labelId && !(att.labelIds ?? []).includes(labelId)) return false
-    return true
-  })
-  const counts = { all: base.length, unsent: 0, sent: 0, delivered: 0, failed: 0 }
-  for (const att of base) {
-    const match = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
-    const s = match ? match.slice(match.lastIndexOf('_') + 1) : null
-    if (!s || s === 'unsent') counts.unsent++
-    else if (counts[s] !== undefined) counts[s]++
-  }
-  return counts
-})
-
-// ── Custom campaign: attendee pagination ──────────────────────────────────────
-const detailPage      = ref(1)
-const DETAIL_PAGE_SIZE = 10
-const detailTotalPages = computed(() => Math.max(1, Math.ceil(customFilteredAttendees.value.length / DETAIL_PAGE_SIZE)))
-const pagedDetailAttendees = computed(() => {
-  const start = (detailPage.value - 1) * DETAIL_PAGE_SIZE
-  return customFilteredAttendees.value.slice(start, start + DETAIL_PAGE_SIZE)
-})
-const detailPageNumbers = computed(() => {
-  const total = detailTotalPages.value, cur = detailPage.value
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const pages = [1]
-  if (cur > 3) pages.push('…')
-  const start = Math.max(2, cur - 1)
-  const end   = Math.min(total - 1, cur + 1)
-  for (let i = start; i <= end; i++) pages.push(i)
-  if (cur < total - 2) pages.push('…')
-  if (total > 1) pages.push(total)
-  return pages
-})
-function detailGoPage(n) { if (n >= 1 && n <= detailTotalPages.value) detailPage.value = n }
-watch([customFilteredAttendees], () => { detailPage.value = 1 })
-
-// ── Custom campaign: selection ────────────────────────────────────────────────
-const allCustomSelected  = computed(() => customFilteredAttendees.value.length > 0 && customSelectList.value.length === customFilteredAttendees.value.length)
-const someCustomSelected = computed(() => customSelectList.value.length > 0 && customSelectList.value.length < customFilteredAttendees.value.length)
-
-function isCustomSelected(att)  { return customSelectList.value.some(a => a.id === att.id) }
-function toggleCustomSelect(att) {
-  const i = customSelectList.value.findIndex(a => a.id === att.id)
-  if (i === -1) customSelectList.value.push(att)
-  else customSelectList.value.splice(i, 1)
-}
-function toggleCustomSelectAll() {
-  if (allCustomSelected.value) customSelectList.value = []
-  else customSelectList.value = [...customFilteredAttendees.value]
-}
-
-// Clear selection when filter changes
-watch([customStatus, customLabelId], () => { customSelectList.value = [] })
-
-// ── Custom campaign: open send ────────────────────────────────────────────────
-function openCustomSend() {
-  sendCampaign.value = selectedCustomCamp.value.id
-  sendChannel.value = 'sms'
-  sendRecipMode.value = 'selected'
-  sendResult.value = null
-  sendDrawerOpen.value = true
-  loadSendTemplates()
-}
-
-// ── System send drawer ────────────────────────────────────────────────────────
+// ── Send drawer ────────────────────────────────────────────────────────────────
 function openSendDrawer() {
   sendRecipMode.value = 'unsent'
   sendCampaign.value = activeCampaign.value ?? 'haflaway-invitation-campaign'
@@ -1203,8 +670,6 @@ function openSendDrawer() {
 }
 function closeSendDrawer() {
   sendDrawerOpen.value = false
-  // Clear custom select list after a successful send
-  if (isCustomSend.value && sendResult.value?.ok) customSelectList.value = []
 }
 
 function onCampaignChange(id) { sendCampaign.value = id; selectedTemplate.value = null; loadSendTemplates() }
@@ -1263,13 +728,11 @@ const sendStatusCounts = computed(() => {
   return c
 })
 const sendRecipCount = computed(() => {
-  if (sendRecipMode.value === 'selected') return customSelectList.value.length
   if (sendRecipMode.value === 'pick') return drawerPickList.value.length
   if (sendRecipMode.value === 'all') return sendRecipPool.value.length
   return sendStatusCounts.value[sendRecipMode.value] ?? 0
 })
 const sendRecipIds = computed(() => {
-  if (sendRecipMode.value === 'selected') return customSelectList.value.map(a => a.id)
   if (sendRecipMode.value === 'pick') return [...drawerPickList.value]
   if (sendRecipMode.value === 'all') return sendRecipPool.value.map(a => a.id)
   return sendRecipPool.value.filter(a => (getStatusForSend(a) ?? 'unsent') === sendRecipMode.value).map(a => a.id)
@@ -1287,7 +750,7 @@ async function executeSend() {
     if (!user) throw new Error('Not authenticated')
     const uid = user.uid
     const url = sendChannel.value === 'whatsapp' ? WSP_URL : SMS_URL
-    const kardType = CAMPAIGN_KARD_TYPE[sendCampaign.value] ?? selectedCustomCamp.value?.type ?? 'invitation'
+    const kardType = CAMPAIGN_KARD_TYPE[sendCampaign.value] ?? 'invitation'
     const body = sendChannel.value === 'whatsapp'
       ? { templateId: selectedTemplate.value.id, type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipIds.value, kardType }
       : { content: selectedTemplate.value.content,  type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipIds.value, kardType }
@@ -1297,7 +760,6 @@ async function executeSend() {
     sendResult.value = { ok: data.status === true, message: data.message ?? (data.status ? 'Done.' : 'Request failed.') }
     if (data.status) {
       await load()
-      if (sendRecipMode.value === 'selected') customSelectList.value = []
       if (sendRecipMode.value === 'pick') { drawerPickList.value = []; drawerPickSearch.value = ''; pickOpen.value = false }
     }
   } catch (e) {
@@ -1724,7 +1186,6 @@ watch(eventId, () => { if (eventId.value) load() })
   display: flex; flex-direction: column;
   gap: 16px;
   padding: 20px 24px 24px;
-  background: #0a0e1c;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -2045,7 +1506,7 @@ watch(eventId, () => { if (eventId.value) load() })
 .em-detail-type  { font-size: 11px; font-weight: 600; color: #8892a4; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 20px; white-space: nowrap; text-transform: capitalize; flex-shrink: 0; }
 .em-detail-filters {
   flex-shrink: 0; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
-  padding: 12px 24px; background: #0f1729; border-bottom: 1px solid #1e2d44;
+  padding: 12px 16px; background: #0f1729; border: 1px solid #1e2d44; border-radius: 10px;
 }
 .em-filter-group { display: flex; align-items: center; gap: 8px; }
 .em-filter-lbl   { font-size: 10px; font-weight: 700; color: #8892a4; text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }

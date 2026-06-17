@@ -436,7 +436,6 @@ function avatarStyle(u) {
   flex-direction: column;
   padding: 20px 24px 24px;
   gap: 16px;
-  background: #111827;
 }
 
 /* ══ Toolbar ══ */
