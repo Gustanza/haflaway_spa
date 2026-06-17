@@ -499,7 +499,7 @@ onMounted(load)
 .eb-td--vendor { color: #888; font-size: 12px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .eb-td--money  { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #f0f0ec; }
 .eb-td--muted  { color: #555; }
-.eb-td--actions { text-align: right; }
+.eb-td--actions { text-align: right; white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
 
 .eb-over { color: #f87171; }
 
