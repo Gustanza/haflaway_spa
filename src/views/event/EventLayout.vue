@@ -227,14 +227,14 @@ onMounted(async () => {
 <style scoped>
 /* ── Tokens ── */
 .el-root {
-  --ink: #e2e8f0;
-  --ink-soft: #c8d4e0;
-  --ink-muted: #8892a4;
-  --ink-dim: #4f617a;
-  --line: #1e2d44;
-  --line-soft: #1a2a3e;
-  --line-strong: #2a3a52;
-  --paper-soft: #0d1326;
+  --ink: #f0ece6;
+  --ink-soft: #d4cfc8;
+  --ink-muted: #888;
+  --ink-dim: #505050;
+  --line: #242424;
+  --line-soft: #1e1e1e;
+  --line-strong: #2e2e2e;
+  --paper-soft: #1a1a1a;
   --gold: #C9A84C;
   --emerald: #34d399;
   --emerald-soft: rgba(52,211,153,0.12);
@@ -243,7 +243,7 @@ onMounted(async () => {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: #0a0e1c;
+  background: #0e0e0e;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--ink);
 }
@@ -252,7 +252,7 @@ onMounted(async () => {
 .el-sidebar {
   width: 224px;
   flex-shrink: 0;
-  background: #0d1326;
+  background: #111111;
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -364,7 +364,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 28px 32px;
-  background: rgba(10,14,28,0.88);
+  background: rgba(14,14,14,0.92);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--line);
@@ -431,7 +431,7 @@ onMounted(async () => {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #0a0e1c;
+  background: #0e0e0e;
 }
 
 /* ── Mobile nav ── */

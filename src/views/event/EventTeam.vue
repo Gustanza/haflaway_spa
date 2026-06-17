@@ -31,7 +31,7 @@
       </div>
       <div class="et-stat-sep"/>
       <div class="et-stat">
-        <span class="et-stat-n" style="color:#B8924D">{{ adminsIds.length + scannersIds.length }}</span>
+        <span class="et-stat-n" style="color:#C9A84C">{{ adminsIds.length + scannersIds.length }}</span>
         <span class="et-stat-lbl">Total Members</span>
       </div>
     </div>
@@ -42,7 +42,7 @@
       <!-- Loading -->
       <div v-if="loading" class="et-empty">
         <svg class="et-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="#B8924D" stroke-width="2.2" stroke-linecap="round">
+          stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
           <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
         </svg>
         <p>Loading team…</p>
@@ -53,7 +53,7 @@
         <!-- ── Add Admin section ─────────────────────────────────── -->
         <div class="et-add-section">
           <p class="et-section-lbl">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
               stroke-width="2" stroke-linecap="round">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
               <circle cx="9" cy="7" r="4"/>
@@ -64,7 +64,7 @@
           <div class="et-search-row">
             <div class="et-search-wrap">
               <svg class="et-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="#4f617a" stroke-width="2" stroke-linecap="round">
+                stroke="#555" stroke-width="2" stroke-linecap="round">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <input
@@ -130,7 +130,7 @@
         <div v-if="adminProfiles.length || adminsIds.length" class="et-team-section">
           <div class="et-section-head">
             <span class="et-section-lbl">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
                 stroke-width="2" stroke-linecap="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
@@ -249,7 +249,7 @@
         <!-- ── Empty (no team yet) ───────────────────────────────── -->
         <div v-if="!adminsIds.length && !scannersIds.length && !loading" class="et-empty">
           <div class="et-empty-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B8924D"
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
               stroke-width="1.4" stroke-linecap="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
               <circle cx="9" cy="7" r="4"/>
@@ -445,28 +445,28 @@ function avatarStyle(u) {
   padding: 0;
 }
 .et-toolbar-left { display: flex; flex-direction: column; gap: 2px; }
-.et-toolbar-title { font-size: 16px; font-weight: 700; color: #e2e8f0; margin: 0; }
-.et-toolbar-sub   { font-size: 12px; color: #8892a4; margin: 0; }
+.et-toolbar-title { font-size: 16px; font-weight: 700; color: #f0f0ec; margin: 0; }
+.et-toolbar-sub   { font-size: 12px; color: #888; margin: 0; }
 .et-toolbar-right { display: flex; align-items: center; gap: 6px; }
 .et-refresh-btn {
   width: 32px; height: 32px; border-radius: 8px;
-  border: 1px solid #1e2d44; background: #111827; color: #8892a4;
+  border: 1px solid #2a2a2a; background: #141414; color: #888;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all 140ms; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.et-refresh-btn:hover:not(:disabled) { background: #1a2a3e; color: #e2e8f0; }
+.et-refresh-btn:hover:not(:disabled) { background: #1a1a1a; color: #f0f0ec; }
 .et-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ══ Stats bar ══ */
 .et-stats-bar {
   display: flex; align-items: center; flex-shrink: 0;
-  padding: 0 16px; background: #111827; border: 1px solid #1e2d44; border-radius: 12px; min-height: 52px;
+  padding: 0 16px; background: #141414; border: 1px solid #2a2a2a; border-radius: 12px; min-height: 52px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .et-stat { display: flex; flex-direction: column; align-items: center; padding: 10px 20px; gap: 2px; }
-.et-stat-n   { font-size: 18px; font-weight: 700; color: #e2e8f0; line-height: 1; }
-.et-stat-lbl { font-size: 10px; font-weight: 600; color: #4f617a; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
-.et-stat-sep { width: 0.8px; height: 28px; background: #1e2d44; flex-shrink: 0; }
+.et-stat-n   { font-size: 24px; font-weight: 700; color: #f0f0ec; line-height: 1; letter-spacing: -0.3px; }
+.et-stat-lbl { font-size: 10px; font-weight: 600; color: #777; text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
+.et-stat-sep { width: 0.8px; height: 28px; background: #2a2a2a; flex-shrink: 0; }
 
 /* ══ Content ══ */
 .et-content { flex: 1; padding: 0; display: flex; flex-direction: column; gap: 24px; max-width: 680px; }
@@ -474,15 +474,15 @@ function avatarStyle(u) {
 /* Empty */
 .et-empty {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; min-height: 260px; color: #4f617a;
+  justify-content: center; gap: 10px; min-height: 260px; color: #555;
 }
 .et-empty-icon {
   width: 60px; height: 60px; border-radius: 50%;
   background: rgba(10,10,11,0.03); border: 1px solid rgba(10,10,11,0.08);
   display: flex; align-items: center; justify-content: center;
 }
-.et-empty-title { font-size: 15px; font-weight: 600; color: #8892a4; margin: 0; }
-.et-empty-sub   { font-size: 13px; color: #4f617a; margin: 0; text-align: center; }
+.et-empty-title { font-size: 15px; font-weight: 600; color: #888; margin: 0; }
+.et-empty-sub   { font-size: 13px; color: #555; margin: 0; text-align: center; }
 
 /* ══ Add Admin section ══ */
 .et-add-section {
@@ -490,7 +490,7 @@ function avatarStyle(u) {
 }
 .et-section-lbl {
   display: flex; align-items: center; gap: 7px;
-  font-size: 12px; font-weight: 700; color: #8892a4;
+  font-size: 12px; font-weight: 700; color: #888;
   text-transform: uppercase; letter-spacing: 0.5px;
 }
 
@@ -501,19 +501,19 @@ function avatarStyle(u) {
 .et-search-icon { position: absolute; left: 10px; pointer-events: none; }
 .et-search-inp {
   width: 100%; padding: 9px 34px 9px 32px;
-  border: 1px solid #1e2d44; border-radius: 10px;
-  font-size: 13px; font-family: inherit; outline: none; color: #e2e8f0;
-  background: #111827; box-sizing: border-box;
+  border: 1px solid #2a2a2a; border-radius: 10px;
+  font-size: 13px; font-family: inherit; outline: none; color: #f0f0ec;
+  background: #141414; box-sizing: border-box;
   transition: border-color 150ms, box-shadow 150ms;
 }
 .et-search-inp:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
 .et-search-clear {
   position: absolute; right: 8px; background: none; border: none;
-  cursor: pointer; color: #8892a4; padding: 2px; display: flex; align-items: center;
+  cursor: pointer; color: #888; padding: 2px; display: flex; align-items: center;
 }
 .et-search-btn {
   padding: 9px 18px; border-radius: 10px;
-  background: rgba(226,232,240,0.12); color: #e2e8f0; border: none;
+  background: rgba(226,232,240,0.12); color: #f0f0ec; border: none;
   font-size: 13px; font-weight: 600; font-family: inherit;
   cursor: pointer; transition: background 140ms; white-space: nowrap;
   flex-shrink: 0;
@@ -540,7 +540,7 @@ function avatarStyle(u) {
 .et-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .et-already-badge {
   padding: 5px 10px; border-radius: 8px;
-  background: #1a2a3e; color: #8892a4;
+  background: #1a1a1a; color: #888;
   font-size: 11px; font-weight: 600;
 }
 
@@ -551,7 +551,7 @@ function avatarStyle(u) {
 }
 .et-section-cnt {
   padding: 1px 7px; border-radius: 8px;
-  background: #1a2a3e; color: #8892a4;
+  background: #1a1a1a; color: #888;
   font-size: 11px; font-weight: 700;
 }
 
@@ -560,7 +560,7 @@ function avatarStyle(u) {
 .et-member-card {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 14px; border-radius: 14px;
-  background: #111827; border: 1px solid #1e2d44;
+  background: #141414; border: 1px solid #2a2a2a;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
@@ -579,13 +579,13 @@ function avatarStyle(u) {
 /* Skeleton */
 .et-avatar-skeleton {
   width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(90deg, #111827 25%, #1a2a3e 50%, #111827 75%);
+  background: linear-gradient(90deg, #141414 25%, #1a1a1a 50%, #141414 75%);
   background-size: 200% 100%;
   animation: et-shimmer 1.4s infinite;
 }
 .et-skeleton {
   border-radius: 4px;
-  background: linear-gradient(90deg, #111827 25%, #1a2a3e 50%, #111827 75%);
+  background: linear-gradient(90deg, #141414 25%, #1a1a1a 50%, #141414 75%);
   background-size: 200% 100%;
   animation: et-shimmer 1.4s infinite;
 }
@@ -595,8 +595,8 @@ function avatarStyle(u) {
 
 /* Member info */
 .et-member-info { flex: 1; min-width: 0; }
-.et-member-name  { font-size: 14px; font-weight: 600; color: #e2e8f0; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.et-member-email { font-size: 12px; color: #8892a4; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.et-member-name  { font-size: 14px; font-weight: 600; color: #f0f0ec; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.et-member-email { font-size: 12px; color: #888; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Member actions */
 .et-member-action { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
@@ -623,10 +623,10 @@ function avatarStyle(u) {
 .et-del-yes:disabled { opacity: 0.6; cursor: not-allowed; }
 .et-del-no {
   padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 500;
-  border: 1px solid #1e2d44; background: #111827; color: #8892a4;
+  border: 1px solid #2a2a2a; background: #141414; color: #888;
   cursor: pointer; font-family: inherit;
 }
-.et-del-no:hover { background: #1a2a3e; }
+.et-del-no:hover { background: #1a1a1a; }
 
 /* Spin */
 .et-spin { animation: et-spin-anim 1.1s linear infinite; }

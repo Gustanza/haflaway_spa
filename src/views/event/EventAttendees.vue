@@ -1,24 +1,128 @@
 ﻿<template>
   <div class="ea-root">
 
-    <!-- ── Toolbar ── -->
-    <div class="ea-toolbar">
-      <div class="ea-search-wrap">
-        <svg class="ea-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-          stroke="#4f617a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input v-model="searchQ" class="ea-search" placeholder="Search by name or phone…" />
-        <button v-if="searchQ" class="ea-search-clear" @click="searchQ = ''">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.5" stroke-linecap="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    <!-- ── Stat cards ── -->
+    <div class="ea-stats" v-if="!loading || attendees.length">
+      <div class="ea-stat-card">
+        <div class="ea-stat-icon ea-stat-icon--purple">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-        </button>
+        </div>
+        <div class="ea-stat-body">
+          <span class="ea-stat-lbl">Total Attendees</span>
+          <span class="ea-stat-val">{{ attendees.length }}</span>
+        </div>
       </div>
+      <div class="ea-stat-card">
+        <div class="ea-stat-icon ea-stat-icon--blue">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+        </div>
+        <div class="ea-stat-body">
+          <span class="ea-stat-lbl">Invitations · {{ confirmedCount }} confirmed</span>
+          <span class="ea-stat-val">{{ typeCount.invitation }}</span>
+        </div>
+      </div>
+      <div class="ea-stat-card">
+        <div class="ea-stat-icon ea-stat-icon--gold">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        </div>
+        <div class="ea-stat-body">
+          <span class="ea-stat-lbl">Contributions · TZS {{ formatMoney(totalPaid).replace('TZS ', '') }} paid</span>
+          <span class="ea-stat-val">{{ typeCount.contribution }}</span>
+        </div>
+      </div>
+      <div class="ea-stat-card">
+        <div class="ea-stat-icon ea-stat-icon--teal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <div class="ea-stat-body">
+          <span class="ea-stat-lbl">Contacts</span>
+          <span class="ea-stat-val">{{ typeCount.contact }}</span>
+        </div>
+      </div>
+    </div>
 
-      <div class="ea-toolbar-right">
-        <div class="ea-tb-acts">
+    <div class="ea-panel">
+
+      <!-- ── Panel header ── -->
+      <div class="ea-panel-hd">
+        <h2 class="ea-panel-title">Attendees</h2>
+        <div class="ea-search-wrap ea-hd-search">
+          <svg class="ea-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+            stroke="#505050" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input v-model="searchQ" class="ea-search" placeholder="Search by name or phone…" />
+          <button v-if="searchQ" class="ea-search-clear" @click="searchQ = ''">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="ea-panel-acts">
+
+          <!-- Groups dropdown -->
+          <div class="ea-label-select" ref="labelSelectRef">
+            <button class="ea-type-trigger" :class="{ 'ea-type-trigger--active': filterLabelId }" @click="labelDropOpen = !labelDropOpen">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                <line x1="7" y1="7" x2="7.01" y2="7"/>
+              </svg>
+              <template v-if="filterLabelId">
+                <span class="ea-label-trigger-dot" :style="{ background: labelFg(localLabels.find(l => l.id === filterLabelId)) }"/>
+                {{ localLabels.find(l => l.id === filterLabelId)?.name ?? 'Groups' }}
+              </template>
+              <template v-else>
+                Groups
+                <span v-if="localLabels.length" class="ea-type-trigger-cnt">{{ localLabels.length }}</span>
+              </template>
+              <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': labelDropOpen }"
+                width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            <div v-if="labelDropOpen" class="ea-type-drop">
+              <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !filterLabelId }"
+                @click="filterLabelId = null; labelDropOpen = false">
+                All
+                <span class="ea-type-drop-cnt">{{ attendees.length }}</span>
+              </button>
+              <template v-if="localLabels.length">
+                <div class="ea-label-drop-sep"/>
+                <button v-for="lbl in localLabels" :key="lbl.id"
+                  class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': filterLabelId === lbl.id }"
+                  @click="filterLabelId = filterLabelId === lbl.id ? null : lbl.id; labelDropOpen = false">
+                  <span style="display:flex;align-items:center;gap:7px;">
+                    <span class="ea-lf-dot" :style="{ background: labelFg(lbl) }"/>
+                    {{ lbl.name }}
+                  </span>
+                </button>
+              </template>
+              <div class="ea-label-drop-sep"/>
+              <button class="ea-type-drop-item ea-label-drop-manage" @click="showLabelManager = true; labelDropOpen = false">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                Manage Groups
+              </button>
+            </div>
+          </div>
+
+          <!-- Import -->
           <button class="ea-import-btn" @click="openImport">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -28,6 +132,29 @@
             </svg>
             <span class="ea-btn-label">Import</span>
           </button>
+
+          <!-- Type dropdown -->
+          <div class="ea-type-select" ref="typeSelectRef">
+            <button class="ea-type-trigger" @click="typeDropOpen = !typeDropOpen">
+              {{ activeTypeLabel }}
+              <span v-if="activeTypeCount" class="ea-type-trigger-cnt">{{ activeTypeCount }}</span>
+              <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': typeDropOpen }"
+                width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            <div v-if="typeDropOpen" class="ea-type-drop">
+              <button v-for="f in typeFilters" :key="f.val"
+                class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': activeType === f.val }"
+                @click="activeType = f.val; typeDropOpen = false">
+                {{ f.label }}
+                <span class="ea-type-drop-cnt">{{ f.val === 'all' ? attendees.length : (typeCount[f.val] ?? 0) }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Add -->
           <button class="ea-add-btn" @click="openAdd">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2.5" stroke-linecap="round">
@@ -35,46 +162,10 @@
             </svg>
             Add Attendee
           </button>
-        </div>
-        <div class="ea-filter-chips">
-          <button v-for="f in typeFilters" :key="f.val"
-            class="ea-chip" :class="{ 'ea-chip--active': activeType === f.val }"
-            @click="activeType = f.val">
-            {{ f.label }}
-            <span v-if="f.val === 'all' ? attendees.length : typeCount[f.val]" class="ea-chip-cnt">
-              {{ f.val === 'all' ? attendees.length : typeCount[f.val] }}
-            </span>
-          </button>
+
         </div>
       </div>
-    </div>
 
-    <!-- ── Label filter row ── -->
-    <div v-if="localLabels.length" class="ea-label-filter-row">
-      <button class="ea-lf-pill" :class="{ 'ea-lf-pill--active': !filterLabelId }" @click="filterLabelId = null">
-        All
-      </button>
-      <button v-for="lbl in localLabels" :key="lbl.id"
-        class="ea-lf-pill"
-        :class="{ 'ea-lf-pill--active': filterLabelId === lbl.id }"
-        :style="filterLabelId === lbl.id ? { background: labelBg(lbl), color: labelFg(lbl), borderColor: labelFg(lbl) } : {}"
-        @click="filterLabelId = filterLabelId === lbl.id ? null : lbl.id">
-        <span class="ea-lf-dot" :style="{ background: labelFg(lbl) }"></span>
-        {{ lbl.name }}
-      </button>
-      <button class="ea-lf-manage" @click="showLabelManager = true" title="Manage labels">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-        Manage
-      </button>
-    </div>
-    <div v-else class="ea-label-filter-row ea-label-filter-row--empty">
-      <button class="ea-lf-manage ea-lf-manage--ghost" @click="showLabelManager = true">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Create Labels
-      </button>
-    </div>
 
 
     <!-- ── Selection bar ── -->
@@ -86,7 +177,7 @@
           <div class="ea-sel-label-wrap" v-if="localLabels.length">
             <button class="ea-sel-btn ea-sel-btn--label" @click="bulkLabelOpen = !bulkLabelOpen">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-              Label
+              Group
             </button>
             <div v-if="bulkLabelOpen" class="ea-bulk-label-drop">
               <button v-for="lbl in localLabels" :key="lbl.id"
@@ -97,7 +188,7 @@
               <div class="ea-bld-divider"></div>
               <button class="ea-bld-item ea-bld-item--clear" @click="applyBulkLabel(null)">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                Remove all labels
+                Remove all groups
               </button>
             </div>
           </div>
@@ -132,7 +223,7 @@
               <th class="ea-th">Type</th>
               <th class="ea-th">Template</th>
               <th class="ea-th">Status</th>
-              <th class="ea-th">Labels</th>
+              <th class="ea-th">Groups</th>
               <th class="ea-th ea-th--sortable ea-th--right" @click="toggleSort('date')">
                 <span>Added</span>
                 <svg class="ea-sort-icon"
@@ -262,7 +353,7 @@
                   <!-- Illustration -->
                   <div class="ea-empty-graphic">
                     <svg width="52" height="52" viewBox="0 0 64 64" fill="none">
-                      <circle cx="32" cy="32" r="32" fill="#1e2d44"/>
+                      <circle cx="32" cy="32" r="32" fill="#242424"/>
                       <!-- People silhouette -->
                       <circle cx="26" cy="22" r="7" fill="#DDDBD6"/>
                       <path d="M12 44c0-7.732 6.268-14 14-14h0c7.732 0 14 6.268 14 14" stroke="#DDDBD6" stroke-width="3" stroke-linecap="round" fill="none"/>
@@ -449,7 +540,7 @@
 
                   <!-- No templates found -->
                   <div v-else-if="!cardTemplates.length" class="ea-tpl-empty">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8892a4"
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888"
                       stroke-width="1.8" stroke-linecap="round">
                       <rect x="2" y="5" width="20" height="14" rx="3"/>
                       <line x1="2" y1="10" x2="22" y2="10"/>
@@ -486,14 +577,14 @@
 
                 <!-- Labels -->
                 <div class="ea-field" v-if="eventLabels.length">
-                  <label class="ea-label">Labels</label>
+                  <label class="ea-label">Groups</label>
                   <div class="ea-label-row">
                     <button v-for="lbl in eventLabels" :key="lbl.id"
                       type="button"
                       class="ea-label-toggle"
                       :style="{
                         borderColor: labelFg(lbl),
-                        color: form.labelIds.includes(lbl.id) ? labelFg(lbl) : '#8892a4',
+                        color: form.labelIds.includes(lbl.id) ? labelFg(lbl) : '#888',
                         background: form.labelIds.includes(lbl.id) ? labelBg(lbl) : 'transparent'
                       }"
                       @click="toggleLabel(lbl.id)">
@@ -635,14 +726,14 @@
 
                 <!-- ── Step 1: Labels ── -->
                 <div v-if="eventLabels.length" class="ea-imp-section">
-                  <p class="ea-imp-section-label">Step 1 — Assign Labels <span class="ea-imp-opt">(optional)</span></p>
+                  <p class="ea-imp-section-label">Step 1 — Assign Groups <span class="ea-imp-opt">(optional)</span></p>
                   <div class="ea-imp-label-scroller">
                     <button v-for="lbl in eventLabels" :key="lbl.id"
                       type="button" class="ea-imp-label-chip"
                       :class="{ 'ea-imp-label-chip--active': importSelectedLabels.includes(lbl.id) }"
                       :style="{
                         borderColor: importSelectedLabels.includes(lbl.id) ? labelFg(lbl) : '#ECECEF',
-                        color: importSelectedLabels.includes(lbl.id) ? labelFg(lbl) : '#8892a4',
+                        color: importSelectedLabels.includes(lbl.id) ? labelFg(lbl) : '#888',
                         background: importSelectedLabels.includes(lbl.id) ? labelBg(lbl) : 'transparent',
                       }"
                       @click="toggleImportLabel(lbl.id)">
@@ -1145,7 +1236,7 @@
           <div class="ea-modal ea-lm-modal" v-if="showLabelManager">
 
             <div class="ea-modal-header">
-              <h3 class="ea-modal-title">Manage Labels</h3>
+              <h3 class="ea-modal-title">Manage Groups</h3>
               <button class="ea-modal-close" @click="showLabelManager = false">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
@@ -1187,13 +1278,13 @@
                   </div>
                 </template>
               </div>
-              <p v-else class="ea-lm-empty">No labels yet. Create your first one below.</p>
+              <p v-else class="ea-lm-empty">No groups yet. Create your first one below.</p>
 
               <div class="ea-lm-divider"></div>
 
               <!-- Create new label -->
               <div class="ea-lm-create">
-                <p class="ea-lm-section-hd">New Label</p>
+                <p class="ea-lm-section-hd">New Group</p>
                 <div class="ea-lm-palette">
                   <button v-for="c in LABEL_COLORS" :key="c"
                     class="ea-lm-color" :class="{ 'ea-lm-color--on': newLabelColor === c }"
@@ -1217,11 +1308,12 @@
     </Transition>
   </Teleport>
 
-</div>
+    </div><!-- /ea-panel -->
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, auth } from '../../firebase'
 import {
@@ -1412,6 +1504,24 @@ watch([searchQ, activeType, sortKey, sortDir, filterLabelId], () => {
   selectedIds.clear()
 })
 
+// ── Type dropdown ─────────────────────────────────────────────────────────────
+const typeDropOpen  = ref(false)
+const typeSelectRef = ref(null)
+
+const activeTypeLabel = computed(() => typeFilters.find(f => f.val === activeType.value)?.label ?? 'All')
+const activeTypeCount = computed(() => activeType.value === 'all' ? attendees.value.length : (typeCount.value?.[activeType.value] ?? 0))
+
+// ── Label dropdown ────────────────────────────────────────────────────────────
+const labelDropOpen  = ref(false)
+const labelSelectRef = ref(null)
+
+function onClickOutsideDropdowns(e) {
+  if (typeSelectRef.value && !typeSelectRef.value.contains(e.target)) typeDropOpen.value = false
+  if (labelSelectRef.value && !labelSelectRef.value.contains(e.target)) labelDropOpen.value = false
+}
+onMounted(() => document.addEventListener('click', onClickOutsideDropdowns, true))
+onUnmounted(() => document.removeEventListener('click', onClickOutsideDropdowns, true))
+
 const typeCount = computed(() => {
   const c = { invitation: 0, contribution: 0, contact: 0 }
   for (const a of attendees.value) {
@@ -1420,6 +1530,14 @@ const typeCount = computed(() => {
   }
   return c
 })
+
+const confirmedCount = computed(() =>
+  attendees.value.filter(a => getKardType(a) === 'invitation' && a.attendanceStatus === 'Confirmed').length
+)
+
+const totalPaid = computed(() =>
+  attendees.value.reduce((s, a) => s + (getKardType(a) !== 'invitation' ? (a.paidAmount ?? 0) : 0), 0)
+)
 
 
 // ── Firestore load ────────────────────────────────────────────────────────────
@@ -1973,7 +2091,7 @@ async function saveEditLabel() {
 }
 
 async function deleteLabel(lbl) {
-  if (!confirm(`Delete label "${lbl.name}"? Attendees will lose this label.`)) return
+  if (!confirm(`Delete group "${lbl.name}"? Attendees will lose this group.`)) return
   try {
     await updateDoc(doc(db, 'events', eventId.value), { labels: arrayRemove(lbl) })
     localLabels.value = localLabels.value.filter(l => l.id !== lbl.id)
@@ -2348,11 +2466,69 @@ function setImportPayment(attendeeId, amount) {
 
 <style scoped>
 .ea-root {
+  padding: 20px 24px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px 24px 24px;
 }
+
+/* ── Outer panel ── */
+.ea-panel {
+  display: flex;
+  flex-direction: column;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.ea-panel-hd {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #1e1e1e;
+  gap: 10px;
+}
+.ea-panel-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #f0ece6;
+  margin: 0;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+.ea-panel-acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Stat cards ── */
+.ea-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.ea-stat-card {
+  background: #191919; border: 1px solid #2a2a2a; border-radius: 12px;
+  padding: 20px 20px 18px; display: flex; align-items: flex-start; gap: 16px;
+}
+
+/* ── Header search ── */
+.ea-hd-search {
+  margin-left: auto;
+  max-width: 320px;
+  min-width: 120px;
+}
+.ea-stat-icon {
+  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
+  background: rgba(201,168,76,0.08); color: #C9A84C;
+  display: flex; align-items: center; justify-content: center;
+}
+.ea-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
+.ea-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
+.ea-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
+.ea-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
+.ea-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ea-stat-lbl  { font-size: 11px; color: #777; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.6px; text-transform: uppercase; }
+.ea-stat-val  { font-size: 32px; font-weight: 700; color: #f0f0ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; letter-spacing: -0.5px; }
 
 /* ── Toolbar ── */
 .ea-toolbar {
@@ -2366,7 +2542,6 @@ function setImportPayment(attendeeId, amount) {
 
 .ea-search-wrap {
   flex: 1;
-  min-width: 180px;
   position: relative;
   display: flex;
   align-items: center;
@@ -2379,31 +2554,31 @@ function setImportPayment(attendeeId, amount) {
 .ea-search {
   width: 100%;
   padding: 9px 34px 9px 34px;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #161616;
+  border: 1px solid #242424;
   border-radius: 10px;
   font-size: 13px;
-  color: #e2e8f0;
+  color: #f0ece6;
   outline: none;
   transition: border-color 150ms;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   font-family: inherit;
 }
 .ea-search:focus { border-color: #C9A84C; }
-.ea-search::placeholder { color: #4f617a; }
+.ea-search::placeholder { color: #666; }
 .ea-search-clear {
   position: absolute;
   right: 10px;
   background: none;
   border: none;
-  color: #4f617a;
+  color: #505050;
   cursor: pointer;
   display: flex;
   align-items: center;
   padding: 3px;
   border-radius: 4px;
 }
-.ea-search-clear:hover { color: #8892a4; }
+.ea-search-clear:hover { color: #888; }
 
 .ea-toolbar-right {
   display: flex;
@@ -2419,54 +2594,75 @@ function setImportPayment(attendeeId, amount) {
   flex-shrink: 0;
 }
 
-.ea-filter-chips { display: flex; gap: 4px; }
-.ea-chip {
-  padding: 7px 13px;
-  border-radius: 20px;
-  border: 1px solid #1e2d44;
-  background: #111827;
-  font-size: 12px;
-  font-weight: 500;
-  color: #8892a4;
-  cursor: pointer;
-  transition: all 140ms;
-  font-family: inherit;
+.ea-label-select { position: relative; flex-shrink: 0; }
+.ea-type-trigger--active { color: #f0ece6; border-color: rgba(240,236,230,0.2); background: rgba(240,236,230,0.06); }
+.ea-label-trigger-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
 }
-.ea-chip:hover { background: #1a2a3e; color: #8892a4; }
-.ea-chip--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: #e2e8f0; font-weight: 600; }
-.ea-chip-cnt {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  padding: 1px 5px;
-  background: #1a2a3e;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #8892a4;
-  margin-left: 5px;
-  line-height: 1.4;
+.ea-label-drop-sep {
+  height: 1px; background: #242424; margin: 3px 4px;
 }
-.ea-chip--active .ea-chip-cnt { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.75); }
+.ea-label-drop-manage { color: #888 !important; font-size: 12px !important; }
+.ea-label-drop-manage:hover { color: #C9A84C !important; }
+
+.ea-type-select { position: relative; flex-shrink: 0; }
+.ea-type-trigger {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 12px; border-radius: 10px;
+  border: 1px solid #242424; background: #161616;
+  font-size: 12px; font-weight: 500; color: #888;
+  cursor: pointer; font-family: inherit;
+  transition: background 140ms; white-space: nowrap;
+}
+.ea-type-trigger:hover { background: #1e1e1e; }
+.ea-type-trigger-cnt {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; padding: 1px 5px;
+  background: #1e1e1e; border-radius: 10px;
+  font-size: 11px; font-weight: 600; color: #888;
+}
+.ea-type-chevron { color: #505050; transition: transform 150ms; }
+.ea-type-chevron--open { transform: rotate(180deg); }
+.ea-type-drop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 50;
+  background: #161616; border: 1px solid #242424; border-radius: 10px;
+  padding: 4px; min-width: 170px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.ea-type-drop-item {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 8px 12px; border-radius: 7px;
+  border: none; background: none; cursor: pointer;
+  font-size: 13px; font-weight: 500; color: #888;
+  font-family: inherit; transition: background 120ms, color 120ms; gap: 10px;
+}
+.ea-type-drop-item:hover { background: rgba(255,255,255,0.05); color: #f0ece6; }
+.ea-type-drop-item--active { color: #f0ece6; font-weight: 600; }
+.ea-type-drop-item--active .ea-type-drop-cnt { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.75); }
+.ea-type-drop-cnt {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; padding: 1px 5px;
+  background: #1e1e1e; border-radius: 10px;
+  font-size: 11px; font-weight: 600; color: #888;
+}
 
 .ea-add-btn {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: #1e2d44;
-  color: #e2e8f0;
-  border: 1px solid #2a3a52;
+  background: #C9A84C;
+  color: #0e0e0e;
+  border: none;
   border-radius: 10px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 150ms, border-color 150ms;
+  transition: background 150ms;
   font-family: inherit;
   flex-shrink: 0;
 }
-.ea-add-btn:hover { background: #243350; border-color: #3a4f6a; }
+.ea-add-btn:hover { background: #d4b560; }
 
 
 /* ── Selection bar ── */
@@ -2505,11 +2701,9 @@ function setImportPayment(attendeeId, amount) {
 .ea-table-wrap {
   display: flex;
   flex-direction: column;
-  background: #111827;
-  border: 1px solid #1e2d44;
-  border-radius: 12px;
+  background: #141414;
+  border-top: 1px solid #1e1e1e;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .ea-table-scroll {
   overflow-x: auto;
@@ -2532,7 +2726,7 @@ function setImportPayment(attendeeId, amount) {
   width: 16px;
   height: 16px;
   border-radius: 5px;
-  border: 1.5px solid #2a3a52;
+  border: 1.5px solid #2e2e2e;
   background: transparent;
   cursor: pointer;
   display: block;
@@ -2584,20 +2778,20 @@ function setImportPayment(attendeeId, amount) {
   padding: 11px 16px;
   font-size: 11px;
   font-weight: 700;
-  color: #8892a4;
+  color: #888;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   text-align: left;
   white-space: nowrap;
-  background: #111827;
-  border-bottom: 1px solid #1e2d44;
+  background: #161616;
+  border-bottom: 1px solid #242424;
   user-select: none;
   position: sticky;
   top: 0;
   z-index: 1;
 }
 .ea-th--sortable { cursor: pointer; }
-.ea-th--sortable:hover { color: #e2e8f0; }
+.ea-th--sortable:hover { color: #f0ece6; }
 .ea-th--right { text-align: right; }
 
 /* Sort icon */
@@ -2613,12 +2807,12 @@ function setImportPayment(attendeeId, amount) {
 
 /* Rows */
 .ea-tr {
-  border-bottom: 1px solid #1a2a3e;
+  border-bottom: 1px solid #1e1e1e;
   cursor: pointer;
   transition: background 120ms;
 }
 .ea-tr:last-child { border-bottom: none; }
-.ea-tr:hover:not(.ea-tr--skeleton) { background: #111827; }
+.ea-tr:hover:not(.ea-tr--skeleton) { background: #161616; }
 .ea-tr--skeleton { pointer-events: none; }
 .ea-tr--selected { background: #FFFBF0 !important; }
 .ea-tr--pending { box-shadow: inset 3px 0 0 #FF9F0A; }
@@ -2627,11 +2821,11 @@ function setImportPayment(attendeeId, amount) {
 .ea-td {
   padding: 11px 16px;
   font-size: 13px;
-  color: #e2e8f0;
+  color: #f0ece6;
   vertical-align: middle;
   white-space: nowrap;
 }
-.ea-td--muted { color: #8892a4; font-size: 12px; }
+.ea-td--muted { color: #888; font-size: 12px; }
 .ea-td--right { text-align: right; }
 .ea-td--date  { font-size: 12px; }
 
@@ -2655,7 +2849,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-name-text {
   font-weight: 600;
-  color: #e2e8f0;
+  color: #f0ece6;
   white-space: nowrap;
 }
 
@@ -2718,18 +2912,18 @@ function setImportPayment(attendeeId, amount) {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid #1e2d44;
-  background: #111827;
+  border: 1px solid #242424;
+  background: #161616;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 130ms;
-  color: #8892a4;
+  color: #888;
   flex-shrink: 0;
 }
-.ea-row-btn:hover { background: #1a2a3e; color: #e2e8f0; border-color: #2a3a52; }
-.ea-row-btn--edit:hover { color: #e2e8f0; }
+.ea-row-btn:hover { background: #1e1e1e; color: #f0ece6; border-color: #2e2e2e; }
+.ea-row-btn--edit:hover { color: #f0ece6; }
 .ea-row-btn--refresh {
   color: #FF9F0A;
   border-color: rgba(255,159,10,0.3);
@@ -2750,7 +2944,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-tpl-name {
   font-size: 12px;
-  color: #8892a4;
+  color: #888;
 }
 .ea-pending-pill {
   display: inline-flex;
@@ -2829,15 +3023,15 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-top: 1px solid #1e2d44;
-  background: #111827;
+  border-top: 1px solid #242424;
+  background: #161616;
   gap: 12px;
   flex-wrap: wrap;
   flex-shrink: 0;
 }
 .ea-range-label {
   font-size: 12px;
-  color: #8892a4;
+  color: #888;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -2851,12 +3045,12 @@ function setImportPayment(attendeeId, amount) {
   min-width: 32px;
   height: 32px;
   padding: 0 6px;
-  border: 1px solid #1e2d44;
+  border: 1px solid #242424;
   border-radius: 8px;
-  background: #111827;
+  background: #161616;
   font-size: 13px;
   font-weight: 500;
-  color: #8892a4;
+  color: #888;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2865,18 +3059,18 @@ function setImportPayment(attendeeId, amount) {
   font-family: inherit;
 }
 .ea-page-btn:hover:not(:disabled):not(.ea-page-btn--active) {
-  background: #1a2a3e;
-  border-color: #2a3a52;
-  color: #e2e8f0;
+  background: #1e1e1e;
+  border-color: #2e2e2e;
+  color: #f0ece6;
 }
 .ea-page-btn--active {
   background: #0A0A0B;
-  border-color: #e2e8f0;
+  border-color: #f0ece6;
   color: #FFFFFF;
   font-weight: 600;
   cursor: default;
 }
-.ea-page-btn--nav { color: #8892a4; }
+.ea-page-btn--nav { color: #888; }
 .ea-page-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
@@ -2888,7 +3082,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  color: #4f617a;
+  color: #505050;
   letter-spacing: 1px;
 }
 
@@ -2908,12 +3102,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-empty-title {
   font-size: 15px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: #f0ece6;
   margin: 0;
 }
 .ea-empty-sub {
   font-size: 13px;
-  color: #8892a4;
+  color: #888;
   margin: 0 0 14px;
   line-height: 1.5;
 }
@@ -2934,10 +3128,10 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-empty-cta:hover { opacity: 0.82; }
 .ea-empty-cta--ghost {
-  background: #1a2a3e;
-  color: #8892a4;
+  background: #1e1e1e;
+  color: #888;
 }
-.ea-empty-cta--ghost:hover { opacity: 1; background: #1e2d44; }
+.ea-empty-cta--ghost:hover { opacity: 1; background: #242424; }
 
 /* ── Overlay ── */
 .ea-overlay {
@@ -2955,7 +3149,7 @@ function setImportPayment(attendeeId, amount) {
 
 /* ── Modal ── */
 .ea-modal {
-  background: #111827;
+  background: #161616;
   border-radius: 16px;
   width: 100%;
   max-width: 440px;
@@ -2967,11 +3161,11 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: space-between;
   padding: 20px 22px 16px;
-  border-bottom: 1px solid #1a2a3e;
+  border-bottom: 1px solid #1e1e1e;
 }
-.ea-modal-title { font-size: 16px; font-weight: 700; color: #e2e8f0; margin: 0; }
+.ea-modal-title { font-size: 16px; font-weight: 700; color: #f0ece6; margin: 0; }
 .ea-modal-close {
-  background: #1a2a3e;
+  background: #1e1e1e;
   border: none;
   width: 28px; height: 28px;
   border-radius: 50%;
@@ -2979,10 +3173,10 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #8892a4;
+  color: #888;
   transition: background 140ms;
 }
-.ea-modal-close:hover { background: #1e2d44; }
+.ea-modal-close:hover { background: #242424; }
 
 .ea-form {
   padding: 20px 22px;
@@ -2991,21 +3185,21 @@ function setImportPayment(attendeeId, amount) {
   gap: 16px;
 }
 .ea-field { display: flex; flex-direction: column; gap: 6px; }
-.ea-label { font-size: 12px; font-weight: 600; color: #8892a4; }
+.ea-label { font-size: 12px; font-weight: 600; color: #888; }
 .ea-required { color: #FF453A; }
 
 .ea-input {
   padding: 9px 12px;
-  border: 1px solid #1e2d44;
+  border: 1px solid #242424;
   border-radius: 10px;
   font-size: 13px;
-  color: #e2e8f0;
+  color: #f0ece6;
   outline: none;
-  background: #111827;
+  background: #161616;
   transition: border-color 150ms, background 150ms;
   font-family: inherit;
 }
-.ea-input:focus { border-color: #C9A84C; background: #111827; }
+.ea-input:focus { border-color: #C9A84C; background: #161616; }
 .ea-input--error { border-color: #FF453A; }
 .ea-field-error { font-size: 11px; color: #FF453A; }
 
@@ -3022,19 +3216,19 @@ function setImportPayment(attendeeId, amount) {
 .ea-type-opt {
   flex: 1;
   padding: 8px;
-  border: 1px solid #1e2d44;
+  border: 1px solid #242424;
   border-radius: 10px;
-  background: #111827;
+  background: #161616;
   font-size: 12px;
   font-weight: 600;
-  color: #8892a4;
+  color: #888;
   cursor: pointer;
   transition: all 140ms;
   font-family: inherit;
 }
-.ea-type-opt:hover { background: #1a2a3e; }
+.ea-type-opt:hover { background: #1e1e1e; }
 .ea-type-opt--active {
-  background: #0d1326;
+  background: #0e0e0e;
   border-color: rgba(10,10,11,0.15);
   color: #C9A84C;
 }
@@ -3045,7 +3239,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #8892a4;
+  color: #888;
   padding: 10px 0;
 }
 @keyframes ea-tpl-spin { to { transform: rotate(360deg); } }
@@ -3056,14 +3250,14 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #8892a4;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  color: #888;
+  background: #161616;
+  border: 1px solid #242424;
   border-radius: 10px;
   padding: 12px 14px;
   line-height: 1.4;
 }
-.ea-tpl-empty strong { color: #8892a4; font-weight: 600; }
+.ea-tpl-empty strong { color: #888; font-weight: 600; }
 
 .ea-tpl-grid {
   display: flex;
@@ -3075,9 +3269,9 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 10px;
   padding: 11px 14px;
-  border: 1px solid #1e2d44;
+  border: 1px solid #242424;
   border-radius: 10px;
-  background: #111827;
+  background: #161616;
   font-size: 13px;
   font-weight: 500;
   color: #3A3936;
@@ -3086,9 +3280,9 @@ function setImportPayment(attendeeId, amount) {
   transition: all 140ms;
   font-family: inherit;
 }
-.ea-tpl-opt:hover { background: #1a2a3e; border-color: #2a3a52; }
+.ea-tpl-opt:hover { background: #1e1e1e; border-color: #2e2e2e; }
 .ea-tpl-opt--active {
-  background: #0d1326;
+  background: #0e0e0e;
   border-color: rgba(184,146,77,0.5);
   color: #C9A84C;
   font-weight: 600;
@@ -3113,7 +3307,7 @@ function setImportPayment(attendeeId, amount) {
   gap: 8px;
   justify-content: flex-end;
   padding-top: 4px;
-  border-top: 1px solid #1a2a3e;
+  border-top: 1px solid #1e1e1e;
 }
 .ea-btn {
   padding: 9px 18px;
@@ -3126,8 +3320,8 @@ function setImportPayment(attendeeId, amount) {
   font-family: inherit;
 }
 .ea-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.ea-btn--primary { background: rgba(226,232,240,0.12); color: #e2e8f0; }
-.ea-btn--ghost   { background: #1a2a3e; color: #8892a4; }
+.ea-btn--primary { background: rgba(240,236,230,0.10); color: #f0ece6; }
+.ea-btn--ghost   { background: #1e1e1e; color: #888; }
 .ea-btn--danger  { background: rgba(255,69,58,0.1); color: #FF453A; }
 
 /* ── Drawer ── */
@@ -3135,7 +3329,7 @@ function setImportPayment(attendeeId, amount) {
   position: fixed;
   right: 0; top: 0; bottom: 0;
   width: 360px;
-  background: #111827;
+  background: #161616;
   box-shadow: -4px 0 32px rgba(0,0,0,0.5);
   display: flex;
   flex-direction: column;
@@ -3157,27 +3351,27 @@ function setImportPayment(attendeeId, amount) {
   background: none;
   border: none;
   font-size: 13px;
-  color: #8892a4;
+  color: #888;
   cursor: pointer;
   padding: 5px 8px;
   border-radius: 8px;
   transition: all 130ms;
   font-family: inherit;
 }
-.ea-drawer-back:hover { background: #1a2a3e; color: #e2e8f0; }
+.ea-drawer-back:hover { background: #1e1e1e; color: #f0ece6; }
 .ea-drawer-edit-btn {
-  background: #1a2a3e;
+  background: #1e1e1e;
   border: none;
   font-size: 13px;
   font-weight: 600;
-  color: #8892a4;
+  color: #888;
   padding: 6px 14px;
   border-radius: 8px;
   cursor: pointer;
   transition: background 130ms;
   font-family: inherit;
 }
-.ea-drawer-edit-btn:hover { background: #1e2d44; }
+.ea-drawer-edit-btn:hover { background: #242424; }
 
 /* Hero */
 .ea-drawer-hero {
@@ -3186,9 +3380,9 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   text-align: center;
   padding: 20px 24px 22px;
-  background: #111827;
-  border-top: 1px solid #1a2a3e;
-  border-bottom: 1px solid #1a2a3e;
+  background: #161616;
+  border-top: 1px solid #1e1e1e;
+  border-bottom: 1px solid #1e1e1e;
   gap: 4px;
 }
 .ea-drawer-avatar {
@@ -3204,13 +3398,13 @@ function setImportPayment(attendeeId, amount) {
 .ea-drawer-name {
   font-size: 17px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: #f0ece6;
   margin: 0;
   letter-spacing: -0.2px;
 }
 .ea-drawer-phone {
   font-size: 13px;
-  color: #8892a4;
+  color: #888;
   margin: 0;
 }
 .ea-drawer-hero-meta {
@@ -3224,7 +3418,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-drawer-tpl-name {
   font-size: 11px;
   font-weight: 600;
-  color: #4f617a;
+  color: #505050;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -3234,22 +3428,22 @@ function setImportPayment(attendeeId, amount) {
   display: flex;
   gap: 8px;
   padding: 14px 18px;
-  border-bottom: 1px solid #1a2a3e;
+  border-bottom: 1px solid #1e1e1e;
 }
 .ea-action-pill {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  background: #1a2a3e;
+  background: #1e1e1e;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #f0ece6;
   text-decoration: none;
   transition: background 140ms;
 }
-.ea-action-pill:hover { background: #1e2d44; }
+.ea-action-pill:hover { background: #242424; }
 .ea-action-pill--pending {
   color: #FF9F0A;
   background: rgba(255,159,10,0.08);
@@ -3274,7 +3468,7 @@ function setImportPayment(attendeeId, amount) {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.7px;
-  color: #4f617a;
+  color: #505050;
   margin: 0 0 10px;
 }
 .ea-label-wrap {
@@ -3294,18 +3488,18 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 6px 13px;
-  border: 1px solid #1e2d44;
+  border: 1px solid #242424;
   border-radius: 20px;
-  background: #111827;
+  background: #161616;
   font-size: 12px;
   font-weight: 600;
-  color: #8892a4;
+  color: #888;
   cursor: pointer;
   transition: all 140ms;
   font-family: inherit;
   white-space: nowrap;
 }
-.ea-status-pill:hover:not(:disabled) { background: #1a2a3e; }
+.ea-status-pill:hover:not(:disabled) { background: #1e1e1e; }
 .ea-status-pill:disabled { opacity: 0.6; cursor: wait; }
 .ea-status-pill--active { font-weight: 700; }
 
@@ -3319,15 +3513,15 @@ function setImportPayment(attendeeId, amount) {
 .ea-contrib-row { display: flex; gap: 10px; }
 .ea-contrib-card {
   flex: 1;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #161616;
+  border: 1px solid #242424;
   border-radius: 12px;
   padding: 14px 16px;
 }
 .ea-contrib-label {
   display: block;
   font-size: 11px;
-  color: #8892a4;
+  color: #888;
   font-weight: 500;
   margin-bottom: 4px;
 }
@@ -3335,7 +3529,7 @@ function setImportPayment(attendeeId, amount) {
   font-family: 'JetBrains Mono', monospace;
   font-size: 15px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: #f0ece6;
 }
 .ea-contrib-val--paid { color: #30D158; }
 
@@ -3351,7 +3545,7 @@ function setImportPayment(attendeeId, amount) {
   flex: 1; min-width: 0;
   border: 1px solid #B8924D; border-radius: 6px;
   padding: 4px 8px; font-size: 13px; font-family: inherit;
-  outline: none; background: #FFFDF5; color: #e2e8f0;
+  outline: none; background: #FFFDF5; color: #f0ece6;
 }
 .ea-inline-ok {
   width: 26px; height: 26px; border-radius: 6px;
@@ -3363,15 +3557,15 @@ function setImportPayment(attendeeId, amount) {
 .ea-inline-ok:disabled { opacity: 0.5; cursor: not-allowed; }
 .ea-inline-x {
   width: 26px; height: 26px; border-radius: 6px;
-  border: 1px solid #1e2d44; background: #1a2a3e; color: #8892a4;
+  border: 1px solid #242424; background: #1e1e1e; color: #888;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; transition: background 130ms;
 }
-.ea-inline-x:hover { background: #1e2d44; }
+.ea-inline-x:hover { background: #242424; }
 
 /* Progress bar */
 .ea-pledge-bar-wrap { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.ea-pledge-bar { flex: 1; height: 5px; background: #1e2d44; border-radius: 99px; overflow: hidden; }
+.ea-pledge-bar { flex: 1; height: 5px; background: #242424; border-radius: 99px; overflow: hidden; }
 .ea-pledge-bar-fill { height: 100%; background: #30D158; border-radius: 99px; transition: width 500ms ease; }
 .ea-pledge-pct { font-size: 10px; font-weight: 700; color: #30D158; white-space: nowrap; flex-shrink: 0; }
 
@@ -3388,23 +3582,23 @@ function setImportPayment(attendeeId, amount) {
 
 /* Inline add-payment form */
 .ea-pay-form {
-  margin-top: 14px; background: #111827;
-  border: 1px solid #1e2d44; border-radius: 10px; padding: 12px;
+  margin-top: 14px; background: #161616;
+  border: 1px solid #242424; border-radius: 10px; padding: 12px;
 }
 .ea-pay-form-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.ea-pay-form-label { font-size: 11px; font-weight: 700; color: #e2e8f0; letter-spacing: 0.3px; text-transform: uppercase; }
+.ea-pay-form-label { font-size: 11px; font-weight: 700; color: #f0ece6; letter-spacing: 0.3px; text-transform: uppercase; }
 .ea-pay-form-close {
   width: 22px; height: 22px; border-radius: 50%;
-  border: none; background: #1e2d44; color: #8892a4;
+  border: none; background: #242424; color: #888;
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 .ea-pay-form-close:hover { background: #E0E0DC; }
 .ea-pay-form-row { display: flex; gap: 6px; }
 .ea-pay-inp {
   flex: 1; min-width: 0;
-  border: 1px solid #1e2d44; border-radius: 8px;
+  border: 1px solid #242424; border-radius: 8px;
   padding: 8px 12px; font-size: 13px; font-family: inherit;
-  outline: none; background: #111827; color: #e2e8f0; transition: border-color 130ms, box-shadow 130ms;
+  outline: none; background: #161616; color: #f0ece6; transition: border-color 130ms, box-shadow 130ms;
 }
 .ea-pay-inp:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(10,10,11,0.04); }
 .ea-pay-submit {
@@ -3418,12 +3612,12 @@ function setImportPayment(attendeeId, amount) {
 /* Payment history list */
 .ea-pay-history { margin-top: 14px; }
 .ea-pay-empty {
-  font-size: 12px; color: #4f617a; text-align: center;
+  font-size: 12px; color: #505050; text-align: center;
   padding: 16px 0; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0;
 }
 .ea-pay-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 0; border-bottom: 1px solid #1a2a3e;
+  padding: 10px 0; border-bottom: 1px solid #1e1e1e;
 }
 .ea-pay-item:last-child { border-bottom: none; }
 .ea-pay-ico {
@@ -3433,23 +3627,23 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-pay-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ea-pay-amt {
-  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #e2e8f0; }
-.ea-pay-when { font-size: 11px; color: #8892a4; }
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #f0ece6; }
+.ea-pay-when { font-size: 11px; color: #888; }
 .ea-pay-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .ea-pay-item-btn {
   width: 28px; height: 28px; border-radius: 6px;
-  border: 1px solid #1e2d44; background: #111827; color: #8892a4;
+  border: 1px solid #242424; background: #161616; color: #888;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all 130ms;
 }
-.ea-pay-item-btn:hover { background: #1e2d44; color: #e2e8f0; border-color: #D0D0CC; }
+.ea-pay-item-btn:hover { background: #242424; color: #f0ece6; border-color: #D0D0CC; }
 .ea-pay-item-btn--del:hover { background: rgba(255,59,48,0.08); color: #FF453A; border-color: rgba(255,59,48,0.3); }
 .ea-pay-item-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Footer */
 .ea-drawer-added {
   font-size: 12px;
-  color: #4f617a;
+  color: #505050;
   margin: 0;
   padding: 4px 20px 0;
 }
@@ -3472,9 +3666,9 @@ function setImportPayment(attendeeId, amount) {
 :deep(.ea-tel-input.vue-tel-input) {
   display: flex;
   align-items: stretch;
-  border: 1px solid #1e2d44;
+  border: 1px solid #242424;
   border-radius: 10px;
-  background: #111827;
+  background: #161616;
   box-shadow: none;
   font-family: inherit;
   transition: border-color 150ms, background 150ms;
@@ -3482,7 +3676,7 @@ function setImportPayment(attendeeId, amount) {
 }
 :deep(.ea-tel-input.vue-tel-input:focus-within) {
   border-color: #C9A84C;
-  background: #111827;
+  background: #161616;
   box-shadow: 0 0 0 3px rgba(184,146,77,0.10);
 }
 :deep(.ea-tel-input--valid.vue-tel-input) { border-color: rgba(48,209,88,0.55); }
@@ -3504,7 +3698,7 @@ function setImportPayment(attendeeId, amount) {
 }
 :deep(.ea-tel-input .vti__dropdown:hover),
 :deep(.ea-tel-input .vti__dropdown.open) {
-  background: #1a2a3e;
+  background: #1e1e1e;
 }
 
 /* Flag */
@@ -3524,7 +3718,7 @@ function setImportPayment(attendeeId, amount) {
 /* Dropdown arrow */
 :deep(.ea-tel-input .vti__dropdown-arrow) {
   font-size: 9px;
-  color: #4f617a;
+  color: #505050;
   margin-left: 2px;
 }
 
@@ -3536,19 +3730,19 @@ function setImportPayment(attendeeId, amount) {
   background: transparent;
   padding: 9px 12px;
   font-size: 13px;
-  color: #e2e8f0;
+  color: #f0ece6;
   font-family: inherit;
   border-radius: 0 10px 10px 0;
   min-width: 0;
 }
-:deep(.ea-tel-input .vti__input::placeholder) { color: #4f617a; }
+:deep(.ea-tel-input .vti__input::placeholder) { color: #505050; }
 
 /* Dropdown list */
 :deep(.ea-tel-input .vti__dropdown-list) {
-  border: 1px solid #1e2d44;
+  border: 1px solid #242424;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.10);
-  background: #111827;
+  background: #161616;
   z-index: 9999;
   padding: 6px;
   max-height: 260px;
@@ -3563,13 +3757,13 @@ function setImportPayment(attendeeId, amount) {
   width: calc(100% - 16px);
   margin: 0 8px 6px;
   padding: 7px 10px;
-  border: 1px solid #1e2d44;
+  border: 1px solid #242424;
   border-radius: 8px;
   font-size: 12px;
   font-family: inherit;
   outline: none;
-  background: #111827;
-  color: #e2e8f0;
+  background: #161616;
+  color: #f0ece6;
   display: block;
 }
 :deep(.ea-tel-input .vti__search_box:focus) { border-color: #C9A84C; }
@@ -3590,15 +3784,15 @@ function setImportPayment(attendeeId, amount) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-:deep(.ea-tel-input .vti__dropdown-item:hover) { background: #1a2a3e; }
+:deep(.ea-tel-input .vti__dropdown-item:hover) { background: #1e1e1e; }
 :deep(.ea-tel-input .vti__dropdown-item.highlighted) {
-  background: #0d1326;
+  background: #0e0e0e;
   color: #C9A84C;
   font-weight: 600;
 }
 :deep(.ea-tel-input .vti__dropdown-item strong) {
   font-weight: 600;
-  color: #8892a4;
+  color: #888;
   font-size: 11px;
   margin-left: auto;
   flex-shrink: 0;
@@ -3614,9 +3808,9 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: #111827;
-  color: #8892a4;
-  border: 1px solid #1e2d44;
+  background: #161616;
+  color: #888;
+  border: 1px solid #242424;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
@@ -3627,7 +3821,7 @@ function setImportPayment(attendeeId, amount) {
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .ea-import-btn:hover {
-  background: #0d1326;
+  background: #0e0e0e;
   border-color: rgba(10,10,11,0.15);
   color: #C9A84C;
 }
@@ -3652,7 +3846,7 @@ function setImportPayment(attendeeId, amount) {
 /* ── Type hint ── */
 .ea-imp-type-hint {
   font-size: 11px;
-  color: #8892a4;
+  color: #888;
   margin: 4px 0 0;
   line-height: 1.5;
 }
@@ -3661,7 +3855,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-dropzone {
   border: 1.5px dashed #D8D6D0;
   border-radius: 14px;
-  background: #111827;
+  background: #161616;
   transition: all 180ms;
   position: relative;
   min-height: 130px;
@@ -3671,7 +3865,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-dropzone--over {
   border-color: #C9A84C;
-  background: #0d1326;
+  background: #0e0e0e;
 }
 .ea-dropzone--filled {
   border-style: solid;
@@ -3698,12 +3892,12 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-drop-icon {
   width: 52px; height: 52px;
-  background: #1a2a3e;
+  background: #1e1e1e;
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4f617a;
+  color: #505050;
   margin-bottom: 4px;
   transition: background 180ms, color 180ms;
 }
@@ -3719,7 +3913,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-drop-sub {
   font-size: 12px;
-  color: #8892a4;
+  color: #888;
   margin: 0;
 }
 .ea-drop-link { color: #C9A84C; font-weight: 600; }
@@ -3742,7 +3936,7 @@ function setImportPayment(attendeeId, amount) {
   text-overflow: ellipsis;
 }
 .ea-file-clear {
-  background: #1a2a3e;
+  background: #1e1e1e;
   border: none;
   width: 24px; height: 24px;
   border-radius: 50%;
@@ -3750,11 +3944,11 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #8892a4;
+  color: #888;
   flex-shrink: 0;
   transition: background 140ms;
 }
-.ea-file-clear:hover { background: #1e2d44; }
+.ea-file-clear:hover { background: #242424; }
 
 /* ── Import error ── */
 .ea-imp-error {
@@ -3774,7 +3968,7 @@ function setImportPayment(attendeeId, amount) {
   gap: 8px;
 }
 .ea-imp-back {
-  background: #1a2a3e;
+  background: #1e1e1e;
   border: none;
   width: 28px; height: 28px;
   border-radius: 8px;
@@ -3782,10 +3976,10 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #8892a4;
+  color: #888;
   transition: background 130ms;
 }
-.ea-imp-back:hover { background: #1e2d44; }
+.ea-imp-back:hover { background: #242424; }
 
 /* ── File pill (phase 2) ── */
 .ea-imp-file-pill {
@@ -3793,11 +3987,11 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  background: #1a2a3e;
+  background: #1e1e1e;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 500;
-  color: #8892a4;
+  color: #888;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3814,7 +4008,7 @@ function setImportPayment(attendeeId, amount) {
   letter-spacing: 0.5px;
   margin: 0;
 }
-.ea-imp-opt { font-weight: 500; color: #4f617a; text-transform: none; letter-spacing: 0; }
+.ea-imp-opt { font-weight: 500; color: #505050; text-transform: none; letter-spacing: 0; }
 
 /* ── Label chip scroller ── */
 .ea-imp-label-scroller {
@@ -3825,7 +4019,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-label-chip {
   padding: 5px 13px;
   border-radius: 20px;
-  border: 1px solid #1e2d44;
+  border: 1px solid #242424;
   background: transparent;
   font-size: 12px;
   font-weight: 600;
@@ -3840,8 +4034,8 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 10px;
   padding: 11px 14px;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #161616;
+  border: 1px solid #242424;
   border-radius: 12px;
 }
 .ea-map-icon-wrap {
@@ -3864,11 +4058,11 @@ function setImportPayment(attendeeId, amount) {
 .ea-map-select {
   width: 100%;
   padding: 7px 10px;
-  border: 1px solid #1e2d44;
+  border: 1px solid #242424;
   border-radius: 8px;
-  background: #111827;
+  background: #161616;
   font-size: 12px;
-  color: #e2e8f0;
+  color: #f0ece6;
   outline: none;
   cursor: pointer;
   font-family: inherit;
@@ -3891,11 +4085,11 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: #8892a4;
+  color: #888;
 }
 .ea-map-skip {
   font-size: 11px;
-  color: #4f617a;
+  color: #505050;
   font-style: italic;
 }
 
@@ -3920,7 +4114,7 @@ function setImportPayment(attendeeId, amount) {
   position: absolute;
   top: 2px; left: 2px;
   width: 15px; height: 15px;
-  background: #111827;
+  background: #161616;
   border-radius: 50%;
   transition: transform 200ms;
   box-shadow: 0 1px 3px rgba(0,0,0,0.18);
@@ -3959,12 +4153,12 @@ function setImportPayment(attendeeId, amount) {
   justify-content: space-between;
   padding: 14px 18px;
   flex-shrink: 0;
-  border-bottom: 1px solid #1a2a3e;
+  border-bottom: 1px solid #1e1e1e;
 }
 
 .ea-imp-preview-hero {
   padding: 16px 20px 12px;
-  border-bottom: 1px solid #1a2a3e;
+  border-bottom: 1px solid #1e1e1e;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -3973,12 +4167,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-preview-title {
   font-size: 17px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: #f0ece6;
   margin: 0;
 }
 .ea-imp-preview-sub {
   font-size: 12px;
-  color: #8892a4;
+  color: #888;
   margin: 0;
 }
 .ea-imp-preview-labels { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -3988,10 +4182,10 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 8px 20px;
-  background: #111827;
-  border-bottom: 1px solid #1a2a3e;
+  background: #161616;
+  border-bottom: 1px solid #1e1e1e;
   font-size: 11px;
-  color: #8892a4;
+  color: #888;
   flex-shrink: 0;
 }
 .ea-imp-tpl-banner strong { color: #3A3936; }
@@ -4010,22 +4204,22 @@ function setImportPayment(attendeeId, amount) {
   align-items: flex-start;
   gap: 10px;
   padding: 11px 13px;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #161616;
+  border: 1px solid #242424;
   border-radius: 12px;
   transition: background 120ms;
 }
-.ea-imp-preview-row:hover { background: #111827; }
+.ea-imp-preview-row:hover { background: #161616; }
 .ea-imp-row-num {
   width: 24px; height: 24px;
-  background: #1a2a3e;
+  background: #1e1e1e;
   border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   font-weight: 700;
-  color: #8892a4;
+  color: #888;
   flex-shrink: 0;
 }
 .ea-imp-row-info {
@@ -4038,12 +4232,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-row-name {
   font-size: 13px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #f0ece6;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ea-imp-row-phone { font-size: 11px; color: #8892a4; }
+.ea-imp-row-phone { font-size: 11px; color: #888; }
 .ea-imp-row-amounts {
   display: flex;
   flex-wrap: wrap;
@@ -4062,7 +4256,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-row-remove {
   background: none;
   border: none;
-  color: #4f617a;
+  color: #505050;
   cursor: pointer;
   width: 22px; height: 22px;
   display: flex;
@@ -4146,9 +4340,9 @@ function setImportPayment(attendeeId, amount) {
   text-transform: uppercase;
 }
 .ea-imp-dup-compare-name  { color: #c8d0df; font-weight: 600; }
-.ea-imp-dup-compare-phone { color: #8892a4; }
+.ea-imp-dup-compare-phone { color: #888; }
 .ea-imp-dup-compare-sep   { color: #3a4358; }
-.ea-imp-dup-compare-status { font-weight: 600; color: #8892a4; }
+.ea-imp-dup-compare-status { font-weight: 600; color: #888; }
 .ea-imp-dup-status--confirmed { color: #30D158; }
 .ea-imp-dup-status--declined  { color: #FF453A; }
 
@@ -4183,7 +4377,7 @@ function setImportPayment(attendeeId, amount) {
 /* ── Footer: run button ── */
 .ea-imp-drawer-footer {
   padding: 14px 16px;
-  border-top: 1px solid #1a2a3e;
+  border-top: 1px solid #1e1e1e;
   flex-shrink: 0;
 }
 .ea-imp-run-btn {
@@ -4207,56 +4401,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Label filter row ── */
-.ea-label-filter-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 0;
-  min-height: 30px;
-}
-.ea-label-filter-row--empty { opacity: 0.6; }
-.ea-lf-pill {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1px solid #1e2d44;
-  background: #111827;
-  font-size: 12px;
-  font-weight: 500;
-  color: #8892a4;
-  cursor: pointer;
-  transition: all 130ms;
-  font-family: inherit;
-}
-.ea-lf-pill:hover { background: #1a2a3e; }
-.ea-lf-pill--active { background: rgba(226,232,240,0.12); color: #e2e8f0; border-color: #e2e8f0; font-weight: 600; }
 .ea-lf-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.ea-lf-manage {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 20px;
-  border: 1px dashed #CFCDC8;
-  background: transparent;
-  font-size: 12px;
-  font-weight: 500;
-  color: #8892a4;
-  cursor: pointer;
-  transition: all 130ms;
-  font-family: inherit;
-  margin-left: 2px;
-}
-.ea-lf-manage:hover { border-color: #C9A84C; color: #C9A84C; }
-.ea-lf-manage--ghost { border-style: dashed; }
 
 /* ── Bulk label dropdown ── */
 .ea-sel-label-wrap { position: relative; }
@@ -4280,8 +4430,8 @@ function setImportPayment(attendeeId, amount) {
   position: absolute;
   bottom: calc(100% + 8px);
   left: 0;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #161616;
+  border: 1px solid #242424;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.14);
   min-width: 180px;
@@ -4299,13 +4449,13 @@ function setImportPayment(attendeeId, amount) {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: #f0ece6;
   cursor: pointer;
   font-family: inherit;
   text-align: left;
   transition: background 120ms;
 }
-.ea-bld-item:hover { background: #1a2a3e; }
+.ea-bld-item:hover { background: #1e1e1e; }
 .ea-bld-item--clear { color: #8E8E93; font-size: 12px; }
 .ea-bld-divider { height: 1px; background: #F0EFEC; margin: 4px 0; }
 .ea-bld-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
@@ -4322,17 +4472,17 @@ function setImportPayment(attendeeId, amount) {
   border-radius: 9px;
   transition: background 120ms;
 }
-.ea-lm-row:hover { background: #1a2a3e; }
+.ea-lm-row:hover { background: #1e1e1e; }
 .ea-lm-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
-.ea-lm-name { flex: 1; font-size: 13px; font-weight: 500; color: #e2e8f0; }
+.ea-lm-name { flex: 1; font-size: 13px; font-weight: 500; color: #f0ece6; }
 .ea-lm-action {
   width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center;
   border: none; background: transparent;
-  border-radius: 7px; cursor: pointer; color: #8892a4;
+  border-radius: 7px; cursor: pointer; color: #888;
   transition: all 120ms;
 }
-.ea-lm-action:hover { background: #1a2a3e; color: #e2e8f0; }
+.ea-lm-action:hover { background: #1e1e1e; color: #f0ece6; }
 .ea-lm-action--del:hover { background: rgba(255,69,58,0.08); color: #FF453A; }
 .ea-lm-edit-row {
   display: flex;
@@ -4353,40 +4503,44 @@ function setImportPayment(attendeeId, amount) {
   flex-shrink: 0;
 }
 .ea-lm-color:hover { transform: scale(1.15); }
-.ea-lm-color--on { border-color: #e2e8f0; transform: scale(1.15); }
+.ea-lm-color--on { border-color: #f0ece6; transform: scale(1.15); }
 .ea-lm-edit-fields { display: flex; flex-direction: column; gap: 6px; }
 .ea-lm-edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .ea-lm-edit-cancel {
-  padding: 5px 12px; border: 1px solid #1e2d44; border-radius: 7px;
-  background: #111827; font-size: 12px; font-weight: 500; color: #8892a4;
+  padding: 5px 12px; border: 1px solid #242424; border-radius: 7px;
+  background: #161616; font-size: 12px; font-weight: 500; color: #888;
   cursor: pointer; font-family: inherit;
 }
 .ea-lm-input {
   width: 100%; padding: 8px 11px;
-  border: 1px solid #1e2d44; border-radius: 8px;
-  font-size: 13px; color: #e2e8f0; outline: none;
+  border: 1px solid #242424; border-radius: 8px;
+  font-size: 13px; color: #f0ece6; outline: none;
   font-family: inherit; box-sizing: border-box;
   transition: border-color 150ms;
 }
 .ea-lm-input:focus { border-color: #C9A84C; }
 .ea-lm-save-btn {
   padding: 6px 14px; border: none; border-radius: 8px;
-  background: rgba(226,232,240,0.12); color: #e2e8f0;
+  background: rgba(240,236,230,0.10); color: #f0ece6;
   font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
   transition: opacity 140ms; white-space: nowrap;
 }
 .ea-lm-save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .ea-lm-save-btn:not(:disabled):hover { opacity: 0.82; }
-.ea-lm-empty { font-size: 13px; color: #8892a4; text-align: center; padding: 12px 0 8px; }
+.ea-lm-empty { font-size: 13px; color: #888; text-align: center; padding: 12px 0 8px; }
 .ea-lm-divider { height: 1px; background: #F0EFEC; margin: 14px 0; }
-.ea-lm-section-hd { font-size: 11px; font-weight: 700; color: #8892a4; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.ea-lm-section-hd { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
 .ea-lm-create { display: flex; flex-direction: column; gap: 10px; }
 .ea-lm-create-row { display: flex; align-items: center; gap: 8px; }
 .ea-lm-preview-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
 
 /* ── Responsive ── */
+@media (max-width: 900px) {
+  .ea-stats { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 767px) {
   .ea-root { padding: 12px 14px 20px; gap: 12px; }
+  .ea-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   /* Toolbar restructure: acts row first (visible), chips row second (scrollable) */
   .ea-toolbar { gap: 8px; flex-wrap: wrap; }
   .ea-toolbar-right {
@@ -4398,9 +4552,6 @@ function setImportPayment(attendeeId, amount) {
   .ea-tb-acts { width: 100%; gap: 8px; }
   .ea-import-btn { flex: 1; justify-content: center; }
   .ea-add-btn { flex: 1; justify-content: center; padding: 10px 16px; font-size: 14px; }
-  .ea-filter-chips { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; gap: 6px; }
-  .ea-chip { flex-shrink: 0; padding: 6px 12px; font-size: 12px; }
-  .ea-label-filter-row { gap: 6px; padding: 4px 0; }
 }
 @media (max-width: 400px) {
   .ea-btn-label { display: none; }

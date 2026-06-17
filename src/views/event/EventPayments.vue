@@ -42,7 +42,7 @@
     <!-- Toolbar -->
     <div class="ep-toolbar">
       <div class="ep-search-wrap">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4f617a" stroke-width="2" stroke-linecap="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
         <input v-model="searchQ" class="ep-search" placeholder="Search transactions…" />
@@ -301,7 +301,7 @@ onMounted(() => {
 /* ── Stat cards ── */
 .ep-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .ep-stat-card {
-  background: #111827; border: 1px solid #1e2d44; border-radius: 12px;
+  background: #141414; border: 1px solid #2a2a2a; border-radius: 12px;
   padding: 16px 18px; display: flex; align-items: center; gap: 14px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
@@ -310,51 +310,51 @@ onMounted(() => {
   background: rgba(201,168,76,0.08); color: #C9A84C;
   display: flex; align-items: center; justify-content: center;
 }
-.ep-stat-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.ep-stat-val  { font-size: 17px; font-weight: 700; color: #e2e8f0; }
-.ep-stat-lbl  { font-size: 11px; color: #8892a4; font-weight: 500; }
+.ep-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ep-stat-val  { font-size: 28px; font-weight: 700; color: #f0f0ec; letter-spacing: -0.5px; line-height: 1; }
+.ep-stat-lbl  { font-size: 11px; color: #777; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
 
 /* ── Toolbar ── */
 .ep-toolbar { display: flex; align-items: center; gap: 12px; }
 .ep-search-wrap {
   display: flex; align-items: center; gap: 8px;
-  background: #111827; border: 1px solid #1e2d44; border-radius: 10px;
+  background: #141414; border: 1px solid #2a2a2a; border-radius: 10px;
   padding: 0 12px; height: 36px; flex: 1; max-width: 360px;
   transition: border-color 150ms;
 }
-.ep-search-wrap:focus-within { border-color: #C9A84C; background: #111827; }
-.ep-search { flex: 1; border: none; outline: none; font-size: 13px; color: #e2e8f0; background: transparent; }
-.ep-search::placeholder { color: #4f617a; }
-.ep-search-clear { background: none; border: none; cursor: pointer; color: #4f617a; display: flex; align-items: center; padding: 0; }
-.ep-search-clear:hover { color: #e2e8f0; }
-.ep-toolbar-count { font-size: 12px; color: #8892a4; margin-left: auto; }
+.ep-search-wrap:focus-within { border-color: #C9A84C; background: #141414; }
+.ep-search { flex: 1; border: none; outline: none; font-size: 13px; color: #f0f0ec; background: transparent; }
+.ep-search::placeholder { color: #555; }
+.ep-search-clear { background: none; border: none; cursor: pointer; color: #555; display: flex; align-items: center; padding: 0; }
+.ep-search-clear:hover { color: #f0f0ec; }
+.ep-toolbar-count { font-size: 12px; color: #888; margin-left: auto; }
 
 /* ── Table ── */
-.ep-table-wrap { background: #111827; border: 1px solid #1e2d44; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.ep-table-wrap { background: #141414; border: 1px solid #2a2a2a; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 .ep-table { width: 100%; border-collapse: collapse; }
 
 .ep-th {
   padding: 11px 16px; text-align: left;
-  font-size: 11px; font-weight: 700; color: #8892a4; letter-spacing: 0.4px; text-transform: uppercase;
-  background: #111827; border-bottom: 1px solid #1e2d44; white-space: nowrap;
+  font-size: 11px; font-weight: 700; color: #888; letter-spacing: 0.4px; text-transform: uppercase;
+  background: #141414; border-bottom: 1px solid #2a2a2a; white-space: nowrap;
 }
 .ep-th--right  { text-align: right; }
 .ep-th--num    { width: 48px; color: #D0CEC9; }
 .ep-th--sortable { cursor: pointer; user-select: none; }
-.ep-th--sortable:hover { color: #e2e8f0; }
+.ep-th--sortable:hover { color: #f0f0ec; }
 
 .ep-sort-icon { margin-left: 4px; vertical-align: middle; transition: transform 0.15s; }
 .ep-sort-icon--desc { transform: rotate(180deg); }
 
-.ep-tr { border-bottom: 1px solid #1a2a3e; transition: background 0.1s; }
+.ep-tr { border-bottom: 1px solid #1a1a1a; transition: background 0.1s; }
 .ep-tr:last-child { border-bottom: none; }
-.ep-tr:hover { background: #111827; }
+.ep-tr:hover { background: #141414; }
 
-.ep-td { padding: 13px 16px; font-size: 13px; color: #e2e8f0; vertical-align: middle; }
+.ep-td { padding: 13px 16px; font-size: 13px; color: #f0f0ec; vertical-align: middle; }
 .ep-td--num    { color: #D0CEC9; font-size: 12px; text-align: center; width: 48px; }
 .ep-td--right  { text-align: right; }
-.ep-td--date   { color: #8892a4; white-space: nowrap; }
-.ep-td--mono   { font-family: monospace; font-size: 11px; color: #4f617a; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ep-td--date   { color: #888; white-space: nowrap; }
+.ep-td--mono   { font-family: monospace; font-size: 11px; color: #555; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .ep-desc-cell  { display: flex; align-items: center; gap: 10px; }
 .ep-receipt-icon {
@@ -362,45 +362,45 @@ onMounted(() => {
   background: rgba(10,10,11,0.03); color: #C9A84C;
   display: flex; align-items: center; justify-content: center;
 }
-.ep-reason { font-weight: 500; color: #e2e8f0; }
+.ep-reason { font-weight: 500; color: #f0f0ec; }
 
 .ep-amount {
-  font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #e2e8f0; }
+  font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #f0f0ec; }
 .ep-amount--neg { color: #C9A84C; }
 
 /* ── Footer + Paginator ── */
 .ep-table-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; border-top: 1px solid #1e2d44;
-  background: #111827; gap: 12px; flex-wrap: wrap; flex-shrink: 0;
+  padding: 12px 16px; border-top: 1px solid #2a2a2a;
+  background: #141414; gap: 12px; flex-wrap: wrap; flex-shrink: 0;
 }
-.ep-range-label { font-size: 12px; color: #8892a4; font-weight: 500; white-space: nowrap; }
+.ep-range-label { font-size: 12px; color: #888; font-weight: 500; white-space: nowrap; }
 .ep-paginator { display: flex; align-items: center; gap: 3px; }
 .ep-paginator--disabled { opacity: 0.38; pointer-events: none; }
 .ep-page-btn {
   min-width: 32px; height: 32px; padding: 0 6px;
-  border: 1px solid #1e2d44; border-radius: 8px; background: #111827;
-  font-size: 13px; font-weight: 500; color: #8892a4; cursor: pointer;
+  border: 1px solid #2a2a2a; border-radius: 8px; background: #141414;
+  font-size: 13px; font-weight: 500; color: #888; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 140ms; font-family: inherit;
 }
 .ep-page-btn:hover:not(:disabled):not(.ep-page-btn--active) {
-  background: #1a2a3e; border-color: #2a3a52; color: #e2e8f0;
+  background: #1a1a1a; border-color: #3a3a3a; color: #f0f0ec;
 }
 .ep-page-btn--active {
-  background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: #e2e8f0;
+  background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: #f0f0ec;
   font-weight: 600; cursor: default;
 }
-.ep-page-btn--nav { color: #8892a4; }
+.ep-page-btn--nav { color: #888; }
 .ep-page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .ep-page-ellipsis {
   min-width: 28px; height: 32px; display: flex; align-items: center; justify-content: center;
-  font-size: 13px; color: #4f617a; letter-spacing: 1px;
+  font-size: 13px; color: #555; letter-spacing: 1px;
 }
 
 /* ── Skeleton ── */
 .ep-skel {
-  height: 20px; border-radius: 6px; background: #1a2a3e; margin: 8px 16px;
+  height: 20px; border-radius: 6px; background: #1a1a1a; margin: 8px 16px;
   animation: ep-shimmer 1.4s ease-in-out infinite;
 }
 @keyframes ep-shimmer { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
@@ -410,8 +410,8 @@ onMounted(() => {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 60px 20px; gap: 8px;
 }
-.ep-empty-title { font-size: 14px; font-weight: 600; color: #8892a4; margin: 4px 0 0; }
-.ep-empty-sub   { font-size: 13px; color: #4f617a; margin: 0; }
+.ep-empty-title { font-size: 14px; font-weight: 600; color: #888; margin: 4px 0 0; }
+.ep-empty-sub   { font-size: 13px; color: #555; margin: 0; }
 
 /* ── Responsive ── */
 @media (max-width: 600px) {

@@ -60,7 +60,7 @@
                 :class="{ 'es-location-row--sep': idx < locations.length - 1 }"
               >
                 <div class="es-loc-icon-wrap">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                   </svg>
                 </div>
@@ -98,14 +98,14 @@
               <button class="es-radio-opt" :class="{ 'es-radio-opt--on': language === 'sw' }" @click="language = 'sw'">
                 <span class="es-radio-flag">🇹🇿</span>
                 <span class="es-radio-lbl">Kiswahili</span>
-                <svg v-if="language === 'sw'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg v-if="language === 'sw'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                 <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DDDBD6" stroke-width="1.6"><circle cx="12" cy="12" r="10"/></svg>
               </button>
               <div class="es-radio-sep" />
               <button class="es-radio-opt" :class="{ 'es-radio-opt--on': language === 'en' }" @click="language = 'en'">
                 <span class="es-radio-flag">🇬🇧</span>
                 <span class="es-radio-lbl">English</span>
-                <svg v-if="language === 'en'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg v-if="language === 'en'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                 <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DDDBD6" stroke-width="1.6"><circle cx="12" cy="12" r="10"/></svg>
               </button>
             </div>
@@ -128,7 +128,7 @@
             />
             <div class="es-promo-footer">
               <span class="es-promo-note">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#4f617a" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 Triggered automatically on successful check-in
               </span>
               <button class="es-inline-save" :disabled="savingPromo" @click="saveScanPromo">
@@ -175,13 +175,13 @@
             </div>
             <div class="es-toggle-group">
               <button class="es-toggle-opt" :class="{ 'es-toggle-opt--on': usePng }" @click="usePng = true">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="usePng ? '#B8924D' : '#B5B5BB'" stroke-width="2" stroke-linecap="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="usePng ? '#C9A84C' : '#B5B5BB'" stroke-width="2" stroke-linecap="round">
                   <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                 </svg>
                 PNG Image
               </button>
               <button class="es-toggle-opt" :class="{ 'es-toggle-opt--on': !usePng }" @click="usePng = false">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="!usePng ? '#B8924D' : '#B5B5BB'" stroke-width="2" stroke-linecap="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="!usePng ? '#C9A84C' : '#B5B5BB'" stroke-width="2" stroke-linecap="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                 </svg>
                 PDF Document
@@ -200,7 +200,7 @@
             </div>
             <button class="es-action-row" @click="showPublishDialog = true">
               <div class="es-action-icon" :class="isPublished ? 'es-action-icon--green' : ''">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="isPublished ? '#34d399' : '#8892a4'" stroke-width="2" stroke-linecap="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="isPublished ? '#34d399' : '#888'" stroke-width="2" stroke-linecap="round">
                   <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
                   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                 </svg>
@@ -208,7 +208,7 @@
               <span class="es-action-label" :class="isPublished ? 'es-action-label--green' : ''">
                 {{ isPublished ? 'Published · Unpublish' : 'Draft · Publish' }}
               </span>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8892a4" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
 
@@ -267,7 +267,7 @@
 
             <label class="es-field-label" style="margin-top:8px">SEARCH PLACE</label>
             <div class="es-search-wrap">
-              <svg class="es-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4f617a" stroke-width="2" stroke-linecap="round">
+              <svg class="es-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <input
@@ -282,7 +282,7 @@
                 @keydown.enter.prevent="suggestionCursor >= 0 && pickSuggestion(placeSuggestions[suggestionCursor])"
                 @keydown.escape="placeSuggestions = []"
               />
-              <svg v-if="placesLoading" class="es-spin es-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2.5" stroke-linecap="round">
+              <svg v-if="placesLoading" class="es-spin es-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
               </svg>
               <button v-else-if="locForm.placeName" class="es-search-clear" @click="clearPlacePick" title="Clear">
@@ -297,7 +297,7 @@
                   :class="{ 'es-suggestion--active': i === suggestionCursor }"
                   @mousedown.prevent="pickSuggestion(s)"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                   </svg>
                   <div class="es-suggestion-text">
@@ -310,7 +310,7 @@
 
             <!-- Picked place chip -->
             <div v-if="locForm.placeName" class="es-picked-place">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
               </svg>
               <span class="es-picked-name">{{ locForm.placeName }}</span>
@@ -338,7 +338,7 @@
         <div v-if="showPublishDialog" class="es-overlay" @click.self="showPublishDialog = false">
           <div class="es-dialog">
             <div class="es-dialog-icon">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="2" y1="12" x2="22" y2="12"/>
                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
@@ -677,8 +677,8 @@ function showToast(msg, isErr = false) {
 
 /* ── Panel card ─────────────────────────────────────────────────────────── */
 .es-panel {
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #141414;
+  border: 1px solid #2a2a2a;
   border-radius: 16px;
   padding: 16px;
   overflow: hidden;
@@ -725,8 +725,8 @@ function showToast(msg, isErr = false) {
 
 /* ── Event summary card (right column top) ──────────────────────────────── */
 .es-event-card {
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #141414;
+  border: 1px solid #2a2a2a;
   border-radius: 16px;
   padding: 14px;
   display: flex;
@@ -766,7 +766,7 @@ function showToast(msg, isErr = false) {
   display: block;
   font-size: 14px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: #f0f0ec;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -774,7 +774,7 @@ function showToast(msg, isErr = false) {
 .es-event-card-type {
   display: block;
   font-size: 11.5px;
-  color: #8892a4;
+  color: #888;
 }
 .es-event-card-status {
   display: flex;
@@ -813,7 +813,7 @@ function showToast(msg, isErr = false) {
 .es-sk-bar--title { height: 28px; width: 220px; }
 .es-sk-bar--sub   { height: 14px; width: 320px; }
 .es-sk-bar--label { height: 11px; width: 120px; margin-bottom: 10px; }
-.es-sk-tile  { height: 56px; border-radius: 14px; background: #1a2a3e; }
+.es-sk-tile  { height: 56px; border-radius: 14px; background: #1a1a1a; }
 .es-sk-section { display: flex; flex-direction: column; gap: 8px; }
 @keyframes es-shimmer { 0%{background-position:200%}100%{background-position:-200%} }
 
@@ -828,13 +828,13 @@ function showToast(msg, isErr = false) {
 .es-page-title {
   font-size: 24px;
   font-weight: 800;
-  color: #e2e8f0;
+  color: #f0f0ec;
   letter-spacing: -0.5px;
   margin: 0 0 4px;
 }
 .es-page-sub {
   font-size: 13px;
-  color: #8892a4;
+  color: #888;
   margin: 0;
   line-height: 1.5;
 }
@@ -884,17 +884,17 @@ function showToast(msg, isErr = false) {
 .es-section-label {
   font-size: 11px;
   font-weight: 700;
-  color: #8892a4;
+  color: #888;
   letter-spacing: 1.3px;
   text-transform: uppercase;
 }
 .es-section-label--red { color: #FF453A; }
-.es-section-hint { font-size: 12px; color: #4f617a; line-height: 1.4; }
+.es-section-hint { font-size: 12px; color: #555; line-height: 1.4; }
 
 /* ── Card shell ────────────────────────────────────────────────────────── */
 .es-card {
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #141414;
+  border: 1px solid #2a2a2a;
   border-radius: 16px;
   overflow: hidden;
 }
@@ -906,18 +906,18 @@ function showToast(msg, isErr = false) {
   gap: 12px;
   width: 100%;
   padding: 14px 16px;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #141414;
+  border: 1px solid #2a2a2a;
   border-radius: 14px;
   cursor: pointer;
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: #f0f0ec;
   transition: background 130ms;
   text-align: left;
 }
-.es-action-row:hover { background: #111827; }
+.es-action-row:hover { background: #141414; }
 
 .es-action-icon {
   width: 32px;
@@ -937,12 +937,12 @@ function showToast(msg, isErr = false) {
 .es-placeholder {
   margin-top: 10px;
   padding: 20px;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #141414;
+  border: 1px solid #2a2a2a;
   border-radius: 14px;
   text-align: center;
   font-size: 13px;
-  color: #4f617a;
+  color: #555;
   font-weight: 500;
 }
 
@@ -954,7 +954,7 @@ function showToast(msg, isErr = false) {
   gap: 12px;
   padding: 12px 16px;
 }
-.es-location-row--sep { border-bottom: 1px solid #1a2a3e; }
+.es-location-row--sep { border-bottom: 1px solid #1a1a1a; }
 
 .es-loc-icon-wrap {
   width: 32px;
@@ -971,7 +971,7 @@ function showToast(msg, isErr = false) {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #f0f0ec;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -979,7 +979,7 @@ function showToast(msg, isErr = false) {
 .es-loc-place {
   display: block;
   font-size: 12px;
-  color: #8892a4;
+  color: #888;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -988,7 +988,7 @@ function showToast(msg, isErr = false) {
 .es-loc-link {
   display: flex;
   align-items: center;
-  color: #8892a4;
+  color: #888;
   padding: 6px;
   border-radius: 7px;
   transition: color 130ms, background 130ms;
@@ -1000,7 +1000,7 @@ function showToast(msg, isErr = false) {
   background: none;
   border: none;
   cursor: pointer;
-  color: #4f617a;
+  color: #555;
   padding: 6px;
   border-radius: 7px;
   transition: color 130ms, background 130ms;
@@ -1011,21 +1011,21 @@ function showToast(msg, isErr = false) {
 .es-promo-card { padding: 14px; }
 .es-textarea {
   width: 100%;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #141414;
+  border: 1px solid #2a2a2a;
   border-radius: 10px;
   padding: 12px 14px;
   font-size: 13.5px;
   font-family: inherit;
-  color: #e2e8f0;
+  color: #f0f0ec;
   resize: vertical;
   outline: none;
   transition: border-color 150ms;
   box-sizing: border-box;
   line-height: 1.6;
 }
-.es-textarea:focus { border-color: #C9A84C; background: #111827; }
-.es-textarea::placeholder { color: #4f617a; }
+.es-textarea:focus { border-color: #C9A84C; background: #141414; }
+.es-textarea::placeholder { color: #555; }
 
 .es-promo-footer {
   display: flex;
@@ -1039,7 +1039,7 @@ function showToast(msg, isErr = false) {
   align-items: center;
   gap: 5px;
   font-size: 11.5px;
-  color: #8892a4;
+  color: #888;
 }
 .es-inline-save {
   background: rgba(201,168,76,0.08);
@@ -1059,7 +1059,7 @@ function showToast(msg, isErr = false) {
 
 /* ── Language radio group ──────────────────────────────────────────────── */
 .es-radio-group { display: flex; flex-direction: column; }
-.es-radio-sep { height: 0.8px; background: #1a2a3e; margin: 0; }
+.es-radio-sep { height: 0.8px; background: #1a1a1a; margin: 0; }
 .es-radio-opt {
   display: flex;
   align-items: center;
@@ -1072,14 +1072,14 @@ function showToast(msg, isErr = false) {
   text-align: left;
   transition: background 130ms;
 }
-.es-radio-opt:hover { background: #111827; }
+.es-radio-opt:hover { background: #141414; }
 .es-radio-opt--on { background: rgba(184,146,77,0.05); }
 .es-radio-flag { font-size: 20px; }
 .es-radio-lbl {
   flex: 1;
   font-size: 14.5px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: #f0f0ec;
 }
 .es-radio-opt--on .es-radio-lbl { font-weight: 600; color: #C9A84C; }
 
@@ -1087,7 +1087,7 @@ function showToast(msg, isErr = false) {
 .es-toggle-group {
   display: flex;
   gap: 0;
-  background: #1a2a3e;
+  background: #1a1a1a;
   border-radius: 12px;
   padding: 4px;
 }
@@ -1103,13 +1103,13 @@ function showToast(msg, isErr = false) {
   background: transparent;
   font-size: 13px;
   font-weight: 500;
-  color: #8892a4;
+  color: #888;
   cursor: pointer;
   font-family: inherit;
   transition: all 160ms;
 }
 .es-toggle-opt--on {
-  background: #111827;
+  background: #141414;
   color: #C9A84C;
   font-weight: 600;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
@@ -1150,18 +1150,18 @@ function showToast(msg, isErr = false) {
 .es-input {
   width: 100%;
   padding: 11px 14px;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #141414;
+  border: 1px solid #2a2a2a;
   border-radius: 10px;
   font-size: 14px;
   font-family: inherit;
-  color: #e2e8f0;
+  color: #f0f0ec;
   outline: none;
   transition: border-color 150ms, background 150ms;
   box-sizing: border-box;
 }
-.es-input:focus { border-color: #C9A84C; background: #111827; }
-.es-input::placeholder { color: #4f617a; }
+.es-input:focus { border-color: #C9A84C; background: #141414; }
+.es-input::placeholder { color: #555; }
 .es-input--center { text-align: center; }
 
 /* ── Place search ──────────────────────────────────────────────────────── */
@@ -1193,22 +1193,22 @@ function showToast(msg, isErr = false) {
   background: none;
   border: none;
   cursor: pointer;
-  color: #4f617a;
+  color: #555;
   display: flex;
   align-items: center;
   padding: 4px;
   border-radius: 50%;
   transition: color 130ms, background 130ms;
 }
-.es-search-clear:hover { color: #e2e8f0; background: #1a2a3e; }
+.es-search-clear:hover { color: #f0f0ec; background: #1a1a1a; }
 
 .es-suggestions {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #141414;
+  border: 1px solid #2a2a2a;
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
@@ -1232,14 +1232,14 @@ function showToast(msg, isErr = false) {
 .es-suggestion-main {
   font-size: 13.5px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #f0f0ec;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .es-suggestion-sub {
   font-size: 12px;
-  color: #8892a4;
+  color: #888;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1259,14 +1259,14 @@ function showToast(msg, isErr = false) {
   flex: 1;
   font-size: 12.5px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: #f0f0ec;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .es-picked-coords {
   font-size: 11px;
-  color: #8892a4;
+  color: #888;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
@@ -1297,7 +1297,7 @@ function showToast(msg, isErr = false) {
   bottom: 0;
   width: 400px;
   max-width: 92vw;
-  background: #111827;
+  background: #141414;
   box-shadow: -8px 0 40px rgba(0,0,0,0.12);
   z-index: 9999;
   display: flex;
@@ -1313,7 +1313,7 @@ function showToast(msg, isErr = false) {
 }
 .es-drawer-sub {
   font-size: 12.5px;
-  color: #8892a4;
+  color: #888;
   margin: 3px 0 0;
 }
 .es-drawer-body {
@@ -1328,31 +1328,31 @@ function showToast(msg, isErr = false) {
   display: flex;
   gap: 10px;
   padding: 16px 24px 24px;
-  border-top: 1px solid #1a2a3e;
+  border-top: 1px solid #1a1a1a;
   flex-shrink: 0;
 }
 
-.es-modal-title { font-size: 18px; font-weight: 700; color: #e2e8f0; margin: 0; }
+.es-modal-title { font-size: 18px; font-weight: 700; color: #f0f0ec; margin: 0; }
 .es-modal-close {
   width: 30px;
   height: 30px;
   border-radius: 50%;
   border: none;
-  background: #1a2a3e;
+  background: #1a1a1a;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #8892a4;
+  color: #888;
   transition: background 130ms;
   flex-shrink: 0;
 }
-.es-modal-close:hover { background: #1e2d44; }
+.es-modal-close:hover { background: #2a2a2a; }
 
 .es-field-label {
   font-size: 10.5px;
   font-weight: 700;
-  color: #8892a4;
+  color: #888;
   letter-spacing: 1.1px;
   text-transform: uppercase;
 }
@@ -1361,17 +1361,17 @@ function showToast(msg, isErr = false) {
 .es-modal-cancel {
   flex: 1;
   padding: 11px;
-  background: #1a2a3e;
+  background: #1a1a1a;
   border: none;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #8892a4;
+  color: #888;
   cursor: pointer;
   font-family: inherit;
   transition: background 130ms;
 }
-.es-modal-cancel:hover { background: #1e2d44; }
+.es-modal-cancel:hover { background: #2a2a2a; }
 .es-modal-confirm {
   flex: 1;
   padding: 11px;
@@ -1390,7 +1390,7 @@ function showToast(msg, isErr = false) {
 
 /* ── Small dialogs (publish / delete) ─────────────────────────────────── */
 .es-dialog {
-  background: #111827;
+  background: #141414;
   border-radius: 20px;
   width: 100%;
   max-width: 360px;
@@ -1413,9 +1413,9 @@ function showToast(msg, isErr = false) {
   margin-bottom: 4px;
 }
 .es-dialog-icon--red { background: rgba(255,59,48,0.1); }
-.es-dialog-title { font-size: 18px; font-weight: 700; color: #e2e8f0; margin: 0; }
-.es-dialog-msg { font-size: 13.5px; color: #8892a4; margin: 0; line-height: 1.55; }
-.es-dialog-msg strong { color: #e2e8f0; }
+.es-dialog-title { font-size: 18px; font-weight: 700; color: #f0f0ec; margin: 0; }
+.es-dialog-msg { font-size: 13.5px; color: #888; margin: 0; line-height: 1.55; }
+.es-dialog-msg strong { color: #f0f0ec; }
 .es-dialog .es-input { margin-top: 4px; }
 .es-dialog-actions {
   display: flex;
@@ -1426,17 +1426,17 @@ function showToast(msg, isErr = false) {
 .es-dialog-cancel {
   flex: 1;
   padding: 12px;
-  background: #1a2a3e;
+  background: #1a1a1a;
   border: none;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #8892a4;
+  color: #888;
   cursor: pointer;
   font-family: inherit;
   transition: background 130ms;
 }
-.es-dialog-cancel:hover { background: #1e2d44; }
+.es-dialog-cancel:hover { background: #2a2a2a; }
 .es-dialog-confirm {
   flex: 1;
   padding: 12px;

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="eb-root">
 
     <!-- ── Stat cards ── -->
@@ -64,27 +64,31 @@
       </div>
     </div>
 
-    <!-- ── Toolbar ── -->
-    <div class="eb-toolbar">
-      <div class="eb-search-wrap">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4f617a" stroke-width="2" stroke-linecap="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input v-model="searchQ" class="eb-search" placeholder="Search items…" />
-        <button v-if="searchQ" class="eb-search-clear" @click="searchQ = ''">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    <div class="eb-panel">
+
+      <div class="eb-panel-hd">
+        <h2 class="eb-panel-title">Budget</h2>
+        <div class="eb-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-        </button>
+          <input v-model="searchQ" class="eb-search" placeholder="Search items…" />
+          <button v-if="searchQ" class="eb-search-clear" @click="searchQ = ''">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="eb-panel-acts">
+          <span class="eb-toolbar-count" v-if="!loading">{{ filtered.length }} item{{ filtered.length !== 1 ? 's' : '' }}</span>
+          <button class="eb-add-btn" @click="openAdd">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add Item
+          </button>
+        </div>
       </div>
-      <span class="eb-toolbar-count" v-if="!loading">{{ filtered.length }} item{{ filtered.length !== 1 ? 's' : '' }}</span>
-      <button class="eb-add-btn" @click="openAdd">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        Add Item
-      </button>
-    </div>
 
     <!-- ── Loading skeleton ── -->
     <div class="eb-table-wrap" v-if="loading">
@@ -128,7 +132,7 @@
           <tr v-if="!filtered.length">
             <td colspan="8">
               <div class="eb-empty">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#4f617a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="2" y="7" width="20" height="14" rx="2"/>
                   <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
                   <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
@@ -183,6 +187,8 @@
         </span>
       </div>
     </div>
+
+    </div><!-- /eb-panel -->
 
     <!-- ── Add/Edit Modal ── -->
     <div v-if="modal.open" class="eb-backdrop" @click.self="closeModal">
@@ -409,10 +415,24 @@ onMounted(load)
 <style scoped>
 .eb-root { padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 16px; }
 
+/* ── Panel ── */
+.eb-panel {
+  display: flex; flex-direction: column;
+  background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; overflow: hidden;
+}
+.eb-panel-hd {
+  display: flex; align-items: center;
+  padding: 14px 20px; border-bottom: 1px solid #1e1e1e; gap: 10px;
+}
+.eb-panel-title {
+  font-size: 19px; font-weight: 700; color: #f0f0ec; margin: 0; letter-spacing: -0.3px; white-space: nowrap;
+}
+.eb-panel-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
 /* ── Stat cards ── */
 .eb-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .eb-stat-card {
-  background: #111827; border: 1px solid #1e2d44; border-radius: 12px;
+  background: #141414; border: 1px solid #2a2a2a; border-radius: 12px;
   padding: 16px 18px; display: flex; align-items: center; gap: 14px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
@@ -425,61 +445,60 @@ onMounted(load)
 .eb-stat-icon--green  { background: rgba(52,211,153,0.10);  color: #34d399; }
 .eb-stat-icon--red    { background: rgba(239,68,68,0.10);   color: #f87171; }
 .eb-stat-icon--purple { background: rgba(167,139,250,0.10); color: #a78bfa; }
-.eb-stat-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.eb-stat-val  { font-size: 17px; font-weight: 700; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eb-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.eb-stat-val  { font-size: 28px; font-weight: 700; color: #f0f0ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.5px; line-height: 1; }
 .eb-stat-val--over { color: #f87171; }
-.eb-stat-lbl  { font-size: 11px; color: #8892a4; font-weight: 500; }
+.eb-stat-lbl  { font-size: 11px; color: #777; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
 
-/* ── Toolbar ── */
-.eb-toolbar { display: flex; align-items: center; gap: 12px; }
+/* ── Search ── */
 .eb-search-wrap {
   display: flex; align-items: center; gap: 8px;
-  background: #111827; border: 1px solid #1e2d44; border-radius: 10px;
-  padding: 0 12px; height: 36px; flex: 1; max-width: 360px;
+  background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px;
+  padding: 0 12px; height: 36px; margin-left: auto; max-width: 320px; min-width: 120px;
   transition: border-color 150ms;
 }
 .eb-search-wrap:focus-within { border-color: #C9A84C; }
-.eb-search { flex: 1; border: none; outline: none; font-size: 13px; color: #e2e8f0; background: transparent; }
-.eb-search::placeholder { color: #4f617a; }
-.eb-search-clear { background: none; border: none; cursor: pointer; color: #4f617a; display: flex; align-items: center; padding: 0; }
-.eb-search-clear:hover { color: #e2e8f0; }
-.eb-toolbar-count { font-size: 12px; color: #8892a4; margin-left: auto; }
+.eb-search { flex: 1; border: none; outline: none; font-size: 13px; color: #f0f0ec; background: transparent; }
+.eb-search::placeholder { color: #666; }
+.eb-search-clear { background: none; border: none; cursor: pointer; color: #555; display: flex; align-items: center; padding: 0; }
+.eb-search-clear:hover { color: #f0f0ec; }
+.eb-toolbar-count { font-size: 12px; color: #888; }
 
 .eb-add-btn {
   display: flex; align-items: center; gap: 6px;
-  background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.25);
-  color: #C9A84C; font-size: 13px; font-weight: 600;
+  background: #C9A84C; border: none;
+  color: #0e0e0e; font-size: 13px; font-weight: 700;
   padding: 0 14px; height: 36px; border-radius: 10px; cursor: pointer;
-  transition: background 150ms, border-color 150ms;
-  font-family: inherit; white-space: nowrap;
+  transition: background 150ms;
+  font-family: inherit; white-space: nowrap; flex-shrink: 0;
 }
-.eb-add-btn:hover { background: rgba(201,168,76,0.20); border-color: rgba(201,168,76,0.4); }
+.eb-add-btn:hover { background: #d4b560; }
 .eb-add-btn--lg { margin-top: 8px; height: 40px; padding: 0 20px; }
 
 /* ── Table ── */
-.eb-table-wrap { background: #111827; border: 1px solid #1e2d44; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.eb-table-wrap { background: #141414; border-top: 1px solid #1e1e1e; overflow: hidden; }
 .eb-table { width: 100%; border-collapse: collapse; }
 
 .eb-th {
   padding: 11px 14px; text-align: left;
-  font-size: 11px; font-weight: 700; color: #8892a4; letter-spacing: 0.4px; text-transform: uppercase;
-  background: #111827; border-bottom: 1px solid #1e2d44; white-space: nowrap;
+  font-size: 11px; font-weight: 700; color: #888; letter-spacing: 0.4px; text-transform: uppercase;
+  background: #141414; border-bottom: 1px solid #2a2a2a; white-space: nowrap;
 }
 .eb-th--num     { width: 44px; }
 .eb-th--right   { text-align: right; }
 .eb-th--actions { width: 72px; }
 
-.eb-tr { border-bottom: 1px solid #1a2a3e; transition: background 0.1s; }
+.eb-tr { border-bottom: 1px solid #1a1a1a; transition: background 0.1s; }
 .eb-tr:last-child { border-bottom: none; }
 .eb-tr:hover { background: rgba(255,255,255,0.02); }
 
-.eb-td { padding: 12px 14px; font-size: 13px; color: #e2e8f0; vertical-align: middle; }
-.eb-td--num    { color: #4f617a; font-size: 12px; text-align: center; width: 44px; }
+.eb-td { padding: 12px 14px; font-size: 13px; color: #f0f0ec; vertical-align: middle; }
+.eb-td--num    { color: #555; font-size: 12px; text-align: center; width: 44px; }
 .eb-td--right  { text-align: right; }
 .eb-td--desc   { font-weight: 500; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.eb-td--vendor { color: #8892a4; font-size: 12px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.eb-td--money  { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #e2e8f0; }
-.eb-td--muted  { color: #4f617a; }
+.eb-td--vendor { color: #888; font-size: 12px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eb-td--money  { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #f0f0ec; }
+.eb-td--muted  { color: #555; }
 .eb-td--actions { text-align: right; }
 
 .eb-over { color: #f87171; }
@@ -488,7 +507,7 @@ onMounted(load)
 .eb-cat-badge {
   display: inline-block; padding: 2px 9px; border-radius: 6px;
   font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
-  background: rgba(255,255,255,0.06); color: #c8d4e0; border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.06); color: #d4cfc8; border: 1px solid rgba(255,255,255,0.08);
   white-space: nowrap;
 }
 
@@ -497,7 +516,7 @@ onMounted(load)
   display: inline-block; padding: 2px 10px; border-radius: 20px;
   font-size: 11px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap;
 }
-.eb-status--planned { background: rgba(148,163,184,0.10); color: #94a3b8; border: 1px solid rgba(148,163,184,0.15); }
+.eb-status--planned { background: rgba(148,163,184,0.10); color: #999; border: 1px solid rgba(148,163,184,0.15); }
 .eb-status--booked  { background: rgba(96,165,250,0.10);  color: #60a5fa; border: 1px solid rgba(96,165,250,0.15); }
 .eb-status--paid    { background: rgba(52,211,153,0.10);  color: #34d399; border: 1px solid rgba(52,211,153,0.15); }
 
@@ -506,22 +525,22 @@ onMounted(load)
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; border-radius: 7px;
   background: none; border: none; cursor: pointer;
-  color: #4f617a; transition: background 130ms, color 130ms;
+  color: #555; transition: background 130ms, color 130ms;
 }
-.eb-act-btn:hover { background: rgba(255,255,255,0.07); color: #e2e8f0; }
+.eb-act-btn:hover { background: rgba(255,255,255,0.07); color: #f0f0ec; }
 .eb-act-btn--danger:hover { background: rgba(239,68,68,0.12); color: #f87171; }
 
 /* Table footer */
 .eb-table-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 11px 16px; border-top: 1px solid #1e2d44;
-  background: #111827; gap: 12px; flex-wrap: wrap;
+  padding: 11px 16px; border-top: 1px solid #2a2a2a;
+  background: #141414; gap: 12px; flex-wrap: wrap;
 }
-.eb-range-label { font-size: 12px; color: #8892a4; font-weight: 500; white-space: nowrap; }
+.eb-range-label { font-size: 12px; color: #888; font-weight: 500; white-space: nowrap; }
 
 /* ── Skeleton ── */
 .eb-skel {
-  height: 20px; border-radius: 6px; background: #1a2a3e; margin: 9px 14px;
+  height: 20px; border-radius: 6px; background: #1a1a1a; margin: 9px 14px;
   animation: eb-shimmer 1.4s ease-in-out infinite;
 }
 @keyframes eb-shimmer { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -531,8 +550,8 @@ onMounted(load)
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 60px 20px; gap: 8px;
 }
-.eb-empty-title { font-size: 14px; font-weight: 600; color: #8892a4; margin: 4px 0 0; }
-.eb-empty-sub   { font-size: 13px; color: #4f617a; margin: 0; }
+.eb-empty-title { font-size: 14px; font-weight: 600; color: #888; margin: 4px 0 0; }
+.eb-empty-sub   { font-size: 13px; color: #555; margin: 0; }
 
 /* ── Modal ── */
 .eb-backdrop {
@@ -541,37 +560,37 @@ onMounted(load)
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .eb-modal {
-  background: #111827; border: 1px solid #1e2d44; border-radius: 16px;
+  background: #141414; border: 1px solid #2a2a2a; border-radius: 16px;
   width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
   box-shadow: 0 24px 64px rgba(0,0,0,0.6);
 }
 .eb-modal-hd {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px 16px; border-bottom: 1px solid #1e2d44; flex-shrink: 0;
+  padding: 20px 24px 16px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0;
 }
-.eb-modal-title { font-size: 16px; font-weight: 700; color: #e2e8f0; margin: 0; }
+.eb-modal-title { font-size: 16px; font-weight: 700; color: #f0f0ec; margin: 0; }
 .eb-modal-close {
-  background: none; border: none; cursor: pointer; color: #4f617a;
+  background: none; border: none; cursor: pointer; color: #555;
   display: flex; align-items: center; padding: 4px; border-radius: 6px;
   transition: color 130ms, background 130ms;
 }
-.eb-modal-close:hover { color: #e2e8f0; background: rgba(255,255,255,0.06); }
+.eb-modal-close:hover { color: #f0f0ec; background: rgba(255,255,255,0.06); }
 
 .eb-modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
 .eb-modal-ft   { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
 
 .eb-field     { display: flex; flex-direction: column; gap: 6px; }
 .eb-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.eb-label     { font-size: 12px; font-weight: 600; color: #8892a4; letter-spacing: 0.2px; }
-.eb-opt       { font-weight: 400; color: #4f617a; }
+.eb-label     { font-size: 12px; font-weight: 600; color: #888; letter-spacing: 0.2px; }
+.eb-opt       { font-weight: 400; color: #555; }
 
 .eb-input {
-  background: #0d1326; border: 1px solid #1e2d44; border-radius: 9px;
-  padding: 9px 12px; font-size: 13.5px; color: #e2e8f0; outline: none;
+  background: #111111; border: 1px solid #2a2a2a; border-radius: 9px;
+  padding: 9px 12px; font-size: 13.5px; color: #f0f0ec; outline: none;
   transition: border-color 150ms; font-family: inherit; width: 100%; box-sizing: border-box;
 }
 .eb-input:focus  { border-color: #C9A84C; }
-.eb-input::placeholder { color: #4f617a; }
+.eb-input::placeholder { color: #555; }
 .eb-textarea { resize: vertical; min-height: 64px; }
 
 select.eb-input { appearance: none; cursor: pointer; }
@@ -584,8 +603,8 @@ select.eb-input { appearance: none; cursor: pointer; }
   transition: background 150ms, opacity 150ms; border: none;
 }
 .eb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.eb-btn--ghost   { background: rgba(255,255,255,0.06); color: #8892a4; border: 1px solid #1e2d44; }
-.eb-btn--ghost:hover:not(:disabled)   { background: rgba(255,255,255,0.10); color: #e2e8f0; }
+.eb-btn--ghost   { background: rgba(255,255,255,0.06); color: #888; border: 1px solid #2a2a2a; }
+.eb-btn--ghost:hover:not(:disabled)   { background: rgba(255,255,255,0.10); color: #f0f0ec; }
 .eb-btn--primary { background: rgba(201,168,76,0.15); color: #C9A84C; border: 1px solid rgba(201,168,76,0.3); }
 .eb-btn--primary:hover:not(:disabled) { background: rgba(201,168,76,0.25); border-color: rgba(201,168,76,0.5); }
 
