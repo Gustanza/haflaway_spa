@@ -57,6 +57,25 @@
           <span class="el-event-title">{{ event?.title ?? '…' }}</span>
         </div>
         <div class="el-topbar-right">
+          <!-- Theme toggle -->
+          <button class="theme-toggle-btn el-theme-toggle" @click="toggleTheme" :title="isDark ? 'Switch to light' : 'Switch to dark'">
+            <svg v-if="isDark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <div class="el-balance-pill" v-if="userBalance !== null">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
+            </svg>
+            {{ formatBalance(userBalance) }}
+          </div>
           <div class="el-status-pill" :class="`el-status-pill--${eventStatus}`">
             <span class="el-status-dot" />
             {{ statusLabel }}
@@ -75,14 +94,37 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { db } from '../../firebase'
+import { db, auth } from '../../firebase'
 import { doc, getDoc } from 'firebase/firestore'
+import { useTheme } from '../../composables/useTheme.js'
+
+const { isDark, toggleTheme } = useTheme()
 
 const route = useRoute()
 const router = useRouter()
 const eventId = computed(() => route.params.eventId)
 const event = ref(null)
 const showMobileNav = ref(false)
+const userBalance = ref(null)
+
+function formatBalance(n) {
+  if (n == null) return '—'
+  return 'TZS ' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 })
+}
+
+async function loadUserBalance() {
+  const uid = auth.currentUser?.uid
+  if (!uid) return
+  try {
+    const snap = await getDoc(doc(db, 'users', uid))
+    if (snap.exists()) {
+      const b = snap.data().balance
+      userBalance.value = b != null ? Number(b) : 0
+    }
+  } catch (e) {
+    console.error('Failed to load user balance', e)
+  }
+}
 
 watch(() => route.path, () => { showMobileNav.value = false })
 
@@ -104,11 +146,18 @@ const navItems = [
     </svg>`,
   },
   {
-    label: 'Attendees',
+    label: 'Invitees',
     to: 'attendees',
     icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
       <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>`,
+  },
+  {
+    label: 'Contacts',
+    to: 'contacts',
+    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
     </svg>`,
   },
   {
@@ -126,15 +175,15 @@ const navItems = [
     </svg>`,
   },
   {
-    label: 'Messages',
-    to: 'messages',
+    label: 'Invitations',
+    to: 'invitations',
     icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
     </svg>`,
   },
   {
-    label: 'Notifications',
-    to: 'campaigns',
+    label: 'Bulk Messages',
+    to: 'bulk-messages',
     icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
     </svg>`,
@@ -188,12 +237,7 @@ function resolvedTo(segment) {
 }
 
 function goAllEvents() {
-  const back = window.history.state?.back ?? ''
-  if (back && String(back).startsWith('/my-events')) {
-    router.back()
-  } else {
-    router.push('/my-events')
-  }
+  router.push('/')
 }
 
 const eventStatus = computed(() => {
@@ -221,6 +265,7 @@ onMounted(async () => {
   } catch (e) {
     console.error('Failed to load event', e)
   }
+  loadUserBalance()
 })
 </script>
 
@@ -239,11 +284,16 @@ onMounted(async () => {
   --emerald: #34d399;
   --emerald-soft: rgba(52,211,153,0.12);
 
+  /* ── Layout tokens (overridden by global light-theme CSS) ── */
+  --el-sidebar-bg: #111111;
+  --el-topbar-bg:  rgba(7,7,7,0.92);
+  --el-content-bg: #070707;
+
   display: flex;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: #0e0e0e;
+  background: var(--el-content-bg);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--ink);
 }
@@ -252,7 +302,7 @@ onMounted(async () => {
 .el-sidebar {
   width: 224px;
   flex-shrink: 0;
-  background: #111111;
+  background: var(--el-sidebar-bg);
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -337,6 +387,14 @@ onMounted(async () => {
   font-weight: 600;
 }
 .el-nav-item--active:hover { background: rgba(255,255,255,0.13); }
+
+/* smooth theme transitions across sidebar */
+.el-sidebar,
+.el-brand,
+.el-nav-item,
+.el-back-btn {
+  transition: background 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+}
 .el-nav-icon {
   width: 24px;
   display: flex;
@@ -364,11 +422,12 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 28px 32px;
-  background: rgba(14,14,14,0.92);
+  background: var(--el-topbar-bg);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--line);
   box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
+  transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
 }
 .el-topbar-left {
   display: flex;
@@ -385,7 +444,27 @@ onMounted(async () => {
   text-overflow: ellipsis;
   max-width: 360px;
 }
-.el-topbar-right { flex-shrink: 0; }
+.el-topbar-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Wallet balance pill */
+.el-balance-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(201,168,76,0.08);
+  color: #C9A84C;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+}
 
 /* Status pill */
 .el-status-pill {
@@ -431,7 +510,23 @@ onMounted(async () => {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #0e0e0e;
+  background: var(--el-content-bg);
+  transition: background 300ms ease;
+}
+
+/* ── Theme toggle ── */
+.el-theme-toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 130ms, color 130ms, border-color 130ms, box-shadow 130ms;
+  flex-shrink: 0;
 }
 
 /* ── Mobile nav ── */

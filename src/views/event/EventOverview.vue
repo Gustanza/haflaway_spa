@@ -80,15 +80,15 @@
         <div class="eo-goal-body">
           <div class="eo-arc-wrap">
             <svg viewBox="0 0 120 120" class="eo-arc-svg">
-              <circle cx="60" cy="60" r="48" fill="none" stroke="#2a2a2a" stroke-width="11" />
+              <circle cx="60" cy="60" r="48" fill="none" :stroke="isDark ? '#2a2a2a' : '#eaeaf4'" stroke-width="11" />
               <circle cx="60" cy="60" r="48" fill="none"
                 stroke="#C9A84C" stroke-width="11" stroke-linecap="round"
                 :stroke-dasharray="arcC" :stroke-dashoffset="arcOffset"
                 transform="rotate(-90 60 60)"
                 style="transition: stroke-dashoffset 800ms cubic-bezier(.4,0,.2,1)"
               />
-              <text x="60" y="56" text-anchor="middle" font-family="'Instrument Serif',Georgia,serif" font-size="20" fill="#f0f0ec">{{ progressPct }}%</text>
-              <text x="60" y="70" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" fill="#555" letter-spacing="0.5">REACHED</text>
+              <text x="60" y="56" text-anchor="middle" font-family="'Instrument Serif',Georgia,serif" font-size="20" :fill="isDark ? '#f0f0ec' : '#1a1a2e'">{{ progressPct }}%</text>
+              <text x="60" y="70" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" :fill="isDark ? '#555' : '#9ca3af'" letter-spacing="0.5">REACHED</text>
             </svg>
           </div>
           <div class="eo-goal-stats">
@@ -152,7 +152,7 @@
         <!-- Mini stacked bar -->
         <div class="eo-stack-bar" v-if="stats.attendees">
           <div class="eo-stack-seg" style="background:#34C759" :style="{ flex: rsvp.confirmed || 0 }" />
-          <div class="eo-stack-seg" style="background:#3a3a3a" :style="{ flex: rsvp.pending  || 0 }" />
+          <div class="eo-stack-seg eo-seg--pending-stack" :style="{ flex: rsvp.pending  || 0 }" />
           <div class="eo-stack-seg" style="background:#FF3B30" :style="{ flex: rsvp.declined || 0 }" />
         </div>
       </div>
@@ -185,6 +185,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../../firebase'
 import { collection, query, orderBy, getDocs } from 'firebase/firestore'
+import { useTheme } from '../../composables/useTheme.js'
+
+const { isDark } = useTheme()
 
 const props = defineProps({ event: Object, eventId: String })
 const route  = useRoute()
@@ -265,11 +268,23 @@ watch(() => props.event, loadStats)
 
 <style scoped>
 .eo-root {
+  /* ── Theme tokens (light values applied via global CSS on [data-theme="light"] .eo-root) ── */
+  --c-bg:     #141414;
+  --c-border: #2a2a2a;
+  --c-track:  #2a2a2a;
+  --c-muted:  #3a3a3a;
+  --c-txt:    #f0f0ec;
+  --c-txt-2:  #888;
+  --c-txt-3:  #555;
+  --c-divide: #2a2a2a;
+  --c-arrow:  #3a3a3a;
+
   padding: 20px 24px 56px;
   display: flex;
   flex-direction: column;
   gap: 18px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  transition: background 300ms ease;
 }
 
 /* ══ KPI row ══ */
@@ -277,22 +292,23 @@ watch(() => props.event, loadStats)
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
 }
 .eo-kpi {
-  background: #141414; border: 1px solid #2a2a2a; border-radius: 14px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 14px;
   padding: 16px 18px; display: flex; flex-direction: column; gap: 5px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
 }
 .eo-kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.eo-kpi-lbl { font-size: 11px; font-weight: 600; color: #777; text-transform: uppercase; letter-spacing: 0.6px; }
+.eo-kpi-lbl { font-size: 11px; font-weight: 600; color: var(--c-txt-2); text-transform: uppercase; letter-spacing: 0.6px; }
 .eo-kpi-ic {
   width: 28px; height: 28px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .eo-kpi-num {
-  font-size: 32px; font-weight: 700; color: #f0f0ec; letter-spacing: -0.5px; line-height: 1;
+  font-size: 32px; font-weight: 700; color: var(--c-txt); letter-spacing: -0.5px; line-height: 1;
 }
 .eo-kpi-num--sm { font-size: 22px; letter-spacing: -0.3px; }
 .eo-kpi-sub {
-  font-size: 11px; color: #555; display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--c-txt-3); display: flex; align-items: center; gap: 5px;
 }
 
 /* Segmented bar (guests) */
@@ -301,12 +317,12 @@ watch(() => props.event, loadStats)
 }
 .eo-seg { border-radius: 3px; min-width: 2px; }
 .eo-seg--confirmed { background: #34d399; }
-.eo-seg--pending   { background: #3a3a3a; }
+.eo-seg--pending   { background: var(--c-muted); }
 .eo-seg--declined  { background: #FF453A; }
 
 /* Linear bar (checkins, contributions) */
 .eo-kpi-bar-track {
-  height: 4px; background: #2a2a2a; border-radius: 3px; overflow: hidden; margin: 2px 0;
+  height: 4px; background: var(--c-track); border-radius: 3px; overflow: hidden; margin: 2px 0;
 }
 .eo-kpi-bar-fill {
   height: 100%; border-radius: 3px; transition: width 600ms ease; min-width: 2px;
@@ -315,7 +331,7 @@ watch(() => props.event, loadStats)
 /* Status dots */
 .eo-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .eo-dot--confirmed { background: #34d399; }
-.eo-dot--pending   { background: #555; }
+.eo-dot--pending   { background: var(--c-txt-3); }
 .eo-dot--declined  { background: #FF453A; }
 .eo-dot--checkin   { background: #007AFF; }
 
@@ -329,17 +345,18 @@ watch(() => props.event, loadStats)
 /* ══ Mid row ══ */
 .eo-mid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .eo-panel {
-  background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 22px 22px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px; padding: 22px 22px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
 }
 .eo-panel-hd {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;
 }
 .eo-panel-title {
-  font-size: 16px; font-weight: 700; color: #f0f0ec;
+  font-size: 16px; font-weight: 700; color: var(--c-txt);
 }
 .eo-panel-mono {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #888;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--c-txt-2);
 }
 
 /* Goal arc */
@@ -348,58 +365,60 @@ watch(() => props.event, loadStats)
 .eo-arc-svg { width: 100%; display: block; }
 .eo-goal-stats { flex: 1; display: flex; flex-direction: column; gap: 0; }
 .eo-gstat { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; }
-.eo-gstat-lbl { font-size: 11.5px; color: #888; }
-.eo-gstat-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: #f0f0ec; }
+.eo-gstat-lbl { font-size: 11.5px; color: var(--c-txt-2); }
+.eo-gstat-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--c-txt); }
 .eo-gstat-val--gold { color: #C9A84C; }
-.eo-gstat-divider { height: 1px; background: #2a2a2a; }
+.eo-gstat-divider { height: 1px; background: var(--c-divide); }
 
 /* RSVP panel */
 .eo-rsvp-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
 .eo-rsvp-row { display: flex; align-items: center; gap: 9px; }
-.eo-rsvp-lbl { font-size: 12px; color: #888; width: 76px; flex-shrink: 0; }
+.eo-rsvp-lbl { font-size: 12px; color: var(--c-txt-2); width: 76px; flex-shrink: 0; }
 .eo-rsvp-track {
-  flex: 1; height: 5px; background: #2a2a2a; border-radius: 3px; overflow: hidden;
+  flex: 1; height: 5px; background: var(--c-track); border-radius: 3px; overflow: hidden;
 }
 .eo-rsvp-fill { height: 100%; border-radius: 3px; transition: width 600ms ease; min-width: 2px; }
-.eo-rsvp-n { font-size: 12px; font-weight: 600; color: #f0f0ec; width: 28px; text-align: right; flex-shrink: 0; }
-.eo-rsvp-divider { height: 1px; background: #2a2a2a; margin: 4px 0; }
+.eo-rsvp-n { font-size: 12px; font-weight: 600; color: var(--c-txt); width: 28px; text-align: right; flex-shrink: 0; }
+.eo-rsvp-divider { height: 1px; background: var(--c-divide); margin: 4px 0; }
 
 .eo-stack-bar {
   display: flex; height: 7px; border-radius: 5px; overflow: hidden; gap: 2px;
 }
 .eo-stack-seg { border-radius: 5px; min-width: 3px; transition: flex 600ms ease; }
+.eo-seg--pending-stack { background: #3a3a3a; }
 
 /* ══ Quick navigate ══ */
 .eo-nav-hd { display: flex; align-items: center; gap: 12px; }
 .eo-nav-title {
   font-family: 'Instrument Serif', Georgia, serif; font-style: italic;
-  font-size: 15px; color: #f0f0ec; white-space: nowrap;
+  font-size: 15px; color: var(--c-txt); white-space: nowrap;
 }
-.eo-nav-line { flex: 1; height: 1px; background: linear-gradient(90deg, #3a3a3a, transparent); }
+.eo-nav-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--c-arrow), transparent); }
 
 .eo-nav-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
 }
 .eo-nav-card {
   display: flex; align-items: center; gap: 12px; padding: 13px 15px;
-  background: #141414; border: 1px solid #2a2a2a; border-radius: 12px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
   cursor: pointer; text-align: left; font-family: inherit;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  transition: box-shadow 150ms, transform 150ms;
+  transition: box-shadow 150ms, transform 150ms, background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
 }
 .eo-nav-card:hover {
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   transform: translateY(-1px);
+  background: var(--c-hover, var(--c-bg));
 }
 .eo-nav-ic {
   width: 36px; height: 36px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .eo-nav-info { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.eo-nav-lbl { font-size: 13px; font-weight: 600; color: #f0f0ec; }
-.eo-nav-desc { font-size: 11px; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.eo-nav-arrow { color: #3a3a3a; flex-shrink: 0; transition: color 150ms; }
-.eo-nav-card:hover .eo-nav-arrow { color: #888; }
+.eo-nav-lbl { font-size: 13px; font-weight: 600; color: var(--c-txt); }
+.eo-nav-desc { font-size: 11px; color: var(--c-txt-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eo-nav-arrow { color: var(--c-arrow); flex-shrink: 0; transition: color 150ms; }
+.eo-nav-card:hover .eo-nav-arrow { color: var(--c-txt-2); }
 
 /* ══ Responsive ══ */
 @media (max-width: 860px) {
@@ -407,13 +426,77 @@ watch(() => props.event, loadStats)
   .eo-mid-row { grid-template-columns: 1fr; }
   .eo-nav-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+@media (max-width: 640px) {
+  /* Panel header: wrap when the mono subtitle is long */
+  .eo-panel-hd { flex-wrap: wrap; gap: 6px; }
+  .eo-panel-title { flex: 1 1 auto; min-width: 0; }
+  .eo-panel-mono  { flex: 0 0 auto; }
+
+  /* Goal arc: ensure it never overflows its container */
+  .eo-arc-svg { width: 100%; max-width: 100%; }
+
+  /* Nav header line needs a floor so it doesn't collapse */
+  .eo-nav-line { min-width: 0; }
+}
+
 @media (max-width: 560px) {
-  .eo-root { padding: 14px 16px 40px; gap: 14px; }
-  .eo-kpi-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .eo-root { padding: 14px 14px 40px; gap: 12px; }
+
+  /* KPI cards: tighter padding + smaller numbers */
+  .eo-kpi-row { grid-template-columns: 1fr 1fr; gap: 9px; }
+  .eo-kpi { padding: 13px 14px; gap: 4px; }
+  .eo-kpi-num { font-size: 26px; }
+  .eo-kpi-num--sm { font-size: 18px; letter-spacing: -0.2px; }
+  .eo-kpi-lbl { font-size: 10px; }
+  .eo-kpi-sub { font-size: 10px; }
+  .eo-kpi-ic { width: 24px; height: 24px; border-radius: 7px; }
+  .eo-kpi-cta { font-size: 11px; }
+
+  /* Mid panels */
+  .eo-panel { padding: 15px 14px; }
+  .eo-panel-hd { margin-bottom: 14px; }
+
+  /* Goal panel stacked */
+  .eo-goal-body { flex-direction: column; align-items: center; gap: 14px; }
+  .eo-arc-wrap { width: 110px; }
+  .eo-goal-stats { width: 100%; }
+
+  /* RSVP: tighten label column */
+  .eo-rsvp-lbl { width: 66px; font-size: 11.5px; }
+  .eo-rsvp-n   { font-size: 11.5px; }
+  .eo-rsvp-list { gap: 10px; }
+
+  /* Quick nav */
   .eo-nav-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .eo-goal-body { flex-direction: column; gap: 16px; }
-  .eo-arc-wrap { width: 110px; align-self: center; }
+  .eo-nav-card { padding: 11px 12px; gap: 10px; }
+  .eo-nav-ic   { width: 32px; height: 32px; border-radius: 9px; }
+  .eo-nav-lbl  { font-size: 12px; }
   .eo-nav-desc { display: none; }
-  .eo-panel { padding: 16px; }
+}
+
+/* Very small phones (iPhone SE, Galaxy A-series) */
+@media (max-width: 380px) {
+  .eo-root { padding: 10px 10px 36px; gap: 10px; }
+
+  /* Single-column KPI stack */
+  .eo-kpi-row { grid-template-columns: 1fr; gap: 8px; }
+  .eo-kpi { flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px 13px; gap: 4px 10px; }
+  .eo-kpi-top { width: 100%; }
+  .eo-kpi-num { font-size: 28px; }
+  .eo-kpi-num--sm { font-size: 20px; }
+  .eo-kpi-seg-bar,
+  .eo-kpi-bar-track { width: 100%; }
+  .eo-kpi-sub { width: 100%; }
+  .eo-kpi-cta { width: 100%; }
+
+  /* Nav: full-width cards */
+  .eo-nav-grid { grid-template-columns: 1fr; gap: 7px; }
+  .eo-nav-card { padding: 12px 13px; }
+  .eo-nav-desc { display: block; font-size: 10.5px; }
+
+  /* Panels */
+  .eo-panel { padding: 13px 12px; }
+  .eo-arc-wrap { width: 100px; }
 }
 </style>

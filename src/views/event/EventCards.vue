@@ -45,44 +45,61 @@
     <div class="evc-panel">
       <div class="evc-panel-hd">
         <h2 class="evc-panel-title">Cards</h2>
-        <div class="evc-hd-search">
-          <div class="evc-search-wrap">
-            <svg class="evc-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-              stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input v-model="searchQ" class="evc-search" placeholder="Search by type or purpose…" />
-            <button v-if="searchQ" class="evc-search-clear" @click="searchQ = ''">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        <div class="evc-panel-acts">
+          <!-- Expanded search state -->
+          <template v-if="searchOpen">
+            <div class="evc-search-expanded">
+              <div class="evc-search-wrap">
+                <svg class="evc-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                  stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input ref="searchInputRef" v-model="searchQ" class="evc-search"
+                  placeholder="Search by type or purpose…"
+                  @keydown.escape="closeSearch" />
+                <button v-if="searchQ" class="evc-search-clear" @click="searchQ = ''">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <button class="evc-search-cancel" @click="closeSearch">Cancel</button>
+          </template>
+
+          <!-- Normal state -->
+          <template v-else>
+            <button class="evc-search-pill" :class="{ 'evc-search-pill--active': searchQ }" @click="openSearch">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              Search
+            </button>
+            <div class="evc-filter-chips">
+              <button v-for="f in PURPOSE_FILTERS" :key="f.val"
+                class="evc-chip" :class="{ 'evc-chip--active': purposeFilter === f.val }"
+                @click="purposeFilter = f.val">
+                {{ f.label }}
+                <span class="evc-chip-cnt">{{ purposeCount(f.val) }}</span>
+              </button>
+            </div>
+            <button class="evc-refresh-btn" @click="loadData" :disabled="loading" title="Refresh">
+              <svg :class="{ 'evc-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
               </svg>
             </button>
-          </div>
-        </div>
-        <div class="evc-panel-acts">
-          <div class="evc-filter-chips">
-            <button v-for="f in PURPOSE_FILTERS" :key="f.val"
-              class="evc-chip" :class="{ 'evc-chip--active': purposeFilter === f.val }"
-              @click="purposeFilter = f.val">
-              {{ f.label }}
-              <span class="evc-chip-cnt">{{ purposeCount(f.val) }}</span>
-            </button>
-          </div>
-          <button class="evc-refresh-btn" @click="loadData" :disabled="loading" title="Refresh">
-            <svg :class="{ 'evc-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-            </svg>
-          </button>
-          <a :href="designerCreateUrl" target="_blank" rel="noopener" class="evc-new-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5" stroke-linecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            New Template
-          </a>
+            <a :href="designerCreateUrl" target="_blank" rel="noopener" class="evc-new-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              New Template
+            </a>
+          </template>
         </div>
       </div>
 
@@ -333,7 +350,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { db } from '../../firebase'
 import { collection, getDocs, deleteDoc, doc, getDoc } from 'firebase/firestore'
@@ -380,6 +397,10 @@ const attendees   = ref([])
 const loading     = ref(false)
 
 const searchQ       = ref('')
+const searchOpen    = ref(false)
+const searchInputRef = ref(null)
+function openSearch() { searchOpen.value = true; nextTick(() => searchInputRef.value?.focus()) }
+function closeSearch() { searchOpen.value = false; searchQ.value = '' }
 const purposeFilter = ref('all')
 const selectedCard  = ref(null)
 const confirmDeleteId = ref(null)
@@ -539,6 +560,16 @@ async function deleteCard(card) {
   flex-direction: column;
   gap: 16px;
   padding: 20px 24px 24px;
+  --c-bg:     #141414;
+  --c-border: #2a2a2a;
+  --c-track:  #2a2a2a;
+  --c-muted:  #3a3a3a;
+  --c-txt:    #f0f0ec;
+  --c-txt-2:  #888;
+  --c-txt-3:  #555;
+  --c-divide: #2a2a2a;
+  --c-arrow:  #3a3a3a;
+  transition: background 300ms ease;
 }
 
 /* ══ Stat Cards ══ */
@@ -548,13 +579,14 @@ async function deleteCard(card) {
   gap: 12px;
 }
 .evc-stat-card {
-  background: #191919;
-  border: 1px solid #2a2a2a;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   border-radius: 12px;
   padding: 20px 20px 18px;
   display: flex;
   align-items: flex-start;
   gap: 16px;
+  transition: background 300ms ease, border-color 300ms ease;
 }
 .evc-stat-icon {
   width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
@@ -565,29 +597,51 @@ async function deleteCard(card) {
 .evc-stat-icon--green  { background: rgba(48,209,88,0.08);   color: #30D158; }
 .evc-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
 .evc-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.evc-stat-lbl  { font-size: 11px; color: #777; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
-.evc-stat-val  { font-size: 32px; font-weight: 700; color: #f0f0ec; line-height: 1; letter-spacing: -0.5px; }
+.evc-stat-lbl  { font-size: 11px; color: var(--c-txt-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+.evc-stat-val  { font-size: 32px; font-weight: 700; color: var(--c-txt); line-height: 1; letter-spacing: -0.5px; }
 
 /* ══ Panel ══ */
 .evc-panel {
-  background: #141414;
-  border: 1px solid #2a2a2a;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   border-radius: 16px;
   overflow: hidden;
+  transition: background 300ms ease, border-color 300ms ease;
 }
 .evc-panel-hd {
   display: flex;
   align-items: center;
   padding: 14px 20px;
-  border-bottom: 1px solid #1e1e1e;
+  border-bottom: 1px solid var(--c-border);
   gap: 10px;
 }
 .evc-panel-title {
-  font-size: 19px; font-weight: 700; color: #f0f0ec;
+  font-size: 19px; font-weight: 700; color: var(--c-txt);
   margin: 0; letter-spacing: -0.3px; white-space: nowrap;
 }
-.evc-hd-search { margin-left: auto; min-width: 120px; max-width: 300px; }
-.evc-panel-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.evc-panel-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
+
+/* Search pill */
+.evc-search-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 20px;
+  border: 1px solid var(--c-border); background: var(--c-bg);
+  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
+  cursor: pointer; transition: all 140ms; font-family: inherit;
+}
+.evc-search-pill:hover { background: var(--c-bg); color: var(--c-txt-2); }
+.evc-search-pill--active { background: rgba(201,168,76,0.10); border-color: rgba(201,168,76,0.3); color: #C9A84C; }
+
+/* Expanded search */
+.evc-search-expanded { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
+
+/* Cancel button */
+.evc-search-cancel {
+  flex-shrink: 0; padding: 7px 2px; border: none; background: none;
+  font-size: 13px; font-weight: 500; color: var(--c-txt-2); cursor: pointer;
+  font-family: inherit; transition: color 130ms;
+}
+.evc-search-cancel:hover { color: var(--c-txt); }
 
 /* Search */
 .evc-search-wrap {
@@ -597,45 +651,45 @@ async function deleteCard(card) {
 .evc-search-icon { position: absolute; left: 10px; pointer-events: none; }
 .evc-search {
   width: 100%; padding: 8px 32px;
-  border: 1px solid #2a2a2a; border-radius: 10px;
+  border: 1px solid var(--c-border); border-radius: 10px;
   font-size: 13px; font-family: inherit; outline: none;
-  background: #141414; color: #f0f0ec;
+  background: var(--c-bg); color: var(--c-txt);
   transition: border-color 150ms, box-shadow 150ms;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.evc-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: #141414; }
+.evc-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: var(--c-bg); }
 .evc-search-clear {
   position: absolute; right: 8px;
-  background: none; border: none; cursor: pointer; color: #888; padding: 2px;
+  background: none; border: none; cursor: pointer; color: var(--c-txt-2); padding: 2px;
   display: flex; align-items: center;
 }
-.evc-search-clear:hover { color: #f0f0ec; }
+.evc-search-clear:hover { color: var(--c-txt); }
 
 /* Filter chips */
 .evc-filter-chips { display: flex; gap: 4px; }
 .evc-chip {
   padding: 6px 12px; border-radius: 20px;
-  border: 1px solid #2a2a2a; background: #141414;
-  font-size: 12px; font-weight: 500; color: #888;
+  border: 1px solid var(--c-border); background: var(--c-bg);
+  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
   cursor: pointer; transition: all 140ms; font-family: inherit;
 }
-.evc-chip:hover { background: #1a1a1a; color: #888; }
-.evc-chip--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: #f0f0ec; font-weight: 600; }
+.evc-chip:hover { background: var(--c-bg); color: var(--c-txt-2); }
+.evc-chip--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: var(--c-txt); font-weight: 600; }
 .evc-chip-cnt {
   display: inline-flex; min-width: 18px; padding: 1px 5px;
-  background: #1a1a1a; border-radius: 10px;
-  font-size: 11px; font-weight: 600; color: #888; margin-left: 5px;
+  background: var(--c-bg); border-radius: 10px;
+  font-size: 11px; font-weight: 600; color: var(--c-txt-2); margin-left: 5px;
 }
 .evc-chip--active .evc-chip-cnt { background: rgba(201,168,76,0.08); color: #C9A84C; }
 
 /* Refresh + New Template */
 .evc-refresh-btn {
   width: 32px; height: 32px; border-radius: 8px;
-  border: 1px solid #2a2a2a; background: #141414; color: #888;
+  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all 140ms; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.evc-refresh-btn:hover:not(:disabled) { background: #1a1a1a; color: #f0f0ec; }
+.evc-refresh-btn:hover:not(:disabled) { background: var(--c-bg); color: var(--c-txt); }
 .evc-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .evc-new-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -652,16 +706,16 @@ async function deleteCard(card) {
 
 .evc-empty {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; min-height: 300px; color: #555;
+  justify-content: center; gap: 10px; min-height: 300px; color: var(--c-txt-3);
 }
-.evc-empty-title { font-size: 15px; font-weight: 600; color: #888; margin: 0; }
-.evc-empty-sub   { font-size: 13px; color: #555; margin: 0; }
+.evc-empty-title { font-size: 15px; font-weight: 600; color: var(--c-txt-2); margin: 0; }
+.evc-empty-sub   { font-size: 13px; color: var(--c-txt-3); margin: 0; }
 .evc-empty-cta {
   margin-top: 6px; padding: 9px 20px; border-radius: 10px;
-  background: rgba(226,232,240,0.12); color: #f0f0ec; font-size: 13px; font-weight: 600;
+  background: rgba(226,232,240,0.12); color: var(--c-txt); font-size: 13px; font-weight: 600;
   text-decoration: none; transition: background 140ms;
 }
-.evc-empty-cta:hover { background: #1e1e1e; }
+.evc-empty-cta:hover { background: var(--c-bg); }
 
 .evc-grid {
   display: grid;
@@ -672,15 +726,15 @@ async function deleteCard(card) {
 
 /* Card tile */
 .evc-card {
-  background: #141414;
-  border: 1px solid #2a2a2a;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
-  transition: box-shadow 160ms, border-color 160ms, transform 160ms;
+  transition: background 300ms ease, border-color 300ms ease, box-shadow 160ms, transform 160ms;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
-.evc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); border-color: #3a3a3a; transform: translateY(-1px); }
+.evc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); border-color: var(--c-muted); transform: translateY(-1px); }
 .evc-card--selected { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.15); }
 
 .evc-card-thumb {
@@ -702,7 +756,7 @@ async function deleteCard(card) {
 .evc-thumb-placeholder {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  color: #888;
+  color: var(--c-txt-2);
 }
 .evc-thumb-badge {
   position: relative; z-index: 1;
@@ -714,31 +768,31 @@ async function deleteCard(card) {
 
 .evc-card-body { padding: 12px 14px 10px; display: flex; align-items: center; gap: 10px; }
 .evc-card-type {
-  font-size: 14px; font-weight: 700; color: #f0f0ec;
+  font-size: 14px; font-weight: 700; color: var(--c-txt);
   margin: 0; letter-spacing: -0.1px; white-space: nowrap;
 }
 .evc-card-meta { display: flex; align-items: center; gap: 10px; }
 .evc-meta-chip {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: 11px; color: #888; font-weight: 500;
+  font-size: 11px; color: var(--c-txt-2); font-weight: 500;
 }
 
 /* Card action row */
 .evc-card-actions {
   display: flex; align-items: center; gap: 6px;
   padding: 10px 14px;
-  border-top: 1px solid #1a1a1a;
+  border-top: 1px solid var(--c-divide);
 }
 .evc-del-confirm-lbl { font-size: 12px; color: #FF453A; font-weight: 600; flex: 1; }
 .evc-action-btn {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 5px 11px; border-radius: 7px;
   font-size: 12px; font-weight: 500; font-family: inherit;
-  border: 1px solid #2a2a2a; background: #141414; color: #888;
+  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
   cursor: pointer; transition: all 130ms; text-decoration: none;
 }
-.evc-action-btn:hover { background: #1a1a1a; color: #f0f0ec; }
-.evc-action-btn--edit:hover { border-color: rgba(184,146,77,0.5); color: #C9A84C; background: #111111; }
+.evc-action-btn:hover { background: var(--c-bg); color: var(--c-txt); }
+.evc-action-btn--edit:hover { border-color: rgba(184,146,77,0.5); color: #C9A84C; background: var(--c-bg); }
 .evc-action-btn--del-ghost:hover { border-color: rgba(255,59,48,0.3); color: #FF453A; background: rgba(255,59,48,0.05); }
 .evc-action-btn--danger { border-color: rgba(255,59,48,0.4); color: #FF453A; background: rgba(255,59,48,0.06); }
 .evc-action-btn--danger:hover { background: rgba(255,59,48,0.12); }
@@ -746,59 +800,59 @@ async function deleteCard(card) {
 /* ══ Drawer ══ */
 .evc-overlay {
   position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(1px);
+  background: var(--overlay-bg);
 }
 .evc-drawer {
   position: fixed; right: 0; top: 0; bottom: 0;
-  width: 380px; background: #141414;
+  width: 380px; background: var(--c-bg);
   box-shadow: -4px 0 32px rgba(0,0,0,0.5);
   display: flex; flex-direction: column; overflow-y: auto; z-index: 201;
+  transition: background 300ms ease;
 }
 .evc-drawer-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 1px solid #1a1a1a; flex-shrink: 0;
+  padding: 14px 16px; border-bottom: 1px solid var(--c-divide); flex-shrink: 0;
 }
 .evc-drawer-back {
   display: flex; align-items: center; gap: 5px;
   padding: 6px 10px; border-radius: 8px;
-  border: none; background: #1a1a1a; color: #888;
+  border: none; background: var(--c-bg); color: var(--c-txt-2);
   font-size: 13px; font-weight: 500; cursor: pointer;
   transition: all 130ms; font-family: inherit;
 }
-.evc-drawer-back:hover { background: #2a2a2a; color: #f0f0ec; }
+.evc-drawer-back:hover { background: var(--c-track); color: var(--c-txt); }
 .evc-drawer-edit-btn {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 12px; border-radius: 8px;
-  border: 1px solid #2a2a2a; background: #141414; color: #888;
+  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
   font-size: 12px; font-weight: 500; font-family: inherit;
   text-decoration: none; cursor: pointer; transition: all 130ms;
 }
-.evc-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: #C9A84C; background: #111111; }
+.evc-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: #C9A84C; background: var(--c-bg); }
 
 /* Template preview */
-.evc-preview-wrap { padding: 16px 20px; background: #141414; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
+.evc-preview-wrap { padding: 16px 20px; background: var(--c-bg); border-bottom: 1px solid var(--c-border); flex-shrink: 0; }
 .evc-preview-img {
   width: 100%; aspect-ratio: 3 / 2;
   background-size: contain; background-position: center; background-repeat: no-repeat;
-  border-radius: 10px; border: 1px solid #2a2a2a; background-color: #141414;
+  border-radius: 10px; border: 1px solid var(--c-border); background-color: var(--c-bg);
 }
 .evc-preview-placeholder {
   width: 100%; aspect-ratio: 3 / 2;
-  border-radius: 10px; border: 1px solid #2a2a2a;
+  border-radius: 10px; border: 1px solid var(--c-border);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; color: #888;
+  gap: 8px; color: var(--c-txt-2);
 }
-.evc-preview-placeholder p { font-size: 12px; margin: 0; color: #555; }
+.evc-preview-placeholder p { font-size: 12px; margin: 0; color: var(--c-txt-3); }
 
 /* Drawer body */
 .evc-drawer-body { display: flex; flex-direction: column; padding: 0 0 24px; }
 
 .evc-detail-head {
   display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 16px 20px 12px; border-bottom: 1px solid #1a1a1a;
+  padding: 16px 20px 12px; border-bottom: 1px solid var(--c-divide);
 }
-.evc-detail-type { font-size: 18px; font-weight: 700; color: #f0f0ec; margin: 0 0 6px; }
+.evc-detail-type { font-size: 18px; font-weight: 700; color: var(--c-txt); margin: 0 0 6px; }
 .evc-purpose-badge {
   display: inline-block; padding: 3px 10px; border-radius: 20px;
   font-size: 11px; font-weight: 700;
@@ -806,33 +860,33 @@ async function deleteCard(card) {
 
 .evc-detail-stats {
   display: flex; align-items: center;
-  padding: 14px 20px; border-bottom: 1px solid #1a1a1a;
+  padding: 14px 20px; border-bottom: 1px solid var(--c-divide);
 }
 .evc-detail-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
-.evc-detail-stat-n { font-size: 18px; font-weight: 700; color: #f0f0ec; line-height: 1; }
-.evc-detail-stat-lbl { font-size: 10px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.4px; }
-.evc-detail-stat-sep { width: 0.8px; height: 28px; background: #2a2a2a; flex-shrink: 0; }
+.evc-detail-stat-n { font-size: 18px; font-weight: 700; color: var(--c-txt); line-height: 1; }
+.evc-detail-stat-lbl { font-size: 10px; font-weight: 600; color: var(--c-txt-3); text-transform: uppercase; letter-spacing: 0.4px; }
+.evc-detail-stat-sep { width: 0.8px; height: 28px; background: var(--c-track); flex-shrink: 0; }
 
-.evc-drawer-block { padding: 14px 20px; border-bottom: 1px solid #1a1a1a; }
+.evc-drawer-block { padding: 14px 20px; border-bottom: 1px solid var(--c-divide); }
 .evc-drawer-block:last-of-type { border-bottom: none; }
 .evc-block-lbl {
-  font-size: 10px; font-weight: 700; color: #555;
+  font-size: 10px; font-weight: 700; color: var(--c-txt-3);
   text-transform: uppercase; letter-spacing: 0.6px; margin: 0 0 10px;
 }
-.evc-detail-none { font-size: 13px; color: #555; font-style: italic; }
+.evc-detail-none { font-size: 13px; color: var(--c-txt-3); font-style: italic; }
 
 /* Checkpoints list */
 .evc-cp-list { display: flex; flex-direction: column; gap: 6px; }
 .evc-cp-item {
   display: flex; align-items: center; gap: 7px;
-  font-size: 13px; color: #f0f0ec; font-weight: 500;
+  font-size: 13px; color: var(--c-txt); font-weight: 500;
 }
 
 /* Attendees list */
 .evc-att-list { display: flex; flex-direction: column; gap: 0; }
 .evc-att-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 8px 0; border-bottom: 1px solid #3a3a3a;
+  padding: 8px 0; border-bottom: 1px solid var(--c-muted);
 }
 .evc-att-row:last-of-type { border-bottom: none; }
 .evc-att-avatar {
@@ -841,14 +895,14 @@ async function deleteCard(card) {
   font-size: 10px; font-weight: 700; flex-shrink: 0;
 }
 .evc-att-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.evc-att-name  { font-size: 12px; font-weight: 600; color: #f0f0ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.evc-att-phone { font-size: 11px; color: #888; }
+.evc-att-name  { font-size: 12px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.evc-att-phone { font-size: 11px; color: var(--c-txt-2); }
 .evc-att-card-status { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
 .evc-att-ready   { background: rgba(52,211,153,0.12);  color: #34d399; }
 .evc-att-pending { background: rgba(255,159,10,0.12); color: #7A4500; }
-.evc-att-more { font-size: 12px; color: #888; margin: 8px 0 0; padding: 0; }
+.evc-att-more { font-size: 12px; color: var(--c-txt-2); margin: 8px 0 0; padding: 0; }
 
-.evc-drawer-added { font-size: 12px; color: #555; margin: 0; padding: 4px 20px 0; }
+.evc-drawer-added { font-size: 12px; color: var(--c-txt-3); margin: 0; padding: 4px 20px 0; }
 
 /* ══ Transitions ══ */
 .evc-fade-enter-active, .evc-fade-leave-active { transition: opacity 200ms ease; }
@@ -861,12 +915,48 @@ async function deleteCard(card) {
 @keyframes evc-spin-anim { to { transform: rotate(360deg); } }
 
 /* ── Responsive ── */
-@media (max-width: 600px) {
+@media (max-width: 900px) {
+  /* 4-column stat grid overflows at medium widths — switch to 2x2 */
+  .evc-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; min-width: 0; }
+  .evc-stat-card { min-width: 0; overflow: hidden; }
+  .evc-stat-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Panel header: title + acts wrap */
+  .evc-panel-hd { flex-wrap: wrap; gap: 8px; }
+  .evc-panel-acts { width: 100%; flex-wrap: nowrap; align-items: center; gap: 6px; }
+  .evc-filter-chips { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+  .evc-filter-chips::-webkit-scrollbar { display: none; }
+  .evc-chip { flex-shrink: 0; }
+  .evc-refresh-btn { flex-shrink: 0; }
+  .evc-new-btn { flex-shrink: 0; white-space: nowrap; }
+}
+
+@media (max-width: 640px) {
   .evc-root { padding: 12px 14px 20px; gap: 12px; }
-  .evc-toolbar { flex-wrap: wrap; gap: 8px; }
-  .evc-toolbar-left { flex: 1; min-width: 0; }
-  .evc-toolbar-right { flex-wrap: wrap; gap: 6px; width: 100%; }
-  .evc-search-wrap { flex: 1; min-width: 0; }
-  .evc-search { min-width: 0; max-width: 100%; width: 100%; }
+
+  /* Stat cards: column layout so long labels don't get squished */
+  .evc-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; min-width: 0; }
+  .evc-stat-card { min-width: 0; overflow: hidden; padding: 12px; gap: 6px; flex-direction: column; align-items: flex-start; }
+  .evc-stat-icon { width: 32px; height: 32px; flex-shrink: 0; }
+  .evc-stat-val  { font-size: 22px; }
+  .evc-stat-body { gap: 2px; min-width: 0; width: 100%; }
+  .evc-stat-lbl  { font-size: 10px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Panel header: title + acts wrap */
+  .evc-panel-hd { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
+  .evc-panel-title { font-size: 17px; }
+  .evc-search-wrap { width: 100%; min-width: 0; }
+  .evc-search { min-width: 0; max-width: 100%; width: 100%; font-size: 13px; }
+
+  /* Chips + action buttons: single nowrap row — chips scroll, buttons stay anchored right */
+  .evc-panel-acts { flex-wrap: nowrap; gap: 6px; width: 100%; align-items: center; margin-left: 0; }
+  .evc-filter-chips { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+  .evc-filter-chips::-webkit-scrollbar { display: none; }
+  .evc-chip { flex-shrink: 0; }
+  .evc-refresh-btn { flex-shrink: 0; }
+  .evc-new-btn { flex-shrink: 0; white-space: nowrap; padding: 7px 12px; font-size: 12px; }
+
+  /* Card grid: 2 columns */
+  .evc-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 }
 </style>

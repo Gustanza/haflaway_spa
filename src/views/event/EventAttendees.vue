@@ -3,170 +3,299 @@
 
     <!-- ── Stat cards ── -->
     <div class="ea-stats" v-if="!loading || attendees.length">
-      <div class="ea-stat-card">
-        <div class="ea-stat-icon ea-stat-icon--purple">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
+
+      <!-- Invitees view -->
+      <template v-if="!isContactsView">
+        <div class="ea-stat-card">
+          <div class="ea-stat-icon ea-stat-icon--purple">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="ea-stat-body">
+            <span class="ea-stat-lbl">Invitees</span>
+            <span class="ea-stat-val">{{ typeCount.invitation ?? 0 }}</span>
+          </div>
         </div>
-        <div class="ea-stat-body">
-          <span class="ea-stat-lbl">Total Attendees</span>
-          <span class="ea-stat-val">{{ attendees.length }}</span>
+        <div class="ea-stat-card">
+          <div class="ea-stat-icon ea-stat-icon--teal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="ea-stat-body">
+            <span class="ea-stat-lbl">Checked In</span>
+            <span class="ea-stat-val">{{ attendees.filter(a => getKardType(a) === 'invitation' && a.checkedIn).length }}</span>
+          </div>
         </div>
-      </div>
-      <div class="ea-stat-card">
-        <div class="ea-stat-icon ea-stat-icon--blue">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-            <polyline points="22,6 12,13 2,6"/>
-          </svg>
+        <div class="ea-stat-card">
+          <div class="ea-stat-icon ea-stat-icon--blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="ea-stat-body">
+            <span class="ea-stat-lbl">Pending</span>
+            <span class="ea-stat-val">{{ (typeCount.invitation ?? 0) - attendees.filter(a => getKardType(a) === 'invitation' && a.checkedIn).length }}</span>
+          </div>
         </div>
-        <div class="ea-stat-body">
-          <span class="ea-stat-lbl">Invitations · {{ confirmedCount }} confirmed</span>
-          <span class="ea-stat-val">{{ typeCount.invitation }}</span>
+        <div class="ea-stat-card">
+          <div class="ea-stat-icon ea-stat-icon--gold">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div class="ea-stat-body">
+            <span class="ea-stat-lbl">Groups</span>
+            <span class="ea-stat-val">{{ props.event?.labels?.length ?? 0 }}</span>
+          </div>
         </div>
-      </div>
-      <div class="ea-stat-card">
-        <div class="ea-stat-icon ea-stat-icon--gold">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-          </svg>
+      </template>
+
+      <!-- Contacts view -->
+      <template v-else>
+        <div class="ea-stat-card">
+          <div class="ea-stat-icon ea-stat-icon--teal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div class="ea-stat-body">
+            <span class="ea-stat-lbl">Contacts</span>
+            <span class="ea-stat-val">{{ typeCount.contact }}</span>
+          </div>
         </div>
-        <div class="ea-stat-body">
-          <span class="ea-stat-lbl">Contributions · TZS {{ formatMoney(totalPaid).replace('TZS ', '') }} paid</span>
-          <span class="ea-stat-val">{{ typeCount.contribution }}</span>
+        <div class="ea-stat-card">
+          <div class="ea-stat-icon ea-stat-icon--gold">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <div class="ea-stat-body">
+            <span class="ea-stat-lbl">Contribution Cards</span>
+            <span class="ea-stat-val">{{ typeCount.contribution }}</span>
+          </div>
         </div>
-      </div>
-      <div class="ea-stat-card">
-        <div class="ea-stat-icon ea-stat-icon--teal">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
+        <div class="ea-stat-card">
+          <div class="ea-stat-icon ea-stat-icon--purple">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="ea-stat-body">
+            <span class="ea-stat-lbl">Total</span>
+            <span class="ea-stat-val">{{ (typeCount.contact ?? 0) + (typeCount.contribution ?? 0) }}</span>
+          </div>
         </div>
-        <div class="ea-stat-body">
-          <span class="ea-stat-lbl">Contacts</span>
-          <span class="ea-stat-val">{{ typeCount.contact }}</span>
+        <div class="ea-stat-card">
+          <div class="ea-stat-icon ea-stat-icon--blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div class="ea-stat-body">
+            <span class="ea-stat-lbl">Contributions</span>
+            <span class="ea-stat-val">{{ attendees.filter(a => a.contributionPaid).length }}</span>
+          </div>
         </div>
-      </div>
+      </template>
+
     </div>
 
     <div class="ea-panel">
 
       <!-- ── Panel header ── -->
       <div class="ea-panel-hd">
-        <h2 class="ea-panel-title">Attendees</h2>
-        <div class="ea-search-wrap ea-hd-search">
-          <svg class="ea-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-            stroke="#505050" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input v-model="searchQ" class="ea-search" placeholder="Search by name or phone…" />
-          <button v-if="searchQ" class="ea-search-clear" @click="searchQ = ''">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5" stroke-linecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
+        <h2 class="ea-panel-title">{{ isContactsView ? 'Contacts' : 'Invitees' }}</h2>
+
         <div class="ea-panel-acts">
 
-          <!-- Groups dropdown -->
-          <div class="ea-label-select" ref="labelSelectRef">
-            <button class="ea-type-trigger" :class="{ 'ea-type-trigger--active': filterLabelId }" @click="labelDropOpen = !labelDropOpen">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                <line x1="7" y1="7" x2="7.01" y2="7"/>
+          <!-- Search: pill when closed, inline input when open -->
+          <template v-if="searchOpen">
+            <div class="ea-search-wrap ea-search-expanded">
+              <svg class="ea-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                stroke="#505050" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-              <template v-if="filterLabelId">
-                <span class="ea-label-trigger-dot" :style="{ background: labelFg(localLabels.find(l => l.id === filterLabelId)) }"/>
-                {{ localLabels.find(l => l.id === filterLabelId)?.name ?? 'Groups' }}
-              </template>
-              <template v-else>
-                Groups
-                <span v-if="localLabels.length" class="ea-type-trigger-cnt">{{ localLabels.length }}</span>
-              </template>
-              <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': labelDropOpen }"
-                width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </button>
-            <div v-if="labelDropOpen" class="ea-type-drop">
-              <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !filterLabelId }"
-                @click="filterLabelId = null; labelDropOpen = false">
-                All
-                <span class="ea-type-drop-cnt">{{ attendees.length }}</span>
-              </button>
-              <template v-if="localLabels.length">
-                <div class="ea-label-drop-sep"/>
-                <button v-for="lbl in localLabels" :key="lbl.id"
-                  class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': filterLabelId === lbl.id }"
-                  @click="filterLabelId = filterLabelId === lbl.id ? null : lbl.id; labelDropOpen = false">
-                  <span style="display:flex;align-items:center;gap:7px;">
-                    <span class="ea-lf-dot" :style="{ background: labelFg(lbl) }"/>
-                    {{ lbl.name }}
-                  </span>
-                </button>
-              </template>
-              <div class="ea-label-drop-sep"/>
-              <button class="ea-type-drop-item ea-label-drop-manage" @click="showLabelManager = true; labelDropOpen = false">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              <input ref="searchInputRef" v-model="searchQ" class="ea-search"
+                placeholder="Search by name or phone…"
+                @keydown.esc="closeSearch" />
+              <button v-if="searchQ" class="ea-search-clear" @click="searchQ = ''">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
-                Manage Groups
               </button>
             </div>
-          </div>
+            <button class="ea-search-cancel" @click="closeSearch">Cancel</button>
+          </template>
 
-          <!-- Import -->
-          <button class="ea-import-btn" @click="openImport">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            <span class="ea-btn-label">Import</span>
-          </button>
+          <template v-else>
+            <!-- Search pill -->
+            <button class="ea-type-trigger" :class="{ 'ea-type-trigger--active': searchQ }" @click="openSearch">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              {{ searchQ || 'Search' }}
+            </button>
 
-          <!-- Type dropdown -->
-          <div class="ea-type-select" ref="typeSelectRef">
-            <button class="ea-type-trigger" @click="typeDropOpen = !typeDropOpen">
-              {{ activeTypeLabel }}
-              <span v-if="activeTypeCount" class="ea-type-trigger-cnt">{{ activeTypeCount }}</span>
-              <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': typeDropOpen }"
-                width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round">
-                <polyline points="6 9 12 15 18 9"/>
+            <!-- Groups dropdown -->
+            <div class="ea-label-select" ref="labelSelectRef">
+              <button class="ea-type-trigger" :class="{ 'ea-type-trigger--active': filterLabelId }" @click="labelDropOpen = !labelDropOpen">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                  <line x1="7" y1="7" x2="7.01" y2="7"/>
+                </svg>
+                <template v-if="filterLabelId">
+                  <span class="ea-label-trigger-dot" :style="{ background: labelFg(localLabels.find(l => l.id === filterLabelId)) }"/>
+                  {{ localLabels.find(l => l.id === filterLabelId)?.name ?? 'Groups' }}
+                </template>
+                <template v-else>
+                  Groups
+                  <span v-if="localLabels.length" class="ea-type-trigger-cnt">{{ localLabels.length }}</span>
+                </template>
+                <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': labelDropOpen }"
+                  width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              <div v-if="labelDropOpen" class="ea-type-drop">
+                <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !filterLabelId }"
+                  @click="filterLabelId = null; labelDropOpen = false">
+                  All
+                  <span class="ea-type-drop-cnt">{{ attendees.length }}</span>
+                </button>
+                <template v-if="localLabels.length">
+                  <div class="ea-label-drop-sep"/>
+                  <button v-for="lbl in localLabels" :key="lbl.id"
+                    class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': filterLabelId === lbl.id }"
+                    @click="filterLabelId = filterLabelId === lbl.id ? null : lbl.id; labelDropOpen = false">
+                    <span style="display:flex;align-items:center;gap:7px;">
+                      <span class="ea-lf-dot" :style="{ background: labelFg(lbl) }"/>
+                      {{ lbl.name }}
+                    </span>
+                  </button>
+                </template>
+                <div class="ea-label-drop-sep"/>
+                <button class="ea-type-drop-item ea-label-drop-manage" @click="showLabelManager = true; labelDropOpen = false">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                  </svg>
+                  Manage Groups
+                </button>
+              </div>
+            </div>
+
+            <!-- Card filter dropdown -->
+            <div v-if="cardDropTemplates.length" class="ea-label-select" ref="cardDropRef">
+              <button class="ea-type-trigger" :class="{ 'ea-type-trigger--active': filterCardId }" @click="cardDropOpen = !cardDropOpen">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                  <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/>
+                </svg>
+                <template v-if="filterCardId">
+                  {{ allTemplatesMap[filterCardId] ?? 'Card' }}
+                </template>
+                <template v-else>
+                  Card
+                  <span class="ea-type-trigger-cnt">{{ cardDropTemplates.length }}</span>
+                </template>
+                <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': cardDropOpen }"
+                  width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              <div v-if="cardDropOpen" class="ea-type-drop">
+                <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !filterCardId }"
+                  @click="filterCardId = null; cardDropOpen = false">
+                  All cards
+                  <span class="ea-type-drop-cnt">{{ cardDropTemplates.length }}</span>
+                </button>
+                <div class="ea-label-drop-sep"/>
+                <button v-for="tpl in cardDropTemplates" :key="tpl.id"
+                  class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': filterCardId === tpl.id }"
+                  @click="filterCardId = filterCardId === tpl.id ? null : tpl.id; cardDropOpen = false">
+                  {{ tpl.name || '—' }}
+                  <span class="ea-type-drop-cnt">{{ cardAttendeeCount[tpl.id] ?? 0 }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Import -->
+            <button class="ea-import-btn" @click="openImport">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span class="ea-btn-label">Import</span>
+            </button>
+
+            <!-- Refresh -->
+            <button class="ea-import-btn" @click="loadInitial" :disabled="loading" title="Refresh attendees">
+              <svg :class="{ 'ea-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
               </svg>
             </button>
-            <div v-if="typeDropOpen" class="ea-type-drop">
-              <button v-for="f in typeFilters" :key="f.val"
-                class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': activeType === f.val }"
-                @click="activeType = f.val; typeDropOpen = false">
-                {{ f.label }}
-                <span class="ea-type-drop-cnt">{{ f.val === 'all' ? attendees.length : (typeCount[f.val] ?? 0) }}</span>
-              </button>
-            </div>
-          </div>
 
-          <!-- Add -->
-          <button class="ea-add-btn" @click="openAdd">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5" stroke-linecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Add Attendee
-          </button>
+            <!-- Add -->
+            <button class="ea-add-btn" @click="openAdd">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              {{ addLabel }}
+            </button>
+          </template>
 
         </div>
       </div>
 
-
+      <!-- ── Type tabs (Contacts view only) ── -->
+      <div v-if="isContactsView" class="ea-tabs-row">
+        <div class="ea-tabs">
+          <button v-for="f in typeFilters" :key="f.val"
+            class="ea-tab" :class="{ 'ea-tab--active': activeType === f.val }"
+            @click="activeType = f.val">
+            {{ f.label }}
+            <span class="ea-tab-cnt">{{ f.val === 'all' ? attendees.length : (typeCount[f.val] ?? 0) }}</span>
+          </button>
+        </div>
+        <div class="ea-sort-controls">
+          <button class="ea-list-sort-btn" :class="{ 'ea-list-sort-btn--active': sortKey === 'name' }" @click="toggleSort('name')">
+            Name
+            <svg class="ea-sort-icon"
+              :class="{ 'ea-sort-icon--active': sortKey === 'name', 'ea-sort-icon--desc': sortKey === 'name' && sortDir === 'desc' }"
+              width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round">
+              <polyline points="18 15 12 9 6 15"/>
+            </svg>
+          </button>
+          <button class="ea-list-sort-btn" :class="{ 'ea-list-sort-btn--active': sortKey === 'date' }" @click="toggleSort('date')">
+            Date added
+            <svg class="ea-sort-icon"
+              :class="{ 'ea-sort-icon--active': sortKey === 'date', 'ea-sort-icon--desc': sortKey === 'date' && sortDir === 'desc' }"
+              width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round">
+              <polyline points="18 15 12 9 6 15"/>
+            </svg>
+          </button>
+          <label class="ea-list-select-all" v-if="displayList.length">
+            <input type="checkbox" class="ea-cb" ref="headerCb"
+              :checked="isAllPageSelected"
+              @change="toggleSelectAll" />
+            <span>Select page</span>
+          </label>
+        </div>
+      </div>
 
     <!-- ── Selection bar ── -->
     <Transition name="ea-fade">
@@ -199,213 +328,146 @@
       </div>
     </Transition>
 
-    <!-- ── Table ── -->
+    <!-- ── Card list ── -->
     <div class="ea-table-wrap">
-      <div class="ea-table-scroll">
-        <table class="ea-table">
-          <thead>
-            <tr>
-              <th class="ea-th ea-th--cb">
-                <input type="checkbox" class="ea-cb" ref="headerCb"
-                  :checked="isAllPageSelected"
-                  @change="toggleSelectAll" />
-              </th>
-              <th class="ea-th ea-th--sortable" @click="toggleSort('name')">
-                <span>Name</span>
-                <svg class="ea-sort-icon"
-                  :class="{ 'ea-sort-icon--active': sortKey === 'name', 'ea-sort-icon--desc': sortKey === 'name' && sortDir === 'desc' }"
-                  width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round">
-                  <polyline points="18 15 12 9 6 15"/>
-                </svg>
-              </th>
-              <th class="ea-th">Phone</th>
-              <th class="ea-th">Type</th>
-              <th class="ea-th">Template</th>
-              <th class="ea-th">Status</th>
-              <th class="ea-th">Groups</th>
-              <th class="ea-th ea-th--sortable ea-th--right" @click="toggleSort('date')">
-                <span>Added</span>
-                <svg class="ea-sort-icon"
-                  :class="{ 'ea-sort-icon--active': sortKey === 'date', 'ea-sort-icon--desc': sortKey === 'date' && sortDir === 'desc' }"
-                  width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round">
-                  <polyline points="18 15 12 9 6 15"/>
-                </svg>
-              </th>
-              <th class="ea-th ea-th--actions"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="att in displayList" :key="att.id" class="ea-tr"
-              :class="{ 'ea-tr--selected': selectedIds.has(att.id), 'ea-tr--pending': isCardPending(att) }"
-              @click="selectedIds.size ? toggleSelect(att.id) : openDetail(att)">
-              <!-- Checkbox -->
-              <td class="ea-td ea-td--cb" @click.stop="toggleSelect(att.id)">
-                <input type="checkbox" class="ea-cb"
-                  :checked="selectedIds.has(att.id)"
-                  @click.stop
-                  @change="toggleSelect(att.id)" />
-              </td>
-              <!-- Name -->
-              <td class="ea-td">
-                <div class="ea-cell-name">
-                  <div class="ea-avatar"
-                    :style="{ background: avatarBg(att.fullName), color: avatarColor(att.fullName) }">
-                    {{ initials(att.fullName) }}
-                  </div>
-                  <span class="ea-name-text">{{ att.fullName }}</span>
-                </div>
-              </td>
-              <!-- Phone -->
-              <td class="ea-td ea-td--muted">{{ att.phone || '—' }}</td>
-              <!-- Type -->
-              <td class="ea-td">
-                <span class="ea-type-badge" :class="`ea-type-badge--${getKardType(att)}`">
-                  {{ typeLabels[getKardType(att)] }}
-                </span>
-              </td>
-              <!-- Template -->
-              <td class="ea-td">
-                <div v-if="isCardPending(att)" class="ea-pending-cell">
-                  <span class="ea-tpl-name">{{ templateNameForAtt(att) || '—' }}</span>
-                  <span class="ea-pending-pill">
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2.5" stroke-linecap="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    Rendering
-                  </span>
-                </div>
-                <span v-else class="ea-td--muted">{{ templateNameForAtt(att) || '—' }}</span>
-              </td>
-              <!-- Status -->
-              <td class="ea-td">
-                <div v-if="getKardType(att) === 'invitation'" class="ea-status-cell">
-                  <span class="ea-status-dot"
-                    :style="{ background: statusColor(att.attendanceStatus) }" />
-                  <span class="ea-status-text">{{ att.attendanceStatus || 'Not Confirmed' }}</span>
-                </div>
-                <span v-else class="ea-cell-dash">—</span>
-              </td>
-              <!-- Labels -->
-              <td class="ea-td">
-                <div class="ea-label-list">
-                  <span v-for="lbl in attLabels(att)" :key="lbl.id" class="ea-label-chip"
-                    :style="{ background: labelBg(lbl), color: labelFg(lbl) }">
-                    {{ lbl.name }}
-                  </span>
-                  <span v-if="!attLabels(att).length" class="ea-cell-dash">—</span>
-                </div>
-              </td>
-              <!-- Added -->
-              <td class="ea-td ea-td--muted ea-td--right">{{ formatDate(att.createdAt) }}</td>
-              <!-- Actions -->
-              <td class="ea-td ea-td--actions" @click.stop>
-                <div class="ea-row-actions">
-                  <button v-if="isCardPending(att)" class="ea-row-btn ea-row-btn--refresh"
-                    :class="{ 'ea-row-btn--spinning': loading }"
-                    title="Refresh — card is still rendering"
-                    @click="loadInitial">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="23 4 23 10 17 10"/>
-                      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                    </svg>
-                  </button>
-                  <button class="ea-row-btn ea-row-btn--edit" title="Edit attendee"
-                    @click="openEdit(att)">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
 
-            <!-- Skeleton rows on initial load -->
-            <template v-if="loading && !attendees.length">
-              <tr v-for="n in 8" :key="`sk-${n}`" class="ea-tr ea-tr--skeleton">
-                <td class="ea-td ea-td--cb" />
-                <td class="ea-td">
-                  <div class="ea-cell-name">
-                    <div class="ea-sk-circle" />
-                    <div class="ea-sk-bar ea-sk-bar--lg" />
-                  </div>
-                </td>
-                <td class="ea-td"><div class="ea-sk-bar ea-sk-bar--md" /></td>
-                <td class="ea-td"><div class="ea-sk-bar ea-sk-bar--sm" /></td>
-                <td class="ea-td"><div class="ea-sk-bar ea-sk-bar--md" /></td>
-                <td class="ea-td"><div class="ea-sk-bar ea-sk-bar--md" /></td>
-                <td class="ea-td"><div class="ea-sk-bar ea-sk-bar--sm" /></td>
-                <td class="ea-td"><div class="ea-sk-bar ea-sk-bar--sm" /></td>
-                <td class="ea-td" />
-              </tr>
-            </template>
-
-            <!-- Empty state row -->
-            <tr v-else-if="!loading && !filteredList.length">
-              <td colspan="9" class="ea-td-empty">
-                <div class="ea-empty">
-                  <!-- Illustration -->
-                  <div class="ea-empty-graphic">
-                    <svg width="52" height="52" viewBox="0 0 64 64" fill="none">
-                      <circle cx="32" cy="32" r="32" fill="#242424"/>
-                      <!-- People silhouette -->
-                      <circle cx="26" cy="22" r="7" fill="#DDDBD6"/>
-                      <path d="M12 44c0-7.732 6.268-14 14-14h0c7.732 0 14 6.268 14 14" stroke="#DDDBD6" stroke-width="3" stroke-linecap="round" fill="none"/>
-                      <!-- Plus person -->
-                      <circle cx="44" cy="24" r="5" fill="#B8924D" fill-opacity="0.25" stroke="#B8924D" stroke-width="1.5"/>
-                      <line x1="44" y1="21" x2="44" y2="27" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round"/>
-                      <line x1="41" y1="24" x2="47" y2="24" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
-                  </div>
-
-                  <!-- No-filter empty (no attendees at all) -->
-                  <template v-if="!searchQ && activeType === 'all'">
-                    <p class="ea-empty-title">No attendees yet</p>
-                    <p class="ea-empty-sub">Add your first guest, contributor, or contact<br>to get started.</p>
-                    <button class="ea-empty-cta" @click="openAdd">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5" stroke-linecap="round">
-                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                      </svg>
-                      Add Attendee
-                    </button>
-                  </template>
-
-                  <!-- Active type filter, no match -->
-                  <template v-else-if="!searchQ && activeType !== 'all'">
-                    <p class="ea-empty-title">No {{ activeType }}s here</p>
-                    <p class="ea-empty-sub">There are no attendees of this type yet.<br>Switch tabs or add one now.</p>
-                    <button class="ea-empty-cta" @click="openAdd">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5" stroke-linecap="round">
-                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                      </svg>
-                      Add {{ capitalize(activeType) }}
-                    </button>
-                  </template>
-
-                  <!-- Search returned nothing -->
-                  <template v-else>
-                    <p class="ea-empty-title">No results for "{{ searchQ }}"</p>
-                    <p class="ea-empty-sub">Check the spelling or try a different<br>name or phone number.</p>
-                    <button class="ea-empty-cta ea-empty-cta--ghost" @click="searchQ = ''">
-                      Clear search
-                    </button>
-                  </template>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Skeleton cards on initial load -->
+      <div v-if="loading && !attendees.length" class="ea-list">
+        <div v-for="n in 8" :key="`sk-${n}`" class="ea-card ea-card--sk">
+          <div class="ea-card-av-wrap">
+            <div class="ea-sk-circle ea-sk-circle--card" />
+          </div>
+          <div class="ea-card-info">
+            <div class="ea-sk-bar ea-sk-bar--lg" style="margin-bottom:6px" />
+            <div class="ea-sk-bar ea-sk-bar--md" />
+          </div>
+          <div class="ea-card-badges">
+            <div class="ea-sk-bar ea-sk-bar--sm" />
+            <div class="ea-sk-bar ea-sk-bar--sm" />
+          </div>
+          <div class="ea-sk-bar ea-sk-bar--sm ea-card-date" />
+        </div>
       </div>
 
-      <!-- Table footer: record range + paginator -->
+      <!-- Empty state -->
+      <div v-else-if="!loading && !filteredList.length" class="ea-empty">
+        <div class="ea-empty-graphic">
+          <svg width="52" height="52" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="32" r="32" fill="#242424"/>
+            <circle cx="26" cy="22" r="7" fill="#DDDBD6"/>
+            <path d="M12 44c0-7.732 6.268-14 14-14h0c7.732 0 14 6.268 14 14" stroke="#DDDBD6" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <circle cx="44" cy="24" r="5" fill="#B8924D" fill-opacity="0.25" stroke="#B8924D" stroke-width="1.5"/>
+            <line x1="44" y1="21" x2="44" y2="27" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round"/>
+            <line x1="41" y1="24" x2="47" y2="24" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <template v-if="!searchQ && activeType === 'all'">
+          <p class="ea-empty-title">No {{ personLabelPlural }} yet</p>
+          <p class="ea-empty-sub">Add your first {{ personLabel.toLowerCase() }} to get started.</p>
+          <button class="ea-empty-cta" @click="openAdd">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            {{ addLabel }}
+          </button>
+        </template>
+        <template v-else-if="!searchQ && activeType !== 'all'">
+          <p class="ea-empty-title">No {{ personLabelPlural }} here</p>
+          <p class="ea-empty-sub">There are no {{ personLabelPlural.toLowerCase() }} yet.<br>{{ isContactsView ? 'Switch tabs or add one now.' : 'Add one to get started.' }}</p>
+          <button class="ea-empty-cta" @click="openAdd">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add {{ capitalize(activeType) }}
+          </button>
+        </template>
+        <template v-else>
+          <p class="ea-empty-title">No results for "{{ searchQ }}"</p>
+          <p class="ea-empty-sub">Check the spelling or try a different<br>name or phone number.</p>
+          <button class="ea-empty-cta ea-empty-cta--ghost" @click="searchQ = ''">Clear search</button>
+        </template>
+      </div>
+
+      <!-- Card list -->
+      <div v-else class="ea-list">
+        <div v-for="att in displayList" :key="att.id"
+          class="ea-card"
+          :class="[
+            `ea-card--${getKardType(att)}`,
+            { 'ea-card--pending': isCardPending(att), 'ea-card--selected': selectedIds.has(att.id) }
+          ]"
+          @click="selectedIds.size ? toggleSelect(att.id) : openDetail(att)">
+
+          <!-- Avatar with type dot -->
+          <div class="ea-card-av-wrap">
+            <div class="ea-card-avatar"
+              :style="{ background: avatarBg(att.fullName), color: avatarColor(att.fullName) }">
+              {{ initials(att.fullName) }}
+            </div>
+            <span class="ea-card-type-dot" />
+          </div>
+
+          <!-- Identity -->
+          <div class="ea-card-info">
+            <span class="ea-card-name">{{ att.fullName }}</span>
+            <span class="ea-card-meta">{{ att.phone || '—' }}</span>
+          </div>
+
+          <!-- Badges zone -->
+          <div class="ea-card-badges">
+            <!-- Type badge -->
+            <span class="ea-type-badge" :class="`ea-type-badge--${getKardType(att)}`">
+              {{ typeLabels[getKardType(att)] }}
+            </span>
+            <!-- Attendance status (invitation only) -->
+            <span v-if="getKardType(att) === 'invitation'" class="ea-card-status-badge">
+              <span class="ea-status-dot" :style="{ background: statusColor(att.attendanceStatus) }" />
+              {{ att.attendanceStatus || 'Not Confirmed' }}
+            </span>
+            <!-- Pending rendering pill -->
+            <span v-if="isCardPending(att)" class="ea-pending-pill">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Rendering
+            </span>
+            <!-- Groups / label chips -->
+            <span v-for="lbl in attLabels(att)" :key="lbl.id" class="ea-label-chip"
+              :style="{ background: labelBg(lbl), color: labelFg(lbl) }">
+              {{ lbl.name }}
+            </span>
+          </div>
+
+          <!-- Date -->
+          <span class="ea-card-date">{{ formatDate(att.createdAt) }}</span>
+
+          <!-- Row action buttons (shown on hover or when pending) -->
+          <div class="ea-card-actions" @click.stop>
+            <button v-if="isCardPending(att)" class="ea-row-btn ea-row-btn--refresh"
+              :class="{ 'ea-row-btn--spinning': loading }"
+              title="Refresh — card is still rendering"
+              @click="loadInitial">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            </button>
+            <button class="ea-row-btn ea-row-btn--edit" title="Edit attendee"
+              @click="openEdit(att)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer: record range + paginator -->
       <div class="ea-table-footer">
         <span class="ea-range-label">
           {{ filteredList.length ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filteredList.length)}` : '0' }}
@@ -446,19 +508,142 @@
     <Teleport to="body">
       <Transition name="ea-fade">
         <div v-if="showModal" class="ea-overlay ea-overlay--center" @click.self="closeModal">
-          <Transition name="ea-scale">
+          <Transition name="ea-sheet">
             <div class="ea-modal" v-if="showModal">
               <div class="ea-modal-header">
-                <h3 class="ea-modal-title">{{ editingAtt ? 'Edit Attendee' : 'Add Attendee' }}</h3>
-                <button class="ea-modal-close" @click="closeModal">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
+                <div class="ea-modal-header-left">
+                  <h3 class="ea-modal-title">
+                    {{ phonePickerMode ? 'From Contacts' : editingAtt ? `Edit ${personLabel}` : addLabel }}
+                  </h3>
+                  <span v-if="phonePickerMode" class="ea-modal-sub">
+                    {{ phonePickerContacts.filter(c => c.include).length }} contact{{ phonePickerContacts.filter(c => c.include).length !== 1 ? 's' : '' }} selected
+                  </span>
+                </div>
+                <div class="ea-modal-header-right">
+                  <!-- From Contacts button — always shown when adding, opens native picker on mobile -->
+                  <button v-if="!editingAtt && !phonePickerMode"
+                    type="button" class="ea-phonebook-btn" @click="openPhonePicker">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    From Contacts
+                  </button>
+                  <!-- Back button when reviewing picked contacts -->
+                  <button v-if="phonePickerMode" type="button" class="ea-phonebook-back-btn" @click="exitPhonePickerMode">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    Back
+                  </button>
+                  <button class="ea-modal-close" @click="closeModal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5" stroke-linecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
 
-              <form @submit.prevent="submitForm" class="ea-form">
+              <form @submit.prevent="phonePickerMode ? submitPhonePicker() : submitForm()" class="ea-form">
+
+                <!-- ── "Open on mobile" hint when Contact Picker API not available ── -->
+                <div v-if="phonePickerUnsupported" class="ea-pb-unsupported">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+                  </svg>
+                  <p class="ea-pb-unsupported-text">Open this page on your phone to pick contacts directly from your phonebook.</p>
+                  <button type="button" class="ea-pb-unsupported-dismiss" @click="phonePickerUnsupported = false">Got it</button>
+                </div>
+
+                <!-- ── Phone-book batch review ── -->
+                <template v-if="phonePickerMode">
+                  <div class="ea-pb-list">
+                    <div v-for="(c, i) in phonePickerContacts" :key="i"
+                      class="ea-pb-row" :class="{ 'ea-pb-row--excluded': !c.include }">
+                      <div class="ea-pb-avatar">{{ c.name.charAt(0).toUpperCase() }}</div>
+                      <div class="ea-pb-info">
+                        <span class="ea-pb-name">{{ c.name }}</span>
+                        <span class="ea-pb-phone">{{ c.phone || 'No phone' }}</span>
+                      </div>
+                      <button type="button" class="ea-pb-toggle"
+                        :class="{ 'ea-pb-toggle--off': !c.include }"
+                        @click="c.include = !c.include">
+                        <svg v-if="c.include" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Type selector (only on "all" tab) -->
+                  <div class="ea-field" v-if="activeType === 'all'">
+                    <label class="ea-label">Type</label>
+                    <div class="ea-type-row">
+                      <button v-for="t in ['invitation', 'contribution', 'contact']" :key="t"
+                        type="button" class="ea-type-opt" :class="{ 'ea-type-opt--active': form.kardType === t }"
+                        @click="form.kardType = t">{{ capitalize(t) }}</button>
+                    </div>
+                  </div>
+
+                  <!-- Card template (not for contact) -->
+                  <div class="ea-field" v-if="form.kardType !== 'contact'">
+                    <label class="ea-label">Card Template <span class="ea-required">*</span></label>
+                    <div v-if="fetchingTemplates" class="ea-tpl-state">
+                      <svg class="ea-tpl-spin" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="#B8924D" stroke-width="2.5" stroke-linecap="round">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                      </svg>
+                      Loading templates…
+                    </div>
+                    <div v-else-if="!cardTemplates.length" class="ea-tpl-empty">
+                      No {{ form.kardType }} templates yet. Create one in <strong>Cards</strong> first.
+                    </div>
+                    <div v-else class="ea-tpl-grid">
+                      <button v-for="tpl in cardTemplates" :key="tpl.id" type="button"
+                        class="ea-tpl-opt" :class="{ 'ea-tpl-opt--active': form.templateCardId === tpl.id }"
+                        @click="form.templateCardId = tpl.id">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                          <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/>
+                        </svg>
+                        <span>{{ tpl.name }}</span>
+                        <svg v-if="form.templateCardId === tpl.id" class="ea-tpl-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <span v-if="formErr.templateCardId" class="ea-field-error">{{ formErr.templateCardId }}</span>
+                  </div>
+
+                  <!-- Groups -->
+                  <div class="ea-field" v-if="eventLabels.length">
+                    <label class="ea-label">Groups</label>
+                    <div class="ea-label-row">
+                      <button v-for="lbl in eventLabels" :key="lbl.id" type="button"
+                        class="ea-label-toggle"
+                        :style="{ borderColor: labelFg(lbl), color: form.labelIds.includes(lbl.id) ? labelFg(lbl) : '#888', background: form.labelIds.includes(lbl.id) ? labelBg(lbl) : 'transparent' }"
+                        @click="toggleLabel(lbl.id)">
+                        {{ lbl.name }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="ea-form-actions">
+                    <button type="button" class="ea-btn ea-btn--ghost" @click="closeModal">Cancel</button>
+                    <button type="submit" class="ea-btn ea-btn--primary" :disabled="submitting || !phonePickerContacts.filter(c=>c.include).length">
+                      {{ submitting ? 'Adding…' : `Add ${phonePickerContacts.filter(c=>c.include).length} Contact${phonePickerContacts.filter(c=>c.include).length !== 1 ? 's' : ''}` }}
+                    </button>
+                  </div>
+                </template>
+
+                <!-- ── Single attendee form ── -->
+                <template v-else>
+
                 <!-- Name -->
                 <div class="ea-field">
                   <label class="ea-label">Full Name <span class="ea-required">*</span></label>
@@ -507,8 +692,8 @@
                   </div>
                 </div>
 
-                <!-- Type -->
-                <div class="ea-field">
+                <!-- Type: selector only when on "all" tab or editing an existing attendee -->
+                <div class="ea-field" v-if="editingAtt || activeType === 'all'">
                   <label class="ea-label">Attendee Type</label>
                   <div class="ea-type-row">
                     <button v-for="t in ['invitation', 'contribution', 'contact']" :key="t"
@@ -599,9 +784,11 @@
                   <button v-if="editingAtt" type="button" class="ea-btn ea-btn--danger"
                     @click="deleteAttendee" :disabled="submitting">Delete</button>
                   <button type="submit" class="ea-btn ea-btn--primary" :disabled="submitting">
-                    {{ submitting ? 'Saving…' : editingAtt ? 'Save Changes' : 'Add Attendee' }}
+                    {{ submitting ? 'Saving…' : editingAtt ? 'Save Changes' : addLabel }}
                   </button>
                 </div>
+
+                </template> <!-- end v-else single form -->
               </form>
             </div>
           </Transition>
@@ -618,15 +805,15 @@
           <Transition name="ea-scale">
             <div class="ea-modal ea-imp-modal" v-if="importPhase === 1">
               <div class="ea-modal-header">
-                <h3 class="ea-modal-title">Import Attendees</h3>
+                <h3 class="ea-modal-title">Import {{ personLabelPlural }}</h3>
                 <button class="ea-modal-close" @click="closeImport">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
 
               <div class="ea-imp-body">
-                <!-- Type -->
-                <div class="ea-field">
+                <!-- Type: selector only on "all" tab; locked to current tab otherwise -->
+                <div class="ea-field" v-if="activeType === 'all'">
                   <label class="ea-label">Attendee Type <span class="ea-required">*</span></label>
                   <div class="ea-type-row">
                     <button v-for="t in ['invitation','contribution','contact']" :key="t"
@@ -1351,6 +1538,19 @@ const eventLabels = localLabels  // alias so existing code still works
 
 // Label filter (table row filter)
 const filterLabelId = ref(null)
+const filterCardId  = ref(null)
+
+// Collapsible search
+const searchOpen    = ref(false)
+const searchInputRef = ref(null)
+function openSearch() {
+  searchOpen.value = true
+  nextTick(() => searchInputRef.value?.focus())
+}
+function closeSearch() {
+  searchOpen.value = false
+  searchQ.value = ''
+}
 
 // Label color helpers — Flutter stores colorValue as 0xFFRRGGBB int
 // Web must write the same integer so Flutter's `map['colorValue'] as int` never sees a String.
@@ -1406,7 +1606,10 @@ const selectedIds = reactive(new Set())
 
 // ── Search & Filter ───────────────────────────────────────────────────────────
 const searchQ = ref('')
-const activeType = ref('all')
+const activeType = ref(route.name === 'EventContacts' ? 'contact' : 'invitation')
+watch(() => route.name, name => {
+  activeType.value = name === 'EventContacts' ? 'contact' : 'invitation'
+})
 const sortKey = ref('date')
 const sortDir = ref('desc')
 
@@ -1419,12 +1622,34 @@ function toggleSort(key) {
   }
 }
 
-const typeFilters = [
-  { val: 'all', label: 'All' },
-  { val: 'invitation', label: 'Invitation' },
-  { val: 'contribution', label: 'Contribution' },
-  { val: 'contact', label: 'Contact' },
-]
+const isContactsView = computed(() => route.name === 'EventContacts')
+
+const personLabel = computed(() => {
+  if (!isContactsView.value) return 'Invitee'
+  if (activeType.value === 'contribution') return 'Contributor'
+  return 'Contact'
+})
+const personLabelPlural = computed(() => {
+  if (!isContactsView.value) return 'Invitees'
+  if (activeType.value === 'contribution') return 'Contributors'
+  return 'Contacts'
+})
+const addLabel = computed(() => `Add ${personLabel.value}`)
+
+const typeFilters = computed(() => {
+  if (isContactsView.value) return [
+    { val: 'contact', label: 'Contacts' },
+    { val: 'contribution', label: 'Contribution Cards' },
+  ]
+  return []
+})
+
+const PURPOSE_LABELS = {
+  invitation:    'Invitation',
+  contribution:  'Contribution',
+  save_the_date: 'Save the Date',
+  contact:       'Contact',
+}
 
 const typeLabels = { invitation: 'Invitation', contribution: 'Contribution', contact: 'Contact' }
 
@@ -1435,6 +1660,9 @@ const filteredList = computed(() => {
   }
   if (filterLabelId.value) {
     list = list.filter(a => (a.labelIds ?? []).includes(filterLabelId.value))
+  }
+  if (filterCardId.value) {
+    list = list.filter(a => Object.values(a.cards ?? {}).some(v => v?.templateCardId === filterCardId.value))
   }
   const q = searchQ.value.trim().toLowerCase()
   if (q) {
@@ -1499,25 +1727,41 @@ function toggleSelect(id) {
   else selectedIds.add(id)
 }
 
-watch([searchQ, activeType, sortKey, sortDir, filterLabelId], () => {
+watch([searchQ, activeType, sortKey, sortDir, filterLabelId, filterCardId], () => {
   currentPage.value = 1
   selectedIds.clear()
 })
-
-// ── Type dropdown ─────────────────────────────────────────────────────────────
-const typeDropOpen  = ref(false)
-const typeSelectRef = ref(null)
-
-const activeTypeLabel = computed(() => typeFilters.find(f => f.val === activeType.value)?.label ?? 'All')
-const activeTypeCount = computed(() => activeType.value === 'all' ? attendees.value.length : (typeCount.value?.[activeType.value] ?? 0))
 
 // ── Label dropdown ────────────────────────────────────────────────────────────
 const labelDropOpen  = ref(false)
 const labelSelectRef = ref(null)
 
+// ── Card filter dropdown ──────────────────────────────────────────────────────
+const cardDropOpen   = ref(false)
+const cardDropRef    = ref(null)
+
+const cardDropTemplates = computed(() => {
+  if (activeType.value === 'contact') return []
+  if (activeType.value === 'all') return allTemplatesList.value
+  return allTemplatesList.value.filter(t => t.purpose === activeType.value)
+})
+
+const cardAttendeeCount = computed(() => {
+  const counts = {}
+  attendees.value.forEach(a => {
+    const type = getKardType(a)
+    if (type === 'contact') return
+    const tid = a.cards?.[type]?.templateCardId
+    if (tid) counts[tid] = (counts[tid] ?? 0) + 1
+  })
+  return counts
+})
+
+watch(activeType, () => { filterCardId.value = null })
+
 function onClickOutsideDropdowns(e) {
-  if (typeSelectRef.value && !typeSelectRef.value.contains(e.target)) typeDropOpen.value = false
   if (labelSelectRef.value && !labelSelectRef.value.contains(e.target)) labelDropOpen.value = false
+  if (cardDropRef.value && !cardDropRef.value.contains(e.target)) cardDropOpen.value = false
 }
 onMounted(() => document.addEventListener('click', onClickOutsideDropdowns, true))
 onUnmounted(() => document.removeEventListener('click', onClickOutsideDropdowns, true))
@@ -1842,14 +2086,21 @@ async function deletePayment(payment) {
 const cardTemplates = ref([])       // [{ id, name }] for the modal selector
 const fetchingTemplates = ref(false)
 const allTemplatesMap = ref({})     // { [templateId]: name } for table display
+const allTemplatesList = ref([])    // [{ id, name, purpose }] for the By-Card view
 
 async function loadAllTemplates() {
   if (!eventId.value) return
   try {
     const snap = await getDocs(collection(db, 'events', eventId.value, 'cards'))
     const map = {}
-    snap.docs.forEach(d => { map[d.id] = d.data().type })
+    const list = []
+    snap.docs.forEach(d => {
+      const data = d.data()
+      map[d.id] = data.type
+      list.push({ id: d.id, name: data.type, purpose: data.purpose })
+    })
     allTemplatesMap.value = map
+    allTemplatesList.value = list
   } catch (e) {
     console.error('Failed to load card templates', e)
   }
@@ -1883,6 +2134,92 @@ const form = ref({ name: '', phone: '', kardType: 'invitation', templateCardId: 
 const formErr = ref({ name: '', templateCardId: '' })
 const phoneObj = ref(null)   // populated by vue-tel-input @validate
 
+// ── Phone-book picker (Contact Picker API — Android Chrome / iOS Safari 14.5+) ──
+const phonePickerSupported = ref(false)
+onMounted(() => {
+  phonePickerSupported.value = 'contacts' in navigator && 'ContactsManager' in window
+})
+const phonePickerMode     = ref(false)   // batch review list
+const phonePickerContacts = ref([])      // [{ name, phone, include }]
+const phonePickerUnsupported = ref(false) // show "open on mobile" hint
+
+async function openPhonePicker() {
+  if (!phonePickerSupported.value) {
+    phonePickerUnsupported.value = true
+    return
+  }
+  phonePickerUnsupported.value = false
+  try {
+    const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true })
+    const mapped = picked
+      .filter(c => c.name?.length)
+      .map(c => ({ name: (c.name[0] || '').trim(), phone: (c.tel?.[0] || '').replace(/\s+/g, ''), include: true }))
+      .filter(c => c.name)
+    if (!mapped.length) return
+    phonePickerContacts.value = mapped
+    phonePickerMode.value = true
+  } catch { /* dismissed */ }
+}
+
+function removePickedContact(i) {
+  phonePickerContacts.value.splice(i, 1)
+  if (!phonePickerContacts.value.length) phonePickerMode.value = false
+}
+
+function exitPhonePickerMode() {
+  phonePickerMode.value = false
+  phonePickerContacts.value = []
+  phonePickerUnsupported.value = false
+}
+
+async function submitPhonePicker() {
+  const contacts = phonePickerContacts.value.filter(c => c.include && c.name)
+  if (!contacts.length) return
+  if (form.value.kardType !== 'contact' && !form.value.templateCardId) {
+    formErr.value.templateCardId = 'Select a card template'
+    return
+  }
+  submitting.value = true
+  try {
+    const attendeeList = contacts.map(c => ({
+      id:               genAttendeeId(),
+      cards:            {},
+      checkinStatus:    [],
+      createdAt:        new Date().toISOString(),
+      email:            '',
+      fullName:         c.name.toUpperCase(),
+      fullNameLower:    c.name.toLowerCase(),
+      attendanceStatus: 'Not Confirmed',
+      phone:            c.phone.replace(/^\+/, ''),
+      messages:         {},
+      messageIndexes:   [],
+      labelIds:         form.value.labelIds,
+      idComment:        'No Comment',
+    }))
+    const payload = {
+      eventId:        eventId.value,
+      attendees:      attendeeList,
+      templateCardId: form.value.kardType === 'contact' ? 'contact' : form.value.templateCardId,
+      usepng:         props.event?.usepng ?? true,
+      kardType:       form.value.kardType,
+    }
+    const res = await fetch(CREATE_ATTENDEES_URL, {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${auth.currentUser.uid}` },
+      body:    JSON.stringify(payload),
+    })
+    if (!res.ok) throw new Error(`Cloud function error: ${res.status}`)
+    const json = await res.json()
+    if (!json.status) throw new Error(json.message ?? 'Server error')
+    await loadInitial()
+    closeModal()
+  } catch (e) {
+    alert(`Could not add contacts: ${e.message}`)
+  } finally {
+    submitting.value = false
+  }
+}
+
 const addFormDuplicate = computed(() => {
   if (editingAtt.value) return null
   if (!phoneObj.value?.valid) return null
@@ -1902,12 +2239,13 @@ function validateForm() {
 }
 
 function openAdd() {
+  const type = activeType.value !== 'all' ? activeType.value : 'invitation'
   editingAtt.value = null
-  form.value = { name: '', phone: '', kardType: 'invitation', templateCardId: '', labelIds: [] }
+  form.value = { name: '', phone: '', kardType: type, templateCardId: '', labelIds: [] }
   formErr.value = { name: '', templateCardId: '' }
   phoneObj.value = null
   showModal.value = true
-  fetchTemplates('invitation')
+  fetchTemplates(type)
 }
 
 function openEdit(att) {
@@ -1938,6 +2276,9 @@ watch(() => form.value.kardType, type => {
 function closeModal() {
   showModal.value = false
   editingAtt.value = null
+  phonePickerMode.value = false
+  phonePickerContacts.value = []
+  phonePickerUnsupported.value = false
 }
 
 function toggleLabel(id) {
@@ -2144,7 +2485,7 @@ function clearSelection() { selectedIds.clear(); bulkLabelOpen.value = false }
 async function bulkDelete() {
   const ids = [...selectedIds]
   if (!ids.length) return
-  if (!confirm(`Delete ${ids.length} attendee${ids.length !== 1 ? 's' : ''}? This cannot be undone.`)) return
+  if (!confirm(`Delete ${ids.length} ${ids.length !== 1 ? personLabelPlural.value : personLabel.value}? This cannot be undone.`)) return
   bulkDeleting.value = true
   try {
     await Promise.all(ids.map(id => deleteDoc(doc(db, 'events', eventId.value, 'attendees', id))))
@@ -2181,8 +2522,9 @@ const dropOver             = ref(false)
 const fileInputRef         = ref(null)
 
 function openImport() {
+  const type = activeType.value !== 'all' ? activeType.value : 'invitation'
   importPhase.value = 1
-  importKardType.value = 'invitation'
+  importKardType.value = type
   importFileName.value = ''
   importHeaders.value = []
   importRows.value = []
@@ -2193,7 +2535,7 @@ function openImport() {
   importPreviewList.value = []
   importFileError.value = ''
   importProcessing.value = false
-  fetchTemplates('invitation')
+  fetchTemplates(type)
 }
 
 function closeImport() { importPhase.value = 0 }
@@ -2470,29 +2812,40 @@ function setImportPayment(attendeeId, amount) {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  --c-bg:     #141414;
+  --c-border: #2a2a2a;
+  --c-track:  #2a2a2a;
+  --c-muted:  #3a3a3a;
+  --c-txt:    #f0f0ec;
+  --c-txt-2:  #888;
+  --c-txt-3:  #555;
+  --c-divide: #2a2a2a;
+  --c-arrow:  #3a3a3a;
+  transition: background 300ms ease;
 }
 
 /* ── Outer panel ── */
 .ea-panel {
   display: flex;
   flex-direction: column;
-  background: #141414;
-  border: 1px solid #2a2a2a;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   border-radius: 16px;
   overflow: hidden;
+  transition: background 300ms ease, border-color 300ms ease;
 }
 
 .ea-panel-hd {
   display: flex;
   align-items: center;
   padding: 14px 20px;
-  border-bottom: 1px solid #1e1e1e;
+  border-bottom: 1px solid var(--c-border);
   gap: 10px;
 }
 .ea-panel-title {
   font-size: 19px;
   font-weight: 700;
-  color: #f0ece6;
+  color: var(--c-txt);
   margin: 0;
   letter-spacing: -0.3px;
   white-space: nowrap;
@@ -2502,33 +2855,47 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-left: auto;
 }
 
 /* ── Stat cards ── */
 .ea-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .ea-stat-card {
-  background: #191919; border: 1px solid #2a2a2a; border-radius: 12px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
   padding: 20px 20px 18px; display: flex; align-items: flex-start; gap: 16px;
+  transition: background 300ms ease, border-color 300ms ease;
 }
 
 /* ── Header search ── */
-.ea-hd-search {
-  margin-left: auto;
-  max-width: 320px;
-  min-width: 120px;
+/* ── Collapsible search ── */
+.ea-search-expanded {
+  flex: 1;
+  min-width: 160px;
+  position: relative;
+  display: flex;
+  align-items: center;
 }
+.ea-search-cancel {
+  flex-shrink: 0;
+  padding: 7px 2px; border-radius: 9px;
+  border: none; background: none;
+  font-size: 13px; font-weight: 500; color: var(--c-txt-2);
+  cursor: pointer; font-family: inherit;
+  transition: color 130ms;
+}
+.ea-search-cancel:hover { color: var(--c-txt); }
 .ea-stat-icon {
   width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
   background: rgba(201,168,76,0.08); color: #C9A84C;
   display: flex; align-items: center; justify-content: center;
 }
 .ea-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
-.ea-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
+.ea-stat-icon--blue   { background: rgba(60,168,164,0.09);  color: #3CA8A4; }
 .ea-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
 .ea-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
 .ea-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.ea-stat-lbl  { font-size: 11px; color: #777; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.6px; text-transform: uppercase; }
-.ea-stat-val  { font-size: 32px; font-weight: 700; color: #f0f0ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; letter-spacing: -0.5px; }
+.ea-stat-lbl  { font-size: 11px; color: var(--c-txt-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.6px; text-transform: uppercase; }
+.ea-stat-val  { font-size: 32px; font-weight: 700; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; letter-spacing: -0.5px; }
 
 /* ── Toolbar ── */
 .ea-toolbar {
@@ -2554,31 +2921,31 @@ function setImportPayment(attendeeId, amount) {
 .ea-search {
   width: 100%;
   padding: 9px 34px 9px 34px;
-  background: #161616;
-  border: 1px solid #242424;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   border-radius: 10px;
   font-size: 13px;
-  color: #f0ece6;
+  color: var(--c-txt);
   outline: none;
   transition: border-color 150ms;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   font-family: inherit;
 }
 .ea-search:focus { border-color: #C9A84C; }
-.ea-search::placeholder { color: #666; }
+.ea-search::placeholder { color: var(--c-txt-3); }
 .ea-search-clear {
   position: absolute;
   right: 10px;
   background: none;
   border: none;
-  color: #505050;
+  color: var(--c-txt-3);
   cursor: pointer;
   display: flex;
   align-items: center;
   padding: 3px;
   border-radius: 4px;
 }
-.ea-search-clear:hover { color: #888; }
+.ea-search-clear:hover { color: var(--c-txt-2); }
 
 .ea-toolbar-right {
   display: flex;
@@ -2600,50 +2967,50 @@ function setImportPayment(attendeeId, amount) {
   width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
 }
 .ea-label-drop-sep {
-  height: 1px; background: #242424; margin: 3px 4px;
+  height: 1px; background: var(--c-divide); margin: 3px 4px;
 }
-.ea-label-drop-manage { color: #888 !important; font-size: 12px !important; }
+.ea-label-drop-manage { color: var(--c-txt-2) !important; font-size: 12px !important; }
 .ea-label-drop-manage:hover { color: #C9A84C !important; }
 
 .ea-type-select { position: relative; flex-shrink: 0; }
 .ea-type-trigger {
   display: flex; align-items: center; gap: 7px;
   padding: 7px 12px; border-radius: 10px;
-  border: 1px solid #242424; background: #161616;
-  font-size: 12px; font-weight: 500; color: #888;
+  border: 1px solid var(--c-border); background: var(--c-muted);
+  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
   cursor: pointer; font-family: inherit;
   transition: background 140ms; white-space: nowrap;
 }
-.ea-type-trigger:hover { background: #1e1e1e; }
+.ea-type-trigger:hover { background: var(--c-bg); color: var(--c-txt); }
 .ea-type-trigger-cnt {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 18px; padding: 1px 5px;
-  background: #1e1e1e; border-radius: 10px;
-  font-size: 11px; font-weight: 600; color: #888;
+  background: var(--c-bg); border-radius: 10px;
+  font-size: 11px; font-weight: 600; color: var(--c-txt-2);
 }
 .ea-type-chevron { color: #505050; transition: transform 150ms; }
 .ea-type-chevron--open { transform: rotate(180deg); }
 .ea-type-drop {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 50;
-  background: #161616; border: 1px solid #242424; border-radius: 10px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 10px;
   padding: 4px; min-width: 170px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
 .ea-type-drop-item {
   display: flex; align-items: center; justify-content: space-between;
   width: 100%; padding: 8px 12px; border-radius: 7px;
   border: none; background: none; cursor: pointer;
-  font-size: 13px; font-weight: 500; color: #888;
+  font-size: 13px; font-weight: 500; color: var(--c-txt-2);
   font-family: inherit; transition: background 120ms, color 120ms; gap: 10px;
 }
-.ea-type-drop-item:hover { background: rgba(255,255,255,0.05); color: #f0ece6; }
-.ea-type-drop-item--active { color: #f0ece6; font-weight: 600; }
-.ea-type-drop-item--active .ea-type-drop-cnt { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.75); }
+.ea-type-drop-item:hover { background: var(--c-badge-bg, rgba(255,255,255,0.05)); color: var(--c-txt); }
+.ea-type-drop-item--active { color: var(--c-txt); font-weight: 600; background: rgba(201,168,76,0.12); }
+.ea-type-drop-item--active .ea-type-drop-cnt { background: rgba(201,168,76,0.2); color: #C9A84C; }
 .ea-type-drop-cnt {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 18px; padding: 1px 5px;
-  background: #1e1e1e; border-radius: 10px;
-  font-size: 11px; font-weight: 600; color: #888;
+  background: var(--c-bg); border-radius: 10px;
+  font-size: 11px; font-weight: 600; color: var(--c-txt-2);
 }
 
 .ea-add-btn {
@@ -2652,7 +3019,7 @@ function setImportPayment(attendeeId, amount) {
   gap: 6px;
   padding: 8px 16px;
   background: #C9A84C;
-  color: #0e0e0e;
+  color: #070707;
   border: none;
   border-radius: 10px;
   font-size: 13px;
@@ -2671,14 +3038,14 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: space-between;
   padding: 11px 16px;
-  background: #0A0A0B;
+  background: var(--c-bg);
   border-radius: 12px;
   gap: 12px;
 }
 .ea-sel-count {
   font-size: 13px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: var(--c-txt);
 }
 .ea-sel-actions { display: flex; gap: 8px; }
 .ea-sel-btn {
@@ -2701,8 +3068,8 @@ function setImportPayment(attendeeId, amount) {
 .ea-table-wrap {
   display: flex;
   flex-direction: column;
-  background: #141414;
-  border-top: 1px solid #1e1e1e;
+  background: var(--c-bg);
+  border-top: 1px solid var(--c-border);
   overflow: hidden;
 }
 .ea-table-scroll {
@@ -2726,7 +3093,7 @@ function setImportPayment(attendeeId, amount) {
   width: 16px;
   height: 16px;
   border-radius: 5px;
-  border: 1.5px solid #2e2e2e;
+  border: 1.5px solid var(--c-border);
   background: transparent;
   cursor: pointer;
   display: block;
@@ -2778,13 +3145,13 @@ function setImportPayment(attendeeId, amount) {
   padding: 11px 16px;
   font-size: 11px;
   font-weight: 700;
-  color: #888;
+  color: var(--c-txt-2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   text-align: left;
   white-space: nowrap;
-  background: #161616;
-  border-bottom: 1px solid #242424;
+  background: var(--c-bg);
+  border-bottom: 1px solid var(--c-border);
   user-select: none;
   position: sticky;
   top: 0;
@@ -2807,25 +3174,31 @@ function setImportPayment(attendeeId, amount) {
 
 /* Rows */
 .ea-tr {
-  border-bottom: 1px solid #1e1e1e;
+  border-bottom: 1px solid var(--c-border);
   cursor: pointer;
   transition: background 120ms;
 }
 .ea-tr:last-child { border-bottom: none; }
-.ea-tr:hover:not(.ea-tr--skeleton) { background: #161616; }
+.ea-tr:hover:not(.ea-tr--skeleton) { background: var(--c-hover, #161616); }
 .ea-tr--skeleton { pointer-events: none; }
 .ea-tr--selected { background: #FFFBF0 !important; }
 .ea-tr--pending { box-shadow: inset 3px 0 0 #FF9F0A; }
+.ea-tr--invitation   { box-shadow: inset 2px 0 0 rgba(60, 168, 164, 0.45); }
+.ea-tr--contribution { box-shadow: inset 2px 0 0 rgba(201, 168, 76, 0.35); }
+.ea-tr--contact      { box-shadow: inset 2px 0 0 rgba(142, 142, 147, 0.22); }
+.ea-tr--pending.ea-tr--invitation,
+.ea-tr--pending.ea-tr--contribution,
+.ea-tr--pending.ea-tr--contact { box-shadow: inset 3px 0 0 #FF9F0A; }
 
 /* Cells */
 .ea-td {
   padding: 11px 16px;
   font-size: 13px;
-  color: #f0ece6;
+  color: var(--c-txt);
   vertical-align: middle;
   white-space: nowrap;
 }
-.ea-td--muted { color: #888; font-size: 12px; }
+.ea-td--muted { color: var(--c-txt-2); font-size: 12px; }
 .ea-td--right { text-align: right; }
 .ea-td--date  { font-size: 12px; }
 
@@ -2849,7 +3222,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-name-text {
   font-weight: 600;
-  color: #f0ece6;
+  color: var(--c-txt);
   white-space: nowrap;
 }
 
@@ -2873,11 +3246,11 @@ function setImportPayment(attendeeId, amount) {
   flex-shrink: 0;
 }
 .ea-type-badge--invitation {
-  background: rgba(0,122,255,0.07);
-  color: #0066CC;
-  border-color: rgba(0,122,255,0.18);
+  background: rgba(60,168,164,0.08);
+  color: #3CA8A4;
+  border-color: rgba(60,168,164,0.22);
 }
-.ea-type-badge--invitation::before { background: #007AFF; }
+.ea-type-badge--invitation::before { background: #3CA8A4; }
 
 .ea-type-badge--contribution {
   background: rgba(201,168,76,0.08);
@@ -2912,18 +3285,18 @@ function setImportPayment(attendeeId, amount) {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid #242424;
-  background: #161616;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 130ms;
-  color: #888;
+  color: var(--c-txt-2);
   flex-shrink: 0;
 }
-.ea-row-btn:hover { background: #1e1e1e; color: #f0ece6; border-color: #2e2e2e; }
-.ea-row-btn--edit:hover { color: #f0ece6; }
+.ea-row-btn:hover { background: var(--c-badge-bg, var(--c-bg)); color: var(--c-txt); border-color: var(--c-border); }
+.ea-row-btn--edit:hover { color: var(--c-txt); }
 .ea-row-btn--refresh {
   color: #FF9F0A;
   border-color: rgba(255,159,10,0.3);
@@ -2944,7 +3317,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-tpl-name {
   font-size: 12px;
-  color: #888;
+  color: var(--c-txt-2);
 }
 .ea-pending-pill {
   display: inline-flex;
@@ -2974,7 +3347,7 @@ function setImportPayment(attendeeId, amount) {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.ea-status-text { font-size: 12px; font-weight: 500; color: #3A3936; }
+.ea-status-text { font-size: 12px; font-weight: 500; color: var(--c-txt-2); }
 
 /* Labels */
 .ea-label-list {
@@ -2996,7 +3369,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-sk-circle {
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: linear-gradient(90deg, #F4F4F6 25%, #E8E8E6 50%, #F4F4F6 75%);
+  background: var(--c-track);
   background-size: 200% 100%;
   animation: ea-shimmer 1.3s infinite;
   flex-shrink: 0;
@@ -3004,7 +3377,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-sk-bar {
   height: 9px;
   border-radius: 5px;
-  background: linear-gradient(90deg, #F4F4F6 25%, #E8E8E6 50%, #F4F4F6 75%);
+  background: var(--c-track);
   background-size: 200% 100%;
   animation: ea-shimmer 1.3s infinite;
 }
@@ -3023,15 +3396,15 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-top: 1px solid #242424;
-  background: #161616;
+  border-top: 1px solid var(--c-divide);
+  background: var(--c-bg);
   gap: 12px;
   flex-wrap: wrap;
   flex-shrink: 0;
 }
 .ea-range-label {
   font-size: 12px;
-  color: #888;
+  color: var(--c-txt-2);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -3045,12 +3418,12 @@ function setImportPayment(attendeeId, amount) {
   min-width: 32px;
   height: 32px;
   padding: 0 6px;
-  border: 1px solid #242424;
+  border: 1px solid var(--c-border);
   border-radius: 8px;
-  background: #161616;
+  background: var(--c-bg);
   font-size: 13px;
   font-weight: 500;
-  color: #888;
+  color: var(--c-txt-2);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -3059,18 +3432,18 @@ function setImportPayment(attendeeId, amount) {
   font-family: inherit;
 }
 .ea-page-btn:hover:not(:disabled):not(.ea-page-btn--active) {
-  background: #1e1e1e;
-  border-color: #2e2e2e;
-  color: #f0ece6;
+  background: var(--c-badge-bg, var(--c-bg));
+  border-color: var(--c-border);
+  color: var(--c-txt);
 }
 .ea-page-btn--active {
-  background: #0A0A0B;
-  border-color: #f0ece6;
-  color: #FFFFFF;
+  background: var(--c-bg);
+  border-color: var(--c-txt);
+  color: var(--c-txt);
   font-weight: 600;
   cursor: default;
 }
-.ea-page-btn--nav { color: #888; }
+.ea-page-btn--nav { color: var(--c-txt-2); }
 .ea-page-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
@@ -3082,7 +3455,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  color: #505050;
+  color: var(--c-txt-3);
   letter-spacing: 1px;
 }
 
@@ -3102,12 +3475,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-empty-title {
   font-size: 15px;
   font-weight: 700;
-  color: #f0ece6;
+  color: var(--c-txt);
   margin: 0;
 }
 .ea-empty-sub {
   font-size: 13px;
-  color: #888;
+  color: var(--c-txt-2);
   margin: 0 0 14px;
   line-height: 1.5;
 }
@@ -3116,8 +3489,8 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 9px 18px;
-  background: #0A0A0B;
-  color: #FFFFFF;
+  background: var(--c-bg);
+  color: var(--c-txt);
   border: none;
   border-radius: 10px;
   font-size: 13px;
@@ -3128,8 +3501,8 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-empty-cta:hover { opacity: 0.82; }
 .ea-empty-cta--ghost {
-  background: #1e1e1e;
-  color: #888;
+  background: var(--c-bg);
+  color: var(--c-txt-2);
 }
 .ea-empty-cta--ghost:hover { opacity: 1; background: #242424; }
 
@@ -3137,9 +3510,8 @@ function setImportPayment(attendeeId, amount) {
 .ea-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.28);
+  background: var(--overlay-bg);
   z-index: 200;
-  backdrop-filter: blur(2px);
 }
 .ea-overlay--center {
   display: flex;
@@ -3147,36 +3519,163 @@ function setImportPayment(attendeeId, amount) {
   justify-content: center;
 }
 
+/* ── Modal header layout ── */
+.ea-modal-header-left { display: flex; flex-direction: column; gap: 2px; }
+.ea-modal-sub { font-size: 11px; color: #666; }
+.ea-modal-header-right { display: flex; align-items: center; gap: 8px; }
+
+/* "From Contacts" button */
+.ea-phonebook-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
+  color: #C9A84C;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 140ms, border-color 140ms;
+  white-space: nowrap;
+}
+.ea-phonebook-btn:hover { background: rgba(201,168,76,0.08); border-color: rgba(201,168,76,0.3); }
+
+/* "Back" button in picker mode */
+.ea-phonebook-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: transparent;
+  color: var(--c-txt-2);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 140ms, color 140ms;
+}
+.ea-phonebook-back-btn:hover { background: #222; color: var(--c-txt); }
+
+/* ── "Open on mobile" unsupported hint ── */
+.ea-pb-unsupported {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px;
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  background: var(--c-bg);
+  text-align: center;
+  color: #666;
+}
+.ea-pb-unsupported svg { color: #444; }
+.ea-pb-unsupported-text { font-size: 13px; color: var(--c-txt-2); margin: 0; line-height: 1.5; }
+.ea-pb-unsupported-dismiss {
+  font-size: 12px;
+  font-weight: 600;
+  color: #C9A84C;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-family: inherit;
+}
+
+/* ── Phone-book batch review list ── */
+.ea-pb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-track) transparent;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 4px;
+}
+.ea-pb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 120ms, opacity 120ms;
+}
+.ea-pb-row:hover { background: var(--c-bg); }
+.ea-pb-row--excluded { opacity: 0.4; }
+.ea-pb-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(201,168,76,0.12);
+  border: 1px solid rgba(201,168,76,0.2);
+  color: #C9A84C;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ea-pb-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ea-pb-name { font-size: 13px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ea-pb-phone { font-size: 11px; color: #666; }
+.ea-pb-toggle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--c-border);
+  background: rgba(201,168,76,0.1);
+  color: #C9A84C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.ea-pb-toggle--off { background: var(--c-bg); color: var(--c-txt-3); border-color: #222; }
+
 /* ── Modal ── */
 .ea-modal {
-  background: #161616;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   border-radius: 16px;
   width: 100%;
   max-width: 440px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 8px 24px rgba(0,0,0,0.35);
   overflow: hidden;
+  transition: background 300ms ease, border-color 300ms ease;
 }
 .ea-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 22px 16px;
-  border-bottom: 1px solid #1e1e1e;
+  gap: 12px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--c-border);
 }
-.ea-modal-title { font-size: 16px; font-weight: 700; color: #f0ece6; margin: 0; }
+.ea-modal-title { font-size: 16px; font-weight: 700; color: var(--c-txt); margin: 0; }
 .ea-modal-close {
-  background: #1e1e1e;
-  border: none;
+  background: var(--c-badge-bg, #222);
+  border: 1px solid var(--c-border);
   width: 28px; height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #888;
-  transition: background 140ms;
+  color: #666;
+  transition: background 140ms, color 140ms;
 }
-.ea-modal-close:hover { background: #242424; }
+.ea-modal-close:hover { background: var(--c-border); color: var(--c-txt); }
 
 .ea-form {
   padding: 20px 22px;
@@ -3185,21 +3684,21 @@ function setImportPayment(attendeeId, amount) {
   gap: 16px;
 }
 .ea-field { display: flex; flex-direction: column; gap: 6px; }
-.ea-label { font-size: 12px; font-weight: 600; color: #888; }
+.ea-label { font-size: 12px; font-weight: 600; color: var(--c-txt-2); letter-spacing: 0.3px; }
 .ea-required { color: #FF453A; }
 
 .ea-input {
   padding: 9px 12px;
-  border: 1px solid #242424;
+  border: 1px solid var(--c-border);
   border-radius: 10px;
   font-size: 13px;
-  color: #f0ece6;
+  color: var(--c-txt);
   outline: none;
-  background: #161616;
-  transition: border-color 150ms, background 150ms;
+  background: var(--c-bg);
+  transition: border-color 150ms;
   font-family: inherit;
 }
-.ea-input:focus { border-color: #C9A84C; background: #161616; }
+.ea-input:focus { border-color: #C9A84C; }
 .ea-input--error { border-color: #FF453A; }
 .ea-field-error { font-size: 11px; color: #FF453A; }
 
@@ -3210,26 +3709,26 @@ function setImportPayment(attendeeId, amount) {
   margin: 0;
   padding: 6px 10px;
   background: rgba(255,159,10,0.07);
-  border: 1px solid rgba(255,159,10,0.25);
+  border: 1px solid rgba(255,159,10,0.2);
   border-radius: 8px;
 }
 .ea-type-opt {
   flex: 1;
   padding: 8px;
-  border: 1px solid #242424;
+  border: 1px solid var(--c-border);
   border-radius: 10px;
-  background: #161616;
+  background: var(--c-bg);
   font-size: 12px;
   font-weight: 600;
-  color: #888;
+  color: var(--c-txt-2);
   cursor: pointer;
-  transition: all 140ms;
+  transition: border-color 140ms, background 140ms, color 140ms;
   font-family: inherit;
 }
-.ea-type-opt:hover { background: #1e1e1e; }
+.ea-type-opt:hover { background: var(--c-badge-bg, var(--c-bg)); border-color: var(--c-border); color: var(--c-txt); }
 .ea-type-opt--active {
-  background: #0e0e0e;
-  border-color: rgba(10,10,11,0.15);
+  background: rgba(201,168,76,0.1);
+  border-color: rgba(201,168,76,0.35);
   color: #C9A84C;
 }
 
@@ -3239,7 +3738,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #888;
+  color: var(--c-txt-2);
   padding: 10px 0;
 }
 @keyframes ea-tpl-spin { to { transform: rotate(360deg); } }
@@ -3250,14 +3749,14 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #888;
-  background: #161616;
-  border: 1px solid #242424;
+  color: var(--c-txt-2);
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   border-radius: 10px;
   padding: 12px 14px;
   line-height: 1.4;
 }
-.ea-tpl-empty strong { color: #888; font-weight: 600; }
+.ea-tpl-empty strong { color: var(--c-txt-2); font-weight: 600; }
 
 .ea-tpl-grid {
   display: flex;
@@ -3269,20 +3768,20 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 10px;
   padding: 11px 14px;
-  border: 1px solid #242424;
+  border: 1px solid var(--c-border);
   border-radius: 10px;
-  background: #161616;
+  background: var(--c-bg);
   font-size: 13px;
   font-weight: 500;
-  color: #3A3936;
+  color: var(--c-txt-2);
   cursor: pointer;
   text-align: left;
   transition: all 140ms;
   font-family: inherit;
 }
-.ea-tpl-opt:hover { background: #1e1e1e; border-color: #2e2e2e; }
+.ea-tpl-opt:hover { background: var(--c-badge-bg, var(--c-bg)); border-color: var(--c-border); }
 .ea-tpl-opt--active {
-  background: #0e0e0e;
+  background: var(--c-badge-bg, #070707);
   border-color: rgba(184,146,77,0.5);
   color: #C9A84C;
   font-weight: 600;
@@ -3307,7 +3806,7 @@ function setImportPayment(attendeeId, amount) {
   gap: 8px;
   justify-content: flex-end;
   padding-top: 4px;
-  border-top: 1px solid #1e1e1e;
+  border-top: 1px solid var(--c-border);
 }
 .ea-btn {
   padding: 9px 18px;
@@ -3320,8 +3819,8 @@ function setImportPayment(attendeeId, amount) {
   font-family: inherit;
 }
 .ea-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.ea-btn--primary { background: rgba(240,236,230,0.10); color: #f0ece6; }
-.ea-btn--ghost   { background: #1e1e1e; color: #888; }
+.ea-btn--primary { background: rgba(201,168,76,0.12); color: #C9A84C; border: 1px solid rgba(201,168,76,0.3); }
+.ea-btn--ghost   { background: var(--c-bg); color: var(--c-txt-2); }
 .ea-btn--danger  { background: rgba(255,69,58,0.1); color: #FF453A; }
 
 /* ── Drawer ── */
@@ -3329,7 +3828,7 @@ function setImportPayment(attendeeId, amount) {
   position: fixed;
   right: 0; top: 0; bottom: 0;
   width: 360px;
-  background: #161616;
+  background: var(--c-bg);
   box-shadow: -4px 0 32px rgba(0,0,0,0.5);
   display: flex;
   flex-direction: column;
@@ -3351,20 +3850,20 @@ function setImportPayment(attendeeId, amount) {
   background: none;
   border: none;
   font-size: 13px;
-  color: #888;
+  color: var(--c-txt-2);
   cursor: pointer;
   padding: 5px 8px;
   border-radius: 8px;
   transition: all 130ms;
   font-family: inherit;
 }
-.ea-drawer-back:hover { background: #1e1e1e; color: #f0ece6; }
+.ea-drawer-back:hover { background: var(--c-bg); color: var(--c-txt); }
 .ea-drawer-edit-btn {
-  background: #1e1e1e;
+  background: var(--c-bg);
   border: none;
   font-size: 13px;
   font-weight: 600;
-  color: #888;
+  color: var(--c-txt-2);
   padding: 6px 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -3380,9 +3879,9 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   text-align: center;
   padding: 20px 24px 22px;
-  background: #161616;
-  border-top: 1px solid #1e1e1e;
-  border-bottom: 1px solid #1e1e1e;
+  background: var(--c-bg);
+  border-top: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
   gap: 4px;
 }
 .ea-drawer-avatar {
@@ -3398,13 +3897,13 @@ function setImportPayment(attendeeId, amount) {
 .ea-drawer-name {
   font-size: 17px;
   font-weight: 700;
-  color: #f0ece6;
+  color: var(--c-txt);
   margin: 0;
   letter-spacing: -0.2px;
 }
 .ea-drawer-phone {
   font-size: 13px;
-  color: #888;
+  color: var(--c-txt-2);
   margin: 0;
 }
 .ea-drawer-hero-meta {
@@ -3418,7 +3917,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-drawer-tpl-name {
   font-size: 11px;
   font-weight: 600;
-  color: #505050;
+  color: var(--c-txt-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -3428,18 +3927,18 @@ function setImportPayment(attendeeId, amount) {
   display: flex;
   gap: 8px;
   padding: 14px 18px;
-  border-bottom: 1px solid #1e1e1e;
+  border-bottom: 1px solid var(--c-border);
 }
 .ea-action-pill {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  background: #1e1e1e;
+  background: var(--c-bg);
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
-  color: #f0ece6;
+  color: var(--c-txt);
   text-decoration: none;
   transition: background 140ms;
 }
@@ -3468,7 +3967,7 @@ function setImportPayment(attendeeId, amount) {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.7px;
-  color: #505050;
+  color: var(--c-txt-3);
   margin: 0 0 10px;
 }
 .ea-label-wrap {
@@ -3488,18 +3987,18 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 6px 13px;
-  border: 1px solid #242424;
+  border: 1px solid var(--c-border);
   border-radius: 20px;
-  background: #161616;
+  background: var(--c-bg);
   font-size: 12px;
   font-weight: 600;
-  color: #888;
+  color: var(--c-txt-2);
   cursor: pointer;
   transition: all 140ms;
   font-family: inherit;
   white-space: nowrap;
 }
-.ea-status-pill:hover:not(:disabled) { background: #1e1e1e; }
+.ea-status-pill:hover:not(:disabled) { background: var(--c-bg); }
 .ea-status-pill:disabled { opacity: 0.6; cursor: wait; }
 .ea-status-pill--active { font-weight: 700; }
 
@@ -3513,15 +4012,15 @@ function setImportPayment(attendeeId, amount) {
 .ea-contrib-row { display: flex; gap: 10px; }
 .ea-contrib-card {
   flex: 1;
-  background: #161616;
-  border: 1px solid #242424;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   border-radius: 12px;
   padding: 14px 16px;
 }
 .ea-contrib-label {
   display: block;
   font-size: 11px;
-  color: #888;
+  color: var(--c-txt-2);
   font-weight: 500;
   margin-bottom: 4px;
 }
@@ -3529,7 +4028,7 @@ function setImportPayment(attendeeId, amount) {
   font-family: 'JetBrains Mono', monospace;
   font-size: 15px;
   font-weight: 700;
-  color: #f0ece6;
+  color: var(--c-txt);
 }
 .ea-contrib-val--paid { color: #30D158; }
 
@@ -3557,7 +4056,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-inline-ok:disabled { opacity: 0.5; cursor: not-allowed; }
 .ea-inline-x {
   width: 26px; height: 26px; border-radius: 6px;
-  border: 1px solid #242424; background: #1e1e1e; color: #888;
+  border: 1px solid #242424; background: var(--c-bg); color: var(--c-txt-2);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; flex-shrink: 0; transition: background 130ms;
 }
@@ -3565,7 +4064,7 @@ function setImportPayment(attendeeId, amount) {
 
 /* Progress bar */
 .ea-pledge-bar-wrap { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.ea-pledge-bar { flex: 1; height: 5px; background: #242424; border-radius: 99px; overflow: hidden; }
+.ea-pledge-bar { flex: 1; height: 5px; background: var(--c-track); border-radius: 99px; overflow: hidden; }
 .ea-pledge-bar-fill { height: 100%; background: #30D158; border-radius: 99px; transition: width 500ms ease; }
 .ea-pledge-pct { font-size: 10px; font-weight: 700; color: #30D158; white-space: nowrap; flex-shrink: 0; }
 
@@ -3582,23 +4081,23 @@ function setImportPayment(attendeeId, amount) {
 
 /* Inline add-payment form */
 .ea-pay-form {
-  margin-top: 14px; background: #161616;
-  border: 1px solid #242424; border-radius: 10px; padding: 12px;
+  margin-top: 14px; background: var(--c-bg);
+  border: 1px solid var(--c-border); border-radius: 10px; padding: 12px;
 }
 .ea-pay-form-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.ea-pay-form-label { font-size: 11px; font-weight: 700; color: #f0ece6; letter-spacing: 0.3px; text-transform: uppercase; }
+.ea-pay-form-label { font-size: 11px; font-weight: 700; color: var(--c-txt); letter-spacing: 0.3px; text-transform: uppercase; }
 .ea-pay-form-close {
   width: 22px; height: 22px; border-radius: 50%;
-  border: none; background: #242424; color: #888;
+  border: none; background: #242424; color: var(--c-txt-2);
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 .ea-pay-form-close:hover { background: #E0E0DC; }
 .ea-pay-form-row { display: flex; gap: 6px; }
 .ea-pay-inp {
   flex: 1; min-width: 0;
-  border: 1px solid #242424; border-radius: 8px;
+  border: 1px solid var(--c-border); border-radius: 8px;
   padding: 8px 12px; font-size: 13px; font-family: inherit;
-  outline: none; background: #161616; color: #f0ece6; transition: border-color 130ms, box-shadow 130ms;
+  outline: none; background: var(--c-bg); color: var(--c-txt); transition: border-color 130ms, box-shadow 130ms;
 }
 .ea-pay-inp:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(10,10,11,0.04); }
 .ea-pay-submit {
@@ -3612,12 +4111,12 @@ function setImportPayment(attendeeId, amount) {
 /* Payment history list */
 .ea-pay-history { margin-top: 14px; }
 .ea-pay-empty {
-  font-size: 12px; color: #505050; text-align: center;
+  font-size: 12px; color: var(--c-txt-3); text-align: center;
   padding: 16px 0; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0;
 }
 .ea-pay-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 0; border-bottom: 1px solid #1e1e1e;
+  padding: 10px 0; border-bottom: 1px solid var(--c-border);
 }
 .ea-pay-item:last-child { border-bottom: none; }
 .ea-pay-ico {
@@ -3627,23 +4126,23 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-pay-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .ea-pay-amt {
-  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #f0ece6; }
-.ea-pay-when { font-size: 11px; color: #888; }
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--c-txt); }
+.ea-pay-when { font-size: 11px; color: var(--c-txt-2); }
 .ea-pay-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .ea-pay-item-btn {
   width: 28px; height: 28px; border-radius: 6px;
-  border: 1px solid #242424; background: #161616; color: #888;
+  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all 130ms;
 }
-.ea-pay-item-btn:hover { background: #242424; color: #f0ece6; border-color: #D0D0CC; }
+.ea-pay-item-btn:hover { background: var(--c-badge-bg, #242424); color: var(--c-txt); border-color: var(--c-border); }
 .ea-pay-item-btn--del:hover { background: rgba(255,59,48,0.08); color: #FF453A; border-color: rgba(255,59,48,0.3); }
 .ea-pay-item-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Footer */
 .ea-drawer-added {
   font-size: 12px;
-  color: #505050;
+  color: var(--c-txt-3);
   margin: 0;
   padding: 4px 20px 0;
 }
@@ -3654,6 +4153,55 @@ function setImportPayment(attendeeId, amount) {
 
 .ea-scale-enter-active, .ea-scale-leave-active { transition: transform 220ms ease, opacity 220ms ease; }
 .ea-scale-enter-from, .ea-scale-leave-to { transform: scale(0.96); opacity: 0; }
+
+/* Desktop: scale like other modals */
+.ea-sheet-enter-active, .ea-sheet-leave-active { transition: transform 220ms ease, opacity 220ms ease; }
+.ea-sheet-enter-from, .ea-sheet-leave-to { transform: scale(0.96); opacity: 0; }
+/* Mobile: slide up from bottom */
+@media (max-width: 600px) {
+  .ea-sheet-enter-active, .ea-sheet-leave-active { transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1); opacity: 1; }
+  .ea-sheet-enter-from, .ea-sheet-leave-to { transform: translateY(100%); opacity: 1; }
+}
+
+/* ── Mobile: modal becomes a bottom sheet ── */
+@media (max-width: 600px) {
+  .ea-overlay--center { align-items: flex-end; padding: 0; }
+
+  .ea-modal {
+    max-width: 100%;
+    width: 100%;
+    border-radius: 24px 24px 0 0;
+    border-bottom: none;
+    border-left: none;
+    border-right: none;
+    max-height: 92dvh;
+    overflow-y: auto;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+  }
+
+  /* Drag handle */
+  .ea-modal::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    margin: 12px auto 0;
+  }
+
+  .ea-modal-header {
+    padding: 12px 20px 14px;
+    border-bottom-color: #222;
+  }
+  .ea-modal-title { font-size: 17px; }
+
+  .ea-form { padding: 16px 20px 32px; gap: 18px; }
+
+  .ea-pb-list { max-height: 40vh; }
+
+  .ea-phonebook-btn { padding: 7px 12px; font-size: 12px; }
+}
 
 .ea-slide-right-enter-active, .ea-slide-right-leave-active { transition: transform 260ms ease; }
 .ea-slide-right-enter-from, .ea-slide-right-leave-to { transform: translateX(100%); }
@@ -3668,7 +4216,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: stretch;
   border: 1px solid #242424;
   border-radius: 10px;
-  background: #161616;
+  background: var(--c-bg);
   box-shadow: none;
   font-family: inherit;
   transition: border-color 150ms, background 150ms;
@@ -3676,7 +4224,7 @@ function setImportPayment(attendeeId, amount) {
 }
 :deep(.ea-tel-input.vue-tel-input:focus-within) {
   border-color: #C9A84C;
-  background: #161616;
+  background: var(--c-bg);
   box-shadow: 0 0 0 3px rgba(184,146,77,0.10);
 }
 :deep(.ea-tel-input--valid.vue-tel-input) { border-color: rgba(48,209,88,0.55); }
@@ -3698,7 +4246,7 @@ function setImportPayment(attendeeId, amount) {
 }
 :deep(.ea-tel-input .vti__dropdown:hover),
 :deep(.ea-tel-input .vti__dropdown.open) {
-  background: #1e1e1e;
+  background: var(--c-bg);
 }
 
 /* Flag */
@@ -3730,7 +4278,7 @@ function setImportPayment(attendeeId, amount) {
   background: transparent;
   padding: 9px 12px;
   font-size: 13px;
-  color: #f0ece6;
+  color: var(--c-txt);
   font-family: inherit;
   border-radius: 0 10px 10px 0;
   min-width: 0;
@@ -3742,7 +4290,7 @@ function setImportPayment(attendeeId, amount) {
   border: 1px solid #242424;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.10);
-  background: #161616;
+  background: var(--c-bg);
   z-index: 9999;
   padding: 6px;
   max-height: 260px;
@@ -3762,8 +4310,8 @@ function setImportPayment(attendeeId, amount) {
   font-size: 12px;
   font-family: inherit;
   outline: none;
-  background: #161616;
-  color: #f0ece6;
+  background: var(--c-bg);
+  color: var(--c-txt);
   display: block;
 }
 :deep(.ea-tel-input .vti__search_box:focus) { border-color: #C9A84C; }
@@ -3784,15 +4332,15 @@ function setImportPayment(attendeeId, amount) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-:deep(.ea-tel-input .vti__dropdown-item:hover) { background: #1e1e1e; }
+:deep(.ea-tel-input .vti__dropdown-item:hover) { background: var(--c-bg); }
 :deep(.ea-tel-input .vti__dropdown-item.highlighted) {
-  background: #0e0e0e;
+  background: #070707;
   color: #C9A84C;
   font-weight: 600;
 }
 :deep(.ea-tel-input .vti__dropdown-item strong) {
   font-weight: 600;
-  color: #888;
+  color: var(--c-txt-2);
   font-size: 11px;
   margin-left: auto;
   flex-shrink: 0;
@@ -3808,9 +4356,9 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: #161616;
-  color: #888;
-  border: 1px solid #242424;
+  background: var(--c-bg);
+  color: var(--c-txt-2);
+  border: 1px solid var(--c-border);
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
@@ -3821,7 +4369,7 @@ function setImportPayment(attendeeId, amount) {
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .ea-import-btn:hover {
-  background: #0e0e0e;
+  background: #070707;
   border-color: rgba(10,10,11,0.15);
   color: #C9A84C;
 }
@@ -3846,7 +4394,7 @@ function setImportPayment(attendeeId, amount) {
 /* ── Type hint ── */
 .ea-imp-type-hint {
   font-size: 11px;
-  color: #888;
+  color: var(--c-txt-2);
   margin: 4px 0 0;
   line-height: 1.5;
 }
@@ -3855,7 +4403,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-dropzone {
   border: 1.5px dashed #D8D6D0;
   border-radius: 14px;
-  background: #161616;
+  background: var(--c-bg);
   transition: all 180ms;
   position: relative;
   min-height: 130px;
@@ -3865,7 +4413,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-dropzone--over {
   border-color: #C9A84C;
-  background: #0e0e0e;
+  background: #070707;
 }
 .ea-dropzone--filled {
   border-style: solid;
@@ -3892,7 +4440,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-drop-icon {
   width: 52px; height: 52px;
-  background: #1e1e1e;
+  background: var(--c-bg);
   border-radius: 14px;
   display: flex;
   align-items: center;
@@ -3913,7 +4461,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-drop-sub {
   font-size: 12px;
-  color: #888;
+  color: var(--c-txt-2);
   margin: 0;
 }
 .ea-drop-link { color: #C9A84C; font-weight: 600; }
@@ -3936,7 +4484,7 @@ function setImportPayment(attendeeId, amount) {
   text-overflow: ellipsis;
 }
 .ea-file-clear {
-  background: #1e1e1e;
+  background: var(--c-bg);
   border: none;
   width: 24px; height: 24px;
   border-radius: 50%;
@@ -3944,7 +4492,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #888;
+  color: var(--c-txt-2);
   flex-shrink: 0;
   transition: background 140ms;
 }
@@ -3968,7 +4516,7 @@ function setImportPayment(attendeeId, amount) {
   gap: 8px;
 }
 .ea-imp-back {
-  background: #1e1e1e;
+  background: var(--c-bg);
   border: none;
   width: 28px; height: 28px;
   border-radius: 8px;
@@ -3976,7 +4524,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #888;
+  color: var(--c-txt-2);
   transition: background 130ms;
 }
 .ea-imp-back:hover { background: #242424; }
@@ -3987,11 +4535,11 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  background: #1e1e1e;
+  background: var(--c-bg);
   border-radius: 20px;
   font-size: 11px;
   font-weight: 500;
-  color: #888;
+  color: var(--c-txt-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4034,7 +4582,7 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 10px;
   padding: 11px 14px;
-  background: #161616;
+  background: var(--c-bg);
   border: 1px solid #242424;
   border-radius: 12px;
 }
@@ -4060,9 +4608,9 @@ function setImportPayment(attendeeId, amount) {
   padding: 7px 10px;
   border: 1px solid #242424;
   border-radius: 8px;
-  background: #161616;
+  background: var(--c-bg);
   font-size: 12px;
-  color: #f0ece6;
+  color: var(--c-txt);
   outline: none;
   cursor: pointer;
   font-family: inherit;
@@ -4085,11 +4633,11 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: #888;
+  color: var(--c-txt-2);
 }
 .ea-map-skip {
   font-size: 11px;
-  color: #505050;
+  color: var(--c-txt-3);
   font-style: italic;
 }
 
@@ -4153,12 +4701,12 @@ function setImportPayment(attendeeId, amount) {
   justify-content: space-between;
   padding: 14px 18px;
   flex-shrink: 0;
-  border-bottom: 1px solid #1e1e1e;
+  border-bottom: 1px solid var(--c-border);
 }
 
 .ea-imp-preview-hero {
   padding: 16px 20px 12px;
-  border-bottom: 1px solid #1e1e1e;
+  border-bottom: 1px solid var(--c-border);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -4167,12 +4715,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-preview-title {
   font-size: 17px;
   font-weight: 700;
-  color: #f0ece6;
+  color: var(--c-txt);
   margin: 0;
 }
 .ea-imp-preview-sub {
   font-size: 12px;
-  color: #888;
+  color: var(--c-txt-2);
   margin: 0;
 }
 .ea-imp-preview-labels { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -4182,10 +4730,10 @@ function setImportPayment(attendeeId, amount) {
   align-items: center;
   gap: 6px;
   padding: 8px 20px;
-  background: #161616;
-  border-bottom: 1px solid #1e1e1e;
+  background: var(--c-bg);
+  border-bottom: 1px solid var(--c-border);
   font-size: 11px;
-  color: #888;
+  color: var(--c-txt-2);
   flex-shrink: 0;
 }
 .ea-imp-tpl-banner strong { color: #3A3936; }
@@ -4204,22 +4752,22 @@ function setImportPayment(attendeeId, amount) {
   align-items: flex-start;
   gap: 10px;
   padding: 11px 13px;
-  background: #161616;
+  background: var(--c-bg);
   border: 1px solid #242424;
   border-radius: 12px;
   transition: background 120ms;
 }
-.ea-imp-preview-row:hover { background: #161616; }
+.ea-imp-preview-row:hover { background: var(--c-bg); }
 .ea-imp-row-num {
   width: 24px; height: 24px;
-  background: #1e1e1e;
+  background: var(--c-bg);
   border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   font-weight: 700;
-  color: #888;
+  color: var(--c-txt-2);
   flex-shrink: 0;
 }
 .ea-imp-row-info {
@@ -4232,12 +4780,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-imp-row-name {
   font-size: 13px;
   font-weight: 600;
-  color: #f0ece6;
+  color: var(--c-txt);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ea-imp-row-phone { font-size: 11px; color: #888; }
+.ea-imp-row-phone { font-size: 11px; color: var(--c-txt-2); }
 .ea-imp-row-amounts {
   display: flex;
   flex-wrap: wrap;
@@ -4340,9 +4888,9 @@ function setImportPayment(attendeeId, amount) {
   text-transform: uppercase;
 }
 .ea-imp-dup-compare-name  { color: #c8d0df; font-weight: 600; }
-.ea-imp-dup-compare-phone { color: #888; }
+.ea-imp-dup-compare-phone { color: var(--c-txt-2); }
 .ea-imp-dup-compare-sep   { color: #3a4358; }
-.ea-imp-dup-compare-status { font-weight: 600; color: #888; }
+.ea-imp-dup-compare-status { font-weight: 600; color: var(--c-txt-2); }
 .ea-imp-dup-status--confirmed { color: #30D158; }
 .ea-imp-dup-status--declined  { color: #FF453A; }
 
@@ -4377,7 +4925,7 @@ function setImportPayment(attendeeId, amount) {
 /* ── Footer: run button ── */
 .ea-imp-drawer-footer {
   padding: 14px 16px;
-  border-top: 1px solid #1e1e1e;
+  border-top: 1px solid var(--c-border);
   flex-shrink: 0;
 }
 .ea-imp-run-btn {
@@ -4449,15 +4997,15 @@ function setImportPayment(attendeeId, amount) {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: #f0ece6;
+  color: var(--c-txt);
   cursor: pointer;
   font-family: inherit;
   text-align: left;
   transition: background 120ms;
 }
-.ea-bld-item:hover { background: #1e1e1e; }
+.ea-bld-item:hover { background: var(--c-bg); }
 .ea-bld-item--clear { color: #8E8E93; font-size: 12px; }
-.ea-bld-divider { height: 1px; background: #F0EFEC; margin: 4px 0; }
+.ea-bld-divider { height: 1px; background: var(--c-divide); margin: 4px 0; }
 .ea-bld-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 
 /* ── Label Manager modal ── */
@@ -4472,17 +5020,17 @@ function setImportPayment(attendeeId, amount) {
   border-radius: 9px;
   transition: background 120ms;
 }
-.ea-lm-row:hover { background: #1e1e1e; }
+.ea-lm-row:hover { background: var(--c-bg); }
 .ea-lm-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
-.ea-lm-name { flex: 1; font-size: 13px; font-weight: 500; color: #f0ece6; }
+.ea-lm-name { flex: 1; font-size: 13px; font-weight: 500; color: var(--c-txt); }
 .ea-lm-action {
   width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center;
   border: none; background: transparent;
-  border-radius: 7px; cursor: pointer; color: #888;
+  border-radius: 7px; cursor: pointer; color: var(--c-txt-2);
   transition: all 120ms;
 }
-.ea-lm-action:hover { background: #1e1e1e; color: #f0ece6; }
+.ea-lm-action:hover { background: var(--c-bg); color: var(--c-txt); }
 .ea-lm-action--del:hover { background: rgba(255,69,58,0.08); color: #FF453A; }
 .ea-lm-edit-row {
   display: flex;
@@ -4508,13 +5056,13 @@ function setImportPayment(attendeeId, amount) {
 .ea-lm-edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .ea-lm-edit-cancel {
   padding: 5px 12px; border: 1px solid #242424; border-radius: 7px;
-  background: #161616; font-size: 12px; font-weight: 500; color: #888;
+  background: var(--c-bg); font-size: 12px; font-weight: 500; color: var(--c-txt-2);
   cursor: pointer; font-family: inherit;
 }
 .ea-lm-input {
   width: 100%; padding: 8px 11px;
   border: 1px solid #242424; border-radius: 8px;
-  font-size: 13px; color: #f0ece6; outline: none;
+  font-size: 13px; color: var(--c-txt); outline: none;
   font-family: inherit; box-sizing: border-box;
   transition: border-color 150ms;
 }
@@ -4527,12 +5075,191 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-lm-save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .ea-lm-save-btn:not(:disabled):hover { opacity: 0.82; }
-.ea-lm-empty { font-size: 13px; color: #888; text-align: center; padding: 12px 0 8px; }
-.ea-lm-divider { height: 1px; background: #F0EFEC; margin: 14px 0; }
-.ea-lm-section-hd { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.ea-lm-empty { font-size: 13px; color: var(--c-txt-2); text-align: center; padding: 12px 0 8px; }
+.ea-lm-divider { height: 1px; background: var(--c-divide); margin: 14px 0; }
+.ea-lm-section-hd { font-size: 11px; font-weight: 700; color: var(--c-txt-2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
 .ea-lm-create { display: flex; flex-direction: column; gap: 10px; }
 .ea-lm-create-row { display: flex; align-items: center; gap: 8px; }
 .ea-lm-preview-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Card list ── */
+/* ea-list-sort-bar removed — controls merged into ea-tabs-row */
+.ea-tabs-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--c-divide);
+  flex-shrink: 0;
+}
+.ea-sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--c-divide);
+}
+.ea-list-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-txt-3);
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  transition: color 130ms, background 130ms, border-color 130ms;
+}
+.ea-list-sort-btn:hover { color: var(--c-txt-2); background: var(--c-bg); border-color: #242424; }
+.ea-list-sort-btn--active { color: #C9A84C; border-color: rgba(201,168,76,0.25); background: rgba(201,168,76,0.05); }
+.ea-list-select-all {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #505050;
+  cursor: pointer;
+  user-select: none;
+}
+.ea-list-select-all:hover { color: var(--c-txt-2); }
+
+.ea-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: var(--c-bg);
+}
+
+/* ── Individual card ── */
+.ea-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  transition: background 150ms, border-color 150ms, box-shadow 150ms;
+  cursor: pointer;
+  position: relative;
+}
+.ea-card:hover:not(.ea-card--sk) { background: var(--c-hover, var(--c-bg)); border-color: var(--c-border); box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+.ea-card--sk { pointer-events: none; }
+.ea-card--selected { background: rgba(201,168,76,0.06); border-color: rgba(201,168,76,0.25); }
+
+/* Left border stripe per type */
+.ea-card--invitation   { box-shadow: inset 3px 0 0 rgba(60,168,164,0.55); }
+.ea-card--contribution { box-shadow: inset 3px 0 0 rgba(201,168,76,0.50); }
+.ea-card--contact      { box-shadow: inset 3px 0 0 rgba(142,142,147,0.30); }
+.ea-card--pending      { box-shadow: inset 3px 0 0 #FF9F0A !important; }
+
+/* Combine selected + type stripe */
+.ea-card--selected.ea-card--invitation   { box-shadow: inset 3px 0 0 rgba(60,168,164,0.55), 0 0 0 1px rgba(201,168,76,0.25) inset; }
+.ea-card--selected.ea-card--contribution { box-shadow: inset 3px 0 0 rgba(201,168,76,0.50), 0 0 0 1px rgba(201,168,76,0.25) inset; }
+.ea-card--selected.ea-card--contact      { box-shadow: inset 3px 0 0 rgba(142,142,147,0.30), 0 0 0 1px rgba(201,168,76,0.25) inset; }
+.ea-card--selected.ea-card--pending      { box-shadow: inset 3px 0 0 #FF9F0A, 0 0 0 1px rgba(201,168,76,0.25) inset !important; }
+
+/* Avatar */
+.ea-card-av-wrap { position: relative; flex-shrink: 0; }
+.ea-card-avatar {
+  width: 40px; height: 40px; border-radius: 11px;
+  font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.ea-card-type-dot {
+  position: absolute; bottom: -2px; right: -2px;
+  width: 11px; height: 11px; border-radius: 50%;
+  border: 2.5px solid var(--c-bg);
+}
+.ea-card--invitation   .ea-card-type-dot { background: rgba(60,168,164,0.85); }
+.ea-card--contribution .ea-card-type-dot { background: #C9A84C; }
+.ea-card--contact      .ea-card-type-dot { background: #555; }
+.ea-card--pending      .ea-card-type-dot { background: #FF9F0A; }
+
+/* Skeleton avatar tweak */
+.ea-sk-circle--card { width: 40px; height: 40px; border-radius: 11px; }
+
+/* Identity */
+.ea-card-info {
+  display: flex; flex-direction: column; gap: 3px;
+  flex: 0 0 200px; min-width: 0;
+}
+.ea-card-name {
+  font-size: 13px; font-weight: 600; color: var(--c-txt);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ea-card-meta { font-size: 11px; color: var(--c-txt-3); }
+
+/* Badges zone */
+.ea-card-badges {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Attendance status inline badge */
+.ea-card-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--c-txt-2);
+  white-space: nowrap;
+}
+
+/* Date */
+.ea-card-date {
+  font-size: 11px; color: var(--c-muted);
+  white-space: nowrap; flex-shrink: 0; text-align: right;
+}
+
+/* Row action buttons: hidden until hover, always visible when pending */
+.ea-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 140ms;
+}
+.ea-card:hover .ea-card-actions { opacity: 1; }
+.ea-card--pending .ea-card-actions { opacity: 1; }
+
+/* Mobile responsive — CSS Grid */
+@media (max-width: 640px) {
+  .ea-list { padding: 8px 10px; gap: 5px; }
+  .ea-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "avatar info    date"
+      "avatar badges  badges";
+    align-items: start;
+    gap: 3px 12px;
+    padding: 12px 14px;
+  }
+  .ea-card-av-wrap  { grid-area: avatar; align-self: start; padding-top: 2px; }
+  .ea-card-info     { grid-area: info; flex: unset; }
+  .ea-card-date     { grid-area: date; align-self: start; padding-top: 2px; }
+  .ea-card-badges   { grid-area: badges; justify-content: flex-start; flex: unset; margin-top: 6px; }
+  .ea-card-actions  { display: none; }
+}
+@media (max-width: 400px) {
+  .ea-card-date { display: none; }
+}
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
@@ -4540,22 +5267,95 @@ function setImportPayment(attendeeId, amount) {
 }
 @media (max-width: 767px) {
   .ea-root { padding: 12px 14px 20px; gap: 12px; }
-  .ea-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  /* Toolbar restructure: acts row first (visible), chips row second (scrollable) */
-  .ea-toolbar { gap: 8px; flex-wrap: wrap; }
-  .ea-toolbar-right {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    width: 100%;
-  }
-  .ea-tb-acts { width: 100%; gap: 8px; }
-  .ea-import-btn { flex: 1; justify-content: center; }
-  .ea-add-btn { flex: 1; justify-content: center; padding: 10px 16px; font-size: 14px; }
+  .ea-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; min-width: 0; }
+
+  /* Panel header: wrap so search doesn't crush title+actions */
+  .ea-panel-hd { flex-wrap: wrap; padding: 10px 14px; gap: 8px; }
+  .ea-panel-title { flex: 1; font-size: 17px; }
+  .ea-panel-acts { order: 2; }
+  .ea-hd-search { flex: 1 1 100%; order: 3; max-width: none; margin-left: 0; }
+
+  /* Stat cards: min-width:0 lets grid cells shrink; overflow:hidden clips long labels */
+  .ea-stat-card { padding: 14px 14px 12px; gap: 12px; min-width: 0; overflow: hidden; }
+  .ea-stat-icon { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
+  .ea-stat-val { font-size: 24px; }
+  .ea-stat-body { gap: 6px; min-width: 0; }
+
+  /* Toolbar stays horizontal at medium — just tighten it slightly */
+  .ea-toolbar { gap: 6px; }
+  .ea-add-btn { padding: 8px 14px; font-size: 13px; }
 }
 @media (max-width: 400px) {
+  /* Only stack toolbar on genuinely small screens */
+  .ea-toolbar-right { flex-direction: column; align-items: stretch; gap: 6px; }
+  .ea-tb-acts { width: 100%; gap: 6px; }
+  .ea-import-btn { flex: 1; justify-content: center; }
+  .ea-add-btn { flex: 1; justify-content: center; padding: 10px 16px; font-size: 14px; }
   .ea-btn-label { display: none; }
-  .ea-import-btn { flex: 0 0 auto; padding: 10px 14px; }
-  .ea-add-btn { flex: 1; }
+  .ea-stat-val { font-size: 20px; }
+  .ea-stat-card { padding: 12px 12px 10px; gap: 10px; }
+}
+
+/* ── Type tabs ── */
+.ea-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 20px;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.ea-tabs::-webkit-scrollbar { display: none; }
+.ea-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-txt-2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 130ms, border-color 130ms;
+  white-space: nowrap;
+}
+.ea-tab:hover { color: var(--c-txt); }
+.ea-tab--active {
+  color: var(--c-txt);
+  border-bottom-color: #C9A84C;
+}
+.ea-tab-cnt {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--c-badge-bg, #242424);
+  color: var(--c-txt-2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+.ea-tab--active .ea-tab-cnt {
+  background: rgba(201, 168, 76, 0.12);
+  color: #C9A84C;
+}
+@media (max-width: 640px) {
+  /* Row wraps: tabs on top, sort controls drop below */
+  .ea-tabs-row { flex-wrap: wrap; }
+  .ea-tabs { padding: 0 12px; gap: 0; width: 100%; flex: unset; border-bottom: 1px solid var(--c-border); }
+  .ea-tab { padding: 10px 10px; font-size: 12px; flex-shrink: 0; }
+  .ea-sort-controls {
+    border-left: none;
+    border-top: 1px solid var(--c-border);
+    padding: 7px 14px;
+    width: 100%;
+    gap: 6px;
+  }
+  .ea-list-select-all { margin-left: auto; }
 }
 </style>

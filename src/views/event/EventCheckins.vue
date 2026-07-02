@@ -12,7 +12,7 @@
         </div>
         <div class="ec-stat-body">
           <span class="ec-stat-lbl">Total</span>
-          <span class="ec-stat-n">{{ checkinStats.total }}</span>
+          <span class="ec-stat-val">{{ checkinStats.total }}</span>
         </div>
       </div>
 
@@ -26,7 +26,7 @@
         </div>
         <div class="ec-stat-body">
           <span class="ec-stat-lbl">Checked In</span>
-          <span class="ec-stat-n" style="color:#30D158">{{ checkinStats.checked }}</span>
+          <span class="ec-stat-val">{{ checkinStats.checked }}</span>
         </div>
       </div>
 
@@ -40,13 +40,13 @@
         </div>
         <div class="ec-stat-body">
           <span class="ec-stat-lbl">Partial</span>
-          <span class="ec-stat-n" style="color:#FF9F0A">{{ checkinStats.partial }}</span>
+          <span class="ec-stat-val">{{ checkinStats.partial }}</span>
         </div>
       </div>
 
       <div class="ec-stat-card ec-stat-card--link" :class="{ 'ec-stat-card--active': statusFilter === 'none' }"
         @click="statusFilter = statusFilter === 'none' ? 'all' : 'none'; currentPage = 1">
-        <div class="ec-stat-icon ec-stat-icon--muted">
+        <div class="ec-stat-icon ec-stat-icon--red">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
             <line x1="8" y1="12" x2="16" y2="12"/>
@@ -54,20 +54,7 @@
         </div>
         <div class="ec-stat-body">
           <span class="ec-stat-lbl">Not Checked</span>
-          <span class="ec-stat-n" style="color:#6B6B72">{{ checkinStats.none }}</span>
-        </div>
-      </div>
-
-      <div class="ec-stat-card">
-        <div class="ec-stat-icon ec-stat-icon--gold">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-            <line x1="6" y1="20" x2="6" y2="14"/>
-          </svg>
-        </div>
-        <div class="ec-stat-body">
-          <span class="ec-stat-lbl">Check-in Rate</span>
-          <span class="ec-stat-n ec-stat-n--gold">{{ checkinStats.total ? Math.round((checkinStats.checked / checkinStats.total) * 100) : 0 }}%</span>
+          <span class="ec-stat-val">{{ checkinStats.none }}</span>
         </div>
       </div>
     </div>
@@ -78,160 +65,172 @@
       <div class="ec-panel-hd">
         <h2 class="ec-panel-title">Check-ins</h2>
 
-        <!-- Search -->
-        <div class="ec-search-wrap">
-          <svg class="ec-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-            stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input v-model="searchQ" class="ec-search" placeholder="Search by name or phone…" />
-          <button v-if="searchQ" class="ec-search-clear" @click="searchQ = ''">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5" stroke-linecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-
         <div class="ec-panel-acts">
-          <!-- Status filter chips -->
-          <div class="ec-filter-chips">
-            <button v-for="f in STATUS_FILTERS" :key="f.val"
-              class="ec-chip" :class="{ 'ec-chip--active': statusFilter === f.val }"
-              @click="statusFilter = f.val; currentPage = 1">
-              {{ f.label }}
-              <span class="ec-chip-cnt">{{ statusCount(f.val) }}</span>
-            </button>
-          </div>
-
-          <!-- Checkpoint filter -->
-          <div v-if="checkpoints.length > 0" class="ec-cp-wrap" v-click-outside="() => showCpMenu = false">
-            <button class="ec-cp-btn" :class="{ 'ec-cp-btn--active': cpFilter !== null }" @click="showCpMenu = !showCpMenu">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          <!-- Expanded search state -->
+          <template v-if="searchOpen">
+            <div class="ec-search-expanded ec-search-wrap">
+              <svg class="ec-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-              {{ cpFilter !== null ? (checkpoints.find(c => c.id === cpFilter)?.name ?? 'Checkpoint') : 'All Checkpoints' }}
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <div v-if="showCpMenu" class="ec-cp-menu">
-              <button class="ec-cp-item" :class="{ 'ec-cp-item--on': cpFilter === null }"
-                @click="cpFilter = null; showCpMenu = false; currentPage = 1">
-                All Checkpoints
-              </button>
-              <button v-for="cp in checkpoints" :key="cp.id"
-                class="ec-cp-item" :class="{ 'ec-cp-item--on': cpFilter === cp.id }"
-                @click="cpFilter = cp.id; showCpMenu = false; currentPage = 1">
-                {{ cp.name }}
+              <input ref="searchInputRef" v-model="searchQ" class="ec-search"
+                placeholder="Search by name or phone…"
+                @keydown.escape="closeSearch" />
+              <button v-if="searchQ" class="ec-search-clear" @click="searchQ = ''">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
               </button>
             </div>
-          </div>
+            <button class="ec-search-cancel" @click="closeSearch">Cancel</button>
+          </template>
 
-          <!-- Refresh -->
-          <button class="ec-refresh-btn" @click="loadData" :disabled="loading"
-            :title="loading ? 'Loading…' : 'Refresh'">
-            <svg :class="{ 'ec-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-            </svg>
-          </button>
+          <!-- Normal state -->
+          <template v-else>
+            <button class="ec-search-pill" :class="{ 'ec-search-pill--active': searchQ }" @click="openSearch">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              Search
+            </button>
+
+            <!-- Status filter chips -->
+            <div class="ec-filter-chips">
+              <button v-for="f in STATUS_FILTERS" :key="f.val"
+                class="ec-chip" :class="{ 'ec-chip--active': statusFilter === f.val }"
+                @click="statusFilter = f.val; currentPage = 1">
+                {{ f.label }}
+                <span class="ec-chip-cnt">{{ statusCount(f.val) }}</span>
+              </button>
+            </div>
+
+            <!-- Checkpoint filter -->
+            <div v-if="checkpoints.length > 0" class="ec-cp-wrap" v-click-outside="() => showCpMenu = false">
+              <button class="ec-cp-btn" :class="{ 'ec-cp-btn--active': cpFilter !== null }" @click="showCpMenu = !showCpMenu">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                {{ cpFilter !== null ? (checkpoints.find(c => c.id === cpFilter)?.name ?? 'Checkpoint') : 'All Checkpoints' }}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div v-if="showCpMenu" class="ec-cp-menu">
+                <button class="ec-cp-item" :class="{ 'ec-cp-item--on': cpFilter === null }"
+                  @click="cpFilter = null; showCpMenu = false; currentPage = 1">
+                  All Checkpoints
+                </button>
+                <button v-for="cp in checkpoints" :key="cp.id"
+                  class="ec-cp-item" :class="{ 'ec-cp-item--on': cpFilter === cp.id }"
+                  @click="cpFilter = cp.id; showCpMenu = false; currentPage = 1">
+                  {{ cp.name }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Refresh -->
+            <button class="ec-refresh-btn" @click="loadData" :disabled="loading"
+              :title="loading ? 'Loading…' : 'Refresh'">
+              <svg :class="{ 'ec-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+            </button>
+          </template>
         </div>
       </div>
 
-      <!-- ══ Table ══ -->
+      <!-- ══ Card List ══ -->
       <div class="ec-table-wrap">
-      <div class="ec-table-scroll">
-        <table class="ec-table">
-          <thead>
-            <tr>
-              <th class="ec-th ec-th-name ec-th--sortable" @click="toggleSort('name')">
-                <span>Name</span>
-                <svg class="ec-sort-ico"
-                  :class="{ 'ec-sort-ico--active': sortKey === 'name', 'ec-sort-ico--desc': sortKey === 'name' && sortDir === 'desc' }"
-                  width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
-              </th>
-              <th class="ec-th">Phone</th>
-              <th class="ec-th">Type</th>
-              <th class="ec-th ec-th--sortable" @click="toggleSort('status')">
-                <span>Status</span>
-                <svg class="ec-sort-ico"
-                  :class="{ 'ec-sort-ico--active': sortKey === 'status', 'ec-sort-ico--desc': sortKey === 'status' && sortDir === 'desc' }"
-                  width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
-              </th>
-              <th class="ec-th">Slots</th>
-              <th class="ec-th ec-th--sortable" @click="toggleSort('date')">
-                <span>Added</span>
-                <svg class="ec-sort-ico"
-                  :class="{ 'ec-sort-ico--active': sortKey === 'date', 'ec-sort-ico--desc': sortKey === 'date' && sortDir === 'desc' }"
-                  width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loading">
-              <td colspan="6" class="ec-td-empty">
-                <svg class="ec-spin" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                </svg>
-                Loading…
-              </td>
-            </tr>
-            <tr v-else-if="!pagedList.length">
-              <td colspan="6" class="ec-td-empty">No attendees found</td>
-            </tr>
-            <tr v-for="att in pagedList" :key="att.id"
-              class="ec-row" @click="openDetail(att)">
+      <div class="ec-list">
 
-              <!-- Name + avatar -->
-              <td class="ec-td ec-td-name">
-                <div class="ec-name-cell">
-                  <div class="ec-avatar"
-                    :style="{ background: avatarBg(att.fullName), color: avatarColor(att.fullName) }">
-                    {{ initials(att.fullName) }}
-                  </div>
-                  <span class="ec-name">{{ att.fullName }}</span>
-                </div>
-              </td>
+        <!-- Loading skeletons -->
+        <template v-if="loading">
+          <div v-for="n in 6" :key="n" class="ec-card ec-card--sk">
+            <div class="ec-card-av-wrap">
+              <div class="ec-sk-circle"/>
+            </div>
+            <div class="ec-card-info">
+              <div class="ec-sk-bar ec-sk-bar--lg"/>
+              <div class="ec-sk-bar ec-sk-bar--sm" style="margin-top:4px"/>
+            </div>
+            <div class="ec-card-badges">
+              <div class="ec-sk-bar ec-sk-bar--sm"/>
+              <div class="ec-sk-bar ec-sk-bar--sm"/>
+            </div>
+            <div class="ec-card-date">
+              <div class="ec-sk-bar ec-sk-bar--sm"/>
+            </div>
+          </div>
+        </template>
 
-              <!-- Phone -->
-              <td class="ec-td ec-td-mono">{{ att.phone || '—' }}</td>
+        <!-- Empty state -->
+        <div v-else-if="!pagedList.length" class="ec-list-empty">
+          No attendees found
+        </div>
 
-              <!-- Type badge -->
-              <td class="ec-td">
-                <span class="ec-type-badge" :class="`ec-type--${getKardType(att)}`">
-                  {{ typeLabels[getKardType(att)] }}
-                </span>
-              </td>
+        <!-- Attendee cards -->
+        <div v-else v-for="att in pagedList" :key="att.id"
+          class="ec-card"
+          :class="{
+            'ec-card--checked-in': statusOf(att) === 'checked',
+            'ec-card--pending':    statusOf(att) === 'partial',
+            'ec-card--absent':     statusOf(att) === 'none',
+          }"
+          @click="openDetail(att)">
 
-              <!-- Status badge -->
-              <td class="ec-td">
-                <span class="ec-sb" :class="`ec-sb--${statusOf(att)}`">
-                  <span class="ec-sb-dot"/>
-                  {{ statusLabel(att) }}
-                </span>
-              </td>
+          <!-- Avatar -->
+          <div class="ec-card-av-wrap">
+            <div class="ec-card-avatar"
+              :style="{ background: avatarBg(att.fullName), color: avatarColor(att.fullName) }">
+              {{ initials(att.fullName) }}
+            </div>
+            <span class="ec-card-dot"
+              :class="{
+                'ec-card-dot--checked': statusOf(att) === 'checked',
+                'ec-card-dot--partial': statusOf(att) === 'partial',
+                'ec-card-dot--none':    statusOf(att) === 'none',
+                'ec-card-dot--nocard':  statusOf(att) === 'nocard',
+              }"/>
+          </div>
 
-              <!-- Slots fraction -->
-              <td class="ec-td ec-td-slots">
-                <span v-if="(att.checkinStatus ?? []).length">
-                  <span class="ec-slots-checked">{{ checkedSlots(att) }}</span>
-                  <span class="ec-slots-sep">/</span>
-                  <span class="ec-slots-total">{{ att.checkinStatus.length }}</span>
-                </span>
-                <span v-else class="ec-slots-na">—</span>
-              </td>
+          <!-- Identity -->
+          <div class="ec-card-info">
+            <span class="ec-card-name">{{ att.fullName }}</span>
+            <span class="ec-card-meta">{{ att.phone || '—' }}</span>
+          </div>
 
-              <!-- Added date -->
-              <td class="ec-td ec-td-date">{{ formatDate(att.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
+          <!-- Badges -->
+          <div class="ec-card-badges">
+            <!-- Type -->
+            <span class="ec-type-badge" :class="`ec-type--${getKardType(att)}`">
+              {{ typeLabels[getKardType(att)] }}
+            </span>
+            <!-- Status -->
+            <span class="ec-badge"
+              :class="{
+                'ec-badge--checked-in': statusOf(att) === 'checked',
+                'ec-badge--pending':    statusOf(att) === 'partial',
+                'ec-badge--absent':     statusOf(att) === 'none',
+                'ec-badge--default':    statusOf(att) === 'nocard',
+              }">
+              {{ statusLabel(att) }}
+            </span>
+            <!-- Slots fraction -->
+            <span v-if="(att.checkinStatus ?? []).length" class="ec-badge ec-badge--default ec-badge--slots">
+              <span class="ec-slots-checked">{{ checkedSlots(att) }}</span>
+              <span class="ec-slots-sep">/</span>
+              <span class="ec-slots-total">{{ att.checkinStatus.length }}</span>
+            </span>
+          </div>
+
+          <!-- Date -->
+          <div class="ec-card-date">{{ formatDate(att.createdAt) }}</div>
+        </div>
+
       </div>
 
       <!-- ── Paginator ── -->
@@ -393,7 +392,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { db } from '../../firebase'
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore'
@@ -429,6 +428,10 @@ const checkpoints = ref([])
 const loading     = ref(false)
 
 const searchQ      = ref('')
+const searchOpen   = ref(false)
+const searchInputRef = ref(null)
+function openSearch() { searchOpen.value = true; nextTick(() => searchInputRef.value?.focus()) }
+function closeSearch() { searchOpen.value = false; searchQ.value = '' }
 const statusFilter = ref('all')
 const cpFilter     = ref(null)
 const showCpMenu   = ref(false)
@@ -674,28 +677,38 @@ async function toggleSlotGeneric(att, slotIndex) {
   flex-direction: column;
   gap: 16px;
   padding: 20px 24px 24px;
+  --c-bg:     #141414;
+  --c-border: #2a2a2a;
+  --c-track:  #2a2a2a;
+  --c-muted:  #3a3a3a;
+  --c-txt:    #f0f0ec;
+  --c-txt-2:  #888;
+  --c-txt-3:  #555;
+  --c-divide: #2a2a2a;
+  --c-arrow:  #3a3a3a;
+  transition: background 300ms ease;
 }
 
 /* ══ Panel ══ */
 .ec-panel {
   display: flex; flex-direction: column;
-  background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; overflow: hidden;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px; overflow: hidden;
+  transition: background 300ms ease, border-color 300ms ease;
 }
 .ec-panel-hd {
   display: flex; align-items: center; flex-wrap: wrap;
-  padding: 14px 20px; border-bottom: 1px solid #1e1e1e; gap: 10px;
+  padding: 14px 20px; border-bottom: 1px solid var(--c-border); gap: 10px;
 }
 .ec-panel-title {
-  font-size: 19px; font-weight: 700; color: #f0f0ec; margin: 0; letter-spacing: -0.3px; white-space: nowrap;
+  font-size: 19px; font-weight: 700; color: var(--c-txt); margin: 0; letter-spacing: -0.3px; white-space: nowrap;
 }
-.ec-panel-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+.ec-panel-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; margin-left: auto; }
 
 /* Search */
 .ec-search-wrap {
   position: relative;
   display: flex;
   align-items: center;
-  margin-left: auto;
   min-width: 160px;
   max-width: 280px;
 }
@@ -703,38 +716,60 @@ async function toggleSlotGeneric(att, slotIndex) {
 .ec-search {
   width: 100%;
   padding: 8px 32px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid var(--c-border);
   border-radius: 10px;
   font-size: 13px;
   font-family: inherit;
   outline: none;
-  background: #141414;
-  color: #f0f0ec;
+  background: var(--c-bg);
+  color: var(--c-txt);
   transition: border-color 150ms, box-shadow 150ms;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.ec-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: #141414; }
+.ec-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: var(--c-bg); }
 .ec-search-clear {
   position: absolute; right: 8px;
-  background: none; border: none; cursor: pointer; color: #888; padding: 2px;
+  background: none; border: none; cursor: pointer; color: var(--c-txt-2); padding: 2px;
   display: flex; align-items: center; justify-content: center;
 }
-.ec-search-clear:hover { color: #f0f0ec; }
+.ec-search-clear:hover { color: var(--c-txt); }
+
+/* Search pill */
+.ec-search-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 20px;
+  border: 1px solid var(--c-border); background: var(--c-bg);
+  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
+  cursor: pointer; transition: all 140ms; font-family: inherit;
+}
+.ec-search-pill:hover { background: var(--c-bg); color: var(--c-txt-2); }
+.ec-search-pill--active { color: #f0ece6; border-color: rgba(240,236,230,0.2); background: rgba(240,236,230,0.06); }
+
+/* Expanded search */
+.ec-search-expanded { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
+
+/* Cancel button */
+.ec-search-cancel {
+  flex-shrink: 0; padding: 7px 2px; border: none; background: none;
+  font-size: 13px; font-weight: 500; color: var(--c-txt-2); cursor: pointer;
+  font-family: inherit; transition: color 130ms;
+}
+.ec-search-cancel:hover { color: var(--c-txt); }
 
 /* Filter chips */
 .ec-filter-chips { display: flex; gap: 4px; }
 .ec-chip {
   padding: 6px 12px; border-radius: 20px;
-  border: 1px solid #2a2a2a; background: #141414;
-  font-size: 12px; font-weight: 500; color: #888;
+  border: 1px solid var(--c-border); background: var(--c-bg);
+  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
   cursor: pointer; transition: all 140ms; font-family: inherit;
 }
-.ec-chip:hover { background: #1a1a1a; color: #888; }
-.ec-chip--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: #f0f0ec; font-weight: 600; }
+.ec-chip:hover { background: var(--c-bg); color: var(--c-txt-2); }
+.ec-chip--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: var(--c-txt); font-weight: 600; }
 .ec-chip-cnt {
   display: inline-flex; min-width: 18px; padding: 1px 5px;
-  background: #1a1a1a; border-radius: 10px;
-  font-size: 11px; font-weight: 600; color: #888; margin-left: 5px;
+  background: var(--c-bg); border-radius: 10px;
+  font-size: 11px; font-weight: 600; color: var(--c-txt-2); margin-left: 5px;
 }
 .ec-chip--active .ec-chip-cnt { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.75); }
 
@@ -743,161 +778,229 @@ async function toggleSlotGeneric(att, slotIndex) {
 .ec-cp-btn {
   display: flex; align-items: center; gap: 5px;
   padding: 6px 12px; border-radius: 10px;
-  border: 1px solid #2a2a2a; background: #141414;
-  font-size: 12px; font-weight: 500; color: #888;
+  border: 1px solid var(--c-border); background: var(--c-bg);
+  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
   cursor: pointer; transition: all 140ms; font-family: inherit;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.ec-cp-btn:hover { background: #1a1a1a; }
-.ec-cp-btn--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: #f0f0ec; }
+.ec-cp-btn:hover { background: var(--c-bg); }
+.ec-cp-btn--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: var(--c-txt); }
 .ec-cp-menu {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 100;
-  background: #141414; border: 1px solid #2a2a2a; border-radius: 10px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.4); padding: 4px; min-width: 180px;
 }
 .ec-cp-item {
   display: block; width: 100%; text-align: left;
   padding: 8px 12px; border: none; background: none; border-radius: 7px;
-  font-size: 13px; font-family: inherit; color: #f0f0ec; cursor: pointer; transition: background 130ms;
+  font-size: 13px; font-family: inherit; color: var(--c-txt); cursor: pointer; transition: background 130ms;
 }
-.ec-cp-item:hover { background: #1a1a1a; }
-.ec-cp-item--on { color: #C9A84C; font-weight: 600; background: #111111; }
+.ec-cp-item:hover { background: var(--c-bg); }
+.ec-cp-item--on { color: #C9A84C; font-weight: 600; background: var(--c-bg); }
 
 /* Refresh button */
 .ec-refresh-btn {
   width: 32px; height: 32px; border-radius: 8px;
-  border: 1px solid #2a2a2a; background: #1a1a1a; color: #888;
+  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all 140ms; flex-shrink: 0;
 }
-.ec-refresh-btn:hover:not(:disabled) { background: #1a1a1a; color: #f0f0ec; }
+.ec-refresh-btn:hover:not(:disabled) { background: var(--c-bg); color: var(--c-txt); }
 .ec-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ══ Stats ══ */
-.ec-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.ec-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .ec-stat-card {
-  background: #191919; border: 1px solid #2a2a2a; border-radius: 12px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
   padding: 20px 20px 18px; display: flex; align-items: flex-start; gap: 16px;
-  transition: background 130ms, border-color 130ms;
+  transition: background 300ms ease, border-color 300ms ease;
 }
 .ec-stat-card--link { cursor: pointer; }
-.ec-stat-card--link:hover { background: #1e1e1e; border-color: #333; }
-.ec-stat-card--active { background: #1a1a1a !important; border-color: #3a3a3a !important; }
+.ec-stat-card--link:hover { background: var(--c-bg); border-color: #333; }
+.ec-stat-card--active { background: var(--c-bg) !important; border-color: var(--c-muted) !important; }
 .ec-stat-icon {
   width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
   display: flex; align-items: center; justify-content: center;
 }
 .ec-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
-.ec-stat-icon--green  { background: rgba(48,209,88,0.08);   color: #30D158; }
-.ec-stat-icon--orange { background: rgba(255,159,10,0.08);  color: #FF9F0A; }
-.ec-stat-icon--muted  { background: rgba(107,107,114,0.10); color: #6B6B72; }
+.ec-stat-icon--green  { background: rgba(52,211,153,0.08);  color: #34d399; }
+.ec-stat-icon--orange { background: rgba(251,146,60,0.08);  color: #fb923c; }
+.ec-stat-icon--red    { background: rgba(252,129,129,0.08); color: #fc8181; }
 .ec-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
 .ec-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .ec-stat-lbl {
-  font-size: 11px; font-weight: 600; color: #777;
+  font-size: 11px; font-weight: 600; color: var(--c-txt-2);
   text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap;
 }
-.ec-stat-n {
-  font-size: 32px; font-weight: 700; color: #f0f0ec;
+.ec-stat-val {
+  font-size: 32px; font-weight: 700; color: var(--c-txt);
   line-height: 1; letter-spacing: -0.5px;
 }
-.ec-stat-n--gold { color: #C9A84C; }
 
-/* ══ Table ══ */
+/* ══ Card List ══ */
 .ec-table-wrap {
   display: flex;
   flex-direction: column;
-  background: #141414;
-  border-top: 1px solid #1e1e1e;
+  background: var(--c-bg);
+  border-top: 1px solid var(--c-border);
   overflow: hidden;
 }
-.ec-table-scroll { overflow-x: auto; }
-.ec-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 
-/* Header */
-.ec-th {
-  padding: 11px 16px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #888;
-  text-align: left;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  border-bottom: 1px solid #2a2a2a;
-  background: #141414;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  white-space: nowrap;
-  user-select: none;
+.ec-list {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 12px 16px; background: var(--c-bg);
 }
-.ec-th-name  { width: 240px; }
-.ec-th--sortable { cursor: pointer; }
-.ec-th--sortable:hover { color: #f0f0ec; }
 
-.ec-sort-ico {
-  display: inline-block;
-  margin-left: 4px;
-  opacity: 0.3;
-  transition: transform 200ms, opacity 200ms;
-  vertical-align: middle;
-}
-.ec-sort-ico--active  { opacity: 0.9; }
-.ec-sort-ico--desc    { transform: rotate(180deg); }
-
-/* Rows */
-.ec-row {
-  cursor: pointer;
-  transition: background 120ms;
-  border-bottom: 1px solid #1a1a1a;
-}
-.ec-row:nth-child(even) { background: #141414; }
-.ec-row:nth-child(odd)  { background: #141414; }
-.ec-row:hover           { background: #111111; }
-
-.ec-td {
-  padding: 12px 16px;
-  font-size: 13px;
-  color: #f0f0ec;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-.ec-td-empty {
+.ec-list-empty {
   padding: 48px 16px;
   text-align: center;
-  color: #555;
+  color: var(--c-txt-3);
   font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
 }
-.ec-td-mono  { font-variant-numeric: tabular-nums; color: #888; font-size: 12px; }
-.ec-td-date  { color: #888; font-size: 12px; }
 
-/* Name cell */
-.ec-name-cell { display: flex; align-items: center; gap: 10px; }
-.ec-avatar {
-  width: 32px; height: 32px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; flex-shrink: 0;
+/* Card */
+.ec-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 16px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
+  cursor: pointer;
+  transition: background 300ms ease, border-color 300ms ease, box-shadow 150ms;
 }
-.ec-name { font-weight: 600; font-size: 13px; color: #f0f0ec; }
+.ec-card:hover:not(.ec-card--sk) { background: var(--c-bg); border-color: #2c2c2c; box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+.ec-card--sk { pointer-events: none; }
+
+/* Status left-border stripe (applied on top of hover box-shadow via cascade) */
+.ec-card--checked-in { box-shadow: inset 3px 0 0 rgba(48,209,88,0.55); }
+.ec-card--pending    { box-shadow: inset 3px 0 0 rgba(255,159,10,0.55); }
+.ec-card--absent     { box-shadow: inset 3px 0 0 rgba(255,69,58,0.40); }
+.ec-card--checked-in:hover:not(.ec-card--sk) { box-shadow: inset 3px 0 0 rgba(48,209,88,0.55), 0 4px 16px rgba(0,0,0,0.35); }
+.ec-card--pending:hover:not(.ec-card--sk)    { box-shadow: inset 3px 0 0 rgba(255,159,10,0.55), 0 4px 16px rgba(0,0,0,0.35); }
+.ec-card--absent:hover:not(.ec-card--sk)     { box-shadow: inset 3px 0 0 rgba(255,69,58,0.40),  0 4px 16px rgba(0,0,0,0.35); }
+
+/* Avatar */
+.ec-card-av-wrap { position: relative; flex-shrink: 0; }
+.ec-card-avatar  { width: 40px; height: 40px; border-radius: 11px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.ec-card-dot { position: absolute; bottom: -2px; right: -2px; width: 11px; height: 11px; border-radius: 50%; border: 2.5px solid var(--c-bg); }
+.ec-card-dot--checked { background: #30D158; }
+.ec-card-dot--partial { background: #FF9F0A; }
+.ec-card-dot--none    { background: #6B6B72; }
+.ec-card-dot--nocard  { background: var(--c-muted); }
+
+/* Identity */
+.ec-card-info { display: flex; flex-direction: column; gap: 3px; flex: 0 0 200px; min-width: 0; }
+.ec-card-name { font-size: 13px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ec-card-meta { font-size: 11px; color: var(--c-txt-3); }
+
+/* Badges zone */
+.ec-card-badges { flex: 1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
 /* Type badge */
 .ec-type-badge {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
+  display: inline-flex; align-items: center;
+  padding: 4px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.ec-type--invitation   { background: rgba(201,168,76,0.08); color: #C9A84C; border-color: rgba(201,168,76,0.18); }
+.ec-type--contribution { background: rgba(52,211,153,0.08);  color: #34d399; border-color: rgba(52,211,153,0.18); }
+.ec-type--contact      { background: rgba(255,255,255,0.04); color: #5A5550; border-color: #222; }
+
+/* Status + generic badge */
+.ec-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.ec-badge--checked-in { background: rgba(48,209,88,0.10);  color: #1D7A38; border-color: rgba(48,209,88,0.20); }
+.ec-badge--pending    { background: rgba(255,159,10,0.10); color: #B36800; border-color: rgba(255,159,10,0.20); }
+.ec-badge--absent     { background: rgba(255,69,58,0.10);  color: #C41E1E; border-color: rgba(255,69,58,0.20); }
+.ec-badge--default    { background: rgba(255,255,255,0.04); color: var(--c-txt-3); border-color: #222; }
+.ec-badge--slots      { font-variant-numeric: tabular-nums; }
+
+/* Slots fraction inside badge */
+.ec-slots-checked { font-weight: 700; color: #30D158; }
+.ec-slots-sep     { color: var(--c-txt-3); margin: 0 2px; }
+.ec-slots-total   { color: var(--c-txt-2); }
+
+/* Date */
+.ec-card-date { font-size: 11px; color: var(--c-muted); white-space: nowrap; flex-shrink: 0; text-align: right; }
+
+/* Skeleton */
+@keyframes ec-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.ec-sk-circle { width: 40px; height: 40px; border-radius: 11px; background: var(--c-track); flex-shrink: 0; animation: ec-pulse 1.4s ease-in-out infinite; }
+.ec-sk-bar    { height: 12px; border-radius: 6px; background: var(--c-track); animation: ec-pulse 1.4s ease-in-out infinite; }
+.ec-sk-bar--lg { width: 140px; }
+.ec-sk-bar--sm { width: 80px; }
+
+/* ══ Paginator ══ */
+.ec-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--c-divide);
+  background: var(--c-bg);
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.ec-range-lbl {
+  font-size: 12px;
+  color: var(--c-txt-2);
+  font-weight: 500;
   white-space: nowrap;
 }
-.ec-type--invitation   { background: rgba(201,168,76,0.08); color: #C9A84C; }
-.ec-type--contribution { background: rgba(52,211,153,0.12);  color: #34d399; }
-.ec-type--contact      { background: rgba(255,255,255,0.06); color: #5A5550; }
+.ec-filter-clear {
+  background: none; border: none; color: #C9A84C;
+  font-size: 12px; font-family: inherit; cursor: pointer; padding: 0;
+}
+.ec-filter-clear:hover { text-decoration: underline; }
+.ec-paginator { display: flex; align-items: center; gap: 3px; }
+.ec-paginator--disabled { opacity: 0.38; pointer-events: none; }
+.ec-page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-bg);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-txt-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 140ms;
+  font-family: inherit;
+}
+.ec-page-btn:hover:not(:disabled):not(.ec-page-btn--active) {
+  background: var(--c-bg);
+  border-color: var(--c-muted);
+  color: var(--c-txt);
+}
+.ec-page-btn--active {
+  background: var(--c-bg);
+  border-color: var(--c-txt);
+  color: #FFFFFF;
+  font-weight: 600;
+  cursor: default;
+}
+.ec-page-btn--nav { color: var(--c-txt-2); }
+.ec-page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.ec-page-ellipsis {
+  min-width: 28px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--c-txt-3);
+  letter-spacing: 1px;
+}
 
-/* Status badge */
+/* ══ Drawer status badge (ec-sb used in drawer header) ══ */
 .ec-sb {
   display: inline-flex;
   align-items: center;
@@ -919,113 +1022,39 @@ async function toggleSlotGeneric(att, slotIndex) {
 .ec-sb--partial .ec-sb-dot { background: #FF9F0A; }
 .ec-sb--none    { background: rgba(255,255,255,0.06);  color: #5A5550; }
 .ec-sb--none    .ec-sb-dot { background: #6B6B72; }
-.ec-sb--nocard  { background: rgba(255,255,255,0.04);  color: #555; }
+.ec-sb--nocard  { background: rgba(255,255,255,0.04);  color: var(--c-txt-3); }
 .ec-sb--nocard  .ec-sb-dot { background: #C0BAB2; }
-
-/* Slots fraction */
-.ec-td-slots { font-variant-numeric: tabular-nums; }
-.ec-slots-checked { font-weight: 700; color: #30D158; }
-.ec-slots-sep     { color: #555; margin: 0 2px; }
-.ec-slots-total   { color: #888; }
-.ec-slots-na      { color: #555; }
-
-/* ══ Paginator ══ */
-.ec-table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-top: 1px solid #2a2a2a;
-  background: #141414;
-  gap: 12px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-.ec-range-lbl {
-  font-size: 12px;
-  color: #888;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.ec-filter-clear {
-  background: none; border: none; color: #C9A84C;
-  font-size: 12px; font-family: inherit; cursor: pointer; padding: 0;
-}
-.ec-filter-clear:hover { text-decoration: underline; }
-.ec-paginator { display: flex; align-items: center; gap: 3px; }
-.ec-paginator--disabled { opacity: 0.38; pointer-events: none; }
-.ec-page-btn {
-  min-width: 32px;
-  height: 32px;
-  padding: 0 6px;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
-  background: #141414;
-  font-size: 13px;
-  font-weight: 500;
-  color: #888;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 140ms;
-  font-family: inherit;
-}
-.ec-page-btn:hover:not(:disabled):not(.ec-page-btn--active) {
-  background: #1a1a1a;
-  border-color: #3a3a3a;
-  color: #f0f0ec;
-}
-.ec-page-btn--active {
-  background: #0A0A0B;
-  border-color: #f0f0ec;
-  color: #FFFFFF;
-  font-weight: 600;
-  cursor: default;
-}
-.ec-page-btn--nav { color: #888; }
-.ec-page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.ec-page-ellipsis {
-  min-width: 28px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  color: #555;
-  letter-spacing: 1px;
-}
 
 /* ══ Drawer ══ */
 .ec-overlay {
   position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(1px);
+  background: var(--overlay-bg);
 }
 .ec-drawer {
   position: fixed; right: 0; top: 0; bottom: 0;
-  width: 360px; background: #141414;
+  width: 360px; background: var(--c-bg);
   box-shadow: -4px 0 32px rgba(0,0,0,0.5);
   display: flex; flex-direction: column; overflow-y: auto; z-index: 201;
+  transition: background 300ms ease;
 }
 .ec-drawer-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 1px solid #1a1a1a; flex-shrink: 0;
+  padding: 14px 16px; border-bottom: 1px solid var(--c-divide); flex-shrink: 0;
 }
 .ec-drawer-back {
   display: flex; align-items: center; gap: 5px;
   padding: 6px 10px; border-radius: 8px;
-  border: none; background: #1a1a1a; color: #888;
+  border: none; background: var(--c-bg); color: var(--c-txt-2);
   font-size: 13px; font-weight: 500; cursor: pointer;
   transition: all 130ms; font-family: inherit;
 }
-.ec-drawer-back:hover { background: #2a2a2a; color: #f0f0ec; }
+.ec-drawer-back:hover { background: var(--c-track); color: var(--c-txt); }
 
 /* Hero */
 .ec-drawer-hero {
   display: flex; flex-direction: column; align-items: center;
   padding: 24px 20px 20px; gap: 4px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--c-divide);
 }
 .ec-drawer-avatar {
   width: 60px; height: 60px; border-radius: 50%;
@@ -1033,47 +1062,47 @@ async function toggleSlotGeneric(att, slotIndex) {
   font-size: 18px; font-weight: 700; margin-bottom: 8px;
 }
 .ec-drawer-name {
-  font-size: 17px; font-weight: 700; color: #f0f0ec;
+  font-size: 17px; font-weight: 700; color: var(--c-txt);
   margin: 0; text-align: center; letter-spacing: -0.2px;
 }
-.ec-drawer-phone { font-size: 13px; color: #888; margin: 0 0 4px; }
+.ec-drawer-phone { font-size: 13px; color: var(--c-txt-2); margin: 0 0 4px; }
 
 /* Body */
 .ec-drawer-body { display: flex; flex-direction: column; padding: 6px 0 24px; }
 .ec-drawer-block { padding: 16px 20px; }
 .ec-block-lbl {
-  font-size: 10px; font-weight: 700; color: #555;
+  font-size: 10px; font-weight: 700; color: var(--c-txt-3);
   text-transform: uppercase; letter-spacing: 0.6px; margin: 0 0 14px;
 }
 .ec-block-lbl-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .ec-block-lbl-row .ec-block-lbl { margin: 0; }
-.ec-slots-summary { font-size: 12px; color: #888; font-weight: 500; }
-.ec-drawer-added { font-size: 12px; color: #555; margin: 0; padding: 4px 20px 0; }
+.ec-slots-summary { font-size: 12px; color: var(--c-txt-2); font-weight: 500; }
+.ec-drawer-added { font-size: 12px; color: var(--c-txt-3); margin: 0; padding: 4px 20px 0; }
 
 /* No card */
 .ec-no-card {
   display: flex; flex-direction: column; align-items: center;
-  gap: 8px; padding: 24px 0; color: #555; text-align: center;
+  gap: 8px; padding: 24px 0; color: var(--c-txt-3); text-align: center;
 }
 .ec-no-card p { font-size: 13px; margin: 0; line-height: 1.5; }
 
 /* Slot rows */
 .ec-slot {
   padding: 12px 0;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid var(--c-divide);
 }
 .ec-slot:last-child { border-bottom: none; }
 .ec-slot-head {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 10px;
 }
-.ec-slot-name { font-size: 13px; font-weight: 600; color: #f0f0ec; }
+.ec-slot-name { font-size: 13px; font-weight: 600; color: var(--c-txt); }
 .ec-slot-badge {
   font-size: 10px; font-weight: 700;
   padding: 2px 8px; border-radius: 20px;
 }
 .ec-slot-badge--on  { background: rgba(52,211,153,0.12);   color: #34d399; }
-.ec-slot-badge--off { background: rgba(255,255,255,0.06); color: #888; }
+.ec-slot-badge--off { background: rgba(255,255,255,0.06); color: var(--c-txt-2); }
 
 /* Checkpoint toggles */
 .ec-cp-toggles { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1084,8 +1113,8 @@ async function toggleSlotGeneric(att, slotIndex) {
   cursor: pointer; transition: all 160ms; border: none;
 }
 .ec-cp-toggle--on  { background: #30D158; color: #fff; box-shadow: 0 2px 8px rgba(48,209,88,0.30); }
-.ec-cp-toggle--off { background: #1a1a1a; color: #888; }
-.ec-cp-toggle--off:hover:not(:disabled) { background: #2a2a2a; color: #f0f0ec; }
+.ec-cp-toggle--off { background: var(--c-bg); color: var(--c-txt-2); }
+.ec-cp-toggle--off:hover:not(:disabled) { background: var(--c-track); color: var(--c-txt); }
 .ec-cp-toggle--on:hover:not(:disabled)  { background: #28BA4E; }
 .ec-cp-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -1101,11 +1130,50 @@ async function toggleSlotGeneric(att, slotIndex) {
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .ec-stats { grid-template-columns: repeat(3, 1fr); }
+  .ec-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .ec-list { padding: 8px 10px; gap: 5px; }
+  .ec-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    grid-template-areas: "avatar info date" "avatar badges badges";
+    align-items: start; gap: 3px 12px; padding: 12px 14px;
+  }
+  .ec-card-av-wrap { grid-area: avatar; align-self: start; padding-top: 2px; }
+  .ec-card-info    { grid-area: info; flex: unset; }
+  .ec-card-date    { grid-area: date; align-self: start; padding-top: 2px; }
+  .ec-card-badges  { grid-area: badges; justify-content: flex-start; flex: unset; margin-top: 6px; }
 }
 @media (max-width: 600px) {
   .ec-root { padding: 12px 14px 20px; gap: 12px; }
-  .ec-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .ec-search-wrap { min-width: 0; max-width: 100%; }
+
+  /* Stat cards: column layout so labels get full width */
+  .ec-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; min-width: 0; }
+  .ec-stat-card { min-width: 0; overflow: hidden; padding: 12px; gap: 6px; flex-direction: column; align-items: flex-start; }
+  .ec-stat-icon { width: 32px; height: 32px; flex-shrink: 0; }
+  .ec-stat-val  { font-size: 22px; }
+  .ec-stat-val--money { font-size: 16px; }
+  .ec-stat-body { gap: 2px; min-width: 0; width: 100%; }
+  .ec-stat-lbl  { font-size: 10px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Panel header: stack search + chips as full-width rows */
+  .ec-panel-hd { padding: 10px 14px; gap: 8px; }
+  .ec-panel-title { font-size: 17px; }
+  .ec-panel-acts { margin-left: 0; flex: 0 0 100%; flex-direction: column; align-items: stretch; gap: 6px; }
+  .ec-search-expanded { min-width: 0; width: 100%; }
+  .ec-search-wrap { min-width: 0; max-width: 100%; width: 100%; }
+  .ec-search { font-size: 13px; }
+
+  /* Filter chips: scroll horizontally */
+  .ec-filter-chips { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+  .ec-filter-chips::-webkit-scrollbar { display: none; }
+  .ec-chip { flex-shrink: 0; }
+
+  /* Checkpoint button full width */
+  .ec-cp-wrap { width: 100%; }
+  .ec-cp-btn { width: 100%; justify-content: flex-start; }
 }
+@media (max-width: 400px) { .ec-card-date { display: none; } }
 </style>

@@ -11,7 +11,7 @@
           </div>
           <div class="ce-breadcrumb">
             <span class="ce-sep">/</span>
-            <span class="ce-crumb" @click="$router.push('/my-events')">My Events</span>
+            <span class="ce-crumb" @click="$router.push('/')">My Events</span>
             <span class="ce-sep">/</span>
             <span class="ce-crumb ce-crumb--page">Create Event</span>
           </div>
@@ -156,7 +156,7 @@
 
         <!-- Actions -->
         <div class="ce-actions">
-          <button type="button" class="ce-cancel-btn" @click="$router.push('/my-events')">Cancel</button>
+          <button type="button" class="ce-cancel-btn" @click="$router.push('/')">Cancel</button>
           <button type="submit" class="ce-submit-btn" :disabled="saving">
             <span v-if="saving" class="ce-spinner" />
             <span v-else>Create Event</span>
@@ -372,7 +372,7 @@ async function handleSubmit() {
     batch.set(checkpointRef, { name: 'General Entrance', createdAt: now })
     await batch.commit()
 
-    router.push('/my-events')
+    router.push('/')
   } catch (e) {
     console.error('Create event error:', e)
     submitError.value = 'Failed to create event. Please try again.'
@@ -728,8 +728,7 @@ onMounted(async () => {
 .ce-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(4px);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;

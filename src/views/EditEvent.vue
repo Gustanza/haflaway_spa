@@ -11,7 +11,7 @@
           </div>
           <div class="ce-breadcrumb">
             <span class="ce-sep">/</span>
-            <span class="ce-crumb" @click="$router.push('/my-events')">My Events</span>
+            <span class="ce-crumb" @click="$router.push('/')">My Events</span>
             <span class="ce-sep">/</span>
             <span class="ce-crumb ce-crumb--event" @click="$router.push(`/event/${eventId}/overview`)">{{ form.title || '…' }}</span>
             <span class="ce-sep">/</span>
@@ -162,7 +162,7 @@
 
         <!-- Actions -->
         <div class="ce-actions">
-          <button type="button" class="ce-cancel-btn" @click="$router.push('/my-events')">Cancel</button>
+          <button type="button" class="ce-cancel-btn" @click="$router.push('/')">Cancel</button>
           <button type="submit" class="ce-submit-btn" :disabled="saving">
             <span v-if="saving" class="ce-spinner" />
             <span v-else>Save Changes</span>
@@ -399,7 +399,7 @@ async function handleSubmit() {
       updatedAt: new Date().toISOString(),
     }, { merge: true })
 
-    router.push('/my-events')
+    router.push('/')
   } catch (e) {
     console.error('Edit event error:', e)
     submitError.value = 'Failed to save changes. Please try again.'
@@ -511,7 +511,7 @@ async function handleSubmit() {
 .ce-spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #FFFFFF; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.ce-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+.ce-modal-backdrop { position: fixed; inset: 0; background: var(--overlay-bg); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
 .ce-modal { background: #111827; border: 1px solid #1e2d44; border-radius: 18px; width: 100%; max-width: 400px; max-height: 70vh; display: flex; flex-direction: column; box-shadow: 4px 8px 0 rgba(0,0,0,0.4); overflow: hidden; }
 .ce-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 0.8px solid #1e2d44; flex-shrink: 0; }
 .ce-modal-title { font-size: 15px; font-weight: 700; color: #e2e8f0; }

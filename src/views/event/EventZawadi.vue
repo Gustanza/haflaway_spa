@@ -1,108 +1,11 @@
-﻿<template>
+<template>
   <div class="ez-root">
 
-    <!-- ══ Toolbar ══ -->
-    <div class="ez-toolbar">
-      <div class="ez-toolbar-left">
-        <div class="ez-search-wrap">
-          <svg class="ez-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-            stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input v-model="searchQ" class="ez-search" placeholder="Search gift items…" />
-          <button v-if="searchQ" class="ez-search-clear" @click="searchQ = ''">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5" stroke-linecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div class="ez-toolbar-right">
-        <button class="ez-refresh-btn" @click="loadItems" :disabled="loading" title="Refresh">
-          <svg :class="{ 'ez-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-          </svg>
-        </button>
-        <button class="ez-new-btn" @click="openItemForm(null)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.5" stroke-linecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Add Item
-        </button>
-      </div>
-    </div>
-
-    <!-- ══ Summary strip ══ -->
-    <div v-if="items.length" class="ez-summary">
-      <div class="ez-summary-stats">
-        <div class="ez-sum-stat">
-          <span class="ez-sum-n">{{ items.length }}</span>
-          <span class="ez-sum-lbl">Items</span>
-        </div>
-        <div class="ez-sum-sep"/>
-        <div class="ez-sum-stat">
-          <span class="ez-sum-n" :style="pctDone >= 100 ? { color: '#30D158' } : { color: '#C9A84C' }">
-            {{ pctDone.toFixed(0) }}%
-          </span>
-          <span class="ez-sum-lbl">Done</span>
-        </div>
-        <div class="ez-sum-sep"/>
-        <div class="ez-sum-stat">
-          <span class="ez-sum-n">{{ totalContribs }}</span>
-          <span class="ez-sum-lbl">Gifts</span>
-        </div>
-        <div class="ez-sum-sep"/>
-        <div class="ez-sum-stat">
-          <span class="ez-sum-n" style="color:#C9A84C">{{ fmtAmt(totalFunded) }}</span>
-          <span class="ez-sum-lbl">TZS Funded</span>
-        </div>
-      </div>
-      <div class="ez-sum-bar-wrap">
-        <div class="ez-sum-bar-labels">
-          <span>TZS {{ fmtAmt(totalFunded) }} funded</span>
-          <span>Target TZS {{ fmtAmt(totalTarget) }}</span>
-        </div>
-        <div class="ez-sum-bar-track">
-          <div class="ez-sum-bar-fill"
-            :style="{ width: `${Math.min(100, pctDone)}%`, background: pctDone >= 100 ? '#30D158' : '#C9A84C' }"/>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ Stats bar (always visible) ══ -->
-    <div v-else class="ez-stats-bar">
-      <div class="ez-stat">
-        <span class="ez-stat-n">0</span>
-        <span class="ez-stat-lbl">Items</span>
-      </div>
-      <div class="ez-stat-sep"/>
-      <div class="ez-stat">
-        <span class="ez-stat-n">TZS 0</span>
-        <span class="ez-stat-lbl">Funded</span>
-      </div>
-    </div>
-
-    <!-- ══ Content ══ -->
-    <div class="ez-content">
-
-      <!-- Loading -->
-      <div v-if="loading" class="ez-empty">
-        <svg class="ez-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
-          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-        </svg>
-        <p>Loading gift items…</p>
-      </div>
-
-      <!-- Empty -->
-      <div v-else-if="!filteredItems.length" class="ez-empty">
-        <div class="ez-empty-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-            stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- ── Stat cards ── -->
+    <div class="ez-stats">
+      <div class="ez-stat-card">
+        <div class="ez-stat-icon ez-stat-icon--purple">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 12 20 22 4 22 4 12"/>
             <rect x="2" y="7" width="20" height="5"/>
             <line x1="12" y1="22" x2="12" y2="7"/>
@@ -110,95 +13,215 @@
             <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
           </svg>
         </div>
-        <p class="ez-empty-title">{{ searchQ ? 'No items match' : 'No gift items yet' }}</p>
-        <p class="ez-empty-sub">{{ searchQ ? 'Try a different search' : 'Add your first Gift of Love item for guests to contribute to' }}</p>
-        <button v-if="!searchQ" class="ez-empty-cta" @click="openItemForm(null)">Add Item</button>
+        <div class="ez-stat-body">
+          <span class="ez-stat-lbl">Gift Items</span>
+          <span class="ez-stat-val">{{ items.length }}</span>
+        </div>
       </div>
+      <div class="ez-stat-card">
+        <div class="ez-stat-icon ez-stat-icon--gold">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="8 12 12 16 16 12"/>
+            <line x1="12" y1="8" x2="12" y2="16"/>
+          </svg>
+        </div>
+        <div class="ez-stat-body">
+          <span class="ez-stat-lbl">Total Target</span>
+          <span class="ez-stat-val ez-stat-val--money">TZS {{ fmtAmt(totalTarget) }}</span>
+        </div>
+      </div>
+      <div class="ez-stat-card">
+        <div class="ez-stat-icon ez-stat-icon--teal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div class="ez-stat-body">
+          <span class="ez-stat-lbl">Funded</span>
+          <span class="ez-stat-val ez-stat-val--money">TZS {{ fmtAmt(totalFunded) }}</span>
+        </div>
+      </div>
+      <div class="ez-stat-card">
+        <div class="ez-stat-icon ez-stat-icon--blue">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="ez-stat-body">
+          <span class="ez-stat-lbl">Contributors</span>
+          <span class="ez-stat-val">{{ totalContribs }}</span>
+        </div>
+      </div>
+    </div>
 
-      <!-- Items list -->
-      <div v-else class="ez-items-list">
-        <div v-for="item in filteredItems" :key="item.id"
-          class="ez-item-card" @click="openDetail(item)">
+    <!-- ── Panel ── -->
+    <div class="ez-panel">
 
-          <!-- Header row -->
-          <div class="ez-item-head">
-            <div class="ez-item-ico">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 12 20 22 4 22 4 12"/>
-                <rect x="2" y="7" width="20" height="5"/>
-                <line x1="12" y1="22" x2="12" y2="7"/>
-                <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-                <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+      <!-- Panel header -->
+      <div class="ez-panel-hd">
+        <h2 class="ez-panel-title">Gifts of Love</h2>
+        <div class="ez-panel-acts">
+          <template v-if="searchOpen">
+            <div class="ez-search-wrap ez-search-expanded">
+              <svg class="ez-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-            </div>
-            <div class="ez-item-info">
-              <p class="ez-item-title">{{ item.title }}</p>
-              <p v-if="item.description" class="ez-item-desc">{{ item.description }}</p>
-            </div>
-            <!-- Actions -->
-            <div class="ez-item-actions" @click.stop>
-              <template v-if="confirmDeleteId === item.id">
-                <span class="ez-del-lbl">Delete?</span>
-                <button class="ez-del-yes" @click.stop="deleteItem(item)"
-                  :disabled="deletingId === item.id">
-                  {{ deletingId === item.id ? '…' : 'Yes' }}
-                </button>
-                <button class="ez-del-no" @click.stop="confirmDeleteId = null">No</button>
-              </template>
-              <template v-else>
-                <button class="ez-action-btn ez-action-btn--edit"
-                  @click.stop="openItemForm(item)" title="Edit">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.2" stroke-linecap="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                </button>
-                <button class="ez-action-btn ez-action-btn--del"
-                  @click.stop="confirmDeleteId = item.id" title="Delete">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.2" stroke-linecap="round">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                    <path d="M10 11v6M14 11v6"/>
-                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                  </svg>
-                </button>
-              </template>
-            </div>
-          </div>
-
-          <!-- Progress bar -->
-          <div class="ez-item-bar-track">
-            <div class="ez-item-bar-fill"
-              :style="{
-                width: `${Math.min(100, itemPct(item) * 100)}%`,
-                background: itemPct(item) >= 1 ? '#30D158' : '#C9A84C'
-              }"/>
-          </div>
-
-          <!-- Amounts row -->
-          <div class="ez-item-foot">
-            <span class="ez-item-funded">TZS {{ fmtAmt(item.totalFunded) }}</span>
-            <span class="ez-item-target">/ TZS {{ fmtAmt(item.targetAmount) }}</span>
-            <div class="ez-item-badges">
-              <span class="ez-item-pct-badge"
-                :class="itemPct(item) >= 1 ? 'ez-item-pct-badge--done' : ''">
-                {{ (itemPct(item) * 100).toFixed(0) }}%
-              </span>
-              <span class="ez-item-gifts-badge">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="#C9A84C" stroke="none">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              <input ref="searchInputRef" v-model="searchQ" class="ez-search"
+                placeholder="Search gift items…"
+                @keydown.esc="closeSearch" />
+              <button v-if="searchQ" class="ez-search-clear" @click="searchQ = ''">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
-                {{ item.contributorCount }}
-              </span>
+              </button>
             </div>
-          </div>
-
+            <button class="ez-search-cancel" @click="closeSearch">Cancel</button>
+          </template>
+          <template v-else>
+            <button class="ez-search-pill" :class="{ 'ez-search-pill--active': searchQ }" @click="openSearch">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              Search
+            </button>
+            <button class="ez-refresh-btn" @click="loadItems" :disabled="loading" title="Refresh">
+              <svg :class="{ 'ez-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+            </button>
+            <button class="ez-add-btn" @click="openItemForm(null)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add Item
+            </button>
+          </template>
         </div>
       </div>
 
+      <!-- Panel body -->
+      <div class="ez-panel-body">
+
+        <!-- Loading -->
+        <div v-if="loading" class="ez-empty">
+          <svg class="ez-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+          <p>Loading gift items…</p>
+        </div>
+
+        <!-- Empty -->
+        <div v-else-if="!filteredItems.length" class="ez-empty">
+          <div class="ez-empty-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+              stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 12 20 22 4 22 4 12"/>
+              <rect x="2" y="7" width="20" height="5"/>
+              <line x1="12" y1="22" x2="12" y2="7"/>
+              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+            </svg>
+          </div>
+          <p class="ez-empty-title">{{ searchQ ? 'No items match' : 'No gift items yet' }}</p>
+          <p class="ez-empty-sub">{{ searchQ ? 'Try a different search' : 'Add your first Gift of Love item for guests to contribute to' }}</p>
+          <button v-if="!searchQ" class="ez-empty-cta" @click="openItemForm(null)">Add Item</button>
+        </div>
+
+        <!-- Items list -->
+        <div v-else class="ez-items-list">
+          <div v-for="item in filteredItems" :key="item.id"
+            class="ez-item-card" @click="openDetail(item)">
+
+            <!-- Header row -->
+            <div class="ez-item-head">
+              <div class="ez-item-ico">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 12 20 22 4 22 4 12"/>
+                  <rect x="2" y="7" width="20" height="5"/>
+                  <line x1="12" y1="22" x2="12" y2="7"/>
+                  <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+                  <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                </svg>
+              </div>
+              <div class="ez-item-info">
+                <p class="ez-item-title">{{ item.title }}</p>
+                <p v-if="item.description" class="ez-item-desc">{{ item.description }}</p>
+              </div>
+              <!-- Actions -->
+              <div class="ez-item-actions" @click.stop>
+                <template v-if="confirmDeleteId === item.id">
+                  <span class="ez-del-lbl">Delete?</span>
+                  <button class="ez-del-yes" @click.stop="deleteItem(item)"
+                    :disabled="deletingId === item.id">
+                    {{ deletingId === item.id ? '…' : 'Yes' }}
+                  </button>
+                  <button class="ez-del-no" @click.stop="confirmDeleteId = null">No</button>
+                </template>
+                <template v-else>
+                  <button class="ez-action-btn ez-action-btn--edit"
+                    @click.stop="openItemForm(item)" title="Edit">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.2" stroke-linecap="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
+                  <button class="ez-action-btn ez-action-btn--del"
+                    @click.stop="confirmDeleteId = item.id" title="Delete">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.2" stroke-linecap="round">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                      <path d="M10 11v6M14 11v6"/>
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                    </svg>
+                  </button>
+                </template>
+              </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="ez-item-bar-track">
+              <div class="ez-item-bar-fill"
+                :style="{
+                  width: `${Math.min(100, itemPct(item) * 100)}%`,
+                  background: itemPct(item) >= 1 ? '#30D158' : '#C9A84C'
+                }"/>
+            </div>
+
+            <!-- Amounts row -->
+            <div class="ez-item-foot">
+              <span class="ez-item-funded">TZS {{ fmtAmt(item.totalFunded) }}</span>
+              <span class="ez-item-target">/ TZS {{ fmtAmt(item.targetAmount) }}</span>
+              <div class="ez-item-badges">
+                <span class="ez-item-pct-badge"
+                  :class="itemPct(item) >= 1 ? 'ez-item-pct-badge--done' : ''">
+                  {{ (itemPct(item) * 100).toFixed(0) }}%
+                </span>
+                <span class="ez-item-gifts-badge">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#C9A84C" stroke="none">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                  {{ item.contributorCount }}
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
     </div>
 
     <!-- ══ Detail Drawer ══ -->
@@ -431,6 +454,10 @@ const eventId = computed(() => props.eventId ?? route.params.eventId)
 const items        = ref([])
 const loading      = ref(false)
 const searchQ      = ref('')
+const searchOpen     = ref(false)
+const searchInputRef = ref(null)
+function openSearch() { searchOpen.value = true; nextTick(() => searchInputRef.value?.focus()) }
+function closeSearch() { searchOpen.value = false; searchQ.value = '' }
 
 const selectedItem    = ref(null)
 const contributions   = ref([])
@@ -620,107 +647,119 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   flex-direction: column;
   padding: 20px 24px 24px;
   gap: 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --c-bg:     #141414;
+  --c-border: #2a2a2a;
+  --c-track:  #2a2a2a;
+  --c-muted:  #3a3a3a;
+  --c-txt:    #f0f0ec;
+  --c-txt-2:  #888;
+  --c-txt-3:  #555;
+  --c-divide: #2a2a2a;
+  --c-arrow:  #3a3a3a;
+  transition: background 300ms ease;
 }
 
-/* ══ Toolbar ══ */
-.ez-toolbar {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; flex-wrap: wrap; flex-shrink: 0;
-  padding: 0;
+/* ── Stat cards ── */
+.ez-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.ez-stat-card {
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
+  padding: 20px 20px 18px; display: flex; align-items: flex-start; gap: 16px;
+  transition: background 300ms ease, border-color 300ms ease;
 }
-.ez-toolbar-left  { display: flex; align-items: center; gap: 8px; }
-.ez-toolbar-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.ez-stat-icon {
+  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
+  display: flex; align-items: center; justify-content: center;
+}
+.ez-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
+.ez-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
+.ez-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
+.ez-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
+.ez-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ez-stat-lbl  { font-size: 11px; color: var(--c-txt-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.6px; text-transform: uppercase; }
+.ez-stat-val  { font-size: 32px; font-weight: 700; color: var(--c-txt); white-space: nowrap; line-height: 1; letter-spacing: -0.5px; }
+.ez-stat-val--money { font-size: 24px; letter-spacing: -0.3px; }
 
+/* ── Panel ── */
+.ez-panel {
+  display: flex;
+  flex-direction: column;
+  background: #0d0d0d;
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 300ms ease;
+}
+.ez-panel-hd {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--c-divide);
+  gap: 10px;
+}
+.ez-panel-title {
+  font-size: 19px; font-weight: 700; color: var(--c-txt); margin: 0;
+  letter-spacing: -0.3px; white-space: nowrap;
+}
+.ez-panel-acts { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.ez-panel-body { padding: 20px; }
+
+
+/* Search */
 .ez-search-wrap {
   position: relative; display: flex; align-items: center;
-  min-width: 200px; max-width: 280px;
+  min-width: 180px; max-width: 260px;
 }
 .ez-search-icon { position: absolute; left: 10px; pointer-events: none; }
 .ez-search {
   width: 100%; padding: 8px 32px;
-  border: 1px solid #2a2a2a; border-radius: 10px;
+  border: 1px solid var(--c-border); border-radius: 10px;
   font-size: 13px; font-family: inherit; outline: none;
-  background: #141414; color: #f0f0ec;
+  background: var(--c-bg); color: var(--c-txt);
   transition: border-color 150ms, box-shadow 150ms;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.ez-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: #141414; }
+.ez-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
 .ez-search-clear {
   position: absolute; right: 8px; background: none; border: none;
-  cursor: pointer; color: #888; padding: 2px;
+  cursor: pointer; color: var(--c-txt-2); padding: 2px;
   display: flex; align-items: center;
 }
-.ez-search-clear:hover { color: #f0f0ec; }
+.ez-search-clear:hover { color: var(--c-txt); }
+
+/* Refresh button */
 .ez-refresh-btn {
   width: 32px; height: 32px; border-radius: 8px;
-  border: 1px solid #2a2a2a; background: #141414; color: #888;
+  border: 1px solid var(--c-border); background: #0d0d0d; color: var(--c-txt-2);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 140ms; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  cursor: pointer; transition: all 140ms;
 }
-.ez-refresh-btn:hover:not(:disabled) { background: #1a1a1a; color: #f0f0ec; }
+.ez-refresh-btn:hover:not(:disabled) { background: var(--c-muted); color: var(--c-txt); }
 .ez-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.ez-new-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: 10px;
-  background: rgba(226,232,240,0.12); color: #f0f0ec; border: none;
-  font-size: 13px; font-weight: 600; font-family: inherit;
-  cursor: pointer; transition: background 140ms; box-shadow: 0 1px 4px rgba(0,0,0,0.14);
-}
-.ez-new-btn:hover { background: #1a2236; }
 
-/* ══ Summary strip ══ */
-.ez-summary {
-  flex-shrink: 0; padding: 14px 16px;
-  background: #FFFDF5; border: 1px solid rgba(184,146,77,0.18); border-radius: 12px;
+/* Add Item button (gold primary) */
+.ez-add-btn {
+  display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+  background: #C9A84C; color: #070707; border: none; border-radius: 10px;
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: background 150ms;
+  font-family: inherit; flex-shrink: 0;
 }
-.ez-summary-stats {
-  display: flex; align-items: center; gap: 0; margin-bottom: 12px;
-}
-.ez-sum-stat { display: flex; flex-direction: column; align-items: center; padding: 0 18px; gap: 2px; }
-.ez-sum-stat:first-child { padding-left: 0; }
-.ez-sum-n   { font-size: 18px; font-weight: 700; color: #f0f0ec; line-height: 1; }
-.ez-sum-lbl { font-size: 10px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
-.ez-sum-sep { width: 0.8px; height: 28px; background: rgba(201,168,76,0.08); flex-shrink: 0; }
-.ez-sum-bar-labels {
-  display: flex; justify-content: space-between;
-  font-size: 11px; color: #888; margin-bottom: 5px;
-}
-.ez-sum-bar-track {
-  height: 5px; border-radius: 3px; background: #2a2a2a; overflow: hidden;
-}
-.ez-sum-bar-fill {
-  height: 100%; border-radius: 3px; transition: width 400ms ease;
-}
-
-/* ══ Fallback stats bar (empty state) ══ */
-.ez-stats-bar {
-  display: flex; align-items: center; flex-shrink: 0;
-  padding: 0 16px; background: #141414; border: 1px solid #2a2a2a; border-radius: 12px; min-height: 52px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-.ez-stat { display: flex; flex-direction: column; align-items: center; padding: 10px 20px; gap: 2px; }
-.ez-stat-n { font-size: 24px; font-weight: 700; color: #f0f0ec; line-height: 1; letter-spacing: -0.3px; }
-.ez-stat-lbl { font-size: 10px; font-weight: 600; color: #777; text-transform: uppercase; letter-spacing: 0.6px; }
-.ez-stat-sep { width: 0.8px; height: 28px; background: #2a2a2a; flex-shrink: 0; }
-
-/* ══ Content ══ */
-.ez-content { flex: 1; padding: 0; }
+.ez-add-btn:hover { background: #d4b560; }
 
 /* Empty state */
 .ez-empty {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; min-height: 300px; color: #555;
+  justify-content: center; gap: 10px; min-height: 280px; color: var(--c-txt-3);
 }
 .ez-empty-icon {
   width: 64px; height: 64px; border-radius: 50%;
-  background: rgba(10,10,11,0.03); border: 1px solid rgba(10,10,11,0.08);
+  background: rgba(255,255,255,0.03); border: 1px solid var(--c-border);
   display: flex; align-items: center; justify-content: center;
 }
-.ez-empty-title { font-size: 15px; font-weight: 600; color: #888; margin: 0; }
-.ez-empty-sub   { font-size: 13px; color: #555; margin: 0; text-align: center; max-width: 300px; }
+.ez-empty-title { font-size: 15px; font-weight: 600; color: var(--c-txt-2); margin: 0; }
+.ez-empty-sub   { font-size: 13px; color: var(--c-txt-3); margin: 0; text-align: center; max-width: 300px; }
 .ez-empty-cta {
   margin-top: 6px; padding: 9px 20px; border-radius: 10px;
-  background: rgba(226,232,240,0.12); color: #f0f0ec; font-size: 13px; font-weight: 600;
+  background: rgba(226,232,240,0.12); color: var(--c-txt); font-size: 13px; font-weight: 600;
   border: none; cursor: pointer; transition: background 140ms; font-family: inherit;
 }
 .ez-empty-cta:hover { background: #1a2236; }
@@ -729,23 +768,23 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 .ez-items-list { display: flex; flex-direction: column; gap: 12px; max-width: 720px; }
 
 .ez-item-card {
-  background: #141414; border: 1px solid #2a2a2a; border-radius: 16px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px;
   padding: 16px 16px 14px; cursor: pointer;
-  transition: box-shadow 150ms, border-color 150ms;
+  transition: box-shadow 150ms, border-color 150ms, background 300ms ease;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
-.ez-item-card:hover { box-shadow: 0 3px 14px rgba(0,0,0,0.09); border-color: #3a3a3a; }
+.ez-item-card:hover { box-shadow: 0 3px 14px rgba(0,0,0,0.09); border-color: var(--c-muted); }
 
 /* Item head */
 .ez-item-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
 .ez-item-ico {
   width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  background: rgba(184,146,77,0.10); border: 1px solid rgba(10,10,11,0.08);
+  background: rgba(184,146,77,0.10); border: 1px solid rgba(201,168,76,0.15);
   display: flex; align-items: center; justify-content: center;
 }
 .ez-item-info { flex: 1; min-width: 0; }
-.ez-item-title { font-size: 15px; font-weight: 600; color: #f0f0ec; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ez-item-desc  { font-size: 12px; color: #888; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ez-item-title { font-size: 15px; font-weight: 600; color: var(--c-txt); margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ez-item-desc  { font-size: 12px; color: var(--c-txt-2); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ez-item-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 .ez-del-lbl { font-size: 12px; font-weight: 600; color: #FF453A; }
 .ez-del-yes {
@@ -757,104 +796,105 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 .ez-del-yes:disabled { opacity: 0.6; cursor: not-allowed; }
 .ez-del-no {
   padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
-  border: 1px solid #2a2a2a; background: #141414; color: #888;
+  border: 1px solid var(--c-border); background: #0d0d0d; color: var(--c-txt-2);
   cursor: pointer; font-family: inherit;
 }
-.ez-del-no:hover { background: #1a1a1a; }
+.ez-del-no:hover { background: var(--c-muted); }
 .ez-action-btn {
-  width: 28px; height: 28px; border-radius: 8px; border: 1px solid #2a2a2a;
-  background: #141414; color: #888;
+  width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--c-border);
+  background: #0d0d0d; color: var(--c-txt-2);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all 130ms;
 }
-.ez-action-btn--edit:hover { border-color: rgba(10,10,11,0.15); color: #C9A84C; background: #111111; }
+.ez-action-btn--edit:hover { border-color: rgba(201,168,76,0.3); color: #C9A84C; background: var(--c-bg); }
 .ez-action-btn--del:hover  { border-color: rgba(255,59,48,0.3); color: #FF453A; background: rgba(255,59,48,0.05); }
 
 /* Progress bar */
-.ez-item-bar-track { height: 5px; border-radius: 3px; background: #2a2a2a; overflow: hidden; margin-bottom: 10px; }
+.ez-item-bar-track { height: 5px; border-radius: 3px; background: var(--c-track); overflow: hidden; margin-bottom: 10px; }
 .ez-item-bar-fill  { height: 100%; border-radius: 3px; transition: width 400ms ease; }
 
 /* Foot row */
 .ez-item-foot { display: flex; align-items: center; gap: 4px; }
 .ez-item-funded { font-size: 13px; font-weight: 700; color: #C9A84C; }
-.ez-item-target { font-size: 12px; color: #888; flex: 1; }
+.ez-item-target { font-size: 12px; color: var(--c-txt-2); flex: 1; }
 .ez-item-badges { display: flex; gap: 6px; }
 .ez-item-pct-badge {
   padding: 2px 8px; border-radius: 20px;
   font-size: 11px; font-weight: 600;
-  background: #2a2a2a; color: #888; border: 1px solid #2a2a2a;
+  background: var(--c-track); color: var(--c-txt-2); border: 1px solid var(--c-border);
 }
 .ez-item-pct-badge--done { background: rgba(52,211,153,0.12); color: #34d399; border-color: transparent; }
 .ez-item-gifts-badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 8px; border-radius: 20px;
   font-size: 11px; font-weight: 600;
-  background: rgba(184,146,77,0.10); color: #C9A84C; border: 1px solid rgba(10,10,11,0.08);
+  background: rgba(184,146,77,0.10); color: #C9A84C; border: 1px solid rgba(201,168,76,0.15);
 }
 
 /* ══ Drawer ══ */
 .ez-overlay {
   position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.55); backdrop-filter: blur(1px);
+  background: var(--overlay-bg);
 }
 .ez-drawer {
   position: fixed; right: 0; top: 0; bottom: 0;
-  width: 400px; background: #141414;
+  width: 400px; background: var(--c-bg);
   box-shadow: -4px 0 32px rgba(0,0,0,0.5);
   display: flex; flex-direction: column; overflow-y: auto; z-index: 201;
 }
 .ez-drawer-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 1px solid #1a1a1a; flex-shrink: 0;
+  padding: 14px 16px; border-bottom: 1px solid var(--c-divide); flex-shrink: 0;
 }
 .ez-drawer-back {
   display: flex; align-items: center; gap: 5px;
   padding: 6px 10px; border-radius: 8px;
-  border: none; background: #1a1a1a; color: #888;
+  border: none; background: var(--c-bg); color: var(--c-txt-2);
   font-size: 13px; font-weight: 500; cursor: pointer;
   transition: all 130ms; font-family: inherit;
 }
-.ez-drawer-back:hover { background: #2a2a2a; color: #f0f0ec; }
+.ez-drawer-back:hover { background: var(--c-muted); color: var(--c-txt); }
 .ez-drawer-edit-btn {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 12px; border-radius: 8px;
-  border: 1px solid #2a2a2a; background: #141414; color: #888;
+  border: 1px solid var(--c-border); background: #0d0d0d; color: var(--c-txt-2);
   font-size: 12px; font-weight: 500; font-family: inherit;
   text-decoration: none; cursor: pointer; transition: all 130ms;
 }
-.ez-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: #C9A84C; background: #111111; }
+.ez-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: #C9A84C; background: var(--c-bg); }
 
 /* Item title row in drawer */
 .ez-drawer-title-row {
   display: flex; align-items: center; gap: 12px;
-  padding: 16px 20px; border-bottom: 1px solid #1a1a1a;
+  padding: 16px 20px; border-bottom: 1px solid var(--c-divide);
 }
 .ez-drawer-ico {
   width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
-  background: rgba(184,146,77,0.10); border: 1px solid rgba(10,10,11,0.08);
+  background: rgba(184,146,77,0.10); border: 1px solid rgba(201,168,76,0.15);
   display: flex; align-items: center; justify-content: center;
 }
-.ez-drawer-item-title { font-size: 17px; font-weight: 700; color: #f0f0ec; margin: 0 0 5px; }
+.ez-drawer-item-title { font-size: 17px; font-weight: 700; color: var(--c-txt); margin: 0 0 5px; }
 .ez-drawer-badge {
   display: inline-block; padding: 2px 8px; border-radius: 20px;
   font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
   background: rgba(201,168,76,0.08); color: #C9A84C;
-  border: 1px solid rgba(10,10,11,0.1);
+  border: 1px solid rgba(201,168,76,0.15);
 }
 
 /* Progress card */
 .ez-prog-card {
   margin: 16px 20px; padding: 18px;
-  background: #141414; border: 1px solid #2a2a2a; border-radius: 16px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px;
+  transition: background 300ms ease, border-color 300ms ease;
 }
-.ez-prog-desc { font-size: 13px; color: #888; margin: 0 0 14px; line-height: 1.5; }
+.ez-prog-desc { font-size: 13px; color: var(--c-txt-2); margin: 0 0 14px; line-height: 1.5; }
 .ez-prog-row  { display: flex; align-items: center; gap: 18px; }
 .ez-ring      { flex-shrink: 0; }
 .ez-prog-stats { flex: 1; display: flex; flex-direction: column; gap: 7px; }
 .ez-prog-stat-row { display: flex; align-items: center; gap: 6px; }
-.ez-prog-stat-lbl { font-size: 12px; color: #888; min-width: 64px; }
-.ez-prog-stat-val { font-size: 13px; font-weight: 600; color: #f0f0ec; }
-.ez-prog-bar-track { height: 6px; border-radius: 3px; background: #2a2a2a; overflow: hidden; }
+.ez-prog-stat-lbl { font-size: 12px; color: var(--c-txt-2); min-width: 64px; }
+.ez-prog-stat-val { font-size: 13px; font-weight: 600; color: var(--c-txt); }
+.ez-prog-bar-track { height: 6px; border-radius: 3px; background: var(--c-track); overflow: hidden; }
 .ez-prog-bar-fill  { height: 100%; border-radius: 3px; transition: width 400ms ease; }
 .ez-goal-reached {
   display: flex; align-items: center; gap: 5px; justify-content: center;
@@ -867,7 +907,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   display: flex; align-items: center; gap: 7px;
   margin-bottom: 12px;
 }
-.ez-section-lbl { font-size: 13px; font-weight: 600; color: #f0f0ec; }
+.ez-section-lbl { font-size: 13px; font-weight: 600; color: var(--c-txt); }
 .ez-section-cnt {
   padding: 1px 7px; border-radius: 20px;
   background: rgba(201,168,76,0.08); color: #C9A84C;
@@ -878,14 +918,14 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 }
 .ez-contribs-empty {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  padding: 28px; color: #555;
+  padding: 28px; color: var(--c-txt-3);
 }
-.ez-contribs-empty p { margin: 0; font-size: 14px; font-weight: 500; color: #888; }
-.ez-contribs-empty-sub { font-size: 12px; color: #555 !important; }
+.ez-contribs-empty p { margin: 0; font-size: 14px; font-weight: 500; color: var(--c-txt-2); }
+.ez-contribs-empty-sub { font-size: 12px; color: var(--c-txt-3) !important; }
 .ez-contribs-list { display: flex; flex-direction: column; gap: 0; }
 .ez-contrib-tile {
   display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 0; border-bottom: 1px solid #1a1a1a;
+  padding: 12px 0; border-bottom: 1px solid var(--c-divide);
 }
 .ez-contrib-tile:last-of-type { border-bottom: none; }
 .ez-contrib-avatar {
@@ -898,67 +938,69 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   margin-bottom: 2px;
 }
-.ez-contrib-name { font-size: 13px; font-weight: 600; color: #f0f0ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ez-contrib-name { font-size: 13px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ez-contrib-amt  { font-size: 13px; font-weight: 700; color: #C9A84C; flex-shrink: 0; }
-.ez-contrib-note { font-size: 12px; color: #888; margin: 0 0 2px; font-style: italic; line-height: 1.4; }
-.ez-contrib-date { font-size: 11px; color: #555; margin: 0; }
+.ez-contrib-note { font-size: 12px; color: var(--c-txt-2); margin: 0 0 2px; font-style: italic; line-height: 1.4; }
+.ez-contrib-date { font-size: 11px; color: var(--c-txt-3); margin: 0; }
 
 /* ══ Add/Edit Modal ══ */
 .ez-modal-overlay {
   position: fixed; inset: 0; z-index: 300;
-  background: rgba(0,0,0,0.55); backdrop-filter: blur(2px);
+  background: var(--overlay-bg);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .ez-modal {
-  background: #141414; border-radius: 20px;
+  background: #0d0d0d; border-radius: 20px;
   padding: 0; width: 100%; max-width: 420px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.18); overflow: hidden;
+  border: 1px solid var(--c-border);
+  transition: border-color 300ms ease;
 }
 .ez-modal-head {
   display: flex; align-items: center; gap: 12px;
-  padding: 20px 24px 16px; border-bottom: 1px solid #1a1a1a;
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--c-divide);
 }
 .ez-modal-ico {
   width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  background: rgba(184,146,77,0.10); border: 1px solid rgba(10,10,11,0.08);
+  background: rgba(184,146,77,0.10); border: 1px solid rgba(201,168,76,0.15);
   display: flex; align-items: center; justify-content: center;
 }
-.ez-modal-title { font-size: 17px; font-weight: 700; color: #f0f0ec; margin: 0; }
+.ez-modal-title { font-size: 17px; font-weight: 700; color: var(--c-txt); margin: 0; }
 .ez-modal-body { padding: 18px 24px; display: flex; flex-direction: column; }
 .ez-field-lbl {
-  font-size: 12px; font-weight: 500; color: #888;
+  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
   display: block; margin-bottom: 6px;
 }
 .ez-required { color: #FF453A; }
-.ez-optional { color: #555; font-weight: 400; }
+.ez-optional { color: var(--c-txt-3); font-weight: 400; }
 .ez-field-inp {
   width: 100%; padding: 10px 14px; box-sizing: border-box;
-  border: 1px solid #2a2a2a; border-radius: 10px;
-  font-size: 14px; font-family: inherit; outline: none; color: #f0f0ec;
-  background: #141414; transition: border-color 150ms, box-shadow 150ms;
+  border: 1px solid var(--c-border); border-radius: 10px;
+  font-size: 14px; font-family: inherit; outline: none; color: var(--c-txt);
+  background: var(--c-bg); transition: border-color 150ms, box-shadow 150ms;
 }
-.ez-field-inp:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(10,10,11,0.04); }
+.ez-field-inp:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
 .ez-field-inp--err { border-color: rgba(255,59,48,0.5); }
 .ez-field-ta { resize: none; line-height: 1.5; }
 .ez-field-err { font-size: 11px; color: #FF453A; margin: 4px 0 0; }
 .ez-modal-actions {
   display: flex; gap: 10px;
-  padding: 16px 24px; border-top: 1px solid #1a1a1a;
+  padding: 16px 24px; border-top: 1px solid var(--c-divide);
 }
 .ez-modal-cancel {
   flex: 1; padding: 11px; border-radius: 10px;
-  border: 1px solid #2a2a2a; background: #1a1a1a; color: #888;
+  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
   font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
   transition: background 130ms;
 }
-.ez-modal-cancel:hover { background: #2a2a2a; }
+.ez-modal-cancel:hover { background: var(--c-muted); }
 .ez-modal-save {
   flex: 1; padding: 11px; border-radius: 10px;
-  border: none; background: rgba(226,232,240,0.12); color: #f0f0ec;
+  border: none; background: #C9A84C; color: #070707;
   font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
   transition: background 130ms;
 }
-.ez-modal-save:hover:not(:disabled) { background: #1a2236; }
+.ez-modal-save:hover:not(:disabled) { background: #d4b560; }
 .ez-modal-save:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ══ Transitions ══ */
@@ -967,18 +1009,90 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 .ez-slide-enter-active, .ez-slide-leave-active { transition: transform 260ms ease; }
 .ez-slide-enter-from,   .ez-slide-leave-to     { transform: translateX(100%); }
 
+/* ── Search pill ── */
+.ez-search-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 10px;
+  border: 1px solid var(--c-border); background: var(--c-bg);
+  color: var(--c-txt-2); font-size: 12px; font-weight: 500;
+  font-family: inherit; cursor: pointer;
+  transition: all 140ms; white-space: nowrap;
+}
+.ez-search-pill:hover { background: var(--c-muted); color: var(--c-txt); }
+.ez-search-pill--active { color: var(--c-txt); border-color: rgba(240,236,230,0.2); background: rgba(240,236,230,0.06); }
+.ez-search-expanded { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
+.ez-search-cancel {
+  flex-shrink: 0; padding: 7px 2px; border: none; background: none;
+  font-size: 13px; font-weight: 500; color: var(--c-txt-2); cursor: pointer;
+  font-family: inherit; transition: color 130ms;
+}
+.ez-search-cancel:hover { color: var(--c-txt); }
+
 /* Spin */
 .ez-spin { animation: ez-spin-anim 1.1s linear infinite; }
 @keyframes ez-spin-anim { to { transform: rotate(360deg); } }
 
 /* ── Responsive ── */
-@media (max-width: 600px) {
-  .ez-root { padding: 12px 14px 20px; gap: 12px; }
-  .ez-toolbar { flex-wrap: wrap; gap: 8px; }
-  .ez-toolbar-left { flex: 1; min-width: 0; width: 100%; }
-  .ez-toolbar-right { flex-wrap: wrap; gap: 6px; }
-  .ez-search-wrap { min-width: 0; max-width: 100%; width: 100%; }
-  .ez-search { width: 100%; }
+@media (max-width: 700px) {
+  .ez-root  { padding: 12px 14px 20px; gap: 12px; }
+
+  /* Stats */
+  .ez-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .ez-stat-card { padding: 14px 14px 12px; gap: 12px; min-width: 0; overflow: hidden; }
+  .ez-stat-icon { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; }
+  .ez-stat-val  { font-size: 24px; }
+  .ez-stat-val--money { font-size: 18px; }
+  .ez-stat-body { gap: 6px; min-width: 0; }
+  .ez-stat-lbl  { font-size: 10px; letter-spacing: 0; }
+
+  /* Panel header: stack title + search on first row, buttons on second */
+  .ez-panel-hd {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding: 12px 14px;
+  }
+  .ez-panel-title { font-size: 16px; }
+  .ez-hd-search {
+    min-width: 0;
+    flex: 1 1 100%;
+    max-width: 100%;
+    order: 3;
+  }
+  .ez-panel-acts { margin-left: auto; }
+
+  /* Panel body */
+  .ez-panel-body { padding: 12px; }
+
+  /* Item cards */
+  .ez-items-list { max-width: 100%; gap: 10px; }
+  .ez-item-card { padding: 14px 12px 12px; }
+  .ez-item-title { font-size: 14px; }
+  .ez-item-foot { flex-wrap: wrap; gap: 6px; }
+  .ez-item-target { flex: 1 1 100%; order: 3; font-size: 11px; }
+  .ez-item-badges { order: 2; }
+
+  /* Drawer */
   .ez-drawer { width: 100%; }
+
+  /* Progress ring row: stack vertically on small screens */
+  .ez-prog-row { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
+
+@media (max-width: 400px) {
+  .ez-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ez-stat-val { font-size: 20px; }
+  .ez-stat-val--money { font-size: 15px; }
+  .ez-stat-lbl { font-size: 10px; }
+
+  .ez-panel-hd { padding: 10px 12px; }
+  .ez-panel-title { font-size: 15px; }
+  .ez-add-btn { padding: 7px 12px; font-size: 12px; }
+
+  .ez-item-card { padding: 12px 10px 10px; }
+  .ez-item-ico { width: 34px; height: 34px; border-radius: 9px; }
+  .ez-item-funded { font-size: 12px; }
+  .ez-item-title { font-size: 13px; }
+
+  .ez-search { font-size: 12px; }
 }
 </style>

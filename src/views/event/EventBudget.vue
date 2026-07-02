@@ -1,18 +1,18 @@
-﻿<template>
+<template>
   <div class="eb-root">
 
     <!-- ── Stat cards ── -->
     <div class="eb-stats" v-if="!loading && !loadError">
       <div class="eb-stat-card">
-        <div class="eb-stat-icon">
+        <div class="eb-stat-icon eb-stat-icon--purple">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="7" width="20" height="14" rx="2"/>
             <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
           </svg>
         </div>
         <div class="eb-stat-body">
-          <span class="eb-stat-val">TZS {{ formatMoney(totalEstimated) }}</span>
           <span class="eb-stat-lbl">Total Estimated</span>
+          <span class="eb-stat-val eb-stat-val--money">TZS {{ formatMoney(totalEstimated) }}</span>
         </div>
       </div>
 
@@ -24,13 +24,13 @@
           </svg>
         </div>
         <div class="eb-stat-body">
-          <span class="eb-stat-val">TZS {{ formatMoney(totalActual) }}</span>
           <span class="eb-stat-lbl">Total Spent</span>
+          <span class="eb-stat-val eb-stat-val--money">TZS {{ formatMoney(totalActual) }}</span>
         </div>
       </div>
 
       <div class="eb-stat-card">
-        <div class="eb-stat-icon" :class="remaining >= 0 ? 'eb-stat-icon--green' : 'eb-stat-icon--red'">
+        <div class="eb-stat-icon" :class="remaining >= 0 ? 'eb-stat-icon--teal' : 'eb-stat-icon--red'">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <template v-if="remaining >= 0">
               <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
@@ -43,23 +43,23 @@
           </svg>
         </div>
         <div class="eb-stat-body">
-          <span class="eb-stat-val" :class="remaining < 0 ? 'eb-stat-val--over' : ''">
+          <span class="eb-stat-lbl">{{ remaining >= 0 ? 'Remaining' : 'Over Budget' }}</span>
+          <span class="eb-stat-val eb-stat-val--money" :style="{ color: remaining >= 0 ? '#2dd4bf' : '#fc8181' }">
             TZS {{ formatMoney(Math.abs(remaining)) }}
           </span>
-          <span class="eb-stat-lbl">{{ remaining >= 0 ? 'Remaining' : 'Over Budget' }}</span>
         </div>
       </div>
 
       <div class="eb-stat-card">
-        <div class="eb-stat-icon eb-stat-icon--purple">
+        <div class="eb-stat-icon eb-stat-icon--blue">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
             <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
           </svg>
         </div>
         <div class="eb-stat-body">
+          <span class="eb-stat-lbl">Line Items</span>
           <span class="eb-stat-val">{{ items.length }}</span>
-          <span class="eb-stat-lbl">Budget Items</span>
         </div>
       </div>
     </div>
@@ -68,40 +68,90 @@
 
       <div class="eb-panel-hd">
         <h2 class="eb-panel-title">Budget</h2>
-        <div class="eb-search-wrap">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input v-model="searchQ" class="eb-search" placeholder="Search items…" />
-          <button v-if="searchQ" class="eb-search-clear" @click="searchQ = ''">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
         <div class="eb-panel-acts">
-          <span class="eb-toolbar-count" v-if="!loading">{{ filtered.length }} item{{ filtered.length !== 1 ? 's' : '' }}</span>
-          <button class="eb-add-btn" @click="openAdd">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Add Item
-          </button>
+          <!-- Search expanded state -->
+          <template v-if="searchOpen">
+            <div class="eb-search-expanded">
+              <div class="eb-search-wrap">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  ref="searchInputRef"
+                  v-model="searchQ"
+                  class="eb-search"
+                  placeholder="Search items…"
+                  @keydown.esc="closeSearch"
+                />
+                <button v-if="searchQ" class="eb-search-clear" @click="searchQ = ''">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <button class="eb-search-cancel" @click="closeSearch">Cancel</button>
+          </template>
+
+          <!-- Normal state -->
+          <template v-else>
+            <!-- Search pill -->
+            <button
+              class="eb-search-pill"
+              :class="{ 'eb-search-pill--active': searchQ }"
+              @click="openSearch"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              Search
+            </button>
+
+            <!-- Count label -->
+            <span class="eb-toolbar-count" v-if="!loading">{{ filtered.length }} item{{ filtered.length !== 1 ? 's' : '' }}</span>
+
+            <!-- Refresh pill -->
+            <button class="eb-refresh-btn" @click="load()" :disabled="loading" title="Refresh">
+              <svg
+                width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                :class="{ 'eb-spin': loading }"
+              >
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            </button>
+
+            <!-- Add button -->
+            <button class="eb-add-btn" @click="openAdd">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add Item
+            </button>
+          </template>
         </div>
       </div>
 
     <!-- ── Loading skeleton ── -->
-    <div class="eb-table-wrap" v-if="loading">
-      <table class="eb-table">
-        <thead><tr>
-          <th class="eb-th">#</th><th class="eb-th">Category</th><th class="eb-th">Description</th>
-          <th class="eb-th">Vendor</th><th class="eb-th">Estimated</th><th class="eb-th">Actual</th>
-          <th class="eb-th">Status</th><th class="eb-th"></th>
-        </tr></thead>
-        <tbody>
-          <tr v-for="i in 5" :key="i" class="eb-tr"><td colspan="8"><div class="eb-skel"/></td></tr>
-        </tbody>
-      </table>
+    <div class="eb-list" v-if="loading">
+      <div v-for="i in 5" :key="i" class="eb-card eb-card--sk">
+        <div class="eb-sk-circle"></div>
+        <div class="eb-card-info">
+          <div class="eb-sk-bar eb-sk-bar--lg"></div>
+          <div class="eb-sk-bar eb-sk-bar--sm" style="margin-top:4px"></div>
+        </div>
+        <div class="eb-card-amounts">
+          <div class="eb-amount-item">
+            <div class="eb-sk-bar eb-sk-bar--sm"></div>
+            <div class="eb-sk-bar eb-sk-bar--lg" style="margin-top:4px"></div>
+          </div>
+          <div class="eb-amount-item">
+            <div class="eb-sk-bar eb-sk-bar--sm"></div>
+            <div class="eb-sk-bar eb-sk-bar--lg" style="margin-top:4px"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ── Error ── -->
@@ -113,73 +163,83 @@
       <p class="eb-empty-sub">{{ loadError }}</p>
     </div>
 
-    <!-- ── Table ── -->
-    <div v-else class="eb-table-wrap">
-      <table class="eb-table">
-        <thead>
-          <tr>
-            <th class="eb-th eb-th--num">#</th>
-            <th class="eb-th">Category</th>
-            <th class="eb-th">Description</th>
-            <th class="eb-th">Vendor</th>
-            <th class="eb-th eb-th--right">Estimated (TZS)</th>
-            <th class="eb-th eb-th--right">Actual (TZS)</th>
-            <th class="eb-th">Status</th>
-            <th class="eb-th eb-th--actions"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="!filtered.length">
-            <td colspan="8">
-              <div class="eb-empty">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="7" width="20" height="14" rx="2"/>
-                  <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                  <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
-                </svg>
-                <p class="eb-empty-title">{{ searchQ ? 'No matching items' : 'No budget items yet' }}</p>
-                <p class="eb-empty-sub">{{ searchQ ? 'Try a different search term' : 'Start planning what you need for your event' }}</p>
-                <button v-if="!searchQ" class="eb-add-btn eb-add-btn--lg" @click="openAdd">Add First Item</button>
-              </div>
-            </td>
-          </tr>
-          <tr v-for="(item, i) in filtered" :key="item.id" class="eb-tr">
-            <td class="eb-td eb-td--num">{{ i + 1 }}</td>
-            <td class="eb-td">
-              <span class="eb-cat-badge">{{ item.category }}</span>
-            </td>
-            <td class="eb-td eb-td--desc">{{ item.description }}</td>
-            <td class="eb-td eb-td--vendor">{{ item.vendor || '—' }}</td>
-            <td class="eb-td eb-td--right eb-td--money">{{ formatMoney(item.estimatedCost) }}</td>
-            <td class="eb-td eb-td--right">
-              <span v-if="item.actualCost != null" class="eb-td--money" :class="{ 'eb-over': item.actualCost > item.estimatedCost }">
-                {{ formatMoney(item.actualCost) }}
-              </span>
-              <span v-else class="eb-td--muted">—</span>
-            </td>
-            <td class="eb-td">
-              <span class="eb-status" :class="`eb-status--${item.status}`">{{ STATUS_LABELS[item.status] ?? item.status }}</span>
-            </td>
-            <td class="eb-td eb-td--actions">
-              <button class="eb-act-btn" @click="openEdit(item)" title="Edit">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-              </button>
-              <button class="eb-act-btn eb-act-btn--danger" @click="deleteItem(item)" title="Delete">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                  <path d="M10 11v6"/><path d="M14 11v6"/>
-                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                </svg>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- ── Card list ── -->
+    <div v-else class="eb-list">
 
+      <!-- Empty state -->
+      <div v-if="!filtered.length" class="eb-empty">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/>
+          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+        </svg>
+        <p class="eb-empty-title">{{ searchQ ? 'No matching items' : 'No budget items yet' }}</p>
+        <p class="eb-empty-sub">{{ searchQ ? 'Try a different search term' : 'Start planning what you need for your event' }}</p>
+        <button v-if="!searchQ" class="eb-add-btn eb-add-btn--lg" @click="openAdd">Add First Item</button>
+      </div>
+
+      <!-- Item cards -->
+      <div
+        v-for="(item, i) in filtered"
+        :key="item.id"
+        class="eb-card"
+        :class="item.actualCost != null && item.actualCost > item.estimatedCost ? 'eb-card--expense' : 'eb-card--income'"
+      >
+        <!-- Icon zone -->
+        <div class="eb-card-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2"/>
+            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          </svg>
+        </div>
+
+        <!-- Identity -->
+        <div class="eb-card-info">
+          <span class="eb-card-name">{{ item.description }}</span>
+          <div class="eb-card-meta">
+            <span class="eb-cat-badge">{{ item.category }}</span>
+            <span class="eb-status" :class="`eb-status--${item.status}`">{{ STATUS_LABELS[item.status] ?? item.status }}</span>
+          </div>
+          <span v-if="item.vendor" class="eb-card-vendor">{{ item.vendor }}</span>
+        </div>
+
+        <!-- Amounts -->
+        <div class="eb-card-amounts">
+          <div class="eb-amount-item">
+            <span class="eb-amount-label">Estimated</span>
+            <span class="eb-amount-value eb-amount-value--gold">{{ formatMoney(item.estimatedCost) }}</span>
+          </div>
+          <div class="eb-amount-item">
+            <span class="eb-amount-label">Actual</span>
+            <span
+              v-if="item.actualCost != null"
+              class="eb-amount-value"
+              :class="item.actualCost > item.estimatedCost ? 'eb-amount-value--over' : 'eb-amount-value--under'"
+            >{{ formatMoney(item.actualCost) }}</span>
+            <span v-else class="eb-amount-value eb-amount-value--dash">—</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="eb-card-actions">
+          <button class="eb-act-btn" @click="openEdit(item)" title="Edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="eb-act-btn eb-act-btn--danger" @click="deleteItem(item)" title="Delete">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer totals -->
       <div v-if="filtered.length" class="eb-table-footer">
         <span class="eb-range-label">{{ filtered.length }} item{{ filtered.length !== 1 ? 's' : '' }}</span>
         <span class="eb-range-label">
@@ -260,7 +320,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { db } from '../../firebase'
 import {
@@ -281,6 +341,11 @@ const loading   = ref(true)
 const loadError = ref('')
 const items     = ref([])
 const searchQ   = ref('')
+
+const searchOpen     = ref(false)
+const searchInputRef = ref(null)
+function openSearch() { searchOpen.value = true; nextTick(() => searchInputRef.value?.focus()) }
+function closeSearch() { searchOpen.value = false; searchQ.value = '' }
 
 const modal = ref({ open: false, editId: null, saving: false, form: emptyForm() })
 
@@ -413,61 +478,110 @@ onMounted(load)
 </script>
 
 <style scoped>
-.eb-root { padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 16px; }
+.eb-root {
+  padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 16px;
+  --c-bg:     #141414;
+  --c-border: #2a2a2a;
+  --c-track:  #2a2a2a;
+  --c-muted:  #3a3a3a;
+  --c-txt:    #f0f0ec;
+  --c-txt-2:  #888;
+  --c-txt-3:  #555;
+  --c-divide: #2a2a2a;
+  --c-arrow:  #3a3a3a;
+  transition: background 300ms ease;
+}
 
 /* ── Panel ── */
 .eb-panel {
   display: flex; flex-direction: column;
-  background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; overflow: hidden;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px; overflow: hidden;
+  transition: background 300ms ease, border-color 300ms ease;
 }
 .eb-panel-hd {
   display: flex; align-items: center;
-  padding: 14px 20px; border-bottom: 1px solid #1e1e1e; gap: 10px;
+  padding: 14px 20px; border-bottom: 1px solid var(--c-border); gap: 10px;
 }
 .eb-panel-title {
-  font-size: 19px; font-weight: 700; color: #f0f0ec; margin: 0; letter-spacing: -0.3px; white-space: nowrap;
+  font-size: 19px; font-weight: 700; color: var(--c-txt); margin: 0; letter-spacing: -0.3px; white-space: nowrap;
 }
-.eb-panel-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.eb-panel-acts { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
 /* ── Stat cards ── */
 .eb-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .eb-stat-card {
-  background: #141414; border: 1px solid #2a2a2a; border-radius: 12px;
-  padding: 16px 18px; display: flex; align-items: center; gap: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
+  padding: 20px 20px 18px; display: flex; align-items: flex-start; gap: 16px;
+  transition: background 300ms ease, border-color 300ms ease;
 }
 .eb-stat-icon {
-  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
-  background: rgba(201,168,76,0.08); color: #C9A84C;
+  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
   display: flex; align-items: center; justify-content: center;
 }
 .eb-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
-.eb-stat-icon--green  { background: rgba(52,211,153,0.10);  color: #34d399; }
-.eb-stat-icon--red    { background: rgba(239,68,68,0.10);   color: #f87171; }
-.eb-stat-icon--purple { background: rgba(167,139,250,0.10); color: #a78bfa; }
+.eb-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
+.eb-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
+.eb-stat-icon--red    { background: rgba(252,129,129,0.08); color: #fc8181; }
+.eb-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
 .eb-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.eb-stat-val  { font-size: 28px; font-weight: 700; color: #f0f0ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.5px; line-height: 1; }
-.eb-stat-val--over { color: #f87171; }
-.eb-stat-lbl  { font-size: 11px; color: #777; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+.eb-stat-lbl  { font-size: 11px; color: var(--c-txt-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
+.eb-stat-val  { font-size: 32px; font-weight: 700; color: var(--c-txt); line-height: 1; letter-spacing: -0.5px; }
+.eb-stat-val--money { font-size: 22px; }
 
-/* ── Search ── */
+/* ── Search pill ── */
+.eb-search-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 10px;
+  border: 1px solid var(--c-border); background: var(--c-muted);
+  color: var(--c-txt-2); font-size: 12px; font-weight: 500;
+  font-family: inherit; cursor: pointer;
+  transition: all 140ms; white-space: nowrap;
+}
+.eb-search-pill:hover { background: var(--c-bg); color: var(--c-txt); }
+.eb-search-pill--active { color: var(--c-txt); border-color: var(--c-border); background: var(--c-bg); }
+
+/* ── Search expanded ── */
+.eb-search-expanded { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
 .eb-search-wrap {
   display: flex; align-items: center; gap: 8px;
-  background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px;
-  padding: 0 12px; height: 36px; margin-left: auto; max-width: 320px; min-width: 120px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 10px;
+  padding: 0 12px; height: 36px; flex: 1;
   transition: border-color 150ms;
 }
 .eb-search-wrap:focus-within { border-color: #C9A84C; }
-.eb-search { flex: 1; border: none; outline: none; font-size: 13px; color: #f0f0ec; background: transparent; }
+.eb-search { flex: 1; border: none; outline: none; font-size: 13px; color: var(--c-txt); background: transparent; }
 .eb-search::placeholder { color: #666; }
-.eb-search-clear { background: none; border: none; cursor: pointer; color: #555; display: flex; align-items: center; padding: 0; }
-.eb-search-clear:hover { color: #f0f0ec; }
-.eb-toolbar-count { font-size: 12px; color: #888; }
+.eb-search-clear { background: none; border: none; cursor: pointer; color: var(--c-txt-3); display: flex; align-items: center; padding: 0; }
+.eb-search-clear:hover { color: var(--c-txt); }
+.eb-search-cancel {
+  flex-shrink: 0; padding: 7px 2px; border: none; background: none;
+  font-size: 13px; font-weight: 500; color: var(--c-txt-2); cursor: pointer;
+  font-family: inherit; transition: color 130ms;
+}
+.eb-search-cancel:hover { color: var(--c-txt); }
+
+.eb-toolbar-count { font-size: 12px; color: var(--c-txt-2); }
+
+/* ── Refresh button ── */
+.eb-refresh-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 9px;
+  background: var(--c-muted); border: 1px solid var(--c-border);
+  color: var(--c-txt-2); cursor: pointer;
+  transition: background 140ms, color 140ms, border-color 140ms;
+  flex-shrink: 0;
+}
+.eb-refresh-btn:hover:not(:disabled) { background: var(--c-bg); color: var(--c-txt); border-color: var(--c-border); }
+.eb-refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Spin animation ── */
+.eb-spin { animation: eb-spin-anim 1.1s linear infinite; }
+@keyframes eb-spin-anim { to { transform: rotate(360deg); } }
 
 .eb-add-btn {
   display: flex; align-items: center; gap: 6px;
   background: #C9A84C; border: none;
-  color: #0e0e0e; font-size: 13px; font-weight: 700;
+  color: #070707; font-size: 13px; font-weight: 700;
   padding: 0 14px; height: 36px; border-radius: 10px; cursor: pointer;
   transition: background 150ms;
   font-family: inherit; white-space: nowrap; flex-shrink: 0;
@@ -475,39 +589,56 @@ onMounted(load)
 .eb-add-btn:hover { background: #d4b560; }
 .eb-add-btn--lg { margin-top: 8px; height: 40px; padding: 0 20px; }
 
-/* ── Table ── */
-.eb-table-wrap { background: #141414; border-top: 1px solid #1e1e1e; overflow: hidden; }
-.eb-table { width: 100%; border-collapse: collapse; }
-
-.eb-th {
-  padding: 11px 14px; text-align: left;
-  font-size: 11px; font-weight: 700; color: #888; letter-spacing: 0.4px; text-transform: uppercase;
-  background: #141414; border-bottom: 1px solid #2a2a2a; white-space: nowrap;
+/* ── Card list ── */
+.eb-list {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 12px 16px; background: var(--c-bg);
 }
-.eb-th--num     { width: 44px; }
-.eb-th--right   { text-align: right; }
-.eb-th--actions { width: 72px; }
 
-.eb-tr { border-bottom: 1px solid #1a1a1a; transition: background 0.1s; }
-.eb-tr:last-child { border-bottom: none; }
-.eb-tr:hover { background: rgba(255,255,255,0.02); }
+.eb-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 16px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
+  transition: background 150ms, border-color 150ms, box-shadow 150ms;
+}
+.eb-card:hover:not(.eb-card--sk) { background: var(--c-hover, var(--c-bg)); border-color: var(--c-border); box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+.eb-card--sk { pointer-events: none; }
 
-.eb-td { padding: 12px 14px; font-size: 13px; color: #f0f0ec; vertical-align: middle; }
-.eb-td--num    { color: #555; font-size: 12px; text-align: center; width: 44px; }
-.eb-td--right  { text-align: right; }
-.eb-td--desc   { font-weight: 500; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.eb-td--vendor { color: #888; font-size: 12px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.eb-td--money  { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #f0f0ec; }
-.eb-td--muted  { color: #555; }
-.eb-td--actions { text-align: right; white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+/* Left border stripe */
+.eb-card--income  { box-shadow: inset 3px 0 0 rgba(48,209,88,0.50); }
+.eb-card--expense { box-shadow: inset 3px 0 0 rgba(255,69,58,0.40); }
 
-.eb-over { color: #f87171; }
+/* Icon zone */
+.eb-card-icon {
+  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(201,168,76,0.10); color: #C9A84C;
+}
+
+/* Identity */
+.eb-card-info { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.eb-card-name { font-size: 13px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eb-card-meta { font-size: 11px; color: var(--c-txt-3); display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.eb-card-vendor { font-size: 11px; color: var(--c-txt-3); margin-top: 2px; }
+
+/* Amounts zone */
+.eb-card-amounts { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.eb-amount-item { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.eb-amount-label { font-size: 10px; color: var(--c-txt-3); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+.eb-amount-value { font-size: 14px; font-weight: 700; color: var(--c-txt); }
+.eb-amount-value--over  { color: #C41E1E; }
+.eb-amount-value--under { color: #1D7A38; }
+.eb-amount-value--gold  { color: #C9A84C; }
+.eb-amount-value--dash  { color: var(--c-txt-3); }
+
+/* Card actions */
+.eb-card-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 
 /* Category badge */
 .eb-cat-badge {
   display: inline-block; padding: 2px 9px; border-radius: 6px;
   font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
-  background: rgba(255,255,255,0.06); color: #d4cfc8; border: 1px solid rgba(255,255,255,0.08);
+  background: var(--c-badge-bg, rgba(255,255,255,0.06)); color: var(--c-txt-2); border: 1px solid var(--c-border);
   white-space: nowrap;
 }
 
@@ -525,72 +656,73 @@ onMounted(load)
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; border-radius: 7px;
   background: none; border: none; cursor: pointer;
-  color: #555; transition: background 130ms, color 130ms;
+  color: var(--c-txt-3); transition: background 130ms, color 130ms;
 }
-.eb-act-btn:hover { background: rgba(255,255,255,0.07); color: #f0f0ec; }
+.eb-act-btn:hover { background: var(--c-badge-bg, rgba(255,255,255,0.07)); color: var(--c-txt); }
 .eb-act-btn--danger:hover { background: rgba(239,68,68,0.12); color: #f87171; }
 
-/* Table footer */
+/* List footer */
 .eb-table-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 11px 16px; border-top: 1px solid #2a2a2a;
-  background: #141414; gap: 12px; flex-wrap: wrap;
+  padding: 11px 0 3px; border-top: 1px solid var(--c-divide);
+  margin-top: 2px; gap: 12px; flex-wrap: wrap;
 }
-.eb-range-label { font-size: 12px; color: #888; font-weight: 500; white-space: nowrap; }
+.eb-range-label { font-size: 12px; color: var(--c-txt-2); font-weight: 500; white-space: nowrap; }
 
 /* ── Skeleton ── */
-.eb-skel {
-  height: 20px; border-radius: 6px; background: #1a1a1a; margin: 9px 14px;
-  animation: eb-shimmer 1.4s ease-in-out infinite;
-}
-@keyframes eb-shimmer { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes eb-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.eb-sk-circle { width: 40px; height: 40px; border-radius: 11px; background: var(--c-track); flex-shrink: 0; animation: eb-pulse 1.4s ease-in-out infinite; }
+.eb-sk-bar    { height: 12px; border-radius: 6px; background: var(--c-track); animation: eb-pulse 1.4s ease-in-out infinite; }
+.eb-sk-bar--lg { width: 140px; }
+.eb-sk-bar--sm { width: 80px; }
 
 /* ── Empty state ── */
 .eb-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 60px 20px; gap: 8px;
 }
-.eb-empty-title { font-size: 14px; font-weight: 600; color: #888; margin: 4px 0 0; }
-.eb-empty-sub   { font-size: 13px; color: #555; margin: 0; }
+.eb-empty-title { font-size: 14px; font-weight: 600; color: var(--c-txt-2); margin: 4px 0 0; }
+.eb-empty-sub   { font-size: 13px; color: var(--c-txt-3); margin: 0; }
 
 /* ── Modal ── */
 .eb-backdrop {
   position: fixed; inset: 0; z-index: 500;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  background: var(--overlay-bg);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .eb-modal {
-  background: #141414; border: 1px solid #2a2a2a; border-radius: 16px;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px;
   width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
   box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  transition: background 300ms ease, border-color 300ms ease;
 }
 .eb-modal-hd {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px 16px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0;
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--c-border); flex-shrink: 0;
 }
-.eb-modal-title { font-size: 16px; font-weight: 700; color: #f0f0ec; margin: 0; }
+.eb-modal-title { font-size: 16px; font-weight: 700; color: var(--c-txt); margin: 0; }
 .eb-modal-close {
-  background: none; border: none; cursor: pointer; color: #555;
+  background: none; border: none; cursor: pointer; color: var(--c-txt-3);
   display: flex; align-items: center; padding: 4px; border-radius: 6px;
   transition: color 130ms, background 130ms;
 }
-.eb-modal-close:hover { color: #f0f0ec; background: rgba(255,255,255,0.06); }
+.eb-modal-close:hover { color: var(--c-txt); background: var(--c-badge-bg, rgba(255,255,255,0.06)); }
 
 .eb-modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
 .eb-modal-ft   { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
 
 .eb-field     { display: flex; flex-direction: column; gap: 6px; }
 .eb-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.eb-label     { font-size: 12px; font-weight: 600; color: #888; letter-spacing: 0.2px; }
-.eb-opt       { font-weight: 400; color: #555; }
+.eb-label     { font-size: 12px; font-weight: 600; color: var(--c-txt-2); letter-spacing: 0.2px; }
+.eb-opt       { font-weight: 400; color: var(--c-txt-3); }
 
 .eb-input {
-  background: #111111; border: 1px solid #2a2a2a; border-radius: 9px;
-  padding: 9px 12px; font-size: 13.5px; color: #f0f0ec; outline: none;
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 9px;
+  padding: 9px 12px; font-size: 13.5px; color: var(--c-txt); outline: none;
   transition: border-color 150ms; font-family: inherit; width: 100%; box-sizing: border-box;
 }
 .eb-input:focus  { border-color: #C9A84C; }
-.eb-input::placeholder { color: #555; }
+.eb-input::placeholder { color: var(--c-txt-3); }
 .eb-textarea { resize: vertical; min-height: 64px; }
 
 select.eb-input { appearance: none; cursor: pointer; }
@@ -603,8 +735,8 @@ select.eb-input { appearance: none; cursor: pointer; }
   transition: background 150ms, opacity 150ms; border: none;
 }
 .eb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.eb-btn--ghost   { background: rgba(255,255,255,0.06); color: #888; border: 1px solid #2a2a2a; }
-.eb-btn--ghost:hover:not(:disabled)   { background: rgba(255,255,255,0.10); color: #f0f0ec; }
+.eb-btn--ghost   { background: var(--c-badge-bg, rgba(255,255,255,0.06)); color: var(--c-txt-2); border: 1px solid var(--c-border); }
+.eb-btn--ghost:hover:not(:disabled)   { background: var(--c-muted, rgba(255,255,255,0.10)); color: var(--c-txt); }
 .eb-btn--primary { background: rgba(201,168,76,0.15); color: #C9A84C; border: 1px solid rgba(201,168,76,0.3); }
 .eb-btn--primary:hover:not(:disabled) { background: rgba(201,168,76,0.25); border-color: rgba(201,168,76,0.5); }
 
@@ -612,14 +744,56 @@ select.eb-input { appearance: none; cursor: pointer; }
 @media (max-width: 900px) {
   .eb-stats { grid-template-columns: repeat(2, 1fr); }
 }
+@media (max-width: 640px) {
+  /* Panel header: wrap so acts don't squeeze title */
+  .eb-panel-hd { flex-wrap: wrap; padding: 10px 14px; gap: 8px; }
+  .eb-panel-title { flex: 1; font-size: 17px; }
+  .eb-panel-acts { order: 2; flex-shrink: 0; }
+
+  /* Stat cards: switch to column layout so label never wraps */
+  .eb-stat-card { flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 14px 12px; }
+  .eb-stat-icon { width: 32px; height: 32px; border-radius: 8px; margin-top: 0; flex-shrink: 0; }
+  .eb-stat-body { gap: 2px; width: 100%; }
+  .eb-stat-lbl { font-size: 10px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .eb-stat-val { font-size: 20px; }
+  .eb-stat-val--money { font-size: 16px; }
+
+  /* List */
+  .eb-list { padding: 8px 10px; gap: 5px; }
+
+  /* Budget item cards: flex-wrap with explicit order so actions stay top-right */
+  .eb-card { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0; padding: 12px 14px; }
+  .eb-card-icon    { flex-shrink: 0; align-self: flex-start; margin-right: 12px; order: 1; }
+  .eb-card-info    { flex: 1; min-width: 0; order: 2; }
+  .eb-card-actions { flex-shrink: 0; display: flex; gap: 4px; margin-left: 8px; order: 3; }
+  /* amounts wraps to its own row (order 4), indented past icon */
+  .eb-card-amounts {
+    order: 4;
+    flex: 0 0 100%;
+    margin-left: 52px; /* indent to clear icon+gap */
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--c-divide);
+  }
+  .eb-amount-item { flex-direction: row; align-items: center; gap: 5px; }
+  .eb-amount-item + .eb-amount-item { margin-left: 14px; padding-left: 14px; border-left: 1px solid var(--c-divide); }
+  .eb-amount-label { font-size: 10px; text-transform: none; letter-spacing: 0; color: var(--c-txt-3); }
+  .eb-amount-value { font-size: 13px; }
+}
 @media (max-width: 600px) {
   .eb-root  { padding: 12px 14px 24px; gap: 12px; }
   .eb-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .eb-toolbar { flex-wrap: wrap; gap: 8px; }
   .eb-field-row { grid-template-columns: 1fr; }
-  .eb-th--vendor, .eb-td--vendor { display: none; }
 }
 @media (max-width: 420px) {
-  .eb-stats { grid-template-columns: 1fr; }
+  .eb-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .eb-stat-card { padding: 12px 12px 10px; gap: 6px; }
+  .eb-stat-val { font-size: 18px; }
+  .eb-stat-val--money { font-size: 15px; }
+  .eb-stat-icon { width: 28px; height: 28px; }
 }
 </style>
