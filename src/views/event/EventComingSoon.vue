@@ -92,6 +92,13 @@ const icon = computed(() => meta.value.icon)
 
 <style scoped>
 .cs-root {
+  --c-bg:     #111827;
+  --c-bg-2:   #0d1326;
+  --c-border: #1e2d44;
+  --c-txt:    #e2e8f0;
+  --c-txt-2:  #8892a4;
+  --c-hover:  #1a2236;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -103,40 +110,42 @@ const icon = computed(() => meta.value.icon)
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
   border-radius: 20px;
   padding: 48px 56px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   text-align: center;
   max-width: 380px;
+  transition: background 300ms ease, border-color 300ms ease;
 }
 .cs-icon-wrap {
   width: 80px;
   height: 80px;
   border-radius: 20px;
-  background: #0d1326;
+  background: var(--c-bg-2);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 4px;
+  transition: background 300ms ease;
 }
 .cs-title {
   font-size: 20px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--c-txt);
   margin: 0;
 }
 .cs-sub {
   font-size: 14px;
-  color: #8892a4;
+  color: var(--c-txt-2);
   margin: 0;
   line-height: 1.5;
 }
 .cs-back-btn {
   margin-top: 8px;
   background: none;
-  border: 1px solid #2a3a52;
+  border: 1px solid var(--c-border);
   border-radius: 10px;
   padding: 9px 18px;
   font-size: 13px;
@@ -145,5 +154,5 @@ const icon = computed(() => meta.value.icon)
   cursor: pointer;
   transition: background 130ms;
 }
-.cs-back-btn:hover { background: #1a2236; }
+.cs-back-btn:hover { background: var(--c-hover); }
 </style>

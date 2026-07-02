@@ -174,7 +174,7 @@ async function handleSignIn() {
     try {
       await updateDoc(doc(db, 'users', credential.user.uid), { password: form.value.password })
     } catch (_) { /* non-blocking */ }
-    const redirect = route.query.redirect ?? '/my-events'
+    const redirect = route.query.redirect ?? '/'
     router.push(redirect)
   } catch (e) {
     authError.value = friendlyError(e.code)
@@ -441,8 +441,7 @@ function friendlyError(code) {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(4px);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;

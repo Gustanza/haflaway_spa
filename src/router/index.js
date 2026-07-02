@@ -38,7 +38,8 @@ const waitForAuth = new Promise(resolve => {
     })
 })
 
-const PROTECTED = ['/my-events', '/create-event', '/edit-event', '/event/', '/dashboard']
+const PROTECTED = ['/create-event', '/edit-event', '/event/', '/dashboard']
+const PROTECTED_EXACT = ['/']
 
 const routes = [
     {
@@ -59,8 +60,9 @@ const routes = [
     },
     {
         path: '/',
-        name: 'Nyumbani',
-        component: Landing_Page,
+        name: 'MyEvents',
+        component: MyEvents,
+        meta: { title: 'My Events' },
     },
     {
         path: '/pricing',
@@ -85,12 +87,6 @@ const routes = [
         meta: { title: 'Create Event' },
     },
     {
-        path: '/my-events',
-        name: 'MyEvents',
-        component: MyEvents,
-        meta: { title: 'My Events' },
-    },
-    {
         path: '/edit-event/:eventId',
         name: 'EditEvent',
         component: EditEvent,
@@ -102,11 +98,12 @@ const routes = [
         redirect: to => `/event/${to.params.eventId}/overview`,
         children: [
             { path: 'overview', name: 'EventOverview', component: EventOverview, meta: { title: 'Overview' } },
-            { path: 'attendees', name: 'EventAttendees', component: EventAttendees, meta: { title: 'Attendees' } },
+            { path: 'attendees', name: 'EventAttendees', component: EventAttendees, meta: { title: 'Invitees' } },
+            { path: 'contacts', name: 'EventContacts', component: EventAttendees, meta: { title: 'Contacts' } },
             { path: 'checkins', name: 'EventCheckins', component: EventCheckins, meta: { title: 'Check-ins' } },
             { path: 'cards', name: 'EventCards', component: EventCards, meta: { title: 'Cards' } },
-            { path: 'messages', name: 'EventMessages', component: EventMessages, meta: { title: 'Messages' } },
-            { path: 'campaigns', name: 'EventCampaigns', component: EventCampaigns, meta: { title: 'Notifications' } },
+            { path: 'invitations', name: 'EventMessages', component: EventMessages, meta: { title: 'Invitations' } },
+            { path: 'bulk-messages', name: 'EventCampaigns', component: EventCampaigns, meta: { title: 'Bulk Messages' } },
             { path: 'gallery', name: 'EventGallery', component: EventGallery, meta: { title: 'Gallery' } },
             { path: 'zawadi', name: 'EventZawadi', component: EventZawadi, meta: { title: 'Zawadi' } },
             { path: 'payments', name: 'EventPayments', component: EventPayments, meta: { title: 'Payments' } },
@@ -138,7 +135,7 @@ router.beforeEach(async (to) => {
     // Wait for Firebase to restore the session on first navigation
     const user = authResolved ? auth.currentUser : await waitForAuth
 
-    const needsAuth = PROTECTED.some(prefix => to.path.startsWith(prefix))
+    const needsAuth = PROTECTED.some(prefix => to.path.startsWith(prefix)) || PROTECTED_EXACT.includes(to.path)
     const isGuestOnly = to.meta.guestOnly
 
     if (needsAuth && !user) {
