@@ -643,7 +643,6 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, auth } from '../../firebase'
 import { collection, query, orderBy, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore'
-import { utils, writeFile } from 'xlsx'
 
 const vClickOutside = {
   mounted(el, binding) {
@@ -1179,123 +1178,224 @@ function doExport() {
   else exportExcel()
 }
 
-function exportExcel() {
-  const type         = exportType.value
-  const isContrib    = type === 'contribution' || type === 'contact'
-  const campaignLabel = KNOWN_CAMPAIGNS.find(c => c.id === activeCampaign.value)?.label ?? activeCampaign.value
-  const eventName    = props.event?.title ?? 'Event'
-  const exportedOn   = new Date().toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' })
-  const rows         = filteredList.value
+async function exportExcel() {
+  // ── Core logic — untouched ────────────────────────────────────────────
+  const type          = exportType.value
+  const isContrib     = type === 'contribution' || type === 'contact'
+  const campaignLbl   = KNOWN_CAMPAIGNS.find(c => c.id === activeCampaign.value)?.label ?? activeCampaign.value
+  const eventName     = props.event?.title ?? 'Event'
+  const exportedOn    = new Date().toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' })
+  const rows          = filteredList.value
 
-  // ── Column config per type ────────────────────────────────────────
   const hdrs = isContrib
     ? ['Name', 'Phone', 'Pledged (TZS)', 'Paid (TZS)', 'Outstanding (TZS)', 'RSVP', 'Added']
     : ['Name', 'Phone', 'WhatsApp', 'SMS', 'RSVP', 'Added']
-  const colDefs = isContrib
-    ? [{ wch: 28 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 14 }]
-    : [{ wch: 28 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }]
+  const colWidths = isContrib
+    ? [28, 18, 16, 16, 18, 16, 14]
+    : [28, 18, 14, 14, 16, 14]
   const getVals = isContrib
     ? a => { const p = a.pledgedAmount ?? 0; const pd = a.paidAmount ?? 0; return [a.fullName||'', a.phone||'', p, pd, p - pd, a.attendanceStatus||'Not Confirmed', formatDate(a.createdAt)] }
     : a => [a.fullName||'', a.phone||'', STATUS_LABELS[wspStatus(a)]||'—', STATUS_LABELS[smsStatus(a)]||'—', a.attendanceStatus||'Not Confirmed', formatDate(a.createdAt)]
 
-  const nC      = hdrs.length
-  const COLS    = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.slice(0, nC)
-  const lastCol = COLS[nC - 1]
+  const nC       = hdrs.length
+  const sheetName = type === 'contribution' ? 'Contributions' : type === 'contact' ? 'Contacts' : 'Messages'
+  const fileSlug  = type === 'contribution' ? 'contributions' : type === 'contact' ? 'contacts' : 'messages'
 
-  // ── Palette ───────────────────────────────────────────────────────
-  const DARK='1C1A18', GOLD='C9A84C', GOLDMID='A89A6A', WHITE='FFFFFF', LIGHT='F8F8F6', BORDER='E5E4E0', GRAY='8A8580'
+  // ── Build styled workbook ─────────────────────────────────────────────
+  const ExcelJS = (await import('exceljs')).default ?? (await import('exceljs'))
+  const wb = new ExcelJS.Workbook()
+  wb.creator = 'Haflaway'
+  wb.created = new Date()
 
-  const ws = {}
-  const put    = (r, c, v, s, t) => { ws[`${COLS[c]}${r}`] = { v, t: t ?? (typeof v === 'number' ? 'n' : 's'), s } }
-  const blk    = (r, c, bg) => put(r, c, '', { fill: { patternType: 'solid', fgColor: { rgb: bg } } })
-  const blkRow = (r, bg) => { for (let c = 0; c < nC; c++) blk(r, c, bg) }
-  const mkFont = (sz, bold, italic, rgb) => { const o = { name: 'Calibri', sz, color: { rgb } }; if (bold) o.bold = true; if (italic) o.italic = true; return o }
-  const fl     = rgb => ({ patternType: 'solid', fgColor: { rgb } })
+  const ws = wb.addWorksheet(sheetName, {
+    views: [{ state: 'frozen', ySplit: 7 }],
+  })
 
-  // ── Row 1: HAFLAWAY ──────────────────────────────────────────────
-  blkRow(1, DARK)
-  put(1, 0, 'HAFLAWAY', { font: mkFont(24, true, false, GOLD), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' } })
+  const fill    = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } })
+  const SHEET_BG = 'FF0A0A0B'
 
-  // ── Row 2: tagline ───────────────────────────────────────────────
-  blkRow(2, DARK)
-  put(2, 0, 'Invitations with Class  ·  Guests Welcomed  ·  Perfect Celebration', { font: mkFont(9, false, true, GOLDMID), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' } })
+  ws.columns = colWidths.map(w => ({ width: w }))
+  for (let ci = 1; ci <= 200; ci++) {
+    ws.getColumn(ci).style = {
+      fill: fill(SHEET_BG),
+      font: { name: 'Calibri', size: 10, color: { argb: 'FFD8D4CD' } },
+    }
+  }
 
-  // ── Row 3: gold bar ──────────────────────────────────────────────
-  blkRow(3, GOLD)
+  // ── Row 1: Brand ──────────────────────────────────────────────────────
+  ws.mergeCells(1, 1, 1, nC)
+  ws.getRow(1).height = 46
+  const titleCell = ws.getCell('A1')
+  titleCell.value = 'HAFLAWAY'
+  titleCell.font  = { name: 'Calibri', size: 26, bold: true, color: { argb: 'FFC9A84C' } }
+  titleCell.fill  = fill(SHEET_BG)
+  titleCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 2 }
 
-  // ── Rows 4-5: meta strip ─────────────────────────────────────────
-  const sLbl  = { font: mkFont(9, true, false, GRAY),   fill: fl(LIGHT), alignment: { vertical: 'center' } }
-  const sVal  = { font: mkFont(10, false, false, DARK), fill: fl(LIGHT), alignment: { vertical: 'center' } }
-  const sValB = { font: mkFont(10, true, false, DARK),  fill: fl(LIGHT), alignment: { vertical: 'center' } }
-  const sNum  = { font: mkFont(10, true, false, DARK),  fill: fl(LIGHT) }
+  // ── Row 2: Tagline ────────────────────────────────────────────────────
+  ws.mergeCells(2, 1, 2, nC)
+  ws.getRow(2).height = 16
+  const tagCell = ws.getCell('A2')
+  tagCell.value = 'Invitations with Class  ·  Guests Welcomed  ·  Perfect Celebration'
+  tagCell.font  = { name: 'Calibri', size: 9, italic: true, color: { argb: 'FFA89A6A' } }
+  tagCell.fill  = fill(SHEET_BG)
+  tagCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 2 }
 
-  blkRow(4, LIGHT); blkRow(5, LIGHT)
-  put(4, 0, 'EVENT',    sLbl); put(4, 1, eventName,  sValB)
-  put(5, 0, 'EXPORTED', sLbl); put(5, 1, exportedOn, sVal)
+  // ── Row 3: Gold divider ───────────────────────────────────────────────
+  ws.mergeCells(3, 1, 3, nC)
+  ws.getRow(3).height = 3
+  ws.getCell('A3').fill = fill('FFC9A84C')
+
+  // ── Rows 4-5: Meta strip ──────────────────────────────────────────────
+  ws.getRow(4).height = 20
+  ws.getRow(5).height = 20
+
+  const metaLabel = (row, col, text) => {
+    const c = ws.getCell(row, col)
+    c.value = text
+    c.font  = { name: 'Calibri', size: 9, bold: true, color: { argb: 'FF555555' } }
+    c.fill  = fill(SHEET_BG)
+    c.alignment = { vertical: 'middle' }
+  }
+  const metaVal = (row, col, text, bold = false, color = 'FFF0F0EC') => {
+    const c = ws.getCell(row, col)
+    c.value = text
+    c.font  = { name: 'Calibri', size: 10, bold, color: { argb: color } }
+    c.fill  = fill(SHEET_BG)
+    c.alignment = { vertical: 'middle' }
+  }
+
+  metaLabel(4, 1, 'EVENT');    metaVal(4, 2, eventName, true)
+  metaLabel(5, 1, 'EXPORTED'); metaVal(5, 2, exportedOn)
 
   if (isContrib) {
     const totalPledged = rows.reduce((s, a) => s + (a.pledgedAmount ?? 0), 0)
     const totalPaid    = rows.reduce((s, a) => s + (a.paidAmount ?? 0), 0)
-    put(4, 3, 'TOTAL PLEDGED', sLbl); ws[`${COLS[4]}4`] = { v: totalPledged, t: 'n', s: sNum }
-    put(5, 3, 'TOTAL PAID',    sLbl); ws[`${COLS[4]}5`] = { v: totalPaid,    t: 'n', s: sNum }
-    put(4, 5, 'OUTSTANDING',   sLbl); ws[`${COLS[6]}4`] = { v: totalPledged - totalPaid, t: 'n', s: sNum }
-    put(5, 5, 'RECORDS',       sLbl); ws[`${COLS[6]}5`] = { v: rows.length, t: 'n', s: sNum }
+    const outstanding  = totalPledged - totalPaid
+
+    metaLabel(4, 4, 'TOTAL PLEDGED'); metaVal(4, 5, totalPledged, true, 'FFC9A84C')
+    metaLabel(5, 4, 'TOTAL PAID');    metaVal(5, 5, totalPaid,    true, 'FF30D158')
+    ws.getCell(4, 5).numFmt = '#,##0'
+    ws.getCell(5, 5).numFmt = '#,##0'
+
+    if (nC >= 7) {
+      metaLabel(4, 6, 'OUTSTANDING'); metaVal(4, 7, outstanding, true, outstanding > 0 ? 'FFFF9F0A' : 'FF30D158')
+      metaLabel(5, 6, 'RECORDS');     metaVal(5, 7, rows.length,  true)
+      ws.getCell(4, 7).numFmt = '#,##0'
+    }
   } else {
-    put(4, 3, 'CAMPAIGN', sLbl); put(4, 4, campaignLabel, sVal)
-    put(5, 3, 'TOTAL',    sLbl); ws[`${COLS[4]}5`] = { v: rows.length, t: 'n', s: sNum }
+    metaLabel(4, 4, 'CAMPAIGN'); metaVal(4, 5, campaignLbl)
+    metaLabel(5, 4, 'TOTAL');    metaVal(5, 5, rows.length, true, 'FFC9A84C')
   }
 
-  // ── Row 6: spacer ────────────────────────────────────────────────
-  blkRow(6, WHITE)
+  // ── Row 6: Spacer ─────────────────────────────────────────────────────
+  ws.getRow(6).height = 6
 
-  // ── Row 7: column headers ────────────────────────────────────────
-  const sHdr = { font: mkFont(10, true, false, WHITE), fill: fl(GOLD), alignment: { horizontal: 'center', vertical: 'center' } }
-  hdrs.forEach((h, c) => put(7, c, h, sHdr))
+  // ── Row 7: Column headers ─────────────────────────────────────────────
+  ws.getRow(7).height = 24
+  hdrs.forEach((h, i) => {
+    const c = ws.getCell(7, i + 1)
+    c.value = h
+    c.font  = { name: 'Calibri', size: 9, bold: true, color: { argb: 'FF666666' } }
+    c.fill  = fill('FF141414')
+    c.alignment = { vertical: 'middle', horizontal: i < 2 ? 'left' : 'center', indent: i < 2 ? 1 : 0 }
+  })
+  ws.autoFilter = { from: { row: 7, column: 1 }, to: { row: 7, column: nC } }
 
-  // ── Data rows ────────────────────────────────────────────────────
-  const bdr = { bottom: { style: 'thin', color: { rgb: BORDER } } }
-  rows.forEach((a, i) => {
-    const r  = i + 8
-    const bg = i % 2 === 0 ? WHITE : LIGHT
-    const d  = { font: mkFont(10, false, false, DARK), fill: fl(bg), border: bdr }
-    const dc = { font: mkFont(10, false, false, DARK), fill: fl(bg), border: bdr, alignment: { horizontal: 'center' } }
-    const dr = { font: mkFont(10, false, false, DARK), fill: fl(bg), border: bdr, alignment: { horizontal: 'right' } }
+  // ── Data rows ─────────────────────────────────────────────────────────
+  const STATUS_COLORS_XL = {
+    'Read':        'FF0A84FF',
+    'Delivered':   'FF30D158',
+    'Sent':        'FF30D158',
+    'Failed':      'FFFF453A',
+    'Undelivered': 'FFFF453A',
+    'Pending':     'FFFF9F0A',
+    'Unsent':      'FF3A3A3A',
+    '—':           'FF3A3A3A',
+  }
+  const rsvpCol = isContrib ? 5 : 4
+
+  rows.forEach((a, idx) => {
+    const rn  = idx + 8
+    const row = ws.getRow(rn)
+    row.height = 18
+    const bg  = idx % 2 === 0 ? 'FF0F0F0F' : 'FF121212'
     const vals = getVals(a)
-    vals.forEach((v, c) => {
-      ws[`${COLS[c]}${r}`] = { v, t: typeof v === 'number' ? 'n' : 's', s: c === 0 ? d : (typeof v === 'number' ? dr : dc) }
+
+    vals.forEach((val, ci) => {
+      const c = ws.getCell(rn, ci + 1)
+      c.value = val
+      c.fill  = fill(bg)
+
+      if (ci === 0) {
+        // Name — bright, bold, left
+        c.font      = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFF0F0EC' } }
+        c.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 }
+      } else if (ci === 1) {
+        // Phone — dim, center
+        c.font      = { name: 'Calibri', size: 10, color: { argb: 'FF666666' } }
+        c.alignment = { vertical: 'middle', horizontal: 'center' }
+      } else if (!isContrib && (ci === 2 || ci === 3)) {
+        // WA / SMS status — color coded
+        const sc = STATUS_COLORS_XL[String(val)] ?? 'FFD8D4CD'
+        c.font      = { name: 'Calibri', size: 10, bold: true, color: { argb: sc } }
+        c.alignment = { vertical: 'middle', horizontal: 'center' }
+      } else if (ci === rsvpCol) {
+        // RSVP
+        const confirmed = val === 'Confirmed'
+        c.font      = { name: 'Calibri', size: 10, bold: confirmed, color: { argb: confirmed ? 'FF30D158' : 'FF444444' } }
+        c.alignment = { vertical: 'middle', horizontal: 'center' }
+      } else if (ci === vals.length - 1) {
+        // Date added — dim
+        c.font      = { name: 'Calibri', size: 9, color: { argb: 'FF484848' } }
+        c.alignment = { vertical: 'middle', horizontal: 'center' }
+      } else if (typeof val === 'number') {
+        // Financial columns
+        c.numFmt    = '#,##0'
+        c.font      = { name: 'Calibri', size: 10, bold: true, color: { argb: isContrib && ci === 4 && val > 0 ? 'FFFF9F0A' : 'FFF0F0EC' } }
+        c.alignment = { vertical: 'middle', horizontal: 'right' }
+      } else {
+        c.font      = { name: 'Calibri', size: 10, color: { argb: 'FFD8D4CD' } }
+        c.alignment = { vertical: 'middle', horizontal: 'center' }
+      }
     })
   })
 
-  // ── Footer ───────────────────────────────────────────────────────
+  // ── Footer ────────────────────────────────────────────────────────────
   const fs = rows.length + 9
-  const fH = { font: mkFont(9, true, false, GOLD),      fill: fl(DARK), alignment: { vertical: 'center' } }
-  const fV = { font: mkFont(9, false, false, 'D4C89A'), fill: fl(DARK), alignment: { vertical: 'center' } }
+  const darkFill = (rn) => { for (let ci = 1; ci <= nC; ci++) ws.getCell(rn, ci).fill = fill(SHEET_BG) }
+  const fLabel = (rn, col, text) => { const c = ws.getCell(rn, col); c.value = text; c.font = { name: 'Calibri', size: 9, bold: true, color: { argb: 'FFC9A84C' } }; c.fill = fill(SHEET_BG) }
+  const fValue = (rn, col, text) => { const c = ws.getCell(rn, col); c.value = text; c.font = { name: 'Calibri', size: 9, color: { argb: 'FFD4C89A' } }; c.fill = fill(SHEET_BG) }
 
-  blkRow(fs, DARK)
-  blkRow(fs+1, DARK); put(fs+1, 0, 'CONTACT',   fH); put(fs+1, 3, 'SOCIAL',    fH)
-  blkRow(fs+2, DARK); put(fs+2, 0, 'Email',     fH); put(fs+2, 1, 'haflaway@gmail.com', fV); put(fs+2, 3, 'Instagram', fH); put(fs+2, 4, '@haflaway', fV)
-  blkRow(fs+3, DARK); put(fs+3, 0, 'Phone',     fH); put(fs+3, 1, '+255 754 980 535',   fV); put(fs+3, 3, 'TikTok',    fH); put(fs+3, 4, '@haflaway', fV)
-  blkRow(fs+4, DARK); put(fs+4, 0, 'Phone',     fH); put(fs+4, 1, '+255 615 675 680',   fV); put(fs+4, 3, 'Web',       fH); put(fs+4, 4, 'haflaway.com', fV)
-  blkRow(fs+5, DARK); put(fs+5, 0, 'Generated by Haflaway Event Management Platform  ·  haflaway.com', { font: mkFont(8, false, true, GOLDMID), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' } })
-  blkRow(fs+6, DARK); put(fs+6, 0, '© 2026 Haflaway  ·  All rights reserved', { font: mkFont(8, false, false, GRAY), fill: fl(DARK), alignment: { horizontal: 'center', vertical: 'center' } })
+  for (let r = fs; r <= fs + 6; r++) { darkFill(r); ws.getRow(r).height = 15 }
 
-  // ── Sheet metadata ───────────────────────────────────────────────
-  ws['!ref'] = `A1:${lastCol}${fs + 6}`
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: nC - 1 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: nC - 1 } },
-    { s: { r: 2, c: 0 }, e: { r: 2, c: nC - 1 } },
-    { s: { r: fs + 4, c: 0 }, e: { r: fs + 4, c: nC - 1 } },
-    { s: { r: fs + 5, c: 0 }, e: { r: fs + 5, c: nC - 1 } },
-  ]
-  ws['!rows'] = [{ hpt: 38 }, { hpt: 16 }, { hpt: 5 }, { hpt: 18 }, { hpt: 18 }, { hpt: 8 }, { hpt: 22 }]
-  ws['!cols'] = colDefs
+  fLabel(fs+1, 1, 'CONTACT');    fLabel(fs+1, Math.ceil(nC/2)+1, 'SOCIAL')
+  fLabel(fs+2, 1, 'Email');      fValue(fs+2, 2, 'haflaway@gmail.com');  fLabel(fs+2, Math.ceil(nC/2)+1, 'Instagram'); fValue(fs+2, Math.ceil(nC/2)+2, '@haflaway')
+  fLabel(fs+3, 1, 'Phone');      fValue(fs+3, 2, '+255 754 980 535');    fLabel(fs+3, Math.ceil(nC/2)+1, 'TikTok');    fValue(fs+3, Math.ceil(nC/2)+2, '@haflaway')
+  fLabel(fs+4, 1, 'Phone');      fValue(fs+4, 2, '+255 615 675 680');    fLabel(fs+4, Math.ceil(nC/2)+1, 'Web');       fValue(fs+4, Math.ceil(nC/2)+2, 'haflaway.com')
 
-  const sheetName  = type === 'contribution' ? 'Contributions' : type === 'contact' ? 'Contacts' : 'Messages'
-  const fileSlug   = type === 'contribution' ? 'contributions' : type === 'contact' ? 'contacts' : 'messages'
-  const wb = utils.book_new()
-  utils.book_append_sheet(wb, ws, sheetName)
-  writeFile(wb, `haflaway-${fileSlug}-${(eventName).toLowerCase().replace(/\s+/g, '-')}.xlsx`, { cellStyles: true })
+  ws.mergeCells(fs+5, 1, fs+5, nC)
+  const genCell = ws.getCell(fs+5, 1)
+  genCell.value = 'Generated by Haflaway Event Management Platform  ·  haflaway.com'
+  genCell.font  = { name: 'Calibri', size: 8, italic: true, color: { argb: 'FFA89A6A' } }
+  genCell.fill  = fill(SHEET_BG)
+  genCell.alignment = { horizontal: 'center', vertical: 'middle' }
+
+  ws.mergeCells(fs+6, 1, fs+6, nC)
+  const copyCell = ws.getCell(fs+6, 1)
+  copyCell.value = '© 2026 Haflaway  ·  All rights reserved'
+  copyCell.font  = { name: 'Calibri', size: 8, color: { argb: 'FF555555' } }
+  copyCell.fill  = fill(SHEET_BG)
+  copyCell.alignment = { horizontal: 'center', vertical: 'middle' }
+
+  // ── Download ──────────────────────────────────────────────────────────
+  const buffer = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `haflaway-${fileSlug}-${eventName.toLowerCase().replace(/\s+/g, '-')}.xlsx`
+  a.click()
+  URL.revokeObjectURL(url)
   showExportDialog.value = false
 }
 
@@ -1710,8 +1810,12 @@ watch(eventId, () => { if (eventId.value) load() })
   background: var(--c-bg); font-size: 13px; font-weight: 500; color: var(--c-txt-2);
   cursor: pointer; font-family: inherit; transition: border-color 130ms, color 130ms;
 }
-.em-expd-fmt-btn:hover { border-color: var(--c-txt); color: var(--c-txt); }
-.em-expd-fmt-btn--on { border-color: var(--c-txt); color: var(--c-txt); font-weight: 600; }
+.em-expd-fmt-btn:hover { border-color: rgba(201,168,76,0.35); color: var(--c-txt); }
+.em-expd-fmt-btn--on {
+  border-color: #C9A84C; color: #C9A84C;
+  background: rgba(201,168,76,0.15); font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(201,168,76,0.25);
+}
 .em-expd-footer {
   display: flex; justify-content: flex-end; gap: 8px;
   padding: 16px 22px 20px;
