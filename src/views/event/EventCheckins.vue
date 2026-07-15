@@ -726,7 +726,7 @@ async function toggleSlotGeneric(att, slotIndex) {
   transition: border-color 150ms, box-shadow 150ms;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.ec-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: var(--c-bg); }
+.ec-search:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: var(--c-bg); }
 .ec-search-clear {
   position: absolute; right: 8px;
   background: none; border: none; cursor: pointer; color: var(--c-txt-2); padding: 2px;
@@ -796,7 +796,7 @@ async function toggleSlotGeneric(att, slotIndex) {
   font-size: 13px; font-family: inherit; color: var(--c-txt); cursor: pointer; transition: background 130ms;
 }
 .ec-cp-item:hover { background: var(--c-bg); }
-.ec-cp-item--on { color: #C9A84C; font-weight: 600; background: var(--c-bg); }
+.ec-cp-item--on { color: var(--gold); font-weight: 600; background: var(--c-bg); }
 
 /* Refresh button */
 .ec-refresh-btn {
@@ -826,7 +826,7 @@ async function toggleSlotGeneric(att, slotIndex) {
 .ec-stat-icon--green  { background: rgba(52,211,153,0.08);  color: #34d399; }
 .ec-stat-icon--orange { background: rgba(251,146,60,0.08);  color: #fb923c; }
 .ec-stat-icon--red    { background: rgba(252,129,129,0.08); color: #fc8181; }
-.ec-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
+.ec-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
 .ec-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .ec-stat-lbl {
   font-size: 11px; font-weight: 600; color: var(--c-txt-2);
@@ -901,7 +901,7 @@ async function toggleSlotGeneric(att, slotIndex) {
   font-size: 11px; font-weight: 600; white-space: nowrap;
   border: 1px solid transparent;
 }
-.ec-type--invitation   { background: rgba(201,168,76,0.08); color: #C9A84C; border-color: rgba(201,168,76,0.18); }
+.ec-type--invitation   { background: rgb(from var(--gold) r g b / 0.08); color: var(--gold); border-color: rgb(from var(--gold) r g b / 0.18); }
 .ec-type--contribution { background: rgba(52,211,153,0.08);  color: #34d399; border-color: rgba(52,211,153,0.18); }
 .ec-type--contact      { background: rgba(255,255,255,0.04); color: #5A5550; border-color: #222; }
 
@@ -952,7 +952,7 @@ async function toggleSlotGeneric(att, slotIndex) {
   white-space: nowrap;
 }
 .ec-filter-clear {
-  background: none; border: none; color: #C9A84C;
+  background: none; border: none; color: var(--gold);
   font-size: 12px; font-family: inherit; cursor: pointer; padding: 0;
 }
 .ec-filter-clear:hover { text-decoration: underline; }

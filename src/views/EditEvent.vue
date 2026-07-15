@@ -431,17 +431,17 @@ async function handleSubmit() {
 }
 .ce-nav-left { display: flex; align-items: center; gap: 10px; }
 .ce-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.ce-brand-dot { width: 10px; height: 10px; border-radius: 50%; background: #C9A84C; }
+.ce-brand-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); }
 .ce-brand-name { font-size: 22px; font-weight: 800; color: #e2e8f0; letter-spacing: -0.5px; }
 .ce-breadcrumb { display: flex; align-items: center; gap: 8px; }
 .ce-sep { font-size: 16px; color: #2a3a52; font-weight: 300; }
 .ce-crumb { font-size: 15px; font-weight: 500; color: #8892a4; cursor: pointer; transition: color 130ms; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
-.ce-crumb:hover { color: #C9A84C; }
+.ce-crumb:hover { color: var(--gold); }
 .ce-crumb--event { max-width: 160px; }
 .ce-crumb--page { font-weight: 600; color: #e2e8f0; cursor: default; max-width: none; }
 .ce-crumb--page:hover { color: #e2e8f0; }
 .ce-avatar-pill { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; border: 0.8px solid #1e2d44; }
-.ce-avatar-dot { width: 6px; height: 6px; border-radius: 50%; background: #C9A84C; }
+.ce-avatar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
 .ce-avatar-label { font-size: 12px; font-weight: 500; color: #8892a4; }
 
 .ce-body { max-width: 860px; margin: 0 auto; padding: 36px 36px 80px; }
@@ -464,7 +464,7 @@ async function handleSubmit() {
 .ce-field { display: flex; flex-direction: column; gap: 6px; }
 .ce-field--full { grid-column: 1 / -1; }
 .ce-label { font-size: 12px; font-weight: 600; color: #8892a4; }
-.ce-req { color: #C9A84C; }
+.ce-req { color: var(--gold); }
 .ce-optional { color: #4f617a; font-weight: 400; }
 
 .ce-input, .ce-textarea {
@@ -473,7 +473,7 @@ async function handleSubmit() {
   transition: border-color 140ms, box-shadow 140ms; box-sizing: border-box; width: 100%;
 }
 .ce-input::placeholder, .ce-textarea::placeholder { color: #4f617a; }
-.ce-input:focus, .ce-textarea:focus { border-color: rgba(201,168,76,0.5); box-shadow: 0 0 0 3px rgba(201,168,76,0.10); background: #0d1326; }
+.ce-input:focus, .ce-textarea:focus { border-color: rgb(from var(--gold) r g b / 0.5); box-shadow: 0 0 0 3px rgb(from var(--gold) r g b / 0.10); background: #0d1326; }
 .ce-textarea { resize: vertical; min-height: 100px; }
 .ce-field--error .ce-input, .ce-field--error .ce-textarea { border-color: rgba(255,59,48,0.45); }
 .ce-field-error { font-size: 11px; color: #FF453A; font-weight: 500; }
@@ -485,14 +485,14 @@ async function handleSubmit() {
   transition: border-color 140ms; text-align: left; width: 100%;
 }
 .ce-select-btn--empty { color: #4f617a; }
-.ce-select-btn:hover { border-color: rgba(201,168,76,0.45); }
+.ce-select-btn:hover { border-color: rgb(from var(--gold) r g b / 0.45); }
 
 .ce-radio-row { display: flex; gap: 8px; }
 .ce-radio-opt { flex: 1; text-align: center; padding: 9px 12px; border: 0.8px solid #1e2d44; border-radius: 10px; font-size: 13px; font-weight: 500; color: #8892a4; cursor: pointer; transition: all 130ms; background: #111827; }
-.ce-radio-opt--active { background: rgba(201,168,76,0.08); border-color: rgba(201,168,76,0.4); color: #C9A84C; font-weight: 600; }
+.ce-radio-opt--active { background: rgb(from var(--gold) r g b / 0.08); border-color: rgb(from var(--gold) r g b / 0.4); color: var(--gold); font-weight: 600; }
 
 .ce-thumb-drop { border: 1.5px dashed #1e2d44; border-radius: 14px; min-height: 180px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; transition: border-color 150ms; position: relative; background: #111827; }
-.ce-thumb-drop:hover { border-color: rgba(201,168,76,0.5); }
+.ce-thumb-drop:hover { border-color: rgb(from var(--gold) r g b / 0.5); }
 .ce-thumb-drop--has { border-style: solid; border-color: #1e2d44; }
 .ce-thumb-preview { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
 .ce-thumb-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; }
@@ -505,7 +505,7 @@ async function handleSubmit() {
 .ce-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .ce-cancel-btn { padding: 11px 24px; border: 1px solid #2a3a52; border-radius: 10px; background: transparent; font-size: 14px; font-weight: 600; color: #8892a4; cursor: pointer; font-family: inherit; transition: background 130ms; }
 .ce-cancel-btn:hover { background: #1a2236; }
-.ce-submit-btn { padding: 11px 28px; border: none; border-radius: 10px; background: #C9A84C; font-size: 14px; font-weight: 700; color: #FFFFFF; cursor: pointer; font-family: inherit; transition: opacity 140ms; display: flex; align-items: center; gap: 8px; min-width: 140px; justify-content: center; }
+.ce-submit-btn { padding: 11px 28px; border: none; border-radius: 10px; background: var(--gold); font-size: 14px; font-weight: 700; color: #FFFFFF; cursor: pointer; font-family: inherit; transition: opacity 140ms; display: flex; align-items: center; gap: 8px; min-width: 140px; justify-content: center; }
 .ce-submit-btn:hover:not(:disabled) { opacity: 0.88; }
 .ce-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .ce-spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #FFFFFF; border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -520,7 +520,7 @@ async function handleSubmit() {
 .ce-modal-loading { padding: 20px; text-align: center; color: #8892a4; font-size: 13px; }
 .ce-modal-item { display: flex; align-items: center; padding: 11px 12px; border-radius: 10px; border: none; background: none; font-size: 14px; font-weight: 500; color: #e2e8f0; cursor: pointer; text-align: left; font-family: inherit; transition: background 120ms; }
 .ce-modal-item:hover { background: #1a2236; }
-.ce-modal-item--active { background: rgba(201,168,76,0.08); color: #C9A84C; font-weight: 600; }
+.ce-modal-item--active { background: rgb(from var(--gold) r g b / 0.08); color: var(--gold); font-weight: 600; }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 180ms; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

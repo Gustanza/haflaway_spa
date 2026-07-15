@@ -300,8 +300,8 @@ onMounted(fetchTemplates)
   z-index: 0;
   filter: blur(90px);
 }
-.orb--tr { width: 300px; height: 300px; top: -80px; right: -80px; background: rgba(201,168,76,0.09); }
-.orb--bl { width: 240px; height: 240px; bottom: -60px; left: -60px; background: rgba(201,168,76,0.05); }
+.orb--tr { width: 300px; height: 300px; top: -80px; right: -80px; background: rgb(from var(--gold) r g b / 0.09); }
+.orb--bl { width: 240px; height: 240px; bottom: -60px; left: -60px; background: rgb(from var(--gold) r g b / 0.05); }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
 .gallery-header {
@@ -316,7 +316,7 @@ onMounted(fetchTemplates)
 }
 
 .brand { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
-.brand-dot  { width: 8px; height: 8px; border-radius: 50%; background: #C9A84C; }
+.brand-dot  { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
 .brand-name { font-size: 14px; font-weight: 700; color: #EEEEF0; letter-spacing: -0.3px; }
 
 .header-divider { width: 0.8px; height: 28px; background: #2C2C2E; flex-shrink: 0; }
@@ -335,7 +335,7 @@ onMounted(fetchTemplates)
 }
 .spinner {
   width: 26px; height: 26px;
-  border: 2px solid #2C2C2E; border-top-color: #C9A84C;
+  border: 2px solid #2C2C2E; border-top-color: var(--gold);
   border-radius: 50%; animation: spin 0.75s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -362,7 +362,7 @@ onMounted(fetchTemplates)
   background: rgba(17,17,20,0.72); backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
 }
-.featured-star { width: 12px; height: 12px; color: #C9A84C; }
+.featured-star { width: 12px; height: 12px; color: var(--gold); }
 
 /* ── Pagination ──────────────────────────────────────────────────────────── */
 .pagination {
@@ -381,7 +381,7 @@ onMounted(fetchTemplates)
 }
 .pg-btn:hover:not(:disabled):not(.pg-btn--active) { background: #28282C; color: #EEEEF0; }
 .pg-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.pg-btn--active  { background: #2A2210; border-color: rgba(201,168,76,0.4); color: #C9A84C; cursor: default; }
+.pg-btn--active  { background: #2A2210; border-color: rgb(from var(--gold) r g b / 0.4); color: var(--gold); cursor: default; }
 .pg-arrow        { width: 15px; height: 15px; }
 
 .pg-ellipsis {

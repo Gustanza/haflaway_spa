@@ -10,7 +10,9 @@ import Event_Landing from '../views/Event_Landing.vue'
 // import DashSettings from '../views/dashboard/DashSettings.vue'
 import CardTemplateGallery from '../views/CardTemplateGallery.vue'
 import Pricing from '../views/Pricing.vue'
-import Login from '../views/Login.vue' 
+import Login from '../views/Login.vue'
+import Register from '../views/Register.vue'
+import OrganizationSettings from '../views/OrganizationSettings.vue'
 import CreateEvent from '../views/CreateEvent.vue'
 import MyEvents from '../views/MyEvents.vue'
 import EventLayout from '../views/event/EventLayout.vue'
@@ -38,7 +40,7 @@ const waitForAuth = new Promise(resolve => {
     })
 })
 
-const PROTECTED = ['/create-event', '/edit-event', '/event/', '/dashboard']
+const PROTECTED = ['/create-event', '/edit-event', '/event/', '/dashboard', '/organization']
 const PROTECTED_EXACT = ['/']
 
 const routes = [
@@ -47,6 +49,18 @@ const routes = [
         name: 'Login',
         component: Login,
         meta: { guestOnly: true },
+    },
+    {
+        path: '/register',
+        name: 'Register',
+        component: Register,
+        meta: { guestOnly: true },
+    },
+    {
+        path: '/organization',
+        name: 'Organization',
+        component: OrganizationSettings,
+        meta: { title: 'Organization' },
     },
     {
         path: '/changia/:eventId/:userId',

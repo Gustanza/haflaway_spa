@@ -518,7 +518,7 @@ onMounted(load)
   width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
   display: flex; align-items: center; justify-content: center;
 }
-.eb-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
+.eb-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
 .eb-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
 .eb-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
 .eb-stat-icon--red    { background: rgba(252,129,129,0.08); color: #fc8181; }
@@ -548,7 +548,7 @@ onMounted(load)
   padding: 0 12px; height: 36px; flex: 1;
   transition: border-color 150ms;
 }
-.eb-search-wrap:focus-within { border-color: #C9A84C; }
+.eb-search-wrap:focus-within { border-color: var(--gold); }
 .eb-search { flex: 1; border: none; outline: none; font-size: 13px; color: var(--c-txt); background: transparent; }
 .eb-search::placeholder { color: #666; }
 .eb-search-clear { background: none; border: none; cursor: pointer; color: var(--c-txt-3); display: flex; align-items: center; padding: 0; }
@@ -580,7 +580,7 @@ onMounted(load)
 
 .eb-add-btn {
   display: flex; align-items: center; gap: 6px;
-  background: #C9A84C; border: none;
+  background: var(--gold); border: none;
   color: #070707; font-size: 13px; font-weight: 700;
   padding: 0 14px; height: 36px; border-radius: 10px; cursor: pointer;
   transition: background 150ms;
@@ -612,7 +612,7 @@ onMounted(load)
 .eb-card-icon {
   width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(201,168,76,0.10); color: #C9A84C;
+  background: rgb(from var(--gold) r g b / 0.10); color: var(--gold);
 }
 
 /* Identity */
@@ -628,7 +628,7 @@ onMounted(load)
 .eb-amount-value { font-size: 14px; font-weight: 700; color: var(--c-txt); }
 .eb-amount-value--over  { color: #C41E1E; }
 .eb-amount-value--under { color: #1D7A38; }
-.eb-amount-value--gold  { color: #C9A84C; }
+.eb-amount-value--gold  { color: var(--gold); }
 .eb-amount-value--dash  { color: var(--c-txt-3); }
 
 /* Card actions */
@@ -721,7 +721,7 @@ onMounted(load)
   padding: 9px 12px; font-size: 13.5px; color: var(--c-txt); outline: none;
   transition: border-color 150ms; font-family: inherit; width: 100%; box-sizing: border-box;
 }
-.eb-input:focus  { border-color: #C9A84C; }
+.eb-input:focus  { border-color: var(--gold); }
 .eb-input::placeholder { color: var(--c-txt-3); }
 .eb-textarea { resize: vertical; min-height: 64px; }
 
@@ -737,8 +737,8 @@ select.eb-input { appearance: none; cursor: pointer; }
 .eb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .eb-btn--ghost   { background: var(--c-badge-bg, rgba(255,255,255,0.06)); color: var(--c-txt-2); border: 1px solid var(--c-border); }
 .eb-btn--ghost:hover:not(:disabled)   { background: var(--c-muted, rgba(255,255,255,0.10)); color: var(--c-txt); }
-.eb-btn--primary { background: rgba(201,168,76,0.15); color: #C9A84C; border: 1px solid rgba(201,168,76,0.3); }
-.eb-btn--primary:hover:not(:disabled) { background: rgba(201,168,76,0.25); border-color: rgba(201,168,76,0.5); }
+.eb-btn--primary { background: rgb(from var(--gold) r g b / 0.15); color: var(--gold); border: 1px solid rgb(from var(--gold) r g b / 0.3); }
+.eb-btn--primary:hover:not(:disabled) { background: rgb(from var(--gold) r g b / 0.25); border-color: rgb(from var(--gold) r g b / 0.5); }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {

@@ -496,7 +496,7 @@ function avatarStyle(u) {
   width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
   display: flex; align-items: center; justify-content: center;
 }
-.et-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
+.et-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
 .et-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
 .et-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
 .et-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
@@ -564,7 +564,7 @@ function avatarStyle(u) {
   background: var(--c-bg); box-sizing: border-box;
   transition: border-color 150ms, box-shadow 150ms;
 }
-.et-search-inp:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
+.et-search-inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
 .et-search-clear {
   position: absolute; right: 8px; background: none; border: none;
   cursor: pointer; color: var(--c-txt-2); padding: 2px; display: flex; align-items: center;
@@ -590,7 +590,7 @@ function avatarStyle(u) {
 .et-add-btn {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 7px 14px; border-radius: 9px;
-  background: rgba(201,168,76,0.08); color: #C9A84C;
+  background: rgb(from var(--gold) r g b / 0.08); color: var(--gold);
   border: 1px solid rgba(10,10,11,0.12); font-size: 12px; font-weight: 600;
   font-family: inherit; cursor: pointer; transition: all 130ms; white-space: nowrap;
 }
@@ -661,7 +661,7 @@ function avatarStyle(u) {
 .et-member-action { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 .et-owner-badge {
   padding: 4px 10px; border-radius: 8px;
-  background: rgba(201,168,76,0.08); color: #C9A84C;
+  background: rgb(from var(--gold) r g b / 0.08); color: var(--gold);
   border: 1px solid rgba(10,10,11,0.1);
   font-size: 11px; font-weight: 700;
 }

@@ -592,7 +592,7 @@ async function deleteCard(card) {
   width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
   display: flex; align-items: center; justify-content: center;
 }
-.evc-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
+.evc-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
 .evc-stat-icon--amber  { background: rgba(255,159,10,0.08);  color: #FF9F0A; }
 .evc-stat-icon--green  { background: rgba(48,209,88,0.08);   color: #30D158; }
 .evc-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
@@ -630,7 +630,7 @@ async function deleteCard(card) {
   cursor: pointer; transition: all 140ms; font-family: inherit;
 }
 .evc-search-pill:hover { background: var(--c-bg); color: var(--c-txt-2); }
-.evc-search-pill--active { background: rgba(201,168,76,0.10); border-color: rgba(201,168,76,0.3); color: #C9A84C; }
+.evc-search-pill--active { background: rgb(from var(--gold) r g b / 0.10); border-color: rgb(from var(--gold) r g b / 0.3); color: var(--gold); }
 
 /* Expanded search */
 .evc-search-expanded { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
@@ -657,7 +657,7 @@ async function deleteCard(card) {
   transition: border-color 150ms, box-shadow 150ms;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.evc-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: var(--c-bg); }
+.evc-search:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: var(--c-bg); }
 .evc-search-clear {
   position: absolute; right: 8px;
   background: none; border: none; cursor: pointer; color: var(--c-txt-2); padding: 2px;
@@ -680,7 +680,7 @@ async function deleteCard(card) {
   background: var(--c-bg); border-radius: 10px;
   font-size: 11px; font-weight: 600; color: var(--c-txt-2); margin-left: 5px;
 }
-.evc-chip--active .evc-chip-cnt { background: rgba(201,168,76,0.08); color: #C9A84C; }
+.evc-chip--active .evc-chip-cnt { background: rgb(from var(--gold) r g b / 0.08); color: var(--gold); }
 
 /* Refresh + New Template */
 .evc-refresh-btn {
@@ -694,7 +694,7 @@ async function deleteCard(card) {
 .evc-new-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: 10px;
-  background: #C9A84C; color: #0e0e0e; border: none;
+  background: var(--gold); color: #0e0e0e; border: none;
   font-size: 13px; font-weight: 700; font-family: inherit;
   text-decoration: none; cursor: pointer;
   transition: background 140ms;
@@ -735,7 +735,7 @@ async function deleteCard(card) {
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 .evc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); border-color: var(--c-muted); transform: translateY(-1px); }
-.evc-card--selected { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.15); }
+.evc-card--selected { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.15); }
 
 .evc-card-thumb {
   width: 100%;
@@ -792,7 +792,7 @@ async function deleteCard(card) {
   cursor: pointer; transition: all 130ms; text-decoration: none;
 }
 .evc-action-btn:hover { background: var(--c-bg); color: var(--c-txt); }
-.evc-action-btn--edit:hover { border-color: rgba(184,146,77,0.5); color: #C9A84C; background: var(--c-bg); }
+.evc-action-btn--edit:hover { border-color: rgba(184,146,77,0.5); color: var(--gold); background: var(--c-bg); }
 .evc-action-btn--del-ghost:hover { border-color: rgba(255,59,48,0.3); color: #FF453A; background: rgba(255,59,48,0.05); }
 .evc-action-btn--danger { border-color: rgba(255,59,48,0.4); color: #FF453A; background: rgba(255,59,48,0.06); }
 .evc-action-btn--danger:hover { background: rgba(255,59,48,0.12); }
@@ -828,7 +828,7 @@ async function deleteCard(card) {
   font-size: 12px; font-weight: 500; font-family: inherit;
   text-decoration: none; cursor: pointer; transition: all 130ms;
 }
-.evc-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: #C9A84C; background: var(--c-bg); }
+.evc-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: var(--gold); background: var(--c-bg); }
 
 /* Template preview */
 .evc-preview-wrap { padding: 16px 20px; background: var(--c-bg); border-bottom: 1px solid var(--c-border); flex-shrink: 0; }

@@ -836,7 +836,7 @@ function formatDate(val) {
   width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
   display: flex; align-items: center; justify-content: center;
 }
-.eg-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
+.eg-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
 .eg-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
 .eg-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
 .eg-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
@@ -871,7 +871,7 @@ function formatDate(val) {
 /* New Folder button (gold primary) */
 .eg-new-folder-btn {
   display: flex; align-items: center; gap: 6px;
-  background: #C9A84C; color: #070707; border: none; border-radius: 10px;
+  background: var(--gold); color: #070707; border: none; border-radius: 10px;
   padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
   display: flex; align-items: center; gap: 6px;
   transition: background 150ms; font-family: inherit; flex-shrink: 0;
@@ -881,7 +881,7 @@ function formatDate(val) {
 /* Add Media button (gold primary) */
 .eg-add-media-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  background: #C9A84C; color: #070707; border: none; border-radius: 10px;
+  background: var(--gold); color: #070707; border: none; border-radius: 10px;
   padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
   transition: background 150ms; font-family: inherit; flex-shrink: 0;
 }
@@ -933,7 +933,7 @@ function formatDate(val) {
   background: var(--c-bg); color: var(--c-txt);
   transition: border-color 150ms, box-shadow 150ms;
 }
-.eg-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
+.eg-search:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
 .eg-search::placeholder { color: var(--c-txt-3); }
 .eg-search-clear {
   position: absolute; right: 8px;
@@ -952,7 +952,7 @@ function formatDate(val) {
 /* ══ Upload banner ══ */
 .eg-upload-banner {
   flex-shrink: 0; padding: 12px 20px;
-  background: rgba(201,168,76,0.06); border-bottom: 1px solid rgba(201,168,76,0.15);
+  background: rgb(from var(--gold) r g b / 0.06); border-bottom: 1px solid rgb(from var(--gold) r g b / 0.15);
 }
 .eg-upload-banner-top {
   display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
@@ -969,7 +969,7 @@ function formatDate(val) {
   height: 5px; border-radius: 3px; background: var(--c-track); overflow: hidden;
 }
 .eg-upload-fill {
-  height: 100%; border-radius: 3px; background: #C9A84C;
+  height: 100%; border-radius: 3px; background: var(--gold);
   transition: width 200ms linear;
 }
 
@@ -1044,7 +1044,7 @@ function formatDate(val) {
   align-items: center; justify-content: center; gap: 8px;
 }
 .eg-fc-thumb-placeholder span {
-  font-size: 11px; font-weight: 600; color: #C9A84C; opacity: 0.7;
+  font-size: 11px; font-weight: 600; color: var(--gold); opacity: 0.7;
 }
 
 /* Card footer */
@@ -1153,7 +1153,7 @@ function formatDate(val) {
   position: absolute; bottom: 6px; right: 6px;
   padding: 3px 6px; border-radius: 5px;
   background: rgba(0,0,0,0.65);
-  font-size: 8px; font-weight: 800; color: #C9A84C; letter-spacing: 0.4px;
+  font-size: 8px; font-weight: 800; color: var(--gold); letter-spacing: 0.4px;
   display: flex; align-items: center; gap: 3px;
 }
 
@@ -1211,7 +1211,7 @@ function formatDate(val) {
 .eg-modal-ico-wrap {
   width: 56px; height: 56px; border-radius: 50%;
   background: rgba(184,146,77,0.10);
-  border: 1px solid rgba(201,168,76,0.2);
+  border: 1px solid rgb(from var(--gold) r g b / 0.2);
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 14px;
 }
@@ -1224,7 +1224,7 @@ function formatDate(val) {
   background: var(--c-bg); box-sizing: border-box; margin-bottom: 18px;
   transition: border-color 150ms, box-shadow 150ms;
 }
-.eg-modal-input:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
+.eg-modal-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
 .eg-modal-actions {
   display: flex; gap: 10px; width: 100%;
   padding-top: 16px; border-top: 1px solid var(--c-divide);
@@ -1238,7 +1238,7 @@ function formatDate(val) {
 .eg-modal-cancel:hover { background: var(--c-border); }
 .eg-modal-create {
   flex: 1; padding: 11px; border-radius: 10px;
-  border: none; background: #C9A84C; color: #070707;
+  border: none; background: var(--gold); color: #070707;
   font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
   transition: background 130ms;
 }
