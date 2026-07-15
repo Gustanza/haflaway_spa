@@ -395,7 +395,7 @@ onMounted(() => {
   width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
   display: flex; align-items: center; justify-content: center;
 }
-.ep-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
+.ep-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
 .ep-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
 .ep-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
 .ep-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
@@ -453,7 +453,7 @@ onMounted(() => {
   background: var(--c-bg); color: var(--c-txt);
   transition: border-color 150ms;
 }
-.ep-search:focus { border-color: #C9A84C; }
+.ep-search:focus { border-color: var(--gold); }
 .ep-search::placeholder { color: var(--c-txt-3); }
 .ep-search-clear {
   position: absolute; right: 8px;
@@ -504,7 +504,7 @@ onMounted(() => {
 .ep-card-icon {
   width: 40px; height: 40px; border-radius: 11px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(201,168,76,0.12); color: #C9A84C;
+  background: rgb(from var(--gold) r g b / 0.12); color: var(--gold);
 }
 
 /* Identity */
@@ -513,8 +513,8 @@ onMounted(() => {
 .ep-card-meta { font-size: 11px; color: var(--c-txt-3); }
 
 /* Amount */
-.ep-card-amount { font-size: 15px; font-weight: 700; color: #C9A84C; white-space: nowrap; flex-shrink: 0; }
-.ep-card-amount--neg { color: #C9A84C; }
+.ep-card-amount { font-size: 15px; font-weight: 700; color: var(--gold); white-space: nowrap; flex-shrink: 0; }
+.ep-card-amount--neg { color: var(--gold); }
 
 /* Badges zone */
 .ep-card-badges { flex: 1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }

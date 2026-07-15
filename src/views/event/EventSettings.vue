@@ -111,6 +111,25 @@
             </div>
           </div>
 
+          <!-- 2b. TIME FORMAT (English events only) -->
+          <div v-if="language === 'en'" class="es-panel">
+            <div class="es-panel-hd es-panel-hd--flat">
+              <div class="es-accent-bar" />
+              <div class="es-section-meta">
+                <span class="es-section-label">TIME FORMAT</span>
+                <span class="es-section-hint">How event times appear in English message templates</span>
+              </div>
+            </div>
+            <div class="es-toggle-group">
+              <button class="es-toggle-opt" :class="{ 'es-toggle-opt--on': timeFormat === '12h' }" @click="timeFormat = '12h'">
+                12-hour (AM/PM)
+              </button>
+              <button class="es-toggle-opt" :class="{ 'es-toggle-opt--on': timeFormat === '24h' }" @click="timeFormat = '24h'">
+                24-hour
+              </button>
+            </div>
+          </div>
+
           <!-- 3. SCAN PROMO -->
           <div class="es-panel">
             <div class="es-panel-hd es-panel-hd--flat">
@@ -426,6 +445,7 @@ const eventId = computed(() => props.eventId ?? route.params.eventId)
 
 // ── Settings state ─────────────────────────────────────────────────────────
 const language   = ref('sw')
+const timeFormat = ref('12h')
 const usePng     = ref(true)
 const scanPromo  = ref('')
 const isPublished = ref(false)
@@ -434,6 +454,7 @@ const locations  = ref([])
 watch(() => props.event, (ev) => {
   if (!ev) return
   language.value    = ev.language ?? 'sw'
+  timeFormat.value  = ev.timeFormat ?? '12h'
   usePng.value      = ev.usepng ?? true
   scanPromo.value   = ev.scanPromo ?? ''
   isPublished.value = (ev.status ?? 'draft').toLowerCase() === 'published'
@@ -539,8 +560,9 @@ async function saveSettings() {
   saving.value = true
   try {
     await setDoc(doc(db, 'events', eventId.value), {
-      language: language.value,
-      usepng:   usePng.value,
+      language:   language.value,
+      timeFormat: timeFormat.value,
+      usepng:     usePng.value,
     }, { merge: true })
     showToast('Settings saved')
   } catch (e) {
@@ -719,9 +741,9 @@ function showToast(msg, isErr = false) {
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgba(201,168,76,0.08);
+  background: rgb(from var(--gold) r g b / 0.08);
   border: 1px solid rgba(10,10,11,0.12);
-  color: #C9A84C;
+  color: var(--gold);
   border-radius: 8px;
   padding: 6px 12px;
   font-size: 12px;
@@ -799,7 +821,7 @@ function showToast(msg, isErr = false) {
   flex-shrink: 0;
 }
 .es-status--pub  { background: rgba(52,199,89,0.1);   color: #34d399; }
-.es-status--draft { background: rgba(201,168,76,0.08); color: #A08230; }
+.es-status--draft { background: rgb(from var(--gold) r g b / 0.08); color: #A08230; }
 .es-status-dot {
   width: 6px;
   height: 6px;
@@ -935,7 +957,7 @@ function showToast(msg, isErr = false) {
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: rgba(201,168,76,0.08);
+  background: rgb(from var(--gold) r g b / 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -972,7 +994,7 @@ function showToast(msg, isErr = false) {
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: rgba(201,168,76,0.08);
+  background: rgb(from var(--gold) r g b / 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1005,7 +1027,7 @@ function showToast(msg, isErr = false) {
   border-radius: 7px;
   transition: color 130ms, background 130ms;
 }
-.es-loc-link:hover { color: #C9A84C; background: rgba(10,10,11,0.03); }
+.es-loc-link:hover { color: var(--gold); background: rgba(10,10,11,0.03); }
 .es-loc-del {
   display: flex;
   align-items: center;
@@ -1036,7 +1058,7 @@ function showToast(msg, isErr = false) {
   box-sizing: border-box;
   line-height: 1.6;
 }
-.es-textarea:focus { border-color: #C9A84C; background: var(--c-bg); }
+.es-textarea:focus { border-color: var(--gold); background: var(--c-bg); }
 .es-textarea::placeholder { color: var(--c-txt-3); }
 
 .es-promo-footer {
@@ -1054,9 +1076,9 @@ function showToast(msg, isErr = false) {
   color: var(--c-txt-2);
 }
 .es-inline-save {
-  background: rgba(201,168,76,0.08);
+  background: rgb(from var(--gold) r g b / 0.08);
   border: 1px solid rgba(10,10,11,0.12);
-  color: #C9A84C;
+  color: var(--gold);
   border-radius: 8px;
   padding: 6px 16px;
   font-size: 12px;
@@ -1093,7 +1115,7 @@ function showToast(msg, isErr = false) {
   font-weight: 500;
   color: var(--c-txt);
 }
-.es-radio-opt--on .es-radio-lbl { font-weight: 600; color: #C9A84C; }
+.es-radio-opt--on .es-radio-lbl { font-weight: 600; color: var(--gold); }
 
 /* ── Card format toggle ────────────────────────────────────────────────── */
 .es-toggle-group {
@@ -1122,7 +1144,7 @@ function showToast(msg, isErr = false) {
 }
 .es-toggle-opt--on {
   background: var(--c-bg);
-  color: #C9A84C;
+  color: var(--gold);
   font-weight: 600;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   border: 1px solid rgba(10,10,11,0.08);
@@ -1172,7 +1194,7 @@ function showToast(msg, isErr = false) {
   transition: border-color 150ms, background 300ms ease;
   box-sizing: border-box;
 }
-.es-input:focus { border-color: #C9A84C; background: var(--c-bg); }
+.es-input:focus { border-color: var(--gold); background: var(--c-bg); }
 .es-input::placeholder { color: var(--c-txt-3); }
 .es-input--center { text-align: center; }
 
@@ -1420,7 +1442,7 @@ function showToast(msg, isErr = false) {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(201,168,76,0.08);
+  background: rgb(from var(--gold) r g b / 0.08);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -439,7 +439,7 @@ onMounted(async () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #C9A84C;
+  background: var(--gold);
 }
 .ce-brand-name {
   font-size: 22px;
@@ -464,7 +464,7 @@ onMounted(async () => {
   cursor: pointer;
   transition: color 130ms;
 }
-.ce-crumb:hover { color: #C9A84C; }
+.ce-crumb:hover { color: var(--gold); }
 .ce-crumb--page {
   font-weight: 600;
   color: #e2e8f0;
@@ -483,7 +483,7 @@ onMounted(async () => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #C9A84C;
+  background: var(--gold);
 }
 .ce-avatar-label {
   font-size: 12px;
@@ -539,7 +539,7 @@ onMounted(async () => {
   font-weight: 600;
   color: #8892a4;
 }
-.ce-req { color: #C9A84C; }
+.ce-req { color: var(--gold); }
 .ce-optional { color: #4f617a; font-weight: 400; }
 
 .ce-input,
@@ -560,8 +560,8 @@ onMounted(async () => {
 .ce-textarea::placeholder { color: #4f617a; }
 .ce-input:focus,
 .ce-textarea:focus {
-  border-color: rgba(201,168,76,0.5);
-  box-shadow: 0 0 0 3px rgba(201,168,76,0.10);
+  border-color: rgb(from var(--gold) r g b / 0.5);
+  box-shadow: 0 0 0 3px rgb(from var(--gold) r g b / 0.10);
   background: #0d1326;
 }
 .ce-textarea { resize: vertical; min-height: 100px; }
@@ -593,7 +593,7 @@ onMounted(async () => {
   width: 100%;
 }
 .ce-select-btn--empty { color: #4f617a; }
-.ce-select-btn:hover { border-color: rgba(201,168,76,0.45); }
+.ce-select-btn:hover { border-color: rgb(from var(--gold) r g b / 0.45); }
 
 /* Language radio row */
 .ce-radio-row {
@@ -614,9 +614,9 @@ onMounted(async () => {
   background: #111827;
 }
 .ce-radio-opt--active {
-  background: rgba(201,168,76,0.08);
-  border-color: rgba(201,168,76,0.4);
-  color: #C9A84C;
+  background: rgb(from var(--gold) r g b / 0.08);
+  border-color: rgb(from var(--gold) r g b / 0.4);
+  color: var(--gold);
   font-weight: 600;
 }
 
@@ -634,7 +634,7 @@ onMounted(async () => {
   position: relative;
   background: #111827;
 }
-.ce-thumb-drop:hover { border-color: rgba(201,168,76,0.5); }
+.ce-thumb-drop:hover { border-color: rgb(from var(--gold) r g b / 0.5); }
 .ce-thumb-drop--has { border-style: solid; border-color: #1e2d44; }
 .ce-thumb-preview {
   width: 100%;
@@ -699,7 +699,7 @@ onMounted(async () => {
   padding: 11px 28px;
   border: none;
   border-radius: 10px;
-  background: #C9A84C;
+  background: var(--gold);
   font-size: 14px;
   font-weight: 700;
   color: #FFFFFF;
@@ -799,8 +799,8 @@ onMounted(async () => {
 }
 .ce-modal-item:hover { background: #1a2236; }
 .ce-modal-item--active {
-  background: rgba(201,168,76,0.08);
-  color: #C9A84C;
+  background: rgb(from var(--gold) r g b / 0.08);
+  color: var(--gold);
   font-weight: 600;
 }
 

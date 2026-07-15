@@ -5,8 +5,9 @@
     <nav class="me-topbar">
       <div class="me-topbar-inner">
         <div class="me-brand" @click="$router.push('/')">
-          <span class="me-brand-glyph">✦</span>
-          <span class="me-brand-name">Haflaway</span>
+          <img v-if="activeOrg?.logoUrl" :src="activeOrg.logoUrl" class="me-brand-logo" />
+          <span v-else class="me-brand-glyph">✦</span>
+          <span class="me-brand-name">{{ activeOrg?.name || 'Haflaway' }}</span>
         </div>
         <div class="me-topbar-right">
           <div class="me-admin-wrap" ref="adminWrapRef">
@@ -38,6 +39,12 @@
                 </div>
               </div>
               <div class="me-dropdown-divider" />
+              <button class="me-dropdown-item" @click="showAdminDropdown = false; $router.push('/organization')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                Organization
+              </button>
               <button class="me-dropdown-item me-dropdown-item--signout" @click="showAdminDropdown = false; showLogoutModal = true">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -407,8 +414,10 @@ import { useRouter, useRoute } from 'vue-router'
 import { db, auth } from '../firebase'
 import { signOut } from 'firebase/auth'
 import { useTheme } from '../composables/useTheme.js'
+import { useOrg } from '../composables/useOrg.js'
 
 const { isDark, toggleTheme } = useTheme()
+const { activeOrg } = useOrg()
 import {
   collection, query, where, orderBy, getDocs, getDoc, doc, limit,
 } from 'firebase/firestore'
@@ -821,7 +830,7 @@ onUnmounted(() => {
   --line-soft: #1e1e1e;
   --line-strong: #2a2a2a;
   --paper-soft: #141414;
-  --gold: #C9A84C;
+  --gold: var(--gold);
   --emerald: #30D158;
   --emerald-soft: rgba(48,209,88,0.12);
 
@@ -861,6 +870,7 @@ onUnmounted(() => {
 }
 .me-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .me-brand-glyph { font-size: 13px; color: var(--gold); line-height: 1; }
+.me-brand-logo { width: 20px; height: 20px; border-radius: 6px; object-fit: cover; }
 .me-brand-name {
   font-family: 'Instrument Serif', Georgia, serif;
   font-size: 20px;
@@ -976,8 +986,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  background: rgba(201,168,76,0.10);
-  border: 1px solid rgba(201,168,76,0.25);
+  background: rgb(from var(--gold) r g b / 0.10);
+  border: 1px solid rgb(from var(--gold) r g b / 0.25);
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
@@ -997,8 +1007,8 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: rgba(201,168,76,0.10);
-  border: 1px solid rgba(201,168,76,0.20);
+  background: rgb(from var(--gold) r g b / 0.10);
+  border: 1px solid rgb(from var(--gold) r g b / 0.20);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1030,7 +1040,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  background: #C9A84C;
+  background: var(--gold);
   color: #070707;
   border: none;
   padding: 8px 18px;
@@ -1393,7 +1403,7 @@ onUnmounted(() => {
 .me-status-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 .me-status-pill--upcoming  { background: var(--paper-soft); color: var(--ink-muted); }
 .me-status-pill--upcoming .me-status-dot { background: var(--ink-dim); }
-.me-status-pill--ongoing   { background: rgba(201,168,76,0.10); color: #C9A84C; }
+.me-status-pill--ongoing   { background: rgb(from var(--gold) r g b / 0.10); color: var(--gold); }
 .me-status-pill--ongoing .me-status-dot { background: var(--gold); animation: pulse-dot 1.6s ease-in-out infinite; }
 .me-status-pill--completed { background: var(--paper-soft); color: var(--ink-dim); }
 .me-status-pill--completed .me-status-dot { background: var(--ink-dim); }
@@ -1519,7 +1529,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  background: #C9A84C;
+  background: var(--gold);
   color: #070707;
   border: none;
   padding: 8px 16px;
@@ -1640,7 +1650,7 @@ onUnmounted(() => {
   transform: translateY(-2px);
   filter: brightness(1.06);
 }
-.me-row--upcoming  { border-left-color: rgba(201,168,76,0.8); }
+.me-row--upcoming  { border-left-color: rgb(from var(--gold) r g b / 0.8); }
 .me-row--ongoing   { border-left-color: rgba(48,209,88,0.85); }
 .me-row--completed { border-left-color: rgba(255,255,255,0.12); }
 .me-row--draft     { border-left-color: rgba(255,255,255,0.08); }
@@ -1701,7 +1711,7 @@ onUnmounted(() => {
 .me-row-eyebrow-line {
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, rgba(201,168,76,0.28) 0%, rgba(255,255,255,0.04) 100%);
+  background: linear-gradient(90deg, rgb(from var(--gold) r g b / 0.28) 0%, rgba(255,255,255,0.04) 100%);
 }
 
 .me-row-title {
@@ -1809,8 +1819,8 @@ onUnmounted(() => {
   color: var(--emerald);
 }
 .me-row-cd-ticket.me-row-days-pill--soon {
-  border-color: rgba(201,168,76,0.35);
-  color: rgba(201,168,76,0.85);
+  border-color: rgb(from var(--gold) r g b / 0.35);
+  color: rgb(from var(--gold) r g b / 0.85);
 }
 .me-row-cd-ticket.me-row-days-pill--past { opacity: 0.4; }
 
@@ -2048,7 +2058,7 @@ onUnmounted(() => {
 .me-aff-strip {
   background: var(--me-controls-bg);
   border: 1px solid var(--line-strong);
-  border-left: 3px solid #C9A84C;
+  border-left: 3px solid var(--gold);
   border-radius: 14px;
   padding: 20px 22px;
   display: flex;
@@ -2065,7 +2075,7 @@ onUnmounted(() => {
 }
 .me-aff-sparkle {
   font-size: 12px;
-  color: #C9A84C;
+  color: var(--gold);
   line-height: 1;
 }
 .me-aff-title {
@@ -2080,9 +2090,9 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #C9A84C;
-  background: rgba(201,168,76,0.08);
-  border: 1px solid rgba(201,168,76,0.2);
+  color: var(--gold);
+  background: rgb(from var(--gold) r g b / 0.08);
+  border: 1px solid rgb(from var(--gold) r g b / 0.2);
   border-radius: 6px;
   padding: 3px 9px;
 }
@@ -2100,7 +2110,7 @@ onUnmounted(() => {
   padding: 16px 18px;
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.07);
-  border-top: 2px solid rgba(201,168,76,0.45);
+  border-top: 2px solid rgb(from var(--gold) r g b / 0.45);
   border-radius: 10px;
   transition: background 180ms, border-color 180ms;
 }
@@ -2116,7 +2126,7 @@ onUnmounted(() => {
   letter-spacing: -0.5px;
   line-height: 1;
 }
-.me-aff-stat-val--gold  { color: #C9A84C; }
+.me-aff-stat-val--gold  { color: var(--gold); }
 .me-aff-stat-val--green { color: #30D158; }
 .me-aff-stat-label {
   font-size: 10px;
@@ -2167,7 +2177,7 @@ onUnmounted(() => {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.me-aff-com-dot--pending { background: #C9A84C; }
+.me-aff-com-dot--pending { background: var(--gold); }
 .me-aff-com-dot--paid    { background: #30D158; }
 .me-aff-com-event {
   font-size: 12px;
@@ -2194,8 +2204,8 @@ onUnmounted(() => {
   letter-spacing: 0.03em;
 }
 .me-aff-com-badge--pending {
-  background: rgba(201,168,76,0.10);
-  color: #C9A84C;
+  background: rgb(from var(--gold) r g b / 0.10);
+  color: var(--gold);
 }
 .me-aff-com-badge--paid {
   background: rgba(48,209,88,0.10);

@@ -16,8 +16,9 @@
 
       <!-- Brand -->
       <div class="el-brand" @click="$router.push('/')">
-        <span class="el-brand-glyph">✦</span>
-        <span class="el-brand-name">Haflaway</span>
+        <img v-if="activeOrg?.logoUrl" :src="activeOrg.logoUrl" class="el-brand-logo" />
+        <span v-else class="el-brand-glyph">✦</span>
+        <span class="el-brand-name">{{ activeOrg?.name || 'Haflaway' }}</span>
       </div>
 
       <!-- Back link -->
@@ -97,8 +98,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { db, auth } from '../../firebase'
 import { doc, getDoc } from 'firebase/firestore'
 import { useTheme } from '../../composables/useTheme.js'
+import { useOrg } from '../../composables/useOrg.js'
 
 const { isDark, toggleTheme } = useTheme()
+const { activeOrg } = useOrg()
 
 const route = useRoute()
 const router = useRouter()
@@ -280,7 +283,7 @@ onMounted(async () => {
   --line-soft: #1e1e1e;
   --line-strong: #2e2e2e;
   --paper-soft: #1a1a1a;
-  --gold: #C9A84C;
+  --gold: var(--gold);
   --emerald: #34d399;
   --emerald-soft: rgba(52,211,153,0.12);
 
@@ -326,6 +329,13 @@ onMounted(async () => {
   font-size: 16px;
   color: var(--gold);
   line-height: 1;
+  flex-shrink: 0;
+}
+.el-brand-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  object-fit: cover;
   flex-shrink: 0;
 }
 .el-brand-name {
@@ -460,8 +470,8 @@ onMounted(async () => {
   font-weight: 700;
   padding: 5px 12px;
   border-radius: 20px;
-  background: rgba(201,168,76,0.08);
-  color: #C9A84C;
+  background: rgb(from var(--gold) r g b / 0.08);
+  color: var(--gold);
   letter-spacing: 0.1px;
   white-space: nowrap;
 }
@@ -488,8 +498,8 @@ onMounted(async () => {
 }
 .el-status-pill--upcoming .el-status-dot { background: var(--ink-dim); }
 .el-status-pill--ongoing {
-  background: rgba(201,168,76,0.10);
-  color: #C9A84C;
+  background: rgb(from var(--gold) r g b / 0.10);
+  color: var(--gold);
 }
 .el-status-pill--ongoing .el-status-dot {
   background: var(--gold);

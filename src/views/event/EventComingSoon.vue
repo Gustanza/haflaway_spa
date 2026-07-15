@@ -150,7 +150,7 @@ const icon = computed(() => meta.value.icon)
   padding: 9px 18px;
   font-size: 13px;
   font-weight: 600;
-  color: #C9A84C;
+  color: var(--gold);
   cursor: pointer;
   transition: background 130ms;
 }

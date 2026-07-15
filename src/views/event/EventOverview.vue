@@ -337,7 +337,7 @@ watch(() => props.event, loadStats)
 
 .eo-kpi-cta {
   margin-top: 4px; background: none; border: none; padding: 0; font-size: 11.5px;
-  font-weight: 600; color: #C9A84C; cursor: pointer; font-family: inherit; text-align: left;
+  font-weight: 600; color: var(--gold); cursor: pointer; font-family: inherit; text-align: left;
   transition: opacity 120ms;
 }
 .eo-kpi-cta:hover { opacity: 0.7; }
@@ -367,7 +367,7 @@ watch(() => props.event, loadStats)
 .eo-gstat { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; }
 .eo-gstat-lbl { font-size: 11.5px; color: var(--c-txt-2); }
 .eo-gstat-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--c-txt); }
-.eo-gstat-val--gold { color: #C9A84C; }
+.eo-gstat-val--gold { color: var(--gold); }
 .eo-gstat-divider { height: 1px; background: var(--c-divide); }
 
 /* RSVP panel */

@@ -671,7 +671,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
   display: flex; align-items: center; justify-content: center;
 }
-.ez-stat-icon--gold   { background: rgba(201,168,76,0.08);  color: #C9A84C; }
+.ez-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
 .ez-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
 .ez-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
 .ez-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
@@ -718,7 +718,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   background: var(--c-bg); color: var(--c-txt);
   transition: border-color 150ms, box-shadow 150ms;
 }
-.ez-search:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
+.ez-search:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
 .ez-search-clear {
   position: absolute; right: 8px; background: none; border: none;
   cursor: pointer; color: var(--c-txt-2); padding: 2px;
@@ -739,7 +739,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 /* Add Item button (gold primary) */
 .ez-add-btn {
   display: flex; align-items: center; gap: 6px; padding: 8px 16px;
-  background: #C9A84C; color: #070707; border: none; border-radius: 10px;
+  background: var(--gold); color: #070707; border: none; border-radius: 10px;
   font-size: 13px; font-weight: 700; cursor: pointer; transition: background 150ms;
   font-family: inherit; flex-shrink: 0;
 }
@@ -779,7 +779,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 .ez-item-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
 .ez-item-ico {
   width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  background: rgba(184,146,77,0.10); border: 1px solid rgba(201,168,76,0.15);
+  background: rgba(184,146,77,0.10); border: 1px solid rgb(from var(--gold) r g b / 0.15);
   display: flex; align-items: center; justify-content: center;
 }
 .ez-item-info { flex: 1; min-width: 0; }
@@ -806,7 +806,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all 130ms;
 }
-.ez-action-btn--edit:hover { border-color: rgba(201,168,76,0.3); color: #C9A84C; background: var(--c-bg); }
+.ez-action-btn--edit:hover { border-color: rgb(from var(--gold) r g b / 0.3); color: var(--gold); background: var(--c-bg); }
 .ez-action-btn--del:hover  { border-color: rgba(255,59,48,0.3); color: #FF453A; background: rgba(255,59,48,0.05); }
 
 /* Progress bar */
@@ -815,7 +815,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 
 /* Foot row */
 .ez-item-foot { display: flex; align-items: center; gap: 4px; }
-.ez-item-funded { font-size: 13px; font-weight: 700; color: #C9A84C; }
+.ez-item-funded { font-size: 13px; font-weight: 700; color: var(--gold); }
 .ez-item-target { font-size: 12px; color: var(--c-txt-2); flex: 1; }
 .ez-item-badges { display: flex; gap: 6px; }
 .ez-item-pct-badge {
@@ -828,7 +828,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 8px; border-radius: 20px;
   font-size: 11px; font-weight: 600;
-  background: rgba(184,146,77,0.10); color: #C9A84C; border: 1px solid rgba(201,168,76,0.15);
+  background: rgba(184,146,77,0.10); color: var(--gold); border: 1px solid rgb(from var(--gold) r g b / 0.15);
 }
 
 /* ══ Drawer ══ */
@@ -861,7 +861,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   font-size: 12px; font-weight: 500; font-family: inherit;
   text-decoration: none; cursor: pointer; transition: all 130ms;
 }
-.ez-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: #C9A84C; background: var(--c-bg); }
+.ez-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: var(--gold); background: var(--c-bg); }
 
 /* Item title row in drawer */
 .ez-drawer-title-row {
@@ -870,15 +870,15 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 }
 .ez-drawer-ico {
   width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
-  background: rgba(184,146,77,0.10); border: 1px solid rgba(201,168,76,0.15);
+  background: rgba(184,146,77,0.10); border: 1px solid rgb(from var(--gold) r g b / 0.15);
   display: flex; align-items: center; justify-content: center;
 }
 .ez-drawer-item-title { font-size: 17px; font-weight: 700; color: var(--c-txt); margin: 0 0 5px; }
 .ez-drawer-badge {
   display: inline-block; padding: 2px 8px; border-radius: 20px;
   font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
-  background: rgba(201,168,76,0.08); color: #C9A84C;
-  border: 1px solid rgba(201,168,76,0.15);
+  background: rgb(from var(--gold) r g b / 0.08); color: var(--gold);
+  border: 1px solid rgb(from var(--gold) r g b / 0.15);
 }
 
 /* Progress card */
@@ -910,7 +910,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 .ez-section-lbl { font-size: 13px; font-weight: 600; color: var(--c-txt); }
 .ez-section-cnt {
   padding: 1px 7px; border-radius: 20px;
-  background: rgba(201,168,76,0.08); color: #C9A84C;
+  background: rgb(from var(--gold) r g b / 0.08); color: var(--gold);
   font-size: 11px; font-weight: 600;
 }
 .ez-contribs-loading {
@@ -939,7 +939,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   margin-bottom: 2px;
 }
 .ez-contrib-name { font-size: 13px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ez-contrib-amt  { font-size: 13px; font-weight: 700; color: #C9A84C; flex-shrink: 0; }
+.ez-contrib-amt  { font-size: 13px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
 .ez-contrib-note { font-size: 12px; color: var(--c-txt-2); margin: 0 0 2px; font-style: italic; line-height: 1.4; }
 .ez-contrib-date { font-size: 11px; color: var(--c-txt-3); margin: 0; }
 
@@ -962,7 +962,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 }
 .ez-modal-ico {
   width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  background: rgba(184,146,77,0.10); border: 1px solid rgba(201,168,76,0.15);
+  background: rgba(184,146,77,0.10); border: 1px solid rgb(from var(--gold) r g b / 0.15);
   display: flex; align-items: center; justify-content: center;
 }
 .ez-modal-title { font-size: 17px; font-weight: 700; color: var(--c-txt); margin: 0; }
@@ -979,7 +979,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
   font-size: 14px; font-family: inherit; outline: none; color: var(--c-txt);
   background: var(--c-bg); transition: border-color 150ms, box-shadow 150ms;
 }
-.ez-field-inp:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
+.ez-field-inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
 .ez-field-inp--err { border-color: rgba(255,59,48,0.5); }
 .ez-field-ta { resize: none; line-height: 1.5; }
 .ez-field-err { font-size: 11px; color: #FF453A; margin: 4px 0 0; }
@@ -996,7 +996,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 .ez-modal-cancel:hover { background: var(--c-muted); }
 .ez-modal-save {
   flex: 1; padding: 11px; border-radius: 10px;
-  border: none; background: #C9A84C; color: #070707;
+  border: none; background: var(--gold); color: #070707;
   font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
   transition: background 130ms;
 }
