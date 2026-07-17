@@ -184,7 +184,6 @@ body {
 
 body {
   --ink: #e2e8f0;
-  --gold: #C9A84C;
   background: #0a0e1c;
   color: #e2e8f0;
 }
@@ -252,16 +251,16 @@ html[data-theme="light"] .os-root {
   --c-badge-bg: #f0f0f8 !important;
 
   /* ── EventLayout layout tokens ── */
-  --el-sidebar-bg:  #ffffff !important;
-  --el-topbar-bg:   rgba(255,255,255,0.92) !important;
-  --el-content-bg:  #f0f0f8 !important;
+  --el-sidebar-bg:  var(--org-sidebar-bg, #ffffff) !important;
+  --el-topbar-bg:   var(--org-topbar-bg, rgba(255,255,255,0.92)) !important;
+  --el-content-bg:  var(--org-page-bg, #f0f0f8) !important;
 
   /* ── MyEvents layout tokens ── */
-  --me-topbar-bg:   rgba(255,255,255,0.92) !important;
+  --me-topbar-bg:   var(--org-topbar-bg, rgba(255,255,255,0.92)) !important;
   --me-controls-bg: #ffffff !important;
   --me-card-bg:     #ffffff !important;
   --me-dropdown-bg: #ffffff !important;
-  --me-page-bg:     #f0f0f8 !important;
+  --me-page-bg:     var(--org-page-bg, #f0f0f8) !important;
 }
 
 [data-theme="light"] .apple-glass {
@@ -334,19 +333,19 @@ html[data-theme="light"] .os-root {
 [data-theme="light"] .el-nav-item--active {
   background: rgb(from var(--gold) r g b / 0.12) !important;
   border-color: rgb(from var(--gold) r g b / 0.28) !important;
-  color: #7a5a0a !important;
+  color: var(--org-sidebar-text, #7a5a0a) !important;
 }
 [data-theme="light"] .el-nav-item--active .el-nav-icon {
   opacity: 1;
-  color: #8b6a10 !important;
+  color: var(--org-sidebar-text, #8b6a10) !important;
 }
 [data-theme="light"] .el-nav-item:not(.el-nav-item--active):hover {
   background: #f4f4fd !important;
-  color: #1a1a2e !important;
+  color: var(--org-sidebar-text, #1a1a2e) !important;
 }
 [data-theme="light"] .el-back-btn:hover {
   background: #f4f4fd !important;
-  color: #1a1a2e !important;
+  color: var(--org-sidebar-text, #1a1a2e) !important;
 }
 [data-theme="light"] .el-topbar {
   box-shadow: 0 1px 0 #e8e8f4, 0 4px 16px rgba(0,0,0,0.04) !important;
@@ -492,7 +491,7 @@ html[data-theme="light"] .os-root {
 }
 [data-theme="light"] .me-page-btn--active {
   background: var(--gold) !important;
-  color: #ffffff !important;
+  color: var(--gold-contrast) !important;
   border-color: var(--gold) !important;
 }
 [data-theme="light"] .me-page-btn:disabled { opacity: 0.35 !important; }
@@ -502,7 +501,7 @@ html[data-theme="light"] .os-root {
   box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04) !important;
 }
 [data-theme="light"] .me-aff-divider { background: #e8e8f4 !important; }
-[data-theme="light"] .me-modal-confirm { background: var(--gold) !important; color: #070707 !important; border-color: var(--gold) !important; }
+[data-theme="light"] .me-modal-confirm { background: var(--gold) !important; color: var(--gold-contrast) !important; border-color: var(--gold) !important; }
 [data-theme="light"] .me-aff-stat { background: #ffffff !important; border-color: #e8e8f4 !important; border-top-color: rgb(from var(--gold) r g b / 0.5) !important; }
 [data-theme="light"] .me-aff-com-row { background: #f8f8fd !important; }
 [data-theme="light"] .me-aff-com-row:hover { background: #f0f0f8 !important; }
@@ -805,7 +804,7 @@ html[data-theme="light"] .cs-root {
 /* ─────────────────────────────────────────────
    CREATE EVENT — light mode
 ───────────────────────────────────────────── */
-[data-theme="light"] .ce-root { background: #f0f0f8 !important; }
+[data-theme="light"] .ce-root { background: var(--org-page-bg, #f0f0f8) !important; }
 [data-theme="light"] .ce-nav {
   background: rgba(255,255,255,0.92) !important;
   border-color: #e8e8f4 !important;
@@ -1521,7 +1520,7 @@ html[data-theme="light"] .cs-root {
 [data-theme="light"] .es-loc-link:hover { background: #f4f4fd !important; }
 
 /* Modal save button */
-[data-theme="light"] .es-modal-save { background: var(--gold) !important; color: #ffffff !important; }
+[data-theme="light"] .es-modal-save { background: var(--gold) !important; color: var(--gold-contrast) !important; }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    EventAttendees — modal, drawer, vue-tel-input, dropzone
@@ -1623,7 +1622,7 @@ html[data-theme="light"] .cs-root {
 /* Pay submit button */
 [data-theme="light"] .ea-pay-submit {
   background: var(--gold) !important;
-  color: #070707 !important;
+  color: var(--gold-contrast) !important;
 }
 [data-theme="light"] .ea-pay-submit:hover:not(:disabled) { background: #d4b560 !important; }
 
@@ -1644,7 +1643,7 @@ html[data-theme="light"] .cs-root {
 /* inline confirm btn: was pitch-black gradient — use gold in light */
 [data-theme="light"] .ea-inline-ok {
   background: var(--gold) !important;
-  color: #070707 !important;
+  color: var(--gold-contrast) !important;
 }
 [data-theme="light"] .ea-inline-ok:hover:not(:disabled) { background: #d4b560 !important; }
 
@@ -1739,7 +1738,7 @@ html[data-theme="light"] .cs-root {
 /* EventMessages drawer send button — dark gradient */
 [data-theme="light"] .em-drawer-send {
   background: var(--gold) !important;
-  color: #070707 !important;
+  color: var(--gold-contrast) !important;
 }
 [data-theme="light"] .em-drawer-send:hover:not(:disabled) { background: #d4b560 !important; }
 
@@ -1770,7 +1769,7 @@ html[data-theme="light"] .cs-root {
 /* Send button: dark gray gradient → gold (matches Export Data's Export btn) */
 [data-theme="dark"] .em-drawer-send {
   background: var(--gold) !important;
-  color: #070707 !important;
+  color: var(--gold-contrast) !important;
 }
 [data-theme="dark"] .em-drawer-send:hover:not(:disabled) { background: #d4b560 !important; }
 
@@ -1990,7 +1989,7 @@ html[data-theme="light"] .cs-root {
 /* Inline confirm / cancel mini buttons */
 [data-theme="dark"] .ea-inline-ok {
   background: linear-gradient(180deg, var(--gold) 0%, #a8842e 100%) !important;
-  color: #070707 !important;
+  color: var(--gold-contrast) !important;
 }
 [data-theme="dark"] .ea-inline-ok:hover:not(:disabled) { background: #d4b560 !important; }
 [data-theme="dark"] .ea-inline-x { border-color: #2a2a2a !important; }

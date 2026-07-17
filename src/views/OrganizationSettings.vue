@@ -51,7 +51,7 @@
               :class="{ 'os-org-chip--active': org.id === activeOrg?.id }"
               @click="setActiveOrg(org.id)"
             >
-              <span class="os-org-chip-avatar" :style="{ background: org.accentColor || '#C9A84C' }">
+              <span class="os-org-chip-avatar" :style="chipAvatarStyle(org)">
                 <img v-if="org.logoUrl" :src="org.logoUrl" class="os-org-chip-img" />
                 <span v-else>{{ (org.name || '?')[0].toUpperCase() }}</span>
               </span>
@@ -116,15 +116,57 @@
                 placeholder="Organization name"
               />
 
-              <label class="os-field-label">Accent Color</label>
+              <label class="os-field-label">Primary Color</label>
               <div class="os-color-row">
                 <input v-model="accentDraft" type="color" class="os-color-input" :disabled="!isOwner" />
                 <span class="os-color-value">{{ accentDraft }}</span>
               </div>
 
-              <button v-if="isOwner" class="os-primary-btn os-save-btn" :disabled="savingDetails" @click="saveBrandingDetails">
-                {{ savingDetails ? 'Saving…' : 'Save changes' }}
-              </button>
+              <label class="os-field-label">Secondary Color</label>
+              <div class="os-color-row">
+                <input v-model="secondaryDraft" type="color" class="os-color-input" :disabled="!isOwner" />
+                <span class="os-color-value">{{ secondaryDraft }}</span>
+              </div>
+
+              <div class="os-advanced-hd">
+                <span class="os-field-label os-field-label--flush">Surface Colors (optional)</span>
+                <span class="os-advanced-hint">Leave off to keep the default light/dark look</span>
+              </div>
+
+              <label class="os-toggle-row">
+                <input type="checkbox" v-model="sidebarEnabled" :disabled="!isOwner" />
+                <span>Sidebar background</span>
+              </label>
+              <div v-if="sidebarEnabled" class="os-color-row">
+                <input v-model="sidebarDraft" type="color" class="os-color-input" :disabled="!isOwner" />
+                <span class="os-color-value">{{ sidebarDraft }}</span>
+              </div>
+
+              <label class="os-toggle-row">
+                <input type="checkbox" v-model="topbarEnabled" :disabled="!isOwner" />
+                <span>Topbar background</span>
+              </label>
+              <div v-if="topbarEnabled" class="os-color-row">
+                <input v-model="topbarDraft" type="color" class="os-color-input" :disabled="!isOwner" />
+                <span class="os-color-value">{{ topbarDraft }}</span>
+              </div>
+
+              <label class="os-toggle-row">
+                <input type="checkbox" v-model="pageBgEnabled" :disabled="!isOwner" />
+                <span>Page background</span>
+              </label>
+              <div v-if="pageBgEnabled" class="os-color-row">
+                <input v-model="pageBgDraft" type="color" class="os-color-input" :disabled="!isOwner" />
+                <span class="os-color-value">{{ pageBgDraft }}</span>
+              </div>
+
+              <div class="os-save-row">
+                <button v-if="isOwner" class="os-primary-btn os-save-btn" :disabled="savingDetails" @click="saveBrandingDetails">
+                  {{ savingDetails ? 'Saving…' : 'Save changes' }}
+                </button>
+                <span v-if="saveStatus === 'success'" class="os-save-status os-save-status--ok">✓ Saved</span>
+                <span v-else-if="saveStatus === 'error'" class="os-save-status os-save-status--err">Failed to save. Try again.</span>
+              </div>
             </div>
           </div>
 
@@ -223,7 +265,7 @@ import {
   doc, getDoc, getDocs, collection, query, where, limit,
 } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { useOrg } from '../composables/useOrg.js'
+import { useOrg, contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY } from '../composables/useOrg.js'
 
 const {
   currentUser, orgs, activeOrg, isOwner, loading,
@@ -247,8 +289,20 @@ async function handleCreateOrg() {
 
 // ── Branding ─────────────────────────────────────────────────────────────────
 const nameDraft = ref('')
-const accentDraft = ref('#C9A84C')
+const accentDraft = ref(DEFAULT_ACCENT)
+const secondaryDraft = ref(DEFAULT_SECONDARY)
+const DEFAULT_SIDEBAR = '#111111'
+const DEFAULT_TOPBAR = '#111111'
+const DEFAULT_PAGE_BG = '#0a0a0b'
+const sidebarEnabled = ref(false)
+const sidebarDraft = ref(DEFAULT_SIDEBAR)
+const topbarEnabled = ref(false)
+const topbarDraft = ref(DEFAULT_TOPBAR)
+const pageBgEnabled = ref(false)
+const pageBgDraft = ref(DEFAULT_PAGE_BG)
 const savingDetails = ref(false)
+const saveStatus = ref('') // '' | 'success' | 'error'
+let saveStatusTimer = null
 const uploadingLogo = ref(false)
 const uploadingFavicon = ref(false)
 const logoInput = ref(null)
@@ -256,19 +310,36 @@ const faviconInput = ref(null)
 
 watch(activeOrg, (org) => {
   nameDraft.value = org?.name ?? ''
-  accentDraft.value = org?.accentColor ?? '#C9A84C'
+  accentDraft.value = org?.accentColor ?? DEFAULT_ACCENT
+  secondaryDraft.value = org?.secondaryColor ?? DEFAULT_SECONDARY
+  sidebarEnabled.value = !!org?.sidebarColor
+  sidebarDraft.value = org?.sidebarColor || DEFAULT_SIDEBAR
+  topbarEnabled.value = !!org?.topbarColor
+  topbarDraft.value = org?.topbarColor || DEFAULT_TOPBAR
+  pageBgEnabled.value = !!org?.pageBackgroundColor
+  pageBgDraft.value = org?.pageBackgroundColor || DEFAULT_PAGE_BG
 }, { immediate: true })
 
 async function saveBrandingDetails() {
   if (!activeOrg.value || !isOwner.value) return
   savingDetails.value = true
+  clearTimeout(saveStatusTimer)
+  saveStatus.value = ''
   try {
     await updateBranding(activeOrg.value.id, {
       name: nameDraft.value.trim(),
       accentColor: accentDraft.value,
+      secondaryColor: secondaryDraft.value,
+      sidebarColor: sidebarEnabled.value ? sidebarDraft.value : '',
+      topbarColor: topbarEnabled.value ? topbarDraft.value : '',
+      pageBackgroundColor: pageBgEnabled.value ? pageBgDraft.value : '',
     })
+    saveStatus.value = 'success'
+  } catch (e) {
+    saveStatus.value = 'error'
   } finally {
     savingDetails.value = false
+    saveStatusTimer = setTimeout(() => { saveStatus.value = '' }, 3000)
   }
 }
 
@@ -360,6 +431,14 @@ async function handleRemoveMember(uid) {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+function chipAvatarStyle(org) {
+  const primary = org.accentColor || DEFAULT_ACCENT
+  const secondary = org.secondaryColor || DEFAULT_SECONDARY
+  return {
+    background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
+    color: contrastColor(primary),
+  }
+}
 function fullName(u) {
   return `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email || 'Haflaway User'
 }
@@ -382,6 +461,8 @@ function avatarStyle(u) {
 .os-root {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  background: var(--org-page-bg, transparent);
   padding: 28px 32px 64px;
   gap: 20px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -493,7 +574,7 @@ function avatarStyle(u) {
 
 .os-primary-btn {
   background: var(--gold);
-  color: #070707;
+  color: var(--gold-contrast);
   border: none;
   border-radius: 10px;
   padding: 10px 16px;
@@ -515,7 +596,11 @@ function avatarStyle(u) {
   white-space: nowrap;
 }
 .os-secondary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.os-save-btn { align-self: flex-start; margin-top: 6px; }
+.os-save-row { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.os-save-btn { align-self: flex-start; margin-top: 0; }
+.os-save-status { font-size: 12px; font-weight: 600; }
+.os-save-status--ok { color: #34d399; }
+.os-save-status--err { color: #FF453A; }
 
 .os-switcher { flex-direction: row; flex-wrap: wrap; }
 .os-org-chip {
@@ -533,7 +618,7 @@ function avatarStyle(u) {
 .os-org-chip-avatar {
   width: 24px; height: 24px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #070707;
+  font-size: 11px; font-weight: 700;
   overflow: hidden;
 }
 .os-org-chip-img { width: 100%; height: 100%; object-fit: cover; }
@@ -573,6 +658,28 @@ function avatarStyle(u) {
   padding: 0;
 }
 .os-color-value { font-size: 12px; color: var(--c-txt-3); font-family: 'JetBrains Mono', monospace; }
+
+.os-advanced-hd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--c-border);
+}
+.os-field-label--flush { margin-top: 0; }
+.os-advanced-hint { font-size: 11px; color: var(--c-txt-3); }
+
+.os-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--c-txt);
+  cursor: pointer;
+}
+.os-toggle-row input[type="checkbox"] { cursor: pointer; }
 
 .os-section-lbl { font-size: 12px; font-weight: 600; color: var(--c-txt-2); margin: 0; }
 .os-search-row { display: flex; gap: 8px; }

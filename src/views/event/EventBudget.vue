@@ -581,7 +581,7 @@ onMounted(load)
 .eb-add-btn {
   display: flex; align-items: center; gap: 6px;
   background: var(--gold); border: none;
-  color: #070707; font-size: 13px; font-weight: 700;
+  color: var(--gold-contrast); font-size: 13px; font-weight: 700;
   padding: 0 14px; height: 36px; border-radius: 10px; cursor: pointer;
   transition: background 150ms;
   font-family: inherit; white-space: nowrap; flex-shrink: 0;

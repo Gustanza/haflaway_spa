@@ -3019,7 +3019,7 @@ function setImportPayment(attendeeId, amount) {
   gap: 6px;
   padding: 8px 16px;
   background: var(--gold);
-  color: #070707;
+  color: var(--gold-contrast);
   border: none;
   border-radius: 10px;
   font-size: 13px;

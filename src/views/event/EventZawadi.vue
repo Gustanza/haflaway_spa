@@ -739,7 +739,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 /* Add Item button (gold primary) */
 .ez-add-btn {
   display: flex; align-items: center; gap: 6px; padding: 8px 16px;
-  background: var(--gold); color: #070707; border: none; border-radius: 10px;
+  background: var(--gold); color: var(--gold-contrast); border: none; border-radius: 10px;
   font-size: 13px; font-weight: 700; cursor: pointer; transition: background 150ms;
   font-family: inherit; flex-shrink: 0;
 }
@@ -996,7 +996,7 @@ function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVA
 .ez-modal-cancel:hover { background: var(--c-muted); }
 .ez-modal-save {
   flex: 1; padding: 11px; border-radius: 10px;
-  border: none; background: var(--gold); color: #070707;
+  border: none; background: var(--gold); color: var(--gold-contrast);
   font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
   transition: background 130ms;
 }

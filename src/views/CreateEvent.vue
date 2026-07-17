@@ -235,9 +235,11 @@ import {
   collection, doc, writeBatch, getDocs, orderBy, query,
 } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { useOrg } from '../composables/useOrg.js'
 
 const router = useRouter()
 const uid = auth.currentUser?.uid
+const { activeOrg } = useOrg()
 
 const form = ref({
   title: '',
@@ -341,6 +343,7 @@ async function handleSubmit() {
       title,
       titleLower: title.toLowerCase(),
       authorId: uid,
+      orgId: activeOrg.value?.id ?? null,
       adminsIds: [uid],
       usersIds: [],
       status: 'Draft',
@@ -405,7 +408,7 @@ onMounted(async () => {
 <style scoped>
 .ce-root {
   min-height: 100vh;
-  background: #0a0e1c;
+  background: var(--org-page-bg, #0a0e1c);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 

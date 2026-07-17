@@ -32,9 +32,9 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
                 </div>
                 <div class="me-dbal-body">
-                  <span class="me-dbal-label">Wallet Balance</span>
-                  <span class="me-dbal-amount" :class="{ 'me-dbal-amount--loading': userBalance === null }">
-                    {{ userBalance !== null ? formatBalance(userBalance) : '—' }}
+                  <span class="me-dbal-label">Balance</span>
+                  <span class="me-dbal-amount" :class="{ 'me-dbal-amount--loading': orgBalance === null }">
+                    {{ orgBalance !== null ? formatBalance(orgBalance) : '—' }}
                   </span>
                 </div>
               </div>
@@ -419,7 +419,7 @@ import { useOrg } from '../composables/useOrg.js'
 const { isDark, toggleTheme } = useTheme()
 const { activeOrg } = useOrg()
 import {
-  collection, query, where, orderBy, getDocs, getDoc, doc, limit,
+  collection, query, where, orderBy, getDocs, limit,
 } from 'firebase/firestore'
 
 const PAGE_SIZE = 10
@@ -441,7 +441,9 @@ const rotations = [-0.35, 0.45, -0.25, 0.5, -0.4, 0.3]
 const showLogoutModal = ref(false)
 const showAdminDropdown = ref(false)
 const adminWrapRef = ref(null)
-const userBalance = ref(null)   // null = loading, number = fetched
+// Balance now lives on the org, not the user, so any team member sees the same
+// shared pool — and it updates live since activeOrg is already a realtime listener.
+const orgBalance = computed(() => activeOrg.value ? (activeOrg.value.balance ?? 0) : null)
 
 const userDisplayName = computed(() => {
   const u = auth.currentUser
@@ -463,19 +465,6 @@ const ongoingCount  = computed(() => events.value.filter(e => statusClass(e) ===
 function formatBalance(n) {
   if (n == null) return '—'
   return 'TZS ' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 })
-}
-
-async function loadUserBalance() {
-  if (!uid) return
-  try {
-    const snap = await getDoc(doc(db, 'users', uid))
-    if (snap.exists()) {
-      const b = snap.data().balance
-      userBalance.value = b != null ? Number(b) : 0
-    }
-  } catch (e) {
-    console.error('Failed to load user balance', e)
-  }
 }
 
 function onClickOutside(e) {
@@ -809,7 +798,6 @@ onMounted(() => {
   const qPage = parseInt(route.query.page)
   if (qPage > 1) currentPage.value = qPage
   loadEvents()
-  loadUserBalance()
   loadAffiliate()
   document.addEventListener('click', onClickOutside)
 })
@@ -830,16 +818,16 @@ onUnmounted(() => {
   --line-soft: #1e1e1e;
   --line-strong: #2a2a2a;
   --paper-soft: #141414;
-  --gold: var(--gold);
   --emerald: #30D158;
   --emerald-soft: rgba(48,209,88,0.12);
 
-  /* ── Layout tokens (overridden by global light-theme CSS) ── */
-  --me-topbar-bg:   rgba(10,10,11,0.88);
+  /* ── Layout tokens (overridden by global light-theme CSS; org can override the
+     surface color itself via --org-*-bg, set in useOrg.js's watchEffect) ── */
+  --me-topbar-bg:   var(--org-topbar-bg, rgba(10,10,11,0.88));
   --me-controls-bg: #111;
   --me-card-bg:     #141414;
   --me-dropdown-bg: #141414;
-  --me-page-bg:     #0a0a0b;
+  --me-page-bg:     var(--org-page-bg, #0a0a0b);
 
   min-height: 100vh;
   background: var(--me-page-bg);
@@ -875,7 +863,7 @@ onUnmounted(() => {
   font-family: 'Instrument Serif', Georgia, serif;
   font-size: 20px;
   font-weight: 400;
-  color: var(--ink);
+  color: var(--org-topbar-text, var(--ink));
   letter-spacing: -0.3px;
 }
 .me-bc-sep { font-size: 15px; color: var(--line-strong); font-weight: 300; }
@@ -1041,7 +1029,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 7px;
   background: var(--gold);
-  color: #070707;
+  color: var(--gold-contrast);
   border: none;
   padding: 8px 18px;
   border-radius: 10px;
@@ -1530,7 +1518,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 7px;
   background: var(--gold);
-  color: #070707;
+  color: var(--gold-contrast);
   border: none;
   padding: 8px 16px;
   border-radius: 9px;

@@ -71,11 +71,11 @@
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
           </button>
-          <div class="el-balance-pill" v-if="userBalance !== null">
+          <div class="el-balance-pill" v-if="orgBalance !== null">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
             </svg>
-            {{ formatBalance(userBalance) }}
+            {{ formatBalance(orgBalance) }}
           </div>
           <div class="el-status-pill" :class="`el-status-pill--${eventStatus}`">
             <span class="el-status-dot" />
@@ -108,25 +108,13 @@ const router = useRouter()
 const eventId = computed(() => route.params.eventId)
 const event = ref(null)
 const showMobileNav = ref(false)
-const userBalance = ref(null)
+// Balance now lives on the org, not the user, so any team member sees the same
+// shared pool — and it updates live since activeOrg is already a realtime listener.
+const orgBalance = computed(() => activeOrg.value ? (activeOrg.value.balance ?? 0) : null)
 
 function formatBalance(n) {
   if (n == null) return '—'
   return 'TZS ' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 })
-}
-
-async function loadUserBalance() {
-  const uid = auth.currentUser?.uid
-  if (!uid) return
-  try {
-    const snap = await getDoc(doc(db, 'users', uid))
-    if (snap.exists()) {
-      const b = snap.data().balance
-      userBalance.value = b != null ? Number(b) : 0
-    }
-  } catch (e) {
-    console.error('Failed to load user balance', e)
-  }
 }
 
 watch(() => route.path, () => { showMobileNav.value = false })
@@ -268,7 +256,6 @@ onMounted(async () => {
   } catch (e) {
     console.error('Failed to load event', e)
   }
-  loadUserBalance()
 })
 </script>
 
@@ -283,14 +270,14 @@ onMounted(async () => {
   --line-soft: #1e1e1e;
   --line-strong: #2e2e2e;
   --paper-soft: #1a1a1a;
-  --gold: var(--gold);
   --emerald: #34d399;
   --emerald-soft: rgba(52,211,153,0.12);
 
-  /* ── Layout tokens (overridden by global light-theme CSS) ── */
-  --el-sidebar-bg: #111111;
-  --el-topbar-bg:  rgba(7,7,7,0.92);
-  --el-content-bg: #070707;
+  /* ── Layout tokens (overridden by global light-theme CSS; org can override the
+     surface color itself via --org-*-bg, set in useOrg.js's watchEffect) ── */
+  --el-sidebar-bg: var(--org-sidebar-bg, #111111);
+  --el-topbar-bg:  var(--org-topbar-bg, rgba(7,7,7,0.92));
+  --el-content-bg: var(--org-page-bg, #070707);
 
   display: flex;
   height: 100vh;
@@ -342,7 +329,7 @@ onMounted(async () => {
   font-family: 'Instrument Serif', Georgia, serif;
   font-size: 19px;
   font-weight: 400;
-  color: var(--ink);
+  color: var(--org-sidebar-text, var(--ink));
   letter-spacing: -0.3px;
 }
 
@@ -355,7 +342,7 @@ onMounted(async () => {
   border: none;
   font-size: 13.5px;
   font-weight: 500;
-  color: var(--ink-muted);
+  color: var(--org-sidebar-text, var(--ink-muted));
   cursor: pointer;
   padding: 9px 8px;
   border-radius: 10px;
@@ -364,7 +351,7 @@ onMounted(async () => {
   font-family: inherit;
   white-space: nowrap;
 }
-.el-back-btn:hover { color: var(--ink); background: var(--paper-soft); }
+.el-back-btn:hover { color: var(--org-sidebar-text, var(--ink)); background: var(--paper-soft); }
 
 /* Nav */
 .el-nav {
@@ -380,7 +367,7 @@ onMounted(async () => {
   padding: 9px 8px;
   border-radius: 10px;
   text-decoration: none;
-  color: var(--ink-muted);
+  color: var(--org-sidebar-text, var(--ink-muted));
   font-size: 13.5px;
   font-weight: 500;
   min-height: 38px;
@@ -388,12 +375,12 @@ onMounted(async () => {
 }
 .el-nav-item:hover {
   background: var(--paper-soft);
-  color: var(--ink);
+  color: var(--org-sidebar-text, var(--ink));
 }
 .el-nav-item--active {
   background: rgba(255,255,255,0.10);
   border: 1px solid rgba(255,255,255,0.10);
-  color: #e2e8f0;
+  color: var(--org-sidebar-text, #e2e8f0);
   font-weight: 600;
 }
 .el-nav-item--active:hover { background: rgba(255,255,255,0.13); }
@@ -448,7 +435,7 @@ onMounted(async () => {
 .el-event-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--org-topbar-text, var(--ink));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

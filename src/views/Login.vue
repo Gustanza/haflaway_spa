@@ -134,7 +134,7 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { auth, db } from '../firebase'
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'
 
 const router = useRouter()
 const route = useRoute()
@@ -174,8 +174,20 @@ async function handleSignIn() {
     try {
       await updateDoc(doc(db, 'users', credential.user.uid), { password: form.value.password })
     } catch (_) { /* non-blocking */ }
+
     const redirect = route.query.redirect ?? '/'
-    router.push(redirect)
+
+    // More than one organization to choose from — ask which one to continue as.
+    // Queried directly (not via the useOrg composable) to avoid racing its own
+    // auth-state listener, which may not have loaded orgs yet at this instant.
+    const orgsSnap = await getDocs(
+      query(collection(db, 'organizations'), where('memberIds', 'array-contains', credential.user.uid))
+    )
+    if (orgsSnap.size > 1) {
+      router.push({ name: 'SelectOrganization', query: { redirect } })
+    } else {
+      router.push(redirect)
+    }
   } catch (e) {
     authError.value = friendlyError(e.code)
   } finally {

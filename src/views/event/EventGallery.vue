@@ -871,7 +871,7 @@ function formatDate(val) {
 /* New Folder button (gold primary) */
 .eg-new-folder-btn {
   display: flex; align-items: center; gap: 6px;
-  background: var(--gold); color: #070707; border: none; border-radius: 10px;
+  background: var(--gold); color: var(--gold-contrast); border: none; border-radius: 10px;
   padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
   display: flex; align-items: center; gap: 6px;
   transition: background 150ms; font-family: inherit; flex-shrink: 0;
@@ -881,7 +881,7 @@ function formatDate(val) {
 /* Add Media button (gold primary) */
 .eg-add-media-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  background: var(--gold); color: #070707; border: none; border-radius: 10px;
+  background: var(--gold); color: var(--gold-contrast); border: none; border-radius: 10px;
   padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
   transition: background 150ms; font-family: inherit; flex-shrink: 0;
 }
@@ -1238,7 +1238,7 @@ function formatDate(val) {
 .eg-modal-cancel:hover { background: var(--c-border); }
 .eg-modal-create {
   flex: 1; padding: 11px; border-radius: 10px;
-  border: none; background: var(--gold); color: #070707;
+  border: none; background: var(--gold); color: var(--gold-contrast);
   font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
   transition: background 130ms;
 }

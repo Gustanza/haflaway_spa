@@ -12,6 +12,7 @@ import CardTemplateGallery from '../views/CardTemplateGallery.vue'
 import Pricing from '../views/Pricing.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
+import SelectOrganization from '../views/SelectOrganization.vue'
 import OrganizationSettings from '../views/OrganizationSettings.vue'
 import CreateEvent from '../views/CreateEvent.vue'
 import MyEvents from '../views/MyEvents.vue'
@@ -40,7 +41,7 @@ const waitForAuth = new Promise(resolve => {
     })
 })
 
-const PROTECTED = ['/create-event', '/edit-event', '/event/', '/dashboard', '/organization']
+const PROTECTED = ['/create-event', '/edit-event', '/event/', '/dashboard', '/organization', '/select-org']
 const PROTECTED_EXACT = ['/']
 
 const routes = [
@@ -55,6 +56,12 @@ const routes = [
         name: 'Register',
         component: Register,
         meta: { guestOnly: true },
+    },
+    {
+        path: '/select-org',
+        name: 'SelectOrganization',
+        component: SelectOrganization,
+        meta: { title: 'Select Organization' },
     },
     {
         path: '/organization',

@@ -1169,7 +1169,7 @@ async function importGlobalTemplate(tpl) {
 /* ── New Campaign button ── */
 .em-add-btn {
   display: flex; align-items: center; gap: 6px; padding: 8px 16px;
-  background: var(--gold); color: #070707; border: none; border-radius: 10px;
+  background: var(--gold); color: var(--gold-contrast); border: none; border-radius: 10px;
   font-size: 13px; font-weight: 700; cursor: pointer; transition: background 150ms;
   font-family: inherit; flex-shrink: 0;
 }
@@ -1206,7 +1206,7 @@ async function importGlobalTemplate(tpl) {
 .em-empty-sub   { font-size: 14px; color: var(--c-txt-2); margin: 0 0 16px; max-width: 300px; }
 .em-empty-cta   {
   height: 36px; padding: 0 18px; border-radius: 10px; border: none;
-  background: var(--gold); color: #070707; font-size: 13px; font-weight: 700;
+  background: var(--gold); color: var(--gold-contrast); font-size: 13px; font-weight: 700;
   cursor: pointer; transition: background 150ms; font-family: inherit;
 }
 .em-empty-cta:hover { background: #d4b560; }
@@ -1412,7 +1412,7 @@ async function importGlobalTemplate(tpl) {
   border-radius: 8px; border: none; font-size: 13px; font-weight: 600;
   cursor: pointer; transition: opacity 130ms; font-family: inherit;
 }
-.em-action-btn--sms { background: var(--gold); color: #070707; }
+.em-action-btn--sms { background: var(--gold); color: var(--gold-contrast); }
 .em-action-btn--sms:hover { background: #d4b560; opacity: 1; }
 
 /* ── Send Drawer ── */
@@ -1458,7 +1458,7 @@ async function importGlobalTemplate(tpl) {
 .em-drawer-footer { flex-shrink: 0; display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--c-divide); background: var(--c-bg); }
 .em-drawer-cancel { flex: 1; height: 40px; border-radius: 10px; border: 1px solid var(--c-border); background: rgba(255,255,255,0.05); font-size: 14px; font-weight: 500; color: var(--c-txt-2); cursor: pointer; transition: background 130ms; font-family: inherit; }
 .em-drawer-cancel:hover { background: rgba(255,255,255,0.09); }
-.em-drawer-send { flex: 2; height: 40px; border-radius: 10px; background: var(--gold); color: #070707; border: none; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: background 150ms; font-family: inherit; }
+.em-drawer-send { flex: 2; height: 40px; border-radius: 10px; background: var(--gold); color: var(--gold-contrast); border: none; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: background 150ms; font-family: inherit; }
 .em-drawer-send:hover:not(:disabled) { background: #d4b560; }
 .em-drawer-send:disabled { opacity: 0.45; cursor: default; }
 
@@ -1515,7 +1515,7 @@ async function importGlobalTemplate(tpl) {
 /* ── Send button (panel header) ── */
 .em-send-btn {
   display: flex; align-items: center; gap: 6px; padding: 8px 16px;
-  background: var(--gold); color: #070707; border: none; border-radius: 10px;
+  background: var(--gold); color: var(--gold-contrast); border: none; border-radius: 10px;
   font-size: 13px; font-weight: 700; cursor: pointer; transition: background 150ms;
   font-family: inherit; flex-shrink: 0;
 }
@@ -1599,7 +1599,7 @@ async function importGlobalTemplate(tpl) {
 .em-tpl-edit-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .em-tpl-edit-cancel { height: 30px; padding: 0 14px; border-radius: 7px; border: 1px solid var(--c-border); background: rgba(255,255,255,0.05); color: var(--c-txt-2); font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 130ms; }
 .em-tpl-edit-cancel:hover { background: rgba(255,255,255,0.09); }
-.em-tpl-edit-save   { height: 30px; padding: 0 14px; border-radius: 7px; border: none; background: var(--gold); color: #070707; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 130ms; }
+.em-tpl-edit-save   { height: 30px; padding: 0 14px; border-radius: 7px; border: none; background: var(--gold); color: var(--gold-contrast); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 130ms; }
 .em-tpl-edit-save:hover:not(:disabled) { background: #d4b560; }
 .em-tpl-edit-save:disabled { opacity: 0.45; cursor: default; }
 

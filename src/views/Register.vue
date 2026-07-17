@@ -121,7 +121,8 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { auth, db } from '../firebase'
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { DEFAULT_ACCENT, DEFAULT_SECONDARY } from '../composables/useOrg.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -161,11 +162,25 @@ async function handleRegister() {
 
     const credential = await createUserWithEmailAndPassword(auth, form.value.email.trim(), form.value.password)
     await updateProfile(credential.user, { displayName: fullName })
+
+    // Every account gets a default organization at signup — no separate
+    // "create your org" step. They land in it and can rename/rebrand freely.
+    const orgRef = await addDoc(collection(db, 'organizations'), {
+      name: `${firstName}'s Organization`,
+      logoUrl: '',
+      faviconUrl: '',
+      accentColor: DEFAULT_ACCENT,
+      secondaryColor: DEFAULT_SECONDARY,
+      ownerId: credential.user.uid,
+      memberIds: [credential.user.uid],
+      createdAt: serverTimestamp(),
+    })
+
     await setDoc(doc(db, 'users', credential.user.uid), {
       email: form.value.email.trim(),
       firstName,
       lastName,
-      activeOrgId: null,
+      activeOrgId: orgRef.id,
       createdAt: serverTimestamp(),
     })
 

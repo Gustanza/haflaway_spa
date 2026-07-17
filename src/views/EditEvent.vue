@@ -412,7 +412,7 @@ async function handleSubmit() {
 <style scoped>
 .ce-root {
   min-height: 100vh;
-  background: #0a0e1c;
+  background: var(--org-page-bg, #0a0e1c);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .ce-nav {
