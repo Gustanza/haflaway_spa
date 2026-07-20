@@ -20,6 +20,7 @@ import EventLayout from '../views/event/EventLayout.vue'
 import EventOverview from '../views/event/EventOverview.vue'
 import EventAttendees from '../views/event/EventAttendees.vue'
 import EventMessages from '../views/event/EventMessages.vue'
+import EventTemplates from '../views/event/EventTemplates.vue'
 import EventCampaigns from '../views/event/EventCampaigns.vue'
 import EventCheckins from '../views/event/EventCheckins.vue'
 import EventCards from '../views/event/EventCards.vue'
@@ -125,6 +126,7 @@ const routes = [
             { path: 'cards', name: 'EventCards', component: EventCards, meta: { title: 'Cards' } },
             { path: 'invitations', name: 'EventMessages', component: EventMessages, meta: { title: 'Invitations' } },
             { path: 'bulk-messages', name: 'EventCampaigns', component: EventCampaigns, meta: { title: 'Bulk Messages' } },
+            { path: 'templates', name: 'EventTemplates', component: EventTemplates, meta: { title: 'Templates' } },
             { path: 'gallery', name: 'EventGallery', component: EventGallery, meta: { title: 'Gallery' } },
             { path: 'zawadi', name: 'EventZawadi', component: EventZawadi, meta: { title: 'Zawadi' } },
             { path: 'payments', name: 'EventPayments', component: EventPayments, meta: { title: 'Payments' } },

@@ -112,6 +112,7 @@ body {
 .eg-modal-overlay, .ez-overlay, .ez-modal-overlay,
 .eb-backdrop, .me-modal-backdrop, .ce-modal-backdrop,
 .em-expd-backdrop, .em-tpk-backdrop, .modal-backdrop,
+.etp-form-backdrop, .etp-browse-backdrop,
 .es-overlay, .es-drawer-backdrop, .es-modal-backdrop, .es-dialog-backdrop {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -132,6 +133,8 @@ body {
 [data-theme="light"] .em-expd-backdrop,
 [data-theme="light"] .em-tpk-backdrop,
 [data-theme="light"] .modal-backdrop,
+[data-theme="light"] .etp-form-backdrop,
+[data-theme="light"] .etp-browse-backdrop,
 [data-theme="light"] .es-modal-backdrop,
 [data-theme="light"] .es-dialog-backdrop {
   background: rgba(20,16,50,0.78) !important;
@@ -223,6 +226,7 @@ html[data-theme="light"] .evc-root,
 html[data-theme="light"] .eg-root,
 html[data-theme="light"] .em-root,
 html[data-theme="light"] .ez-root,
+html[data-theme="light"] .etp-root,
 html[data-theme="light"] .cs-root,
 html[data-theme="light"] .os-root {
   /* ── Shared ink tokens ── */
@@ -619,6 +623,12 @@ html[data-theme="light"] .os-root {
 [data-theme="light"] .em-stat-card:has(.em-stat-icon--blue)   { border-top: 2px solid rgba(96,165,250,0.55) !important; }
 [data-theme="light"] .em-stat-card:has(.em-stat-icon--red)    { border-top: 2px solid rgba(252,129,129,0.55) !important; }
 
+/* EventTemplates */
+[data-theme="light"] .etp-stat-card:has(.etp-stat-icon--gold)   { border-top: 2px solid rgb(from var(--gold) r g b / 0.55) !important; }
+[data-theme="light"] .etp-stat-card:has(.etp-stat-icon--purple) { border-top: 2px solid rgba(167,139,250,0.55) !important; }
+[data-theme="light"] .etp-stat-card:has(.etp-stat-icon--teal)   { border-top: 2px solid rgba(45,212,191,0.55) !important; }
+[data-theme="light"] .etp-stat-card:has(.etp-stat-icon--blue)   { border-top: 2px solid rgba(96,165,250,0.55) !important; }
+
 /* EventCheckins */
 [data-theme="light"] .ec-stat-card:has(.ec-stat-icon--purple) { border-top: 2px solid rgba(167,139,250,0.55) !important; }
 [data-theme="light"] .ec-stat-card:has(.ec-stat-icon--green)  { border-top: 2px solid rgba(48,209,88,0.55) !important; }
@@ -631,7 +641,8 @@ html[data-theme="light"] .os-root {
 [data-theme="light"] .evc-panel,
 [data-theme="light"] .eg-panel,
 [data-theme="light"] .em-panel,
-[data-theme="light"] .ez-panel {
+[data-theme="light"] .ez-panel,
+[data-theme="light"] .etp-panel {
   box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(99,102,241,0.05) !important;
 }
 
@@ -1065,6 +1076,37 @@ html[data-theme="light"] .cs-root {
 
 /* Selection bar */
 [data-theme="light"] .eca-selbar { background: #f4f4fd !important; border-color: #e8e8f4 !important; }
+
+/* ─── EventTemplates (.etp-root) — teleported modals ─── */
+[data-theme="light"] .etp-form-panel,
+[data-theme="light"] .etp-browse-panel {
+  background: #ffffff !important;
+  border-color: #e8e8f4 !important;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.15) !important;
+}
+[data-theme="light"] .etp-form-close { background: #f4f4fd !important; color: #6b7280 !important; }
+[data-theme="light"] .etp-form-close:hover { background: #e8e8f4 !important; color: #1a1a2e !important; }
+[data-theme="light"] .etp-form-cancel { background: #f4f4fd !important; color: #6b7280 !important; }
+[data-theme="light"] .etp-form-cancel:hover { background: #e8e8f4 !important; }
+[data-theme="light"] .etp-input,
+[data-theme="light"] .etp-select,
+[data-theme="light"] .etp-textarea {
+  background: #f8f8fd !important;
+  border-color: #e8e8f4 !important;
+  color: #1a1a2e !important;
+}
+[data-theme="light"] .etp-tpl-card { background: #f8f8fd !important; }
+[data-theme="light"] .etp-chip { background: #ffffff !important; }
+[data-theme="light"] .etp-browse-btn,
+[data-theme="light"] .etp-refresh-btn {
+  background: #f4f4fd !important;
+  color: #6b7280 !important;
+}
+[data-theme="light"] .etp-browse-btn:hover,
+[data-theme="light"] .etp-refresh-btn:hover:not(:disabled) {
+  background: #ffffff !important;
+  color: #1a1a2e !important;
+}
 
 /* ─── EventCampaigns — missing light overrides ─── */
 
