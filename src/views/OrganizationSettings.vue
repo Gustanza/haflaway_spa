@@ -1,6 +1,104 @@
 <template>
   <div class="os-root">
 
+    <!-- ── Sticky topbar ── -->
+    <nav class="os-topbar">
+      <div class="os-topbar-inner">
+        <div class="os-brand" @click="router.push('/')">
+          <img v-if="activeOrg?.logoUrl" :src="activeOrg.logoUrl" class="os-brand-logo" />
+          <span v-else class="os-brand-glyph">✦</span>
+          <span class="os-brand-name">{{ activeOrg?.name || 'Haflaway' }}</span>
+        </div>
+        <div class="os-topbar-right">
+          <div class="os-admin-wrap" ref="adminWrapRef">
+            <button class="os-admin-pill" @click="showAdminDropdown = !showAdminDropdown">
+              <span class="os-admin-dot" />
+              <span class="os-admin-label">Admin · {{ userDisplayName }}</span>
+              <svg class="os-admin-chevron" :class="{ 'os-admin-chevron--open': showAdminDropdown }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            <div v-if="showAdminDropdown" class="os-admin-dropdown">
+              <div class="os-dropdown-header">
+                <span class="os-admin-dot os-dropdown-dot" />
+                <div class="os-dropdown-header-text">
+                  <span class="os-dropdown-name">{{ userDisplayName }}</span>
+                  <span class="os-dropdown-email">{{ userEmail }}</span>
+                </div>
+              </div>
+              <!-- Wallet balance card -->
+              <div class="os-dropdown-balance">
+                <div class="os-dbal-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
+                </div>
+                <div class="os-dbal-body">
+                  <span class="os-dbal-label">Balance</span>
+                  <span class="os-dbal-amount" :class="{ 'os-dbal-amount--loading': orgBalance === null }">
+                    {{ orgBalance !== null ? formatBalance(orgBalance) : '—' }}
+                  </span>
+                </div>
+              </div>
+              <div class="os-dropdown-divider" />
+              <button class="os-dropdown-item" @click="showAdminDropdown = false; router.push('/')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                </svg>
+                My Events
+              </button>
+              <button class="os-dropdown-item os-dropdown-item--signout" @click="showAdminDropdown = false; showLogoutModal = true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Sign out
+              </button>
+            </div>
+          </div>
+          <!-- Theme toggle -->
+          <button class="theme-toggle-btn os-theme-toggle" @click="toggleTheme" :title="isDark ? 'Switch to light' : 'Switch to dark'">
+            <svg v-if="isDark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <button class="os-create-btn" @click="router.push('/create-event')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span class="os-create-label">Create event</span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ── Logout confirm modal ── -->
+    <div v-if="showLogoutModal" class="os-modal-backdrop" @click.self="showLogoutModal = false">
+      <div class="os-modal">
+        <p class="os-modal-title">Sign out?</p>
+        <p class="os-modal-body">You'll need to sign back in to access your events.</p>
+        <div class="os-modal-actions">
+          <button class="os-modal-cancel" @click="showLogoutModal = false">Cancel</button>
+          <button class="os-modal-confirm" @click="logout">Sign out</button>
+        </div>
+      </div>
+    </div>
+
+   <div class="os-page">
+
+    <!-- ══ Page header ══ -->
+    <div class="os-page-header">
+      <h1 class="os-page-title">Organization</h1>
+      <p class="os-page-sub">Manage your workspace's branding, team, and archive.</p>
+    </div>
+
     <!-- ══ Loading ══ -->
     <div v-if="loading" class="os-empty">
       <svg class="os-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -45,7 +143,7 @@
           </div>
           <div class="os-panel-body os-switcher">
             <button
-              v-for="org in orgs"
+              v-for="org in activeOrgsList"
               :key="org.id"
               class="os-org-chip"
               :class="{ 'os-org-chip--active': org.id === activeOrg?.id }"
@@ -72,6 +170,33 @@
               {{ creatingOrg ? 'Creating…' : 'Create' }}
             </button>
           </div>
+
+          <!-- ── Archived organizations (collapsed by default) ── -->
+          <div v-if="archivedOrgsList.length" class="os-archived-disclosure">
+            <button class="os-archived-toggle" @click="showArchived = !showArchived">
+              <svg class="os-archived-chevron" :class="{ 'os-archived-chevron--open': showArchived }"
+                width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+              Archived ({{ archivedOrgsList.length }})
+            </button>
+            <div v-if="showArchived" class="os-panel-body os-switcher os-switcher--archived">
+              <button
+                v-for="org in archivedOrgsList"
+                :key="org.id"
+                class="os-org-chip os-org-chip--archived"
+                :class="{ 'os-org-chip--active': org.id === activeOrg?.id }"
+                @click="setActiveOrg(org.id)"
+              >
+                <span class="os-org-chip-avatar" :style="chipAvatarStyle(org)">
+                  <img v-if="org.logoUrl" :src="org.logoUrl" class="os-org-chip-img" />
+                  <span v-else>{{ (org.name || '?')[0].toUpperCase() }}</span>
+                </span>
+                <span class="os-org-chip-name">{{ org.name }}</span>
+                <span class="os-archived-badge">Archived</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="os-grid" v-if="activeOrg">
@@ -84,8 +209,15 @@
             </div>
             <div class="os-panel-body">
 
+              <div v-if="activeOrg.archived" class="os-archived-banner">
+                <span>This organization is archived — hidden from new event creation until it's back.</span>
+                <button v-if="isOwner" class="os-secondary-btn" :disabled="archiving" @click="handleUnarchive">
+                  {{ archiving ? 'Unarchiving…' : 'Unarchive' }}
+                </button>
+              </div>
+
               <div class="os-brand-row">
-                <div class="os-image-picker" :class="{ 'os-image-picker--disabled': !isOwner }" @click="isOwner && logoInput.click()">
+                <div class="os-image-picker" :class="{ 'os-image-picker--disabled': !canEditBranding }" @click="canEditBranding && logoInput.click()">
                   <img v-if="activeOrg.logoUrl" :src="activeOrg.logoUrl" class="os-image-preview" />
                   <span v-else class="os-image-placeholder">Logo</span>
                   <div v-if="uploadingLogo" class="os-image-overlay">
@@ -95,7 +227,7 @@
                   </div>
                   <input ref="logoInput" type="file" accept="image/*" class="os-hidden" @change="e => onImageChange(e, 'logoUrl')" />
                 </div>
-                <div class="os-image-picker os-image-picker--small" :class="{ 'os-image-picker--disabled': !isOwner }" @click="isOwner && faviconInput.click()">
+                <div class="os-image-picker os-image-picker--small" :class="{ 'os-image-picker--disabled': !canEditBranding }" @click="canEditBranding && faviconInput.click()">
                   <img v-if="activeOrg.faviconUrl" :src="activeOrg.faviconUrl" class="os-image-preview" />
                   <span v-else class="os-image-placeholder">Favicon</span>
                   <div v-if="uploadingFavicon" class="os-image-overlay">
@@ -112,19 +244,19 @@
                 v-model="nameDraft"
                 class="os-input"
                 type="text"
-                :disabled="!isOwner"
+                :disabled="!canEditBranding"
                 placeholder="Organization name"
               />
 
               <label class="os-field-label">Primary Color</label>
               <div class="os-color-row">
-                <input v-model="accentDraft" type="color" class="os-color-input" :disabled="!isOwner" />
+                <input v-model="accentDraft" type="color" class="os-color-input" :disabled="!canEditBranding" />
                 <span class="os-color-value">{{ accentDraft }}</span>
               </div>
 
               <label class="os-field-label">Secondary Color</label>
               <div class="os-color-row">
-                <input v-model="secondaryDraft" type="color" class="os-color-input" :disabled="!isOwner" />
+                <input v-model="secondaryDraft" type="color" class="os-color-input" :disabled="!canEditBranding" />
                 <span class="os-color-value">{{ secondaryDraft }}</span>
               </div>
 
@@ -134,38 +266,52 @@
               </div>
 
               <label class="os-toggle-row">
-                <input type="checkbox" v-model="sidebarEnabled" :disabled="!isOwner" />
+                <input type="checkbox" v-model="sidebarEnabled" :disabled="!canEditBranding" />
                 <span>Sidebar background</span>
               </label>
               <div v-if="sidebarEnabled" class="os-color-row">
-                <input v-model="sidebarDraft" type="color" class="os-color-input" :disabled="!isOwner" />
+                <input v-model="sidebarDraft" type="color" class="os-color-input" :disabled="!canEditBranding" />
                 <span class="os-color-value">{{ sidebarDraft }}</span>
               </div>
 
               <label class="os-toggle-row">
-                <input type="checkbox" v-model="topbarEnabled" :disabled="!isOwner" />
+                <input type="checkbox" v-model="topbarEnabled" :disabled="!canEditBranding" />
                 <span>Topbar background</span>
               </label>
               <div v-if="topbarEnabled" class="os-color-row">
-                <input v-model="topbarDraft" type="color" class="os-color-input" :disabled="!isOwner" />
+                <input v-model="topbarDraft" type="color" class="os-color-input" :disabled="!canEditBranding" />
                 <span class="os-color-value">{{ topbarDraft }}</span>
               </div>
 
               <label class="os-toggle-row">
-                <input type="checkbox" v-model="pageBgEnabled" :disabled="!isOwner" />
+                <input type="checkbox" v-model="pageBgEnabled" :disabled="!canEditBranding" />
                 <span>Page background</span>
               </label>
               <div v-if="pageBgEnabled" class="os-color-row">
-                <input v-model="pageBgDraft" type="color" class="os-color-input" :disabled="!isOwner" />
+                <input v-model="pageBgDraft" type="color" class="os-color-input" :disabled="!canEditBranding" />
                 <span class="os-color-value">{{ pageBgDraft }}</span>
               </div>
 
               <div class="os-save-row">
-                <button v-if="isOwner" class="os-primary-btn os-save-btn" :disabled="savingDetails" @click="saveBrandingDetails">
+                <button v-if="canEditBranding" class="os-primary-btn os-save-btn" :disabled="savingDetails" @click="saveBrandingDetails">
                   {{ savingDetails ? 'Saving…' : 'Save changes' }}
                 </button>
                 <span v-if="saveStatus === 'success'" class="os-save-status os-save-status--ok">✓ Saved</span>
                 <span v-else-if="saveStatus === 'error'" class="os-save-status os-save-status--err">Failed to save. Try again.</span>
+              </div>
+
+              <!-- ── Danger zone ── -->
+              <div v-if="isOwner && !activeOrg.archived" class="os-danger-row">
+                <template v-if="confirmArchive">
+                  <span class="os-del-lbl">Archive this organization? Members keep their access to view it, but it's hidden from new event creation.</span>
+                  <div class="os-danger-actions">
+                    <button class="os-del-yes" :disabled="archiving" @click="handleArchive">
+                      {{ archiving ? 'Archiving…' : 'Yes, archive' }}
+                    </button>
+                    <button class="os-del-no" @click="confirmArchive = false">Cancel</button>
+                  </div>
+                </template>
+                <button v-else class="os-danger-btn" @click="confirmArchive = true">Archive organization</button>
               </div>
             </div>
           </div>
@@ -249,28 +395,242 @@
                 </div>
               </div>
 
+              <!-- ── Leave (non-owner members only) ── -->
+              <div v-if="!isOwner" class="os-danger-row">
+                <template v-if="confirmLeave">
+                  <span class="os-del-lbl">Leave {{ activeOrg.name }}? You'll lose access to its events and branding.</span>
+                  <div class="os-danger-actions">
+                    <button class="os-del-yes" :disabled="leaving" @click="handleLeave">
+                      {{ leaving ? 'Leaving…' : 'Yes, leave' }}
+                    </button>
+                    <button class="os-del-no" @click="confirmLeave = false">Cancel</button>
+                  </div>
+                </template>
+                <button v-else class="os-danger-btn" @click="confirmLeave = true">Leave organization</button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ══ Wallet panel ══ -->
+          <div class="os-panel">
+            <div class="os-panel-hd">
+              <h2 class="os-panel-title">Wallet</h2>
+            </div>
+            <div class="os-panel-body">
+              <div class="os-wallet-balance">
+                <span class="os-field-label os-field-label--flush">Current balance</span>
+                <span class="os-wallet-amount">{{ orgBalance !== null ? formatBalance(orgBalance) : '—' }}</span>
+              </div>
+
+              <label class="os-field-label">Amount (TZS)</label>
+              <input
+                v-model.number="topUpAmount"
+                class="os-input"
+                type="number"
+                min="1"
+                placeholder="e.g. 10000"
+                :disabled="topUpStatus === 'pending'"
+              />
+
+              <label class="os-field-label">Phone Number</label>
+              <div class="os-phone-row">
+                <span class="os-phone-prefix">+255</span>
+                <input
+                  v-model="topUpPhone"
+                  class="os-input os-phone-input"
+                  type="tel"
+                  placeholder="712345678"
+                  :disabled="topUpStatus === 'pending'"
+                  @input="topUpPhone = topUpPhone.replace(/\D/g, '').replace(/^0+/, '')"
+                />
+              </div>
+
+              <button class="os-primary-btn os-save-btn" :disabled="!canTopUp" @click="handleTopUp">
+                {{ topUpStatus === 'pending' ? 'Waiting for confirmation…' : 'Top Up via ClickPesa' }}
+              </button>
+
+              <template v-if="topUpStatus === 'pending'">
+                <p class="os-wallet-hint">Check your phone and approve the mobile money prompt to complete the top-up.</p>
+                <button class="os-secondary-btn" :disabled="checkingStatus" @click="handleCheckStatus">
+                  {{ checkingStatus ? 'Checking…' : "Already paid? Check status" }}
+                </button>
+              </template>
+              <p v-if="topUpStatus === 'success'" class="os-save-status os-save-status--ok">✓ Balance updated</p>
+              <p v-if="topUpStatus === 'failed'" class="os-save-status os-save-status--err">Payment failed or was cancelled. Try again.</p>
+              <p v-if="topUpError" class="os-search-error">{{ topUpError }}</p>
             </div>
           </div>
 
         </div>
       </template>
     </template>
+   </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { db, storage } from '../firebase'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { db, storage, auth, functions } from '../firebase'
+import { signOut } from 'firebase/auth'
 import {
-  doc, getDoc, getDocs, collection, query, where, limit,
+  doc, getDoc, getDocs, collection, query, where, limit, onSnapshot,
 } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { httpsCallable } from 'firebase/functions'
+import { useTheme } from '../composables/useTheme.js'
 import { useOrg, contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY } from '../composables/useOrg.js'
+
+const router = useRouter()
+const { isDark, toggleTheme } = useTheme()
 
 const {
   currentUser, orgs, activeOrg, isOwner, loading,
   setActiveOrg, createOrg, updateBranding, addMember, removeMember,
+  archiveOrg, unarchiveOrg, leaveOrg,
 } = useOrg()
+
+const activeOrgsList = computed(() => orgs.value.filter(o => !o.archived))
+const archivedOrgsList = computed(() => orgs.value.filter(o => o.archived))
+const canEditBranding = computed(() => isOwner.value && !activeOrg.value?.archived)
+
+// ── Topbar ───────────────────────────────────────────────────────────────────
+const showLogoutModal = ref(false)
+const showAdminDropdown = ref(false)
+const adminWrapRef = ref(null)
+const orgBalance = computed(() => activeOrg.value ? (activeOrg.value.balance ?? 0) : null)
+
+const userDisplayName = computed(() => {
+  const u = auth.currentUser
+  if (!u) return 'Admin'
+  return u.displayName || u.email?.split('@')[0] || 'Admin'
+})
+const userEmail = computed(() => auth.currentUser?.email ?? '')
+
+function formatBalance(n) {
+  if (n == null) return '—'
+  return 'TZS ' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 })
+}
+
+function onClickOutside(e) {
+  if (adminWrapRef.value && !adminWrapRef.value.contains(e.target)) {
+    showAdminDropdown.value = false
+  }
+}
+
+async function logout() {
+  showLogoutModal.value = false
+  await signOut(auth)
+  router.push('/login')
+}
+
+onMounted(() => document.addEventListener('click', onClickOutside))
+onUnmounted(() => document.removeEventListener('click', onClickOutside))
+const showArchived = ref(false)
+
+// ── Wallet top-up (ClickPesa) ───────────────────────────────────────────────
+const topUpAmount = ref(null)
+const topUpPhone = ref('')
+const topUpStatus = ref('') // '' | 'pending' | 'success' | 'failed'
+const topUpError = ref('')
+const topUpOrderRef = ref('')
+const checkingStatus = ref(false)
+let unsubTopUp = null
+
+const canTopUp = computed(() =>
+  !!activeOrg.value &&
+  Number(topUpAmount.value) > 0 &&
+  topUpPhone.value.trim().length > 0 &&
+  topUpStatus.value !== 'pending'
+)
+
+async function handleTopUp() {
+  if (!activeOrg.value || !canTopUp.value) return
+  topUpError.value = ''
+  topUpStatus.value = 'pending'
+  try {
+    const initiateOrgTopUp = httpsCallable(functions, 'initiateOrgTopUp')
+    const result = await initiateOrgTopUp({
+      orgId: activeOrg.value.id,
+      amount: Number(topUpAmount.value),
+      phoneNumber: `255${topUpPhone.value.trim()}`,
+    })
+    topUpOrderRef.value = result.data.orderReference
+    listenForTopUp(result.data.orderReference)
+  } catch (e) {
+    topUpStatus.value = 'failed'
+    topUpError.value = e?.message || 'Failed to start top-up. Please try again.'
+  }
+}
+
+// Recovers an in-flight top-up after a page reload (the "Check status"
+// fallback button otherwise only exists within the same session that
+// started it) by finding the org's most recent still-PROCESSING payment.
+async function recoverPendingTopUp(orgId) {
+  if (!orgId) return
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'clickpesaPayments'),
+      where('orgId', '==', orgId),
+      where('status', '==', 'PROCESSING'),
+    ))
+    if (snap.empty) return
+    const mostRecent = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))[0]
+    topUpOrderRef.value = mostRecent.id
+    topUpStatus.value = 'pending'
+    listenForTopUp(mostRecent.id)
+  } catch (e) {
+    console.error('recoverPendingTopUp:', e)
+  }
+}
+watch(() => activeOrg.value?.id, (orgId) => { if (orgId) recoverPendingTopUp(orgId) }, { immediate: true })
+
+function listenForTopUp(orderReference) {
+  if (unsubTopUp) unsubTopUp()
+  unsubTopUp = onSnapshot(doc(db, 'clickpesaPayments', orderReference), (snap) => {
+    if (!snap.exists()) return
+    const status = snap.data().status
+    if (status === 'SUCCESS' || status === 'SETTLED') {
+      topUpStatus.value = 'success'
+      unsubTopUp?.(); unsubTopUp = null
+    } else if (status === 'FAILED') {
+      topUpStatus.value = 'failed'
+      unsubTopUp?.(); unsubTopUp = null
+    }
+    // PROCESSING — keep waiting for the webhook to land.
+  })
+}
+
+// Fallback for when the webhook fails or is delayed: independently asks
+// ClickPesa (not the client) whether the payment actually succeeded.
+async function handleCheckStatus() {
+  if (!topUpOrderRef.value || checkingStatus.value) return
+  checkingStatus.value = true
+  topUpError.value = ''
+  try {
+    const reconcileOrgTopUp = httpsCallable(functions, 'reconcileOrgTopUp')
+    const result = await reconcileOrgTopUp({ orderReference: topUpOrderRef.value })
+    const status = result.data.status
+    if (status === 'SUCCESS' || status === 'SETTLED') {
+      topUpStatus.value = 'success'
+      unsubTopUp?.(); unsubTopUp = null
+    } else if (status === 'FAILED') {
+      topUpStatus.value = 'failed'
+      unsubTopUp?.(); unsubTopUp = null
+    } else {
+      topUpError.value = `ClickPesa reports this payment is still ${status?.toLowerCase() ?? 'pending'}.`
+    }
+  } catch (e) {
+    topUpError.value = e?.message || 'Could not check status. Please try again.'
+  } finally {
+    checkingStatus.value = false
+  }
+}
+
+onUnmounted(() => { if (unsubTopUp) unsubTopUp() })
 
 // ── Create org ───────────────────────────────────────────────────────────────
 const newOrgName = ref('')
@@ -284,6 +644,44 @@ async function handleCreateOrg() {
     newOrgName.value = ''
   } finally {
     creatingOrg.value = false
+  }
+}
+
+// ── Archive / unarchive / leave ───────────────────────────────────────────────
+const archiving = ref(false)
+const confirmArchive = ref(false)
+const leaving = ref(false)
+const confirmLeave = ref(false)
+
+async function handleArchive() {
+  if (!activeOrg.value || archiving.value) return
+  archiving.value = true
+  try {
+    await archiveOrg(activeOrg.value.id)
+    confirmArchive.value = false
+  } finally {
+    archiving.value = false
+  }
+}
+
+async function handleUnarchive() {
+  if (!activeOrg.value || archiving.value) return
+  archiving.value = true
+  try {
+    await unarchiveOrg(activeOrg.value.id)
+  } finally {
+    archiving.value = false
+  }
+}
+
+async function handleLeave() {
+  if (!activeOrg.value || leaving.value) return
+  leaving.value = true
+  try {
+    await leaveOrg(activeOrg.value.id)
+    confirmLeave.value = false
+  } finally {
+    leaving.value = false
   }
 }
 
@@ -321,7 +719,7 @@ watch(activeOrg, (org) => {
 }, { immediate: true })
 
 async function saveBrandingDetails() {
-  if (!activeOrg.value || !isOwner.value) return
+  if (!activeOrg.value || !canEditBranding.value) return
   savingDetails.value = true
   clearTimeout(saveStatusTimer)
   saveStatus.value = ''
@@ -345,7 +743,7 @@ async function saveBrandingDetails() {
 
 async function onImageChange(e, field) {
   const file = e.target.files[0]
-  if (!file || !activeOrg.value || !isOwner.value) return
+  if (!file || !activeOrg.value || !canEditBranding.value) return
   const uploading = field === 'logoUrl' ? uploadingLogo : uploadingFavicon
   uploading.value = true
   try {
@@ -459,20 +857,301 @@ function avatarStyle(u) {
 
 <style scoped>
 .os-root {
-  display: flex;
-  flex-direction: column;
   min-height: 100vh;
-  background: var(--org-page-bg, transparent);
-  padding: 28px 32px 64px;
-  gap: 20px;
+  /* --os-page-bg follows the same indirection as --me-page-bg/--el-content-bg
+     (see style.css's light-theme override block) so light mode can flip the
+     default fallback without stomping on an org's custom page color. The old
+     "transparent" fallback here let the body's slightly-blue #0a0e1c show
+     through instead of the app's actual neutral near-black page background. */
+  --os-page-bg: var(--org-page-bg, #0a0a0b);
+  background: var(--os-page-bg);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  transition: background 300ms ease;
   --c-bg:     #141414;
   --c-border: #2a2a2a;
   --c-track:  #2a2a2a;
   --c-txt:    #f0f0ec;
   --c-txt-2:  #888;
   --c-txt-3:  #555;
+
+  /* Topbar tokens — same dark defaults as MyEvents.vue's .me-root, so the
+     topbar here matches "/" exactly (light mode is covered by the shared
+     override block in style.css, which already targets .os-root). */
+  --ink:        #f0f0ec;
+  --ink-soft:   #d8d4cd;
+  --ink-muted:  #888;
+  --ink-dim:    #555;
+  --line:       #242424;
+  --line-soft:  #1e1e1e;
+  --line-strong:#2a2a2a;
+  --paper-soft: #141414;
+  --emerald:    #30D158;
+  --emerald-soft: rgba(48,209,88,0.12);
+  --os-topbar-bg:   var(--org-topbar-bg, rgba(10,10,11,0.88));
+  --os-dropdown-bg: #141414;
 }
+
+.os-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 32px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.os-page-header { display: flex; flex-direction: column; gap: 5px; padding-bottom: 4px; }
+.os-page-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: -0.8px;
+  color: var(--c-txt);
+  line-height: 1;
+  margin: 0;
+}
+.os-page-sub { font-size: 13px; color: var(--c-txt-2); margin: 0; }
+
+/* ── Topbar (matches MyEvents.vue's .me-topbar exactly) ── */
+.os-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--os-topbar-bg);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
+  transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+}
+.os-topbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.os-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.os-brand-glyph { font-size: 13px; color: var(--gold); line-height: 1; }
+.os-brand-logo { width: 20px; height: 20px; border-radius: 6px; object-fit: cover; }
+.os-brand-name {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--org-topbar-text, var(--ink));
+  letter-spacing: -0.3px;
+}
+
+.os-topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.os-admin-wrap { position: relative; }
+.os-admin-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 130ms, color 130ms;
+}
+.os-admin-pill:hover { background: var(--paper-soft); color: var(--ink); }
+.os-admin-chevron {
+  color: var(--ink-dim);
+  transition: transform 180ms ease;
+  flex-shrink: 0;
+}
+.os-admin-chevron--open { transform: rotate(180deg); }
+.os-admin-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--emerald);
+  flex-shrink: 0;
+}
+
+.os-admin-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 210px;
+  background: var(--os-dropdown-bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  box-shadow: 4px 8px 0 rgba(0,0,0,0.4);
+  overflow: hidden;
+  z-index: 200;
+  transition: background 300ms ease, border-color 300ms ease;
+}
+.os-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.os-dropdown-dot { flex-shrink: 0; }
+.os-dropdown-header-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.os-dropdown-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.os-dropdown-email {
+  font-size: 11.5px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.os-dropdown-divider { height: 1px; background: var(--line); }
+.os-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 16px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 120ms, color 120ms;
+}
+.os-dropdown-item:hover { background: var(--paper-soft); color: var(--ink); }
+.os-dropdown-item--signout:hover { background: rgba(255,69,58,0.08); color: #FF453A; }
+
+/* Wallet card inside dropdown */
+.os-dropdown-balance {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 12px;
+}
+.os-dbal-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgb(from var(--gold) r g b / 0.10);
+  border: 1px solid rgb(from var(--gold) r g b / 0.20);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #B8924D;
+  flex-shrink: 0;
+}
+.os-dbal-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.os-dbal-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9A9690;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.os-dbal-amount { font-size: 15px; font-weight: 700; color: #e2e8f0; letter-spacing: -0.3px; }
+.os-dbal-amount--loading { color: #4f617a; }
+
+.os-theme-toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 130ms, color 130ms, border-color 130ms, box-shadow 130ms;
+  flex-shrink: 0;
+}
+
+.os-create-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--gold);
+  color: var(--gold-contrast);
+  border: none;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 150ms;
+  letter-spacing: 0.1px;
+}
+.os-create-btn:hover { opacity: 0.88; }
+.os-create-label { white-space: nowrap; }
+
+/* ── Logout confirm modal ── */
+.os-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-bg);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.os-modal {
+  background: var(--os-dropdown-bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px 28px 24px;
+  width: 340px;
+  box-shadow: 4px 8px 0 rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: background 300ms ease, border-color 300ms ease;
+}
+.os-modal-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+.os-modal-body { font-size: 13.5px; color: var(--ink-muted); margin: 0 0 8px; line-height: 1.5; }
+.os-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.os-modal-cancel {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-muted);
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 130ms, color 130ms;
+}
+.os-modal-cancel:hover { background: var(--paper-soft); color: var(--ink); }
+.os-modal-confirm {
+  background: rgba(255,255,255,0.12);
+  color: #e2e8f0;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 130ms;
+}
+.os-modal-confirm:hover { opacity: 0.85; }
 
 .os-empty {
   display: flex;
@@ -500,8 +1179,9 @@ function avatarStyle(u) {
 .os-panel {
   background: var(--c-bg);
   border: 1px solid var(--c-border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 .os-panel-hd {
   display: flex;
@@ -565,6 +1245,19 @@ function avatarStyle(u) {
 .os-input:disabled { opacity: 0.6; cursor: not-allowed; }
 .os-input:focus { border-color: rgb(from var(--gold) r g b / 0.5); }
 
+.os-phone-row { display: flex; align-items: center; gap: 8px; }
+.os-phone-prefix {
+  flex-shrink: 0;
+  padding: 10px 10px;
+  border: 0.8px solid var(--c-border);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-txt-2);
+}
+.os-phone-input { flex: 1; }
+
 .os-field-label {
   font-size: 12px;
   font-weight: 600;
@@ -602,6 +1295,19 @@ function avatarStyle(u) {
 .os-save-status--ok { color: #34d399; }
 .os-save-status--err { color: #FF453A; }
 
+.os-wallet-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgb(from var(--gold) r g b / 0.08);
+  border: 1px solid rgb(from var(--gold) r g b / 0.2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 4px;
+}
+.os-wallet-amount { font-size: 22px; font-weight: 700; color: var(--c-txt); letter-spacing: -0.3px; }
+.os-wallet-hint { font-size: 12px; color: var(--c-txt-2); margin: 2px 0 0; line-height: 1.4; }
+
 .os-switcher { flex-direction: row; flex-wrap: wrap; }
 .os-org-chip {
   display: flex;
@@ -627,6 +1333,68 @@ function avatarStyle(u) {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
   color: var(--gold); background: rgb(from var(--gold) r g b / 0.12); border-radius: 6px; padding: 2px 6px;
 }
+.os-archived-badge {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  color: var(--c-txt-3); background: rgba(255,255,255,0.06); border-radius: 6px; padding: 2px 6px;
+}
+.os-org-chip--archived { opacity: 0.55; }
+.os-org-chip--archived.os-org-chip--active { opacity: 0.85; }
+
+.os-archived-disclosure { border-top: 1px solid var(--c-border); }
+.os-archived-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 10px 18px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-txt-3);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.os-archived-toggle:hover { color: var(--c-txt-2); }
+.os-archived-chevron { flex-shrink: 0; transition: transform 150ms; }
+.os-archived-chevron--open { transform: rotate(90deg); }
+.os-switcher--archived { padding-top: 0; }
+
+.os-archived-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--c-txt-2);
+  margin-bottom: 4px;
+}
+
+.os-danger-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-border);
+}
+.os-danger-actions { display: flex; gap: 8px; }
+.os-danger-btn {
+  background: none;
+  border: none;
+  color: #FF453A;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.os-danger-btn:hover { text-decoration: underline; }
 
 .os-brand-row { display: flex; gap: 12px; margin-bottom: 6px; }
 .os-image-picker {

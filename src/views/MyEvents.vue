@@ -489,7 +489,13 @@ async function loadEvents() {
       where('adminsIds', 'array-contains', uid),
       orderBy('startDate', 'desc'),
     ))
-    events.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    // Scope to the active organization, but keep legacy/unassigned events
+    // (no orgId — created before orgs existed, or shared with you by someone
+    // who hasn't set up an org) visible no matter which org is active, so
+    // nothing you already had access to silently disappears.
+    const orgId = activeOrg.value?.id ?? null
+    events.value = all.filter(e => !e.orgId || e.orgId === orgId)
   } catch (e) {
     console.error('loadEvents:', e)
   } finally {

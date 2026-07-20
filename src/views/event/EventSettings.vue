@@ -18,12 +18,21 @@
           <h1 class="es-page-title">Event Settings</h1>
           <p class="es-page-sub">Manage language, card format, locations and visibility.</p>
         </div>
-        <button class="es-save-btn" :disabled="saving" @click="saveSettings">
-          <svg v-if="saving" class="es-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-          </svg>
-          {{ saving ? 'Saving…' : 'Save' }}
-        </button>
+        <div class="es-header-actions">
+          <button class="es-edit-btn" @click="router.push(`/edit-event/${eventId}`)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit Details
+          </button>
+          <button class="es-save-btn" :disabled="saving" @click="saveSettings">
+            <svg v-if="saving" class="es-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            {{ saving ? 'Saving…' : 'Save' }}
+          </button>
+        </div>
       </div>
 
       <!-- ── Two-column grid ── -->
@@ -872,6 +881,7 @@ function showToast(msg, isErr = false) {
   margin: 0;
   line-height: 1.5;
 }
+.es-header-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .es-save-btn {
   display: flex;
   align-items: center;
@@ -890,6 +900,23 @@ function showToast(msg, isErr = false) {
 }
 .es-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .es-save-btn:not(:disabled):hover { opacity: 0.88; }
+.es-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--c-txt);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 150ms, color 150ms;
+  flex-shrink: 0;
+}
+.es-edit-btn:hover { border-color: var(--gold); color: var(--gold); }
 
 /* ── Sections ──────────────────────────────────────────────────────────── */
 .es-section {

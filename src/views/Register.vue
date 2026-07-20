@@ -159,8 +159,11 @@ async function handleRegister() {
     const fullName = form.value.name.trim()
     const [firstName, ...rest] = fullName.split(' ')
     const lastName = rest.join(' ')
+    // Emails are stored lowercase everywhere so exact-match lookups (e.g. "add
+    // member by email") work regardless of how the user capitalized it at signup.
+    const email = form.value.email.trim().toLowerCase()
 
-    const credential = await createUserWithEmailAndPassword(auth, form.value.email.trim(), form.value.password)
+    const credential = await createUserWithEmailAndPassword(auth, email, form.value.password)
     await updateProfile(credential.user, { displayName: fullName })
 
     // Every account gets a default organization at signup — no separate
@@ -177,7 +180,7 @@ async function handleRegister() {
     })
 
     await setDoc(doc(db, 'users', credential.user.uid), {
-      email: form.value.email.trim(),
+      email,
       firstName,
       lastName,
       activeOrgId: orgRef.id,

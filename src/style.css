@@ -22,8 +22,8 @@
 
 body {
   margin: 0;
-  background: #0a0e1c;
-  color: #e2e8f0;
+  background: #0a0a0b;
+  color: #f0f0ec;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -261,6 +261,11 @@ html[data-theme="light"] .os-root {
   --me-card-bg:     #ffffff !important;
   --me-dropdown-bg: #ffffff !important;
   --me-page-bg:     var(--org-page-bg, #f0f0f8) !important;
+
+  /* ── OrganizationSettings layout tokens ── */
+  --os-page-bg:     var(--org-page-bg, #f0f0f8) !important;
+  --os-topbar-bg:   var(--org-topbar-bg, rgba(255,255,255,0.92)) !important;
+  --os-dropdown-bg: #ffffff !important;
 }
 
 [data-theme="light"] .apple-glass {

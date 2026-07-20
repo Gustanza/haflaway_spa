@@ -267,8 +267,11 @@ const form = ref({
 function toDatetimeLocal(iso) {
   if (!iso) return ''
   const d = new Date(iso)
-  // datetime-local needs "YYYY-MM-DDTHH:mm"
-  return d.toISOString().slice(0, 16)
+  // datetime-local needs "YYYY-MM-DDTHH:mm" in the BROWSER'S local time — build
+  // it from local getters, not toISOString() (which is always UTC and was
+  // showing times ~3 hours behind for EAT organizers on every re-open).
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 // ── Load existing event ────────────────────────────────────────────────────

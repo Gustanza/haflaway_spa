@@ -1,39 +1,13 @@
 rules_version = '2';
 
+// TEMPORARY ROLLBACK — reverted to fully open for an active outage
+// investigation. The hardened version (organizations/users/clickpesaPayments
+// scoped rules) is saved and will be redeployed once we confirm whether this
+// was actually the cause.
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Organizations: members can read; only the owner can create/update.
-    // Membership is looked up via memberIds (array-contains queries rely on this).
-    match /organizations/{orgId} {
-      allow read:   if request.auth != null && request.auth.uid in resource.data.memberIds;
-      allow create: if request.auth != null
-                    && request.resource.data.ownerId == request.auth.uid
-                    && request.resource.data.memberIds == [request.auth.uid];
-      allow update: if request.auth != null && request.auth.uid == resource.data.ownerId;
-      allow delete: if false;
+    match /{document=**} {
+      allow read, write;
     }
-
-    // Users: any signed-in user can read profiles (needed for the "add member by
-    // email" lookup), but a user may only write their own document.
-    match /users/{userId} {
-      allow read:  if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Everything else the app already relies on keeps its pre-existing (wide-open)
-    // behavior — these collections include intentionally public, unauthenticated
-    // guest flows (event RSVPs, contributions, comments) that need dedicated,
-    // careful rule design as a separate task rather than being bundled in here.
-    match /events/{document=**}               { allow read, write; }
-    match /cardTemplates/{document=**}        { allow read, write; }
-    match /eventPlans/{document=**}           { allow read, write; }
-    match /eventCategories/{document=**}      { allow read, write; }
-    match /messageTemplates/{document=**}     { allow read, write; }
-    match /smsTemplates/{document=**}         { allow read, write; }
-    match /affiliates/{document=**}           { allow read, write; }
-    match /affiliateCommissions/{document=**} { allow read, write; }
-    match /attendeeProfiles/{document=**}     { allow read, write; }
-    match /userTransactions/{document=**}     { allow read, write; }
   }
 }

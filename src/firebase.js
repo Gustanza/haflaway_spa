@@ -5,6 +5,7 @@ import { getAnalytics } from 'firebase/analytics';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
 
 // Replace these values with your real config (same values used previously in main.js)
 const firebaseConfig = {
@@ -33,5 +34,6 @@ try {
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
 const storage = getStorage(firebaseApp);
+const functions = getFunctions(firebaseApp);
 
-export { firebaseApp, analytics, db, auth, storage };
+export { firebaseApp, analytics, db, auth, storage, functions };

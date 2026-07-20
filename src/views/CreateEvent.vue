@@ -323,6 +323,10 @@ function validate() {
 
 async function handleSubmit() {
   if (!validate()) return
+  if (activeOrg.value?.archived) {
+    submitError.value = 'This organization is archived. Unarchive it in Organization settings before creating new events.'
+    return
+  }
   saving.value = true
   submitError.value = ''
   try {

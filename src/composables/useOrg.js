@@ -70,7 +70,10 @@ const activeOrg = computed(() => {
     const found = orgs.value.find(o => o.id === activeOrgId.value)
     if (found) return found
   }
-  return orgs.value[0] ?? null
+  // Prefer a non-archived org when falling back to a default — an archived org
+  // shouldn't silently become someone's working context just because it's first
+  // in the list. If every org they're in is archived, fall back to one anyway.
+  return orgs.value.find(o => !o.archived) ?? orgs.value[0] ?? null
 })
 
 const isOwner = computed(() =>
@@ -126,6 +129,7 @@ async function createOrg(name) {
     secondaryColor: DEFAULT_SECONDARY,
     ownerId: uid,
     memberIds: [uid],
+    archived: false,
     createdAt: serverTimestamp(),
   })
   await setActiveOrg(orgRef.id)
@@ -144,6 +148,31 @@ async function removeMember(orgId, uid) {
   await updateDoc(doc(db, 'organizations', orgId), { memberIds: arrayRemove(uid) })
 }
 
+// Owner-only: hides the org, blocks new events, keeps all data intact. Real
+// deletion is staff-only (see firestore.rules) since an org can own events,
+// members, and a wallet balance — too much blast radius for self-service.
+async function archiveOrg(orgId) {
+  await updateDoc(doc(db, 'organizations', orgId), { archived: true, archivedAt: serverTimestamp() })
+}
+
+async function unarchiveOrg(orgId) {
+  await updateDoc(doc(db, 'organizations', orgId), { archived: false, archivedAt: null })
+}
+
+// A non-owner member's self-service way out (owners archive instead — an
+// owner leaving their own org isn't supported without transferring ownership
+// first, which doesn't exist yet). The Firestore rule only allows this exact
+// shape of update (removing your own uid from memberIds, nothing else).
+async function leaveOrg(orgId) {
+  const uid = currentUser.value?.uid
+  if (!uid) return
+  await updateDoc(doc(db, 'organizations', orgId), { memberIds: arrayRemove(uid) })
+  if (activeOrgId.value === orgId) {
+    const next = orgs.value.find(o => o.id !== orgId && !o.archived) ?? orgs.value.find(o => o.id !== orgId) ?? null
+    await setActiveOrg(next?.id ?? null)
+  }
+}
+
 export function useOrg() {
   return {
     currentUser,
@@ -157,6 +186,9 @@ export function useOrg() {
     updateBranding,
     addMember,
     removeMember,
+    archiveOrg,
+    unarchiveOrg,
+    leaveOrg,
   }
 }
 
