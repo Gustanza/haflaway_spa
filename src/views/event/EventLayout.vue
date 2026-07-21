@@ -71,11 +71,59 @@
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
           </button>
-          <div class="el-balance-pill" v-if="orgBalance !== null">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
-            </svg>
-            {{ formatBalance(orgBalance) }}
+          <div class="el-balance-wrap" ref="balanceWrapRef" v-if="orgBalance !== null">
+            <button class="el-balance-pill" @click="showTopUp = !showTopUp">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
+              </svg>
+              {{ formatBalance(orgBalance) }}
+              <svg class="el-balance-chevron" :class="{ 'el-balance-chevron--open': showTopUp }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            <div v-if="showTopUp" class="el-balance-dropdown">
+              <div class="el-tu-hd">
+                <span class="el-tu-title">Top up wallet</span>
+                <span class="el-tu-balance">{{ formatBalance(orgBalance) }}</span>
+              </div>
+
+              <label class="el-tu-label">Amount (TZS)</label>
+              <input
+                v-model.number="topUpAmount"
+                class="el-tu-input"
+                type="number"
+                min="1"
+                placeholder="e.g. 10000"
+                :disabled="topUpStatus === 'pending'"
+              />
+
+              <label class="el-tu-label">Phone Number</label>
+              <div class="el-tu-phone-row">
+                <span class="el-tu-phone-prefix">+255</span>
+                <input
+                  v-model="topUpPhone"
+                  class="el-tu-input el-tu-phone-input"
+                  type="tel"
+                  placeholder="712345678"
+                  :disabled="topUpStatus === 'pending'"
+                  @input="topUpPhone = topUpPhone.replace(/\D/g, '').replace(/^0+/, '')"
+                />
+              </div>
+
+              <button class="el-tu-submit" :disabled="!canTopUp" @click="handleTopUp">
+                {{ topUpStatus === 'pending' ? 'Waiting for confirmation…' : 'Top Up via ClickPesa' }}
+              </button>
+
+              <p v-if="topUpStatus === 'pending'" class="el-tu-hint">Check your phone and approve the mobile money prompt to complete the top-up.</p>
+              <p v-if="topUpStatus === 'timeout'" class="el-tu-status el-tu-status--warn">Still no confirmation. Check status below, or start a new top-up.</p>
+              <button v-if="topUpStatus === 'pending' || topUpStatus === 'timeout'" class="el-tu-check" :disabled="checkingStatus" @click="handleCheckStatus">
+                {{ checkingStatus ? 'Checking…' : "Already paid? Check status" }}
+              </button>
+              <p v-if="topUpStatus === 'success'" class="el-tu-status el-tu-status--ok">✓ Balance updated</p>
+              <p v-if="topUpStatus === 'failed'" class="el-tu-status el-tu-status--err">Payment failed or was cancelled. Try again.</p>
+              <p v-if="topUpError" class="el-tu-error">{{ topUpError }}</p>
+            </div>
           </div>
           <div class="el-status-pill" :class="`el-status-pill--${eventStatus}`">
             <span class="el-status-dot" />
@@ -93,10 +141,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { db, auth } from '../../firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { db, auth, functions } from '../../firebase'
+import { doc, getDoc, getDocs, collection, query, where, onSnapshot } from 'firebase/firestore'
+import { httpsCallable } from 'firebase/functions'
 import { useTheme } from '../../composables/useTheme.js'
 import { useOrg } from '../../composables/useOrg.js'
 
@@ -118,6 +167,151 @@ function formatBalance(n) {
 }
 
 watch(() => route.path, () => { showMobileNav.value = false })
+
+// ── Wallet top-up (ClickPesa) — mirrors OrganizationSettings.vue's Wallet
+// panel so top-up is reachable from every event page, not just Org settings.
+const showTopUp = ref(false)
+const balanceWrapRef = ref(null)
+const topUpAmount = ref(null)
+const topUpPhone = ref('')
+const topUpStatus = ref('') // '' | 'pending' | 'timeout' | 'success' | 'failed'
+const topUpError = ref('')
+const topUpOrderRef = ref('')
+const checkingStatus = ref(false)
+let unsubTopUp = null
+let topUpTimeoutId = null
+
+// The mobile money webhook usually lands within seconds of approval — if
+// nothing's arrived after this long, stop implying we're still actively
+// waiting (the listener stays attached in case it completes late).
+const TOPUP_WAIT_MS = 90_000
+
+function clearTopUpTimer() {
+  if (topUpTimeoutId) { clearTimeout(topUpTimeoutId); topUpTimeoutId = null }
+}
+// Arms the timeout against the payment's actual start time (not "now"), so a
+// page reload or a hot-reload during dev doesn't hand out a fresh 90s window
+// for a payment that's already been sitting there for minutes.
+function armTopUpTimer(startedAtMs) {
+  clearTopUpTimer()
+  const remaining = TOPUP_WAIT_MS - (Date.now() - startedAtMs)
+  if (remaining <= 0) {
+    topUpStatus.value = 'timeout'
+    return
+  }
+  topUpTimeoutId = setTimeout(() => {
+    if (topUpStatus.value === 'pending') topUpStatus.value = 'timeout'
+  }, remaining)
+}
+
+const canTopUp = computed(() =>
+  !!activeOrg.value &&
+  Number(topUpAmount.value) > 0 &&
+  topUpPhone.value.trim().length > 0 &&
+  topUpStatus.value !== 'pending'
+)
+
+async function handleTopUp() {
+  if (!activeOrg.value || !canTopUp.value) return
+  topUpError.value = ''
+  topUpStatus.value = 'pending'
+  try {
+    const initiateOrgTopUp = httpsCallable(functions, 'initiateOrgTopUp')
+    const result = await initiateOrgTopUp({
+      orgId: activeOrg.value.id,
+      amount: Number(topUpAmount.value),
+      phoneNumber: `255${topUpPhone.value.trim()}`,
+    })
+    topUpOrderRef.value = result.data.orderReference
+    listenForTopUp(result.data.orderReference)
+    armTopUpTimer(Date.now())
+  } catch (e) {
+    topUpStatus.value = 'failed'
+    topUpError.value = e?.message || 'Failed to start top-up. Please try again.'
+  }
+}
+
+// Recovers an in-flight top-up after a page reload, mirroring the same
+// fallback in OrganizationSettings.vue.
+async function recoverPendingTopUp(orgId) {
+  if (!orgId) return
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'clickpesaPayments'),
+      where('orgId', '==', orgId),
+      where('status', '==', 'PROCESSING'),
+    ))
+    if (snap.empty) return
+    const mostRecent = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))[0]
+    topUpOrderRef.value = mostRecent.id
+    topUpStatus.value = 'pending'
+    listenForTopUp(mostRecent.id)
+    armTopUpTimer(mostRecent.createdAt?.toMillis?.() ?? Date.now())
+  } catch (e) {
+    console.error('recoverPendingTopUp:', e)
+  }
+}
+watch(() => activeOrg.value?.id, (orgId) => { if (orgId) recoverPendingTopUp(orgId) }, { immediate: true })
+
+function listenForTopUp(orderReference) {
+  if (unsubTopUp) unsubTopUp()
+  unsubTopUp = onSnapshot(doc(db, 'clickpesaPayments', orderReference), (snap) => {
+    if (!snap.exists()) return
+    const status = snap.data().status
+    if (status === 'SUCCESS' || status === 'SETTLED') {
+      topUpStatus.value = 'success'
+      clearTopUpTimer()
+      unsubTopUp?.(); unsubTopUp = null
+    } else if (status === 'FAILED') {
+      topUpStatus.value = 'failed'
+      clearTopUpTimer()
+      unsubTopUp?.(); unsubTopUp = null
+    }
+    // PROCESSING — keep waiting for the webhook to land.
+  })
+}
+
+// Fallback for when the webhook fails or is delayed: independently asks
+// ClickPesa (not the client) whether the payment actually succeeded.
+async function handleCheckStatus() {
+  if (!topUpOrderRef.value || checkingStatus.value) return
+  checkingStatus.value = true
+  topUpError.value = ''
+  try {
+    const reconcileOrgTopUp = httpsCallable(functions, 'reconcileOrgTopUp')
+    const result = await reconcileOrgTopUp({ orderReference: topUpOrderRef.value })
+    const status = result.data.status
+    if (status === 'SUCCESS' || status === 'SETTLED') {
+      topUpStatus.value = 'success'
+      clearTopUpTimer()
+      unsubTopUp?.(); unsubTopUp = null
+    } else if (status === 'FAILED') {
+      topUpStatus.value = 'failed'
+      clearTopUpTimer()
+      unsubTopUp?.(); unsubTopUp = null
+    } else {
+      topUpError.value = `ClickPesa reports this payment is still ${status?.toLowerCase() ?? 'pending'}.`
+    }
+  } catch (e) {
+    topUpError.value = e?.message || 'Could not check status. Please try again.'
+  } finally {
+    checkingStatus.value = false
+  }
+}
+
+function onClickOutsideBalance(e) {
+  if (balanceWrapRef.value && !balanceWrapRef.value.contains(e.target)) {
+    showTopUp.value = false
+  }
+}
+onMounted(() => document.addEventListener('click', onClickOutsideBalance))
+onUnmounted(() => {
+  document.removeEventListener('click', onClickOutsideBalance)
+  if (unsubTopUp) unsubTopUp()
+  clearTopUpTimer()
+})
 
 const navItems = [
   {
@@ -456,19 +650,77 @@ onMounted(async () => {
 }
 
 /* Wallet balance pill */
+.el-balance-wrap { position: relative; flex-shrink: 0; }
 .el-balance-pill {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
   font-weight: 700;
-  padding: 5px 12px;
+  padding: 5px 10px 5px 12px;
   border-radius: 20px;
   background: rgb(from var(--gold) r g b / 0.08);
   color: var(--gold);
   letter-spacing: 0.1px;
   white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 130ms;
 }
+.el-balance-pill:hover { background: rgb(from var(--gold) r g b / 0.14); }
+.el-balance-chevron { transition: transform 180ms ease; flex-shrink: 0; }
+.el-balance-chevron--open { transform: rotate(180deg); }
+
+/* Top-up dropdown */
+.el-balance-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  background: var(--paper-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.35);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+}
+.el-tu-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; gap: 8px; }
+.el-tu-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+.el-tu-balance { font-size: 13px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+.el-tu-label { font-size: 11px; font-weight: 600; color: var(--ink-muted); margin-top: 4px; }
+.el-tu-input {
+  padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line-strong);
+  background: rgba(255,255,255,0.03); color: var(--ink); font-size: 12.5px; font-family: inherit;
+  outline: none; width: 100%; box-sizing: border-box;
+}
+.el-tu-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.el-tu-input:focus { border-color: rgb(from var(--gold) r g b / 0.5); }
+.el-tu-phone-row { display: flex; align-items: center; gap: 6px; }
+.el-tu-phone-prefix {
+  flex-shrink: 0; padding: 8px 8px; border: 1px solid var(--line-strong); border-radius: 9px;
+  background: rgba(255,255,255,0.04); font-size: 12.5px; font-weight: 600; color: var(--ink-muted);
+}
+.el-tu-phone-input { flex: 1; min-width: 0; }
+.el-tu-submit {
+  margin-top: 4px; background: var(--gold); color: var(--gold-contrast); border: none;
+  border-radius: 9px; padding: 9px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.el-tu-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.el-tu-check {
+  background: transparent; border: 1px solid var(--line-strong); color: var(--ink);
+  border-radius: 9px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.el-tu-hint { font-size: 11px; color: var(--ink-muted); margin: 0; line-height: 1.4; }
+.el-tu-status { font-size: 12px; font-weight: 600; margin: 0; line-height: 1.4; }
+.el-tu-status--ok { color: #34d399; }
+.el-tu-status--err { color: #FF453A; }
+.el-tu-status--warn { color: #eab308; }
+.el-tu-error { font-size: 11.5px; color: #FF453A; margin: 0; }
 
 /* Status pill */
 .el-status-pill {

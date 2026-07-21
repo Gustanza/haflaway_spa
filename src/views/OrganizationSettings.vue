@@ -422,43 +422,7 @@
                 <span class="os-field-label os-field-label--flush">Current balance</span>
                 <span class="os-wallet-amount">{{ orgBalance !== null ? formatBalance(orgBalance) : '—' }}</span>
               </div>
-
-              <label class="os-field-label">Amount (TZS)</label>
-              <input
-                v-model.number="topUpAmount"
-                class="os-input"
-                type="number"
-                min="1"
-                placeholder="e.g. 10000"
-                :disabled="topUpStatus === 'pending'"
-              />
-
-              <label class="os-field-label">Phone Number</label>
-              <div class="os-phone-row">
-                <span class="os-phone-prefix">+255</span>
-                <input
-                  v-model="topUpPhone"
-                  class="os-input os-phone-input"
-                  type="tel"
-                  placeholder="712345678"
-                  :disabled="topUpStatus === 'pending'"
-                  @input="topUpPhone = topUpPhone.replace(/\D/g, '').replace(/^0+/, '')"
-                />
-              </div>
-
-              <button class="os-primary-btn os-save-btn" :disabled="!canTopUp" @click="handleTopUp">
-                {{ topUpStatus === 'pending' ? 'Waiting for confirmation…' : 'Top Up via ClickPesa' }}
-              </button>
-
-              <template v-if="topUpStatus === 'pending'">
-                <p class="os-wallet-hint">Check your phone and approve the mobile money prompt to complete the top-up.</p>
-                <button class="os-secondary-btn" :disabled="checkingStatus" @click="handleCheckStatus">
-                  {{ checkingStatus ? 'Checking…' : "Already paid? Check status" }}
-                </button>
-              </template>
-              <p v-if="topUpStatus === 'success'" class="os-save-status os-save-status--ok">✓ Balance updated</p>
-              <p v-if="topUpStatus === 'failed'" class="os-save-status os-save-status--err">Payment failed or was cancelled. Try again.</p>
-              <p v-if="topUpError" class="os-search-error">{{ topUpError }}</p>
+              <p class="os-wallet-hint">Top up from the wallet balance in the topbar on any event page.</p>
             </div>
           </div>
 
@@ -472,13 +436,12 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { db, storage, auth, functions } from '../firebase'
+import { db, storage, auth } from '../firebase'
 import { signOut } from 'firebase/auth'
 import {
-  doc, getDoc, getDocs, collection, query, where, limit, onSnapshot,
+  doc, getDoc, getDocs, collection, query, where, limit,
 } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { httpsCallable } from 'firebase/functions'
 import { useTheme } from '../composables/useTheme.js'
 import { useOrg, contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY } from '../composables/useOrg.js'
 
@@ -528,109 +491,6 @@ async function logout() {
 onMounted(() => document.addEventListener('click', onClickOutside))
 onUnmounted(() => document.removeEventListener('click', onClickOutside))
 const showArchived = ref(false)
-
-// ── Wallet top-up (ClickPesa) ───────────────────────────────────────────────
-const topUpAmount = ref(null)
-const topUpPhone = ref('')
-const topUpStatus = ref('') // '' | 'pending' | 'success' | 'failed'
-const topUpError = ref('')
-const topUpOrderRef = ref('')
-const checkingStatus = ref(false)
-let unsubTopUp = null
-
-const canTopUp = computed(() =>
-  !!activeOrg.value &&
-  Number(topUpAmount.value) > 0 &&
-  topUpPhone.value.trim().length > 0 &&
-  topUpStatus.value !== 'pending'
-)
-
-async function handleTopUp() {
-  if (!activeOrg.value || !canTopUp.value) return
-  topUpError.value = ''
-  topUpStatus.value = 'pending'
-  try {
-    const initiateOrgTopUp = httpsCallable(functions, 'initiateOrgTopUp')
-    const result = await initiateOrgTopUp({
-      orgId: activeOrg.value.id,
-      amount: Number(topUpAmount.value),
-      phoneNumber: `255${topUpPhone.value.trim()}`,
-    })
-    topUpOrderRef.value = result.data.orderReference
-    listenForTopUp(result.data.orderReference)
-  } catch (e) {
-    topUpStatus.value = 'failed'
-    topUpError.value = e?.message || 'Failed to start top-up. Please try again.'
-  }
-}
-
-// Recovers an in-flight top-up after a page reload (the "Check status"
-// fallback button otherwise only exists within the same session that
-// started it) by finding the org's most recent still-PROCESSING payment.
-async function recoverPendingTopUp(orgId) {
-  if (!orgId) return
-  try {
-    const snap = await getDocs(query(
-      collection(db, 'clickpesaPayments'),
-      where('orgId', '==', orgId),
-      where('status', '==', 'PROCESSING'),
-    ))
-    if (snap.empty) return
-    const mostRecent = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))[0]
-    topUpOrderRef.value = mostRecent.id
-    topUpStatus.value = 'pending'
-    listenForTopUp(mostRecent.id)
-  } catch (e) {
-    console.error('recoverPendingTopUp:', e)
-  }
-}
-watch(() => activeOrg.value?.id, (orgId) => { if (orgId) recoverPendingTopUp(orgId) }, { immediate: true })
-
-function listenForTopUp(orderReference) {
-  if (unsubTopUp) unsubTopUp()
-  unsubTopUp = onSnapshot(doc(db, 'clickpesaPayments', orderReference), (snap) => {
-    if (!snap.exists()) return
-    const status = snap.data().status
-    if (status === 'SUCCESS' || status === 'SETTLED') {
-      topUpStatus.value = 'success'
-      unsubTopUp?.(); unsubTopUp = null
-    } else if (status === 'FAILED') {
-      topUpStatus.value = 'failed'
-      unsubTopUp?.(); unsubTopUp = null
-    }
-    // PROCESSING — keep waiting for the webhook to land.
-  })
-}
-
-// Fallback for when the webhook fails or is delayed: independently asks
-// ClickPesa (not the client) whether the payment actually succeeded.
-async function handleCheckStatus() {
-  if (!topUpOrderRef.value || checkingStatus.value) return
-  checkingStatus.value = true
-  topUpError.value = ''
-  try {
-    const reconcileOrgTopUp = httpsCallable(functions, 'reconcileOrgTopUp')
-    const result = await reconcileOrgTopUp({ orderReference: topUpOrderRef.value })
-    const status = result.data.status
-    if (status === 'SUCCESS' || status === 'SETTLED') {
-      topUpStatus.value = 'success'
-      unsubTopUp?.(); unsubTopUp = null
-    } else if (status === 'FAILED') {
-      topUpStatus.value = 'failed'
-      unsubTopUp?.(); unsubTopUp = null
-    } else {
-      topUpError.value = `ClickPesa reports this payment is still ${status?.toLowerCase() ?? 'pending'}.`
-    }
-  } catch (e) {
-    topUpError.value = e?.message || 'Could not check status. Please try again.'
-  } finally {
-    checkingStatus.value = false
-  }
-}
-
-onUnmounted(() => { if (unsubTopUp) unsubTopUp() })
 
 // ── Create org ───────────────────────────────────────────────────────────────
 const newOrgName = ref('')
@@ -1244,19 +1104,6 @@ function avatarStyle(u) {
 }
 .os-input:disabled { opacity: 0.6; cursor: not-allowed; }
 .os-input:focus { border-color: rgb(from var(--gold) r g b / 0.5); }
-
-.os-phone-row { display: flex; align-items: center; gap: 8px; }
-.os-phone-prefix {
-  flex-shrink: 0;
-  padding: 10px 10px;
-  border: 0.8px solid var(--c-border);
-  border-radius: 10px;
-  background: rgba(255,255,255,0.04);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--c-txt-2);
-}
-.os-phone-input { flex: 1; }
 
 .os-field-label {
   font-size: 12px;
