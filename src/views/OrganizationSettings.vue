@@ -26,18 +26,6 @@
                   <span class="os-dropdown-email">{{ userEmail }}</span>
                 </div>
               </div>
-              <!-- Wallet balance card -->
-              <div class="os-dropdown-balance">
-                <div class="os-dbal-icon">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
-                </div>
-                <div class="os-dbal-body">
-                  <span class="os-dbal-label">Balance</span>
-                  <span class="os-dbal-amount" :class="{ 'os-dbal-amount--loading': orgBalance === null }">
-                    {{ orgBalance !== null ? formatBalance(orgBalance) : '—' }}
-                  </span>
-                </div>
-              </div>
               <div class="os-dropdown-divider" />
               <button class="os-dropdown-item" @click="showAdminDropdown = false; router.push('/')">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -412,20 +400,6 @@
             </div>
           </div>
 
-          <!-- ══ Wallet panel ══ -->
-          <div class="os-panel">
-            <div class="os-panel-hd">
-              <h2 class="os-panel-title">Wallet</h2>
-            </div>
-            <div class="os-panel-body">
-              <div class="os-wallet-balance">
-                <span class="os-field-label os-field-label--flush">Current balance</span>
-                <span class="os-wallet-amount">{{ orgBalance !== null ? formatBalance(orgBalance) : '—' }}</span>
-              </div>
-              <p class="os-wallet-hint">Top up from the wallet balance in the topbar on any event page.</p>
-            </div>
-          </div>
-
         </div>
       </template>
     </template>
@@ -462,7 +436,6 @@ const canEditBranding = computed(() => isOwner.value && !activeOrg.value?.archiv
 const showLogoutModal = ref(false)
 const showAdminDropdown = ref(false)
 const adminWrapRef = ref(null)
-const orgBalance = computed(() => activeOrg.value ? (activeOrg.value.balance ?? 0) : null)
 
 const userDisplayName = computed(() => {
   const u = auth.currentUser
@@ -470,11 +443,6 @@ const userDisplayName = computed(() => {
   return u.displayName || u.email?.split('@')[0] || 'Admin'
 })
 const userEmail = computed(() => auth.currentUser?.email ?? '')
-
-function formatBalance(n) {
-  if (n == null) return '—'
-  return 'TZS ' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 })
-}
 
 function onClickOutside(e) {
   if (adminWrapRef.value && !adminWrapRef.value.contains(e.target)) {
@@ -843,7 +811,7 @@ function avatarStyle(u) {
   background: var(--os-dropdown-bg);
   border: 1px solid var(--line-strong);
   border-radius: 14px;
-  box-shadow: 4px 8px 0 rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.35);
   overflow: hidden;
   z-index: 200;
   transition: background 300ms ease, border-color 300ms ease;
@@ -890,36 +858,6 @@ function avatarStyle(u) {
 }
 .os-dropdown-item:hover { background: var(--paper-soft); color: var(--ink); }
 .os-dropdown-item--signout:hover { background: rgba(255,69,58,0.08); color: #FF453A; }
-
-/* Wallet card inside dropdown */
-.os-dropdown-balance {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px 12px;
-}
-.os-dbal-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: rgb(from var(--gold) r g b / 0.10);
-  border: 1px solid rgb(from var(--gold) r g b / 0.20);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #B8924D;
-  flex-shrink: 0;
-}
-.os-dbal-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.os-dbal-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #9A9690;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.os-dbal-amount { font-size: 15px; font-weight: 700; color: #e2e8f0; letter-spacing: -0.3px; }
-.os-dbal-amount--loading { color: #4f617a; }
 
 .os-theme-toggle {
   width: 34px;
@@ -970,7 +908,7 @@ function avatarStyle(u) {
   border-radius: 16px;
   padding: 28px 28px 24px;
   width: 340px;
-  box-shadow: 4px 8px 0 rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.35);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1141,19 +1079,6 @@ function avatarStyle(u) {
 .os-save-status { font-size: 12px; font-weight: 600; }
 .os-save-status--ok { color: #34d399; }
 .os-save-status--err { color: #FF453A; }
-
-.os-wallet-balance {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: rgb(from var(--gold) r g b / 0.08);
-  border: 1px solid rgb(from var(--gold) r g b / 0.2);
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 4px;
-}
-.os-wallet-amount { font-size: 22px; font-weight: 700; color: var(--c-txt); letter-spacing: -0.3px; }
-.os-wallet-hint { font-size: 12px; color: var(--c-txt-2); margin: 2px 0 0; line-height: 1.4; }
 
 .os-switcher { flex-direction: row; flex-wrap: wrap; }
 .os-org-chip {

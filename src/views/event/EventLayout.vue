@@ -115,10 +115,13 @@
                 {{ topUpStatus === 'pending' ? 'Waiting for confirmation…' : 'Top Up via ClickPesa' }}
               </button>
 
-              <p v-if="topUpStatus === 'pending'" class="el-tu-hint">Check your phone and approve the mobile money prompt to complete the top-up.</p>
-              <p v-if="topUpStatus === 'timeout'" class="el-tu-status el-tu-status--warn">Still no confirmation. Check status below, or start a new top-up.</p>
+              <p v-if="topUpStatus === 'pending'" class="el-tu-hint">Check your phone and approve the mobile money prompt. This can take a few minutes to confirm — no need to retry immediately.</p>
+              <p v-if="topUpStatus === 'timeout'" class="el-tu-status el-tu-status--warn">Still no confirmation after several minutes. Check status below, or start a new top-up.</p>
               <button v-if="topUpStatus === 'pending' || topUpStatus === 'timeout'" class="el-tu-check" :disabled="checkingStatus" @click="handleCheckStatus">
                 {{ checkingStatus ? 'Checking…' : "Already paid? Check status" }}
+              </button>
+              <button v-if="topUpStatus === 'timeout'" class="el-tu-check" @click="handleStartNewTopUp">
+                Start a new top-up
               </button>
               <p v-if="topUpStatus === 'success'" class="el-tu-status el-tu-status--ok">✓ Balance updated</p>
               <p v-if="topUpStatus === 'failed'" class="el-tu-status el-tu-status--err">Payment failed or was cancelled. Try again.</p>
@@ -143,163 +146,32 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { db, auth, functions } from '../../firebase'
-import { doc, getDoc, getDocs, collection, query, where, onSnapshot } from 'firebase/firestore'
-import { httpsCallable } from 'firebase/functions'
+import { db } from '../../firebase'
+import { doc, getDoc } from 'firebase/firestore'
 import { useTheme } from '../../composables/useTheme.js'
 import { useOrg } from '../../composables/useOrg.js'
+import { useTopUp } from '../../composables/useTopUp.js'
 
 const { isDark, toggleTheme } = useTheme()
 const { activeOrg } = useOrg()
+const {
+  orgBalance, formatBalance, topUpAmount, topUpPhone, topUpStatus, topUpError,
+  checkingStatus, canTopUp, handleTopUp, handleCheckStatus, handleStartNewTopUp,
+} = useTopUp()
 
 const route = useRoute()
 const router = useRouter()
 const eventId = computed(() => route.params.eventId)
 const event = ref(null)
 const showMobileNav = ref(false)
-// Balance now lives on the org, not the user, so any team member sees the same
-// shared pool — and it updates live since activeOrg is already a realtime listener.
-const orgBalance = computed(() => activeOrg.value ? (activeOrg.value.balance ?? 0) : null)
-
-function formatBalance(n) {
-  if (n == null) return '—'
-  return 'TZS ' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 })
-}
 
 watch(() => route.path, () => { showMobileNav.value = false })
 
-// ── Wallet top-up (ClickPesa) — mirrors OrganizationSettings.vue's Wallet
-// panel so top-up is reachable from every event page, not just Org settings.
+// ── Wallet top-up (ClickPesa) — state/logic shared via useTopUp.js so the
+// same in-flight top-up is tracked whether you're on an event page or the
+// dashboard topbar.
 const showTopUp = ref(false)
 const balanceWrapRef = ref(null)
-const topUpAmount = ref(null)
-const topUpPhone = ref('')
-const topUpStatus = ref('') // '' | 'pending' | 'timeout' | 'success' | 'failed'
-const topUpError = ref('')
-const topUpOrderRef = ref('')
-const checkingStatus = ref(false)
-let unsubTopUp = null
-let topUpTimeoutId = null
-
-// The mobile money webhook usually lands within seconds of approval — if
-// nothing's arrived after this long, stop implying we're still actively
-// waiting (the listener stays attached in case it completes late).
-const TOPUP_WAIT_MS = 90_000
-
-function clearTopUpTimer() {
-  if (topUpTimeoutId) { clearTimeout(topUpTimeoutId); topUpTimeoutId = null }
-}
-// Arms the timeout against the payment's actual start time (not "now"), so a
-// page reload or a hot-reload during dev doesn't hand out a fresh 90s window
-// for a payment that's already been sitting there for minutes.
-function armTopUpTimer(startedAtMs) {
-  clearTopUpTimer()
-  const remaining = TOPUP_WAIT_MS - (Date.now() - startedAtMs)
-  if (remaining <= 0) {
-    topUpStatus.value = 'timeout'
-    return
-  }
-  topUpTimeoutId = setTimeout(() => {
-    if (topUpStatus.value === 'pending') topUpStatus.value = 'timeout'
-  }, remaining)
-}
-
-const canTopUp = computed(() =>
-  !!activeOrg.value &&
-  Number(topUpAmount.value) > 0 &&
-  topUpPhone.value.trim().length > 0 &&
-  topUpStatus.value !== 'pending'
-)
-
-async function handleTopUp() {
-  if (!activeOrg.value || !canTopUp.value) return
-  topUpError.value = ''
-  topUpStatus.value = 'pending'
-  try {
-    const initiateOrgTopUp = httpsCallable(functions, 'initiateOrgTopUp')
-    const result = await initiateOrgTopUp({
-      orgId: activeOrg.value.id,
-      amount: Number(topUpAmount.value),
-      phoneNumber: `255${topUpPhone.value.trim()}`,
-    })
-    topUpOrderRef.value = result.data.orderReference
-    listenForTopUp(result.data.orderReference)
-    armTopUpTimer(Date.now())
-  } catch (e) {
-    topUpStatus.value = 'failed'
-    topUpError.value = e?.message || 'Failed to start top-up. Please try again.'
-  }
-}
-
-// Recovers an in-flight top-up after a page reload, mirroring the same
-// fallback in OrganizationSettings.vue.
-async function recoverPendingTopUp(orgId) {
-  if (!orgId) return
-  try {
-    const snap = await getDocs(query(
-      collection(db, 'clickpesaPayments'),
-      where('orgId', '==', orgId),
-      where('status', '==', 'PROCESSING'),
-    ))
-    if (snap.empty) return
-    const mostRecent = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))[0]
-    topUpOrderRef.value = mostRecent.id
-    topUpStatus.value = 'pending'
-    listenForTopUp(mostRecent.id)
-    armTopUpTimer(mostRecent.createdAt?.toMillis?.() ?? Date.now())
-  } catch (e) {
-    console.error('recoverPendingTopUp:', e)
-  }
-}
-watch(() => activeOrg.value?.id, (orgId) => { if (orgId) recoverPendingTopUp(orgId) }, { immediate: true })
-
-function listenForTopUp(orderReference) {
-  if (unsubTopUp) unsubTopUp()
-  unsubTopUp = onSnapshot(doc(db, 'clickpesaPayments', orderReference), (snap) => {
-    if (!snap.exists()) return
-    const status = snap.data().status
-    if (status === 'SUCCESS' || status === 'SETTLED') {
-      topUpStatus.value = 'success'
-      clearTopUpTimer()
-      unsubTopUp?.(); unsubTopUp = null
-    } else if (status === 'FAILED') {
-      topUpStatus.value = 'failed'
-      clearTopUpTimer()
-      unsubTopUp?.(); unsubTopUp = null
-    }
-    // PROCESSING — keep waiting for the webhook to land.
-  })
-}
-
-// Fallback for when the webhook fails or is delayed: independently asks
-// ClickPesa (not the client) whether the payment actually succeeded.
-async function handleCheckStatus() {
-  if (!topUpOrderRef.value || checkingStatus.value) return
-  checkingStatus.value = true
-  topUpError.value = ''
-  try {
-    const reconcileOrgTopUp = httpsCallable(functions, 'reconcileOrgTopUp')
-    const result = await reconcileOrgTopUp({ orderReference: topUpOrderRef.value })
-    const status = result.data.status
-    if (status === 'SUCCESS' || status === 'SETTLED') {
-      topUpStatus.value = 'success'
-      clearTopUpTimer()
-      unsubTopUp?.(); unsubTopUp = null
-    } else if (status === 'FAILED') {
-      topUpStatus.value = 'failed'
-      clearTopUpTimer()
-      unsubTopUp?.(); unsubTopUp = null
-    } else {
-      topUpError.value = `ClickPesa reports this payment is still ${status?.toLowerCase() ?? 'pending'}.`
-    }
-  } catch (e) {
-    topUpError.value = e?.message || 'Could not check status. Please try again.'
-  } finally {
-    checkingStatus.value = false
-  }
-}
 
 function onClickOutsideBalance(e) {
   if (balanceWrapRef.value && !balanceWrapRef.value.contains(e.target)) {
@@ -307,11 +179,7 @@ function onClickOutsideBalance(e) {
   }
 }
 onMounted(() => document.addEventListener('click', onClickOutsideBalance))
-onUnmounted(() => {
-  document.removeEventListener('click', onClickOutsideBalance)
-  if (unsubTopUp) unsubTopUp()
-  clearTopUpTimer()
-})
+onUnmounted(() => document.removeEventListener('click', onClickOutsideBalance))
 
 const navItems = [
   {
@@ -428,8 +296,12 @@ function resolvedTo(segment) {
   return `/event/${eventId.value}/${segment}`
 }
 
+// Restores whichever My Events page the user was on (see MyEvents.vue's
+// currentPage watcher) — this is a fresh navigation, not a history pop, so
+// the target route's query isn't otherwise available to us here.
 function goAllEvents() {
-  router.push('/')
+  const page = parseInt(localStorage.getItem('haflaway:myEventsPage'))
+  router.push({ path: '/', query: page > 1 ? { page } : {} })
 }
 
 const eventStatus = computed(() => {

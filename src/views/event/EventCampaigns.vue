@@ -199,7 +199,7 @@
 
         <!-- Panel header -->
         <div class="em-panel-hd">
-          <button class="em-detail-back" @click="selectedCustomCamp = null">
+          <button class="em-detail-back" @click="backToCampaignList">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
             Notifications
           </button>
@@ -635,7 +635,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { db, auth } from '../../firebase'
 import { collection, query, orderBy, getDocs, addDoc, setDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore'
 
@@ -649,6 +649,7 @@ const vClickOutside = {
 
 const props = defineProps({ event: Object, eventId: String })
 const route  = useRoute()
+const router = useRouter()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
 
 const SMS_URL = 'https://sendsmsaction-frbu33fema-uc.a.run.app'
@@ -739,6 +740,12 @@ async function loadCustomCampaigns() {
       query(collection(db, 'events', eventId.value, 'campaigns'), orderBy('createdAt', 'desc'))
     )
     customCampaigns.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    // Restore the drilled-into campaign from the URL (e.g. after a refresh)
+    // instead of always landing back on the list.
+    if (route.query.campaign && !selectedCustomCamp.value) {
+      const match = customCampaigns.value.find(c => c.id === route.query.campaign)
+      if (match) selectedCustomCamp.value = match
+    }
   } catch (e) {
     console.error('Failed to load campaigns', e)
   } finally {
@@ -750,6 +757,13 @@ function selectCustomCamp(camp) {
   selectedCustomCamp.value = camp
   customStatus.value = 'unsent'
   customLabelId.value = null
+  router.replace({ query: { ...route.query, campaign: camp.id } })
+}
+
+function backToCampaignList() {
+  selectedCustomCamp.value = null
+  const { campaign, ...rest } = route.query
+  router.replace({ query: rest })
 }
 
 // ── Campaign dialog ────────────────────────────────────────────────────────────
@@ -800,7 +814,7 @@ async function deleteCustomCampaign(camp) {
   try {
     await deleteDoc(doc(db, 'events', eventId.value, 'campaigns', camp.id))
     if (selectedCustomCamp.value?.id === camp.id) {
-      selectedCustomCamp.value = null
+      backToCampaignList()
     }
     await loadCustomCampaigns()
   } catch (e) {

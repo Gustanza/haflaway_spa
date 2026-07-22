@@ -10,6 +10,64 @@
           <span class="me-brand-name">{{ activeOrg?.name || 'Haflaway' }}</span>
         </div>
         <div class="me-topbar-right">
+          <!-- Wallet balance / top-up — top-level so it works with zero events -->
+          <div class="me-balance-wrap" ref="balanceWrapRef" v-if="orgBalance !== null">
+            <button class="me-balance-pill" @click="showTopUp = !showTopUp">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
+              </svg>
+              <span class="me-balance-label">{{ formatBalance(orgBalance) }}</span>
+              <svg class="me-balance-chevron" :class="{ 'me-balance-chevron--open': showTopUp }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            <div v-if="showTopUp" class="me-balance-dropdown">
+              <div class="me-tu-hd">
+                <span class="me-tu-title">Top up wallet</span>
+                <span class="me-tu-balance">{{ formatBalance(orgBalance) }}</span>
+              </div>
+
+              <label class="me-tu-label">Amount (TZS)</label>
+              <input
+                v-model.number="topUpAmount"
+                class="me-tu-input"
+                type="number"
+                min="1"
+                placeholder="e.g. 10000"
+                :disabled="topUpStatus === 'pending'"
+              />
+
+              <label class="me-tu-label">Phone Number</label>
+              <div class="me-tu-phone-row">
+                <span class="me-tu-phone-prefix">+255</span>
+                <input
+                  v-model="topUpPhone"
+                  class="me-tu-input me-tu-phone-input"
+                  type="tel"
+                  placeholder="712345678"
+                  :disabled="topUpStatus === 'pending'"
+                  @input="topUpPhone = topUpPhone.replace(/\D/g, '').replace(/^0+/, '')"
+                />
+              </div>
+
+              <button class="me-tu-submit" :disabled="!canTopUp" @click="handleTopUp">
+                {{ topUpStatus === 'pending' ? 'Waiting for confirmation…' : 'Top Up via ClickPesa' }}
+              </button>
+
+              <p v-if="topUpStatus === 'pending'" class="me-tu-hint">Check your phone and approve the mobile money prompt. This can take a few minutes to confirm — no need to retry immediately.</p>
+              <p v-if="topUpStatus === 'timeout'" class="me-tu-status me-tu-status--warn">Still no confirmation after several minutes. Check status below, or start a new top-up.</p>
+              <button v-if="topUpStatus === 'pending' || topUpStatus === 'timeout'" class="me-tu-check" :disabled="checkingStatus" @click="handleCheckStatus">
+                {{ checkingStatus ? 'Checking…' : "Already paid? Check status" }}
+              </button>
+              <button v-if="topUpStatus === 'timeout'" class="me-tu-check" @click="handleStartNewTopUp">
+                Start a new top-up
+              </button>
+              <p v-if="topUpStatus === 'success'" class="me-tu-status me-tu-status--ok">✓ Balance updated</p>
+              <p v-if="topUpStatus === 'failed'" class="me-tu-status me-tu-status--err">Payment failed or was cancelled. Try again.</p>
+              <p v-if="topUpError" class="me-tu-error">{{ topUpError }}</p>
+            </div>
+          </div>
           <div class="me-admin-wrap" ref="adminWrapRef">
             <button class="me-admin-pill" @click="showAdminDropdown = !showAdminDropdown">
               <span class="me-admin-dot" />
@@ -24,18 +82,6 @@
                 <div class="me-dropdown-header-text">
                   <span class="me-dropdown-name">{{ userDisplayName }}</span>
                   <span class="me-dropdown-email">{{ userEmail }}</span>
-                </div>
-              </div>
-              <!-- Wallet balance card -->
-              <div class="me-dropdown-balance">
-                <div class="me-dbal-icon">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
-                </div>
-                <div class="me-dbal-body">
-                  <span class="me-dbal-label">Balance</span>
-                  <span class="me-dbal-amount" :class="{ 'me-dbal-amount--loading': orgBalance === null }">
-                    {{ orgBalance !== null ? formatBalance(orgBalance) : '—' }}
-                  </span>
                 </div>
               </div>
               <div class="me-dropdown-divider" />
@@ -165,8 +211,8 @@
         </div>
       </div>
 
-      <!-- ── Affiliate Earnings Strip (only rendered for affiliates) ── -->
-      <div v-if="affiliate" class="me-aff-strip">
+      <!-- ── Affiliate Earnings Strip — hidden for now, not useful yet ── -->
+      <div v-if="false && affiliate" class="me-aff-strip">
 
         <!-- Header row -->
         <div class="me-aff-header">
@@ -244,6 +290,10 @@
           class="me-featured"
           @click="goToEvent(featuredEvent.id)"
         >
+          <!-- Blurred backdrop, derived from the same invitation art as the thumb -->
+          <div class="me-feat-bg" :style="{ backgroundImage: featuredBgImage(featuredEvent) }" />
+          <div class="me-feat-scrim" />
+
           <!-- Left: invitation thumb -->
           <div class="me-feat-thumb-col">
             <div class="me-feat-thumb-outline" />
@@ -328,6 +378,10 @@
             :style="{ background: `linear-gradient(105deg, ${thumbColors(event).bg.replace(/,[\d.]+\)$/, ',0.30)')} 0px, ${thumbColors(event).bg} 118px, ${isDark ? '#141414' : '#ffffff'} 380px)` }"
             @click="goToEvent(event.id)"
           >
+            <!-- Blurred backdrop, same trick as the featured card -->
+            <div class="me-row-bg" :style="{ backgroundImage: featuredBgImage(event) }" />
+            <div class="me-row-scrim" />
+
             <!-- Left: invitation card (same idea as featured, scaled down) -->
             <div class="me-row-card-col">
               <div class="me-row-card-outline" />
@@ -415,9 +469,14 @@ import { db, auth } from '../firebase'
 import { signOut } from 'firebase/auth'
 import { useTheme } from '../composables/useTheme.js'
 import { useOrg } from '../composables/useOrg.js'
+import { useTopUp } from '../composables/useTopUp.js'
 
 const { isDark, toggleTheme } = useTheme()
 const { activeOrg } = useOrg()
+const {
+  orgBalance, formatBalance, topUpAmount, topUpPhone, topUpStatus, topUpError,
+  checkingStatus, canTopUp, handleTopUp, handleCheckStatus, handleStartNewTopUp,
+} = useTopUp()
 import {
   collection, query, where, orderBy, getDocs, limit,
 } from 'firebase/firestore'
@@ -441,9 +500,16 @@ const rotations = [-0.35, 0.45, -0.25, 0.5, -0.4, 0.3]
 const showLogoutModal = ref(false)
 const showAdminDropdown = ref(false)
 const adminWrapRef = ref(null)
-// Balance now lives on the org, not the user, so any team member sees the same
-// shared pool — and it updates live since activeOrg is already a realtime listener.
-const orgBalance = computed(() => activeOrg.value ? (activeOrg.value.balance ?? 0) : null)
+
+// ── Wallet top-up (ClickPesa) — the dashboard topbar so top-up is reachable
+// top-level, without going into an event or Organization settings first.
+const showTopUp = ref(false)
+const balanceWrapRef = ref(null)
+function onClickOutsideBalance(e) {
+  if (balanceWrapRef.value && !balanceWrapRef.value.contains(e.target)) {
+    showTopUp.value = false
+  }
+}
 
 const userDisplayName = computed(() => {
   const u = auth.currentUser
@@ -462,11 +528,6 @@ const greeting = computed(() => {
 const upcomingCount = computed(() => events.value.filter(e => statusClass(e) === 'upcoming').length)
 const ongoingCount  = computed(() => events.value.filter(e => statusClass(e) === 'ongoing').length)
 
-function formatBalance(n) {
-  if (n == null) return '—'
-  return 'TZS ' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 })
-}
-
 function onClickOutside(e) {
   if (adminWrapRef.value && !adminWrapRef.value.contains(e.target)) {
     showAdminDropdown.value = false
@@ -479,23 +540,22 @@ async function logout() {
   router.push('/login')
 }
 
-// ── Firestore (unchanged) ──────────────────────────────────────────────────
+// ── Firestore ────────────────────────────────────────────────────────────
+// Events are strictly org-scoped: every org member sees every event under the
+// currently active org, full stop. authorId/adminsIds stay on the event doc
+// for attribution (and the OWNER/ADMIN badge) but no longer gate visibility.
 async function loadEvents() {
   if (!uid) { loading.value = false; return }
+  const orgId = activeOrg.value?.id ?? null
+  if (!orgId) { events.value = []; loading.value = false; return }
   loading.value = true
   try {
     const snap = await getDocs(query(
       collection(db, 'events'),
-      where('adminsIds', 'array-contains', uid),
+      where('orgId', '==', orgId),
       orderBy('startDate', 'desc'),
     ))
-    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    // Scope to the active organization, but keep legacy/unassigned events
-    // (no orgId — created before orgs existed, or shared with you by someone
-    // who hasn't set up an org) visible no matter which org is active, so
-    // nothing you already had access to silently disappears.
-    const orgId = activeOrg.value?.id ?? null
-    events.value = all.filter(e => !e.orgId || e.orgId === orgId)
+    events.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
   } catch (e) {
     console.error('loadEvents:', e)
   } finally {
@@ -715,6 +775,20 @@ function invitationSvg(event) {
 </svg>`
 }
 
+// Same invitation art as the thumb, but as a data-URI so it can be used as a
+// CSS background-image (blurred, cover-fit) behind the featured hero card.
+function invitationSvgBg(event) {
+  return `url("data:image/svg+xml,${encodeURIComponent(invitationSvg(event))}")`
+}
+
+// The featured card's blurred backdrop: the event's real uploaded photo when
+// there is one, falling back to the generated invitation art for events that
+// never had a thumbnail uploaded. The visible foreground thumb is untouched —
+// this only feeds the blurred background layer.
+function featuredBgImage(event) {
+  return event.eventThumbnail ? `url("${event.eventThumbnail}")` : invitationSvgBg(event)
+}
+
 // ── Affiliate ──────────────────────────────────────────────────────────────
 const affiliate            = ref(null)
 const affiliateCommissions = ref([])
@@ -793,23 +867,33 @@ function goToEvent(id) {
   router.push(`/event/${id}`)
 }
 
-// Sync page to URL so browser back/forward and "All Events" button preserve position
+// Sync page to URL so browser back/forward preserve position, and to
+// localStorage so EventLayout.vue's "All Events" link can jump back to the
+// same page too (it's a fresh navigation, not a history pop, so it has no
+// access to this route's query on its own).
 watch(currentPage, (n) => {
   router.replace({ query: n > 1 ? { page: n } : {} })
+  if (n > 1) localStorage.setItem('haflaway:myEventsPage', String(n))
+  else localStorage.removeItem('haflaway:myEventsPage')
 })
 
 watch([activeFilter, activeRole, activeSort], () => { currentPage.value = 1 })
 
+// Reload whenever the active org changes (including the initial resolve,
+// which happens asynchronously after auth) so the list always reflects
+// whichever org is currently selected.
+watch(() => activeOrg.value?.id, () => { loadEvents() }, { immediate: true })
+
 onMounted(() => {
   const qPage = parseInt(route.query.page)
   if (qPage > 1) currentPage.value = qPage
-  loadEvents()
-  loadAffiliate()
   document.addEventListener('click', onClickOutside)
+  document.addEventListener('click', onClickOutsideBalance)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', onClickOutside)
+  document.removeEventListener('click', onClickOutsideBalance)
 })
 </script>
 
@@ -877,6 +961,78 @@ onUnmounted(() => {
 
 .me-topbar-right { display: flex; align-items: center; gap: 10px; }
 
+/* Wallet balance pill / top-up dropdown */
+.me-balance-wrap { position: relative; flex-shrink: 0; }
+.me-balance-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px 5px 12px;
+  border-radius: 20px;
+  background: rgb(from var(--gold) r g b / 0.08);
+  color: var(--gold);
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 130ms;
+}
+.me-balance-pill:hover { background: rgb(from var(--gold) r g b / 0.14); }
+.me-balance-chevron { transition: transform 180ms ease; flex-shrink: 0; }
+.me-balance-chevron--open { transform: rotate(180deg); }
+
+.me-balance-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  background: var(--paper-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.35);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+}
+.me-tu-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; gap: 8px; }
+.me-tu-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+.me-tu-balance { font-size: 13px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+.me-tu-label { font-size: 11px; font-weight: 600; color: var(--ink-muted); margin-top: 4px; }
+.me-tu-input {
+  padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line-strong);
+  background: rgba(255,255,255,0.03); color: var(--ink); font-size: 12.5px; font-family: inherit;
+  outline: none; width: 100%; box-sizing: border-box;
+}
+.me-tu-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.me-tu-input:focus { border-color: rgb(from var(--gold) r g b / 0.5); }
+.me-tu-phone-row { display: flex; align-items: center; gap: 6px; }
+.me-tu-phone-prefix {
+  flex-shrink: 0; padding: 8px 8px; border: 1px solid var(--line-strong); border-radius: 9px;
+  background: rgba(255,255,255,0.04); font-size: 12.5px; font-weight: 600; color: var(--ink-muted);
+}
+.me-tu-phone-input { flex: 1; min-width: 0; }
+.me-tu-submit {
+  margin-top: 4px; background: var(--gold); color: var(--gold-contrast); border: none;
+  border-radius: 9px; padding: 9px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.me-tu-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.me-tu-check {
+  background: transparent; border: 1px solid var(--line-strong); color: var(--ink);
+  border-radius: 9px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.me-tu-hint { font-size: 11px; color: var(--ink-muted); margin: 0; line-height: 1.4; }
+.me-tu-status { font-size: 12px; font-weight: 600; margin: 0; line-height: 1.4; }
+.me-tu-status--ok { color: #34d399; }
+.me-tu-status--err { color: #FF453A; }
+.me-tu-status--warn { color: #eab308; }
+.me-tu-error { font-size: 11.5px; color: #FF453A; margin: 0; }
+
 /* Admin dropdown */
 .me-admin-wrap { position: relative; }
 .me-admin-pill {
@@ -910,7 +1066,7 @@ onUnmounted(() => {
   background: var(--me-dropdown-bg);
   border: 1px solid var(--line-strong);
   border-radius: 14px;
-  box-shadow: 4px 8px 0 rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.35);
   overflow: hidden;
   z-index: 200;
   transition: background 300ms ease, border-color 300ms ease;
@@ -989,46 +1145,6 @@ onUnmounted(() => {
   white-space: nowrap;
   flex-shrink: 0;
 }
-
-/* Wallet card inside dropdown */
-.me-dropdown-balance {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px 12px;
-}
-.me-dbal-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: rgb(from var(--gold) r g b / 0.10);
-  border: 1px solid rgb(from var(--gold) r g b / 0.20);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #B8924D;
-  flex-shrink: 0;
-}
-.me-dbal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-.me-dbal-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #9A9690;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.me-dbal-amount {
-  font-size: 15px;
-  font-weight: 700;
-  color: #e2e8f0;
-  letter-spacing: -0.3px;
-}
-.me-dbal-amount--loading { color: #4f617a; }
 
 .me-create-btn {
   display: flex;
@@ -1425,6 +1541,7 @@ onUnmounted(() => {
 
 /* ── Featured hero ── */
 .me-featured {
+  position: relative;
   display: grid;
   grid-template-columns: 165px 1fr 180px;
   gap: 24px;
@@ -1436,15 +1553,44 @@ onUnmounted(() => {
   cursor: pointer;
   transition: box-shadow 280ms ease, transform 280ms ease;
   background: linear-gradient(160deg, #181818 0%, #141414 100%);
+  overflow: hidden;
 }
 .me-featured:hover {
   box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 16px 40px -6px rgba(0,0,0,0.35);
   transform: translateY(-2px);
 }
 
+/* Blurred, cover-fit backdrop derived from the event's own invitation art —
+   scaled up so the blur's soft edge falls outside the clipped card, never
+   showing a transparent fringe. A dark scrim on top keeps text legible
+   regardless of how bright/saturated any given event's palette is. */
+.me-feat-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  /* Invitation-card thumbnails are tall portraits with the actual photo/art
+     up top and a block of plain white details text below — center-cropping
+     a very wide, short hero card lands on that blank lower half instead of
+     the art, so bias toward the top where the real image content is. */
+  background-position: center top;
+  transform: scale(1.25);
+  filter: blur(9px) saturate(1.4) brightness(1);
+  opacity: 1;
+  pointer-events: none;
+}
+.me-feat-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(100deg, rgba(10,10,10,0.2) 0%, rgba(10,10,10,0.1) 50%, rgba(10,10,10,0.16) 100%);
+  pointer-events: none;
+}
+
 /* Featured thumb col */
 .me-feat-thumb-col {
   position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1468,7 +1614,7 @@ onUnmounted(() => {
 .me-feat-thumb :deep(svg) { display: block; width: 100%; height: auto; }
 
 /* Featured content col */
-.me-feat-content { display: flex; flex-direction: column; gap: 0; justify-content: center; }
+.me-feat-content { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0; justify-content: center; }
 .me-feat-eyebrow {
   display: flex;
   align-items: center;
@@ -1480,8 +1626,9 @@ onUnmounted(() => {
   font-weight: 700;
   letter-spacing: 1.6px;
   text-transform: uppercase;
-  color: var(--ink-dim);
+  color: rgba(255,255,255,0.8);
   white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7);
 }
 .me-feat-eyebrow-sparkle { color: var(--gold); font-size: 10px; flex-shrink: 0; }
 .me-feat-eyebrow-line { flex: 1; height: 1px; background: var(--line); }
@@ -1493,11 +1640,12 @@ onUnmounted(() => {
   margin: 0 0 16px;
   letter-spacing: -1px;
   line-height: 1.05;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.85), 0 0 16px rgba(0,0,0,0.5);
 }
 .me-feat-meta { display: flex; gap: 6px 20px; flex-wrap: wrap; margin-bottom: 24px; }
 .me-feat-meta-item { display: flex; align-items: center; gap: 7px; }
-.me-feat-meta-item svg { color: var(--ink-dim); flex-shrink: 0; }
-.me-feat-meta-val { font-size: 13px; color: var(--ink-soft); font-weight: 500; }
+.me-feat-meta-item svg { color: rgba(255,255,255,0.85); flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.85)); }
+.me-feat-meta-val { font-size: 13px; color: rgba(255,255,255,0.92); font-weight: 500; text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 10px rgba(0,0,0,0.6); }
 
 .me-feat-progress { display: flex; flex-direction: column; gap: 5px; }
 .me-feat-progress-track {
@@ -1538,6 +1686,8 @@ onUnmounted(() => {
 
 /* Featured countdown col */
 .me-feat-countdown {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -1550,9 +1700,10 @@ onUnmounted(() => {
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--ink-dim);
+  color: rgba(255,255,255,0.8);
   line-height: 1;
   margin-bottom: 2px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7);
 }
 .me-feat-cd-day {
   font-family: 'Instrument Serif', Georgia, serif;
@@ -1567,9 +1718,10 @@ onUnmounted(() => {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 2px;
-  color: var(--ink-dim);
+  color: rgba(255,255,255,0.8);
   margin-top: 4px;
   margin-bottom: 10px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7);
 }
 .me-feat-cd-ticket {
   background: #191919;
@@ -1628,6 +1780,7 @@ onUnmounted(() => {
 }
 
 .me-row {
+  position: relative;
   display: grid;
   grid-template-columns: 118px 1fr 100px;
   border-radius: 16px;
@@ -1637,6 +1790,23 @@ onUnmounted(() => {
   overflow: hidden;
   min-height: 124px;
   transition: border-color 200ms, box-shadow 200ms, transform 200ms, filter 200ms;
+}
+.me-row-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center top;
+  transform: scale(1.25);
+  filter: blur(9px) saturate(1.4) brightness(1);
+  pointer-events: none;
+}
+.me-row-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(100deg, rgba(10,10,10,0.2) 0%, rgba(10,10,10,0.1) 50%, rgba(10,10,10,0.16) 100%);
+  pointer-events: none;
 }
 .me-row:hover {
   border-color: rgba(255,255,255,0.14);
@@ -1652,6 +1822,7 @@ onUnmounted(() => {
 /* Left: invitation card column */
 .me-row-card-col {
   position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1688,6 +1859,8 @@ onUnmounted(() => {
 
 /* Middle: body */
 .me-row-body {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1720,6 +1893,7 @@ onUnmounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.85), 0 0 14px rgba(0,0,0,0.5);
 }
 .me-row-meta {
   display: flex;
@@ -1732,9 +1906,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 5px;
   font-size: 11.5px;
-  color: var(--ink-dim);
+  color: rgba(255,255,255,0.85);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.85), 0 0 10px rgba(0,0,0,0.6);
 }
-.me-row-meta-item svg { flex-shrink: 0; }
+.me-row-meta-item svg { flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.85)); }
 .me-status-pill--inline { font-size: 10.5px; padding: 2px 8px; border-radius: 20px; }
 
 /* ── Theme toggle ── */
@@ -1754,6 +1929,8 @@ onUnmounted(() => {
 
 /* Right: editorial date countdown */
 .me-row-cd {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1767,19 +1944,20 @@ onUnmounted(() => {
   font-weight: 700;
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: var(--ink-dim);
-  opacity: 0.55;
+  color: rgba(255,255,255,0.75);
   line-height: 1;
   margin-bottom: 3px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7);
 }
 .me-row-cd-mon {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: rgba(255,255,255,0.85);
   line-height: 1;
   margin-bottom: 0;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7);
 }
 .me-row-cd-day {
   font-family: 'Instrument Serif', Georgia, serif;
@@ -1788,23 +1966,25 @@ onUnmounted(() => {
   line-height: 0.85;
   letter-spacing: -3px;
   display: block;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.5);
 }
 .me-row-cd-ticket {
   margin-top: 11px;
-  background: transparent;
-  border: 1px dashed rgba(255,255,255,0.18);
+  background: rgba(10,10,10,0.35);
+  border: 1px dashed rgba(255,255,255,0.25);
   border-radius: 6px;
   padding: 4px 9px;
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  color: var(--ink-dim);
+  color: rgba(255,255,255,0.85);
   text-align: center;
   line-height: 1.3;
   display: flex;
   align-items: center;
   gap: 4px;
   white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
 }
 .me-row-cd-ticket.me-row-days-pill--live {
   border-style: solid;
@@ -1888,7 +2068,7 @@ onUnmounted(() => {
   border-radius: 16px;
   padding: 28px 28px 24px;
   width: 340px;
-  box-shadow: 4px 8px 0 rgba(0,0,0,0.4);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.35);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1971,7 +2151,26 @@ onUnmounted(() => {
 }
 @media (max-width: 640px) {
   .me-topbar-inner { padding: 12px 16px; }
-  .me-admin-pill { display: none; }
+  /* Collapse to an icon-only tap target rather than hiding it outright —
+     this pill is the only way to reach Organization/Sign out, so removing
+     it entirely stranded mobile users with no way to sign out. */
+  .me-admin-pill { padding: 7px 9px; gap: 4px; }
+  .me-admin-label { display: none; }
+  .me-balance-pill { padding: 5px 8px 5px 10px; gap: 4px; }
+  .me-balance-label { display: none; }
+  /* Both dropdowns are right:0-anchored to their trigger pill, but neither
+     pill is the rightmost element in the topbar (each has 2-3 icon buttons
+     after it) — at narrow widths that pushed the fixed-width panel's left
+     edge off-screen instead of clipping harmlessly. Anchor to the viewport
+     instead of the trigger once space is tight. */
+  .me-balance-dropdown, .me-admin-dropdown {
+    position: fixed;
+    top: 62px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
   .me-page { padding: 16px 14px 48px; gap: 16px; }
   .me-greeting { font-size: 30px; letter-spacing: -0.6px; }
   .me-header-sub { font-size: 12.5px; }
