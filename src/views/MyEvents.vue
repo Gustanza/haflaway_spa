@@ -290,8 +290,7 @@
           class="me-featured"
           @click="goToEvent(featuredEvent.id)"
         >
-          <!-- Blurred backdrop, derived from the same invitation art as the thumb -->
-          <div class="me-feat-bg" :style="{ backgroundImage: featuredBgImage(featuredEvent) }" />
+          <!-- Frosted-glass sheen, no photo backdrop -->
           <div class="me-feat-scrim" />
 
           <!-- Left: invitation thumb -->
@@ -375,11 +374,10 @@
             :key="event.id"
             class="me-row"
             :class="`me-row--${statusClass(event)}`"
-            :style="{ background: `linear-gradient(105deg, ${thumbColors(event).bg.replace(/,[\d.]+\)$/, ',0.30)')} 0px, ${thumbColors(event).bg} 118px, ${isDark ? '#141414' : '#ffffff'} 380px)` }"
+            :style="{ background: `linear-gradient(105deg, ${thumbColors(event).bg.replace(/,[\d.]+\)$/, ',0.22)')} 0px, ${thumbColors(event).bg.replace(/,[\d.]+\)$/, ',0.08)')} 118px, rgba(20,20,24,0) 380px)` }"
             @click="goToEvent(event.id)"
           >
-            <!-- Blurred backdrop, same trick as the featured card -->
-            <div class="me-row-bg" :style="{ backgroundImage: featuredBgImage(event) }" />
+            <!-- Frosted-glass sheen, no photo backdrop -->
             <div class="me-row-scrim" />
 
             <!-- Left: invitation card (same idea as featured, scaled down) -->
@@ -775,20 +773,6 @@ function invitationSvg(event) {
 </svg>`
 }
 
-// Same invitation art as the thumb, but as a data-URI so it can be used as a
-// CSS background-image (blurred, cover-fit) behind the featured hero card.
-function invitationSvgBg(event) {
-  return `url("data:image/svg+xml,${encodeURIComponent(invitationSvg(event))}")`
-}
-
-// The featured card's blurred backdrop: the event's real uploaded photo when
-// there is one, falling back to the generated invitation art for events that
-// never had a thumbnail uploaded. The visible foreground thumb is untouched —
-// this only feeds the blurred background layer.
-function featuredBgImage(event) {
-  return event.eventThumbnail ? `url("${event.eventThumbnail}")` : invitationSvgBg(event)
-}
-
 // ── Affiliate ──────────────────────────────────────────────────────────────
 const affiliate            = ref(null)
 const affiliateCommissions = ref([])
@@ -913,35 +897,44 @@ onUnmounted(() => {
 
   /* ── Layout tokens (overridden by global light-theme CSS; org can override the
      surface color itself via --org-*-bg, set in useOrg.js's watchEffect) ── */
-  --me-topbar-bg:   var(--org-topbar-bg, rgba(10,10,11,0.88));
+  --me-topbar-bg:   var(--org-topbar-bg, rgba(10,10,11,0.34));
   --me-controls-bg: #111;
   --me-card-bg:     #141414;
   --me-dropdown-bg: #141414;
   --me-page-bg:     var(--org-page-bg, #0a0a0b);
 
   min-height: 100vh;
-  background: var(--me-page-bg);
+  background-color: var(--me-page-bg);
+  background-image:
+    linear-gradient(160deg, rgba(10,10,11,0.76) 0%, rgba(10,10,11,0.52) 55%, rgba(10,10,11,0.78) 100%),
+    url('../assets/celebration_bg.png');
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: fixed, fixed;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--ink);
   transition: background 300ms ease, color 300ms ease;
 }
 
-/* ── Topbar ── */
+/* ── Topbar — floats as a rounded glass capsule, not a full-bleed bar ── */
 .me-topbar {
   position: sticky;
-  top: 0;
+  top: 16px;
   z-index: 100;
+  margin: 16px 24px 0;
+  border-radius: 28px;
   background: var(--me-topbar-bg);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid var(--line);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.3), 0 20px 48px -12px rgba(0,0,0,0.35);
   transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
 }
 .me-topbar-inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 28px 32px;
+  padding: 14px 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1186,7 +1179,7 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 32px;
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid rgba(255,255,255,0.14);
 }
 .me-header-copy { display: flex; flex-direction: column; gap: 5px; }
 .me-greeting {
@@ -1222,7 +1215,7 @@ onUnmounted(() => {
 .me-hstat-div {
   width: 1px;
   height: 28px;
-  background: var(--line);
+  background: rgba(255,255,255,0.16);
   flex-shrink: 0;
 }
 .me-hstat-val {
@@ -1249,11 +1242,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  background: var(--me-controls-bg);
-  border: 1px solid var(--line-strong);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(26px) saturate(170%);
+  -webkit-backdrop-filter: blur(26px) saturate(170%);
+  border: 1px solid rgba(255,255,255,0.10);
   border-radius: 14px;
   padding: 8px 8px 8px 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.2);
   transition: background 300ms ease, border-color 300ms ease;
 }
 .me-tabs {
@@ -1459,9 +1454,9 @@ onUnmounted(() => {
 .me-chip-count--active { background: rgba(226,232,240,0.10); color: rgba(226,232,240,0.7); }
 .me-fb-select {
   padding: 6px 10px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 8px;
-  background: var(--paper-soft);
+  background: rgba(255,255,255,0.06);
   font-size: 12.5px;
   font-weight: 500;
   color: var(--ink-muted);
@@ -1469,7 +1464,7 @@ onUnmounted(() => {
   outline: none;
   cursor: pointer;
 }
-.me-fb-select:focus { border-color: var(--line-strong); }
+.me-fb-select:focus { border-color: rgba(255,255,255,0.2); }
 
 /* ── Loading skeletons ── */
 .me-skeleton-list { display: flex; flex-direction: column; gap: 20px; padding-top: 8px; }
@@ -1546,44 +1541,40 @@ onUnmounted(() => {
   grid-template-columns: 165px 1fr 180px;
   gap: 24px;
   padding: 20px 22px 20px 18px;
-  border: 1px solid #2a2a2a;
-  border-top: 1px solid #323232;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-top: 1px solid rgba(255,255,255,0.22);
   border-radius: 18px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 8px 24px -4px rgba(0,0,0,0.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.35), 0 28px 64px -16px rgba(0,0,0,0.45);
   cursor: pointer;
   transition: box-shadow 280ms ease, transform 280ms ease;
-  background: linear-gradient(160deg, #181818 0%, #141414 100%);
+  background: rgba(20,20,24,0.32);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
   overflow: hidden;
 }
 .me-featured:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 16px 40px -6px rgba(0,0,0,0.35);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 12px 44px rgba(0,0,0,0.5), 0 32px 72px -14px rgba(0,0,0,0.5);
   transform: translateY(-2px);
 }
 
-/* Blurred, cover-fit backdrop derived from the event's own invitation art —
-   scaled up so the blur's soft edge falls outside the clipped card, never
-   showing a transparent fringe. A dark scrim on top keeps text legible
-   regardless of how bright/saturated any given event's palette is. */
-.me-feat-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-size: cover;
-  /* Invitation-card thumbnails are tall portraits with the actual photo/art
-     up top and a block of plain white details text below — center-cropping
-     a very wide, short hero card lands on that blank lower half instead of
-     the art, so bias toward the top where the real image content is. */
-  background-position: center top;
-  transform: scale(1.25);
-  filter: blur(9px) saturate(1.4) brightness(1);
-  opacity: 1;
-  pointer-events: none;
+/* These two cards are a fixed dark-glass surface in both page themes (their
+   text/icons are hardcoded light), so pin the ink tokens back to their dark-
+   theme values here — otherwise light mode's global --ink flip makes titles
+   and the countdown number render as dark navy on dark glass. */
+.me-featured, .me-row {
+  --ink: #f0f0ec;
+  --ink-soft: #d8d4cd;
+  --ink-muted: #888;
+  --ink-dim: #555;
 }
+
+/* Soft diagonal light catch on top of the page's own photo backdrop, which shows through the card. */
 .me-feat-scrim {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(100deg, rgba(10,10,10,0.2) 0%, rgba(10,10,10,0.1) 50%, rgba(10,10,10,0.16) 100%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 45%, rgba(255,255,255,0) 70%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16);
   pointer-events: none;
 }
 
@@ -1598,7 +1589,7 @@ onUnmounted(() => {
 .me-feat-thumb-outline {
   position: absolute;
   inset: 6px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255,255,255,0.14);
   border-radius: 10px;
   transform: rotate(-2deg);
   pointer-events: none;
@@ -1631,7 +1622,7 @@ onUnmounted(() => {
   text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7);
 }
 .me-feat-eyebrow-sparkle { color: var(--gold); font-size: 10px; flex-shrink: 0; }
-.me-feat-eyebrow-line { flex: 1; height: 1px; background: var(--line); }
+.me-feat-eyebrow-line { flex: 1; height: 1px; background: rgba(255,255,255,0.16); }
 .me-feat-title {
   font-family: 'Instrument Serif', Georgia, serif;
   font-size: 40px;
@@ -1650,7 +1641,7 @@ onUnmounted(() => {
 .me-feat-progress { display: flex; flex-direction: column; gap: 5px; }
 .me-feat-progress-track {
   height: 4px;
-  background: var(--line);
+  background: rgba(255,255,255,0.14);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -1760,7 +1751,7 @@ onUnmounted(() => {
 .me-section-line {
   flex: 1;
   height: 1px;
-  background: var(--line-strong);
+  background: rgba(255,255,255,0.16);
 }
 .me-section-meta {
   font-size: 11px;
@@ -1789,28 +1780,23 @@ onUnmounted(() => {
   cursor: pointer;
   overflow: hidden;
   min-height: 124px;
+  background: rgba(20,20,24,0.28);
+  backdrop-filter: blur(26px) saturate(170%);
+  -webkit-backdrop-filter: blur(26px) saturate(170%);
   transition: border-color 200ms, box-shadow 200ms, transform 200ms, filter 200ms;
 }
-.me-row-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-size: cover;
-  background-position: center top;
-  transform: scale(1.25);
-  filter: blur(9px) saturate(1.4) brightness(1);
-  pointer-events: none;
-}
+/* Soft diagonal light catch on top of the page's own photo backdrop, which shows through the card. */
 .me-row-scrim {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(100deg, rgba(10,10,10,0.2) 0%, rgba(10,10,10,0.1) 50%, rgba(10,10,10,0.16) 100%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 45%, rgba(255,255,255,0) 70%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
   pointer-events: none;
 }
 .me-row:hover {
-  border-color: rgba(255,255,255,0.14);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  border-color: rgba(255,255,255,0.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 44px rgba(0,0,0,0.5);
   transform: translateY(-2px);
   filter: brightness(1.06);
 }
@@ -1917,7 +1903,7 @@ onUnmounted(() => {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid rgba(255,255,255,0.14);
   background: transparent;
   display: flex;
   align-items: center;
@@ -1935,7 +1921,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-left: 1px solid var(--line);
+  border-left: 1px solid rgba(255,255,255,0.14);
   padding: 14px 8px;
   gap: 0;
 }
@@ -2022,9 +2008,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 8px;
-  background: var(--me-controls-bg);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
   font-size: 13px;
   font-weight: 500;
   color: var(--ink-muted);
@@ -2033,7 +2021,7 @@ onUnmounted(() => {
   transition: border-color 130ms, color 130ms, background 130ms;
 }
 .me-page-btn:hover:not(:disabled):not(.me-page-btn--active) {
-  border-color: var(--line-strong);
+  border-color: rgba(255,255,255,0.22);
   color: var(--ink);
 }
 .me-page-btn--active {
