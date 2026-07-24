@@ -228,7 +228,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { db, auth, storage } from '../firebase'
 import {
@@ -239,7 +239,14 @@ import { useOrg } from '../composables/useOrg.js'
 
 const router = useRouter()
 const uid = auth.currentUser?.uid
-const { activeOrg } = useOrg()
+const { activeOrg, canCreateEvents, loading: orgLoading } = useOrg()
+
+// Guard: creating an event spends the org's wallet balance, so only the owner
+// or a member the owner explicitly granted canCreate may reach this page.
+// Redirect anyone else back to the dashboard once org context has resolved.
+watch([orgLoading, canCreateEvents], ([l, can]) => {
+  if (!l && !can) router.replace('/')
+}, { immediate: true })
 
 const form = ref({
   title: '',
@@ -349,6 +356,9 @@ async function handleSubmit() {
       authorId: uid,
       orgId: activeOrg.value?.id ?? null,
       adminsIds: [uid],
+      // Per-member visibility: the creator sees their own event; the org owner
+      // sees it via bypass. The owner widens the audience from event settings.
+      visibleTo: [uid],
       usersIds: [],
       status: 'Draft',
       categoryId: form.value.categoryId,

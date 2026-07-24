@@ -374,11 +374,23 @@
                       </button>
                       <button class="os-del-no" @click="confirmRemove = null">No</button>
                     </template>
-                    <button v-else class="os-remove-btn" title="Remove" @click="confirmRemove = uid">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                      </svg>
-                    </button>
+                    <template v-else>
+                      <button
+                        class="os-perm-toggle"
+                        :class="{ 'os-perm-toggle--on': memberCan(uid, 'canCreate') }"
+                        :disabled="permBusyUid === uid"
+                        :title="memberCan(uid, 'canCreate') ? 'Can create events (spends org balance) — click to revoke' : 'Cannot create events — click to allow'"
+                        @click="toggleCanCreate(uid)"
+                      >
+                        <span class="os-perm-dot" />
+                        {{ memberCan(uid, 'canCreate') ? 'Can create' : 'View only' }}
+                      </button>
+                      <button class="os-remove-btn" title="Remove" @click="confirmRemove = uid">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    </template>
                   </template>
                 </div>
               </div>
@@ -425,7 +437,7 @@ const { isDark, toggleTheme } = useTheme()
 const {
   currentUser, orgs, activeOrg, isOwner, loading,
   setActiveOrg, createOrg, updateBranding, addMember, removeMember,
-  archiveOrg, unarchiveOrg, leaveOrg,
+  archiveOrg, unarchiveOrg, leaveOrg, memberCan, setMemberPermission,
 } = useOrg()
 
 const activeOrgsList = computed(() => orgs.value.filter(o => !o.archived))
@@ -653,6 +665,19 @@ async function handleRemoveMember(uid) {
     confirmRemove.value = null
   } finally {
     removingId.value = null
+  }
+}
+
+// Owner-only: grant/revoke a member's permission to create events (which draws
+// on the org's wallet balance).
+const permBusyUid = ref(null)
+async function toggleCanCreate(uid) {
+  if (permBusyUid.value || !activeOrg.value) return
+  permBusyUid.value = uid
+  try {
+    await setMemberPermission(activeOrg.value.id, uid, 'canCreate', !memberCan(uid, 'canCreate'))
+  } finally {
+    permBusyUid.value = null
   }
 }
 
@@ -1264,4 +1289,29 @@ function avatarStyle(u) {
 .os-del-lbl { font-size: 12px; color: var(--c-txt-3); }
 .os-del-yes { background: #FF453A; color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; }
 .os-del-no { background: none; border: 1px solid var(--c-border); color: var(--c-txt-3); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; }
+
+/* Per-member "can create events" toggle (owner-only) */
+.os-perm-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--c-border);
+  color: var(--c-txt-3);
+  border-radius: 20px;
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 130ms, color 130ms, border-color 130ms;
+}
+.os-perm-toggle:disabled { opacity: 0.6; cursor: not-allowed; }
+.os-perm-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-txt-3); flex-shrink: 0; }
+.os-perm-toggle--on {
+  background: rgb(from var(--gold) r g b / 0.12);
+  border-color: rgb(from var(--gold) r g b / 0.35);
+  color: var(--gold);
+}
+.os-perm-toggle--on .os-perm-dot { background: var(--gold); }
 </style>

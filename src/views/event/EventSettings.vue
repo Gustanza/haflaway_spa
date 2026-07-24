@@ -26,23 +26,95 @@
             </svg>
             Edit Details
           </button>
-          <button class="es-save-btn" :disabled="saving" @click="saveSettings">
+          <button
+            class="es-save-btn"
+            :class="{ 'es-save-btn--dirty': isDirty && !saving }"
+            :disabled="saving || !isDirty"
+            @click="saveSettings"
+          >
             <svg v-if="saving" class="es-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
             </svg>
-            {{ saving ? 'Saving…' : 'Save' }}
+            <span v-if="isDirty && !saving" class="es-save-dot" />
+            {{ saving ? 'Saving…' : (isDirty ? 'Save changes' : 'Saved') }}
           </button>
         </div>
       </div>
 
-      <!-- ── Two-column grid ── -->
-      <div class="es-grid">
+      <!-- ── Event summary strip (persistent context) ── -->
+      <div class="es-summary">
+        <div class="es-event-card-thumb">
+          <img v-if="event.eventThumbnail" :src="event.eventThumbnail" :alt="event.title" />
+          <div v-else class="es-event-card-thumb-placeholder">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(184,146,77,0.5)" stroke-width="1.5" stroke-linecap="round">
+              <rect x="3" y="4" width="18" height="18" rx="3"/>
+              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+        </div>
+        <div class="es-event-card-info">
+          <span class="es-event-card-name">{{ event.title }}</span>
+          <span class="es-event-card-type">{{ event.categoryId ?? 'Event' }}</span>
+        </div>
+        <div class="es-event-card-status" :class="isPublished ? 'es-status--pub' : 'es-status--draft'">
+          <span class="es-status-dot" />
+          {{ isPublished ? 'Published' : 'Draft' }}
+        </div>
+      </div>
 
-        <!-- ════════════ LEFT COLUMN ════════════ -->
-        <div class="es-col">
+      <!-- ── Tab bar ── -->
+      <div class="es-tabs" role="tablist">
+        <button
+          v-for="t in tabs"
+          :key="t.id"
+          class="es-tab"
+          :class="{ 'es-tab--on': activeTab === t.id, 'es-tab--danger': t.id === 'danger' }"
+          role="tab"
+          :aria-selected="activeTab === t.id"
+          @click="activeTab = t.id"
+        >
+          {{ t.label }}
+        </button>
+      </div>
 
-          <!-- 1. EVENT LOCATIONS -->
-          <div class="es-panel">
+      <!-- ── Tab panes ── -->
+      <div class="es-tabpanes">
+
+          <!-- 0. WHO CAN SEE THIS EVENT (owner-only) — Access tab -->
+          <div v-if="isOwner" v-show="activeTab === 'access'" class="es-panel">
+            <div class="es-panel-hd">
+              <div class="es-panel-hd-left">
+                <div class="es-accent-bar" />
+                <div class="es-section-meta">
+                  <span class="es-section-label">WHO CAN SEE THIS EVENT</span>
+                  <span class="es-section-hint">You always see it. Grant specific members access below.</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="!orgMembers.length" class="es-placeholder">
+              No other members in this organization yet.
+            </div>
+            <div v-else class="es-vis-list">
+              <label v-for="m in orgMembers" :key="m.id" class="es-vis-row" :class="{ 'es-vis-row--busy': visBusyUid === m.id }">
+                <div class="es-vis-info">
+                  <span class="es-vis-name">{{ m.name }}</span>
+                  <span class="es-vis-email">{{ m.email }}</span>
+                </div>
+                <input
+                  type="checkbox"
+                  class="es-vis-check"
+                  :checked="visibleTo.includes(m.id)"
+                  :disabled="visBusyUid === m.id"
+                  @change="toggleVisibility(m.id)"
+                />
+              </label>
+            </div>
+          </div>
+
+          <!-- 1. EVENT LOCATIONS — Locations tab -->
+          <div v-show="activeTab === 'locations'" class="es-panel">
             <div class="es-panel-hd">
               <div class="es-panel-hd-left">
                 <div class="es-accent-bar" />
@@ -94,8 +166,8 @@
             </div>
           </div>
 
-          <!-- 2. LANGUAGE -->
-          <div class="es-panel">
+          <!-- 2. LANGUAGE — General tab -->
+          <div v-show="activeTab === 'general'" class="es-panel">
             <div class="es-panel-hd es-panel-hd--flat">
               <div class="es-accent-bar" />
               <div class="es-section-meta">
@@ -120,8 +192,8 @@
             </div>
           </div>
 
-          <!-- 2b. TIME FORMAT (English events only) -->
-          <div v-if="language === 'en'" class="es-panel">
+          <!-- 2b. TIME FORMAT (English events only) — General tab -->
+          <div v-if="language === 'en'" v-show="activeTab === 'general'" class="es-panel">
             <div class="es-panel-hd es-panel-hd--flat">
               <div class="es-accent-bar" />
               <div class="es-section-meta">
@@ -139,8 +211,8 @@
             </div>
           </div>
 
-          <!-- 3. SCAN PROMO -->
-          <div class="es-panel">
+          <!-- 3. SCAN PROMO — General tab -->
+          <div v-show="activeTab === 'general'" class="es-panel">
             <div class="es-panel-hd es-panel-hd--flat">
               <div class="es-accent-bar" />
               <div class="es-section-meta">
@@ -159,41 +231,11 @@
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 Triggered automatically on successful check-in
               </span>
-              <button class="es-inline-save" :disabled="savingPromo" @click="saveScanPromo">
-                {{ savingPromo ? 'Saving…' : 'Save' }}
-              </button>
             </div>
           </div>
 
-        </div><!-- /left col -->
-
-        <!-- ════════════ RIGHT COLUMN ════════════ -->
-        <div class="es-col es-col--right">
-
-          <!-- Event summary card -->
-          <div class="es-event-card">
-            <div class="es-event-card-thumb">
-              <img v-if="event.eventThumbnail" :src="event.eventThumbnail" :alt="event.title" />
-              <div v-else class="es-event-card-thumb-placeholder">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(184,146,77,0.5)" stroke-width="1.5" stroke-linecap="round">
-                  <rect x="3" y="4" width="18" height="18" rx="3"/>
-                  <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                  <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-              </div>
-            </div>
-            <div class="es-event-card-info">
-              <span class="es-event-card-name">{{ event.title }}</span>
-              <span class="es-event-card-type">{{ event.categoryId ?? 'Event' }}</span>
-            </div>
-            <div class="es-event-card-status" :class="isPublished ? 'es-status--pub' : 'es-status--draft'">
-              <span class="es-status-dot" />
-              {{ isPublished ? 'Published' : 'Draft' }}
-            </div>
-          </div>
-
-          <!-- 4. CARD FORMAT -->
-          <div class="es-panel">
+          <!-- 4. CARD FORMAT — General tab -->
+          <div v-show="activeTab === 'general'" class="es-panel">
             <div class="es-panel-hd es-panel-hd--flat">
               <div class="es-accent-bar" />
               <div class="es-section-meta">
@@ -217,13 +259,13 @@
             </div>
           </div>
 
-          <!-- 5. VISIBILITY -->
-          <div class="es-panel">
+          <!-- 5. PUBLISHING — Access tab -->
+          <div v-show="activeTab === 'access'" class="es-panel">
             <div class="es-panel-hd es-panel-hd--flat">
               <div class="es-accent-bar" />
               <div class="es-section-meta">
-                <span class="es-section-label">VISIBILITY</span>
-                <span class="es-section-hint">Control who can see this event</span>
+                <span class="es-section-label">PUBLISHING</span>
+                <span class="es-section-hint">Whether end-users can see this event publicly</span>
               </div>
             </div>
             <button class="es-action-row" @click="showPublishDialog = true">
@@ -240,8 +282,8 @@
             </button>
           </div>
 
-          <!-- 6. DANGER ZONE -->
-          <div class="es-panel es-panel--danger">
+          <!-- 6. DANGER ZONE — Danger tab -->
+          <div v-show="activeTab === 'danger'" class="es-panel es-panel--danger">
             <div class="es-panel-hd es-panel-hd--flat">
               <div class="es-accent-bar es-accent-bar--red" />
               <div class="es-section-meta">
@@ -262,8 +304,7 @@
             </button>
           </div>
 
-        </div><!-- /right col -->
-      </div><!-- /grid -->
+      </div><!-- /tabpanes -->
     </template>
 
     <!-- ══════════════════════════════════════
@@ -440,17 +481,97 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { db } from '../../firebase'
-import { doc, setDoc, updateDoc, deleteDoc, deleteField } from 'firebase/firestore'
+import { doc, setDoc, updateDoc, deleteDoc, deleteField, getDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
+import { useOrg } from '../../composables/useOrg.js'
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
 const props = defineProps({ event: Object, eventId: String })
 const route  = useRoute()
 const router = useRouter()
+const { activeOrg, isOwner } = useOrg()
 
 const eventId = computed(() => props.eventId ?? route.params.eventId)
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+const tabs = [
+  { id: 'general',   label: 'General'   },
+  { id: 'access',    label: 'Access'    },
+  { id: 'locations', label: 'Locations' },
+  { id: 'danger',    label: 'Danger'    },
+]
+const activeTab = ref('general')
+
+// ── Dirty tracking ─────────────────────────────────────────────────────────
+// The single top Save button owns the "form" fields (language, time format,
+// card format, scan promo). It only lights up when one of them differs from
+// what's saved, and leaving with unsaved changes prompts for confirmation.
+// Locations, visibility and publishing write immediately and aren't part of
+// this dirty state.
+const baseline = ref({ language: 'sw', timeFormat: '12h', usePng: true, scanPromo: '' })
+const isDirty = computed(() =>
+  language.value !== baseline.value.language ||
+  timeFormat.value !== baseline.value.timeFormat ||
+  usePng.value !== baseline.value.usePng ||
+  scanPromo.value.trim() !== baseline.value.scanPromo.trim()
+)
+function captureBaseline() {
+  baseline.value = {
+    language: language.value,
+    timeFormat: timeFormat.value,
+    usePng: usePng.value,
+    scanPromo: scanPromo.value,
+  }
+}
+
+// Warn on in-app navigation away with unsaved changes.
+onBeforeRouteLeave(() => {
+  if (isDirty.value) return window.confirm('You have unsaved changes. Leave without saving?')
+})
+// Warn on browser tab close / refresh with unsaved changes.
+function beforeUnload(e) {
+  if (isDirty.value) { e.preventDefault(); e.returnValue = '' }
+}
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
+
+// ── Visibility (owner-only) ────────────────────────────────────────────────
+// The owner controls which org members can see this event. The owner always
+// sees it (bypass), so the list below is the other members. Toggling writes
+// straight to the event's visibleTo array.
+const visibleTo   = ref([])
+const orgMembers  = ref([])   // { id, name, email } for non-owner org members
+const visBusyUid  = ref(null)
+
+async function loadOrgMembers() {
+  const ownerId = activeOrg.value?.ownerId
+  const ids = (activeOrg.value?.memberIds ?? []).filter(id => id !== ownerId)
+  if (!ids.length) { orgMembers.value = []; return }
+  const snaps = await Promise.all(ids.map(id => getDoc(doc(db, 'users', id))))
+  orgMembers.value = snaps.map((s, i) => {
+    const d = s.exists() ? s.data() : {}
+    const name = [d.firstName, d.lastName].filter(Boolean).join(' ') || d.displayName || d.email || 'Member'
+    return { id: ids[i], name, email: d.email ?? '' }
+  })
+}
+watch(() => activeOrg.value?.memberIds?.join(','), () => { if (isOwner.value) loadOrgMembers() }, { immediate: true })
+
+async function toggleVisibility(memberUid) {
+  if (visBusyUid.value || !eventId.value) return
+  const has = visibleTo.value.includes(memberUid)
+  visBusyUid.value = memberUid
+  // optimistic update, then persist
+  visibleTo.value = has ? visibleTo.value.filter(u => u !== memberUid) : [...visibleTo.value, memberUid]
+  try {
+    await updateDoc(doc(db, 'events', eventId.value), {
+      visibleTo: has ? arrayRemove(memberUid) : arrayUnion(memberUid),
+    })
+  } finally {
+    visBusyUid.value = null
+  }
+}
 
 // ── Settings state ─────────────────────────────────────────────────────────
 const language   = ref('sw')
@@ -468,11 +589,12 @@ watch(() => props.event, (ev) => {
   scanPromo.value   = ev.scanPromo ?? ''
   isPublished.value = (ev.status ?? 'draft').toLowerCase() === 'published'
   locations.value   = Array.isArray(ev.locations) ? [...ev.locations] : []
+  visibleTo.value   = Array.isArray(ev.visibleTo) ? [...ev.visibleTo] : []
+  captureBaseline()
 }, { immediate: true })
 
 // ── Saving flags ───────────────────────────────────────────────────────────
 const saving      = ref(false)
-const savingPromo = ref(false)
 const savingLoc   = ref(false)
 const deleting    = ref(false)
 
@@ -563,38 +685,24 @@ function openLocationModal() {
 function closeLocationModal() { locationModalOpen.value = false; placeSuggestions.value = [] }
 function closeDeleteDialog()  { showDeleteDialog.value = false; deleteConfirm.value = '' }
 
-// ── Save language + card format together ───────────────────────────────────
+// ── Save all General fields together (single top Save button) ──────────────
 async function saveSettings() {
-  if (!eventId.value) return
+  if (!eventId.value || !isDirty.value) return
   saving.value = true
+  const trimmedPromo = scanPromo.value.trim()
   try {
     await setDoc(doc(db, 'events', eventId.value), {
       language:   language.value,
       timeFormat: timeFormat.value,
       usepng:     usePng.value,
+      scanPromo:  trimmedPromo.length ? trimmedPromo : deleteField(),
     }, { merge: true })
+    captureBaseline()
     showToast('Settings saved')
   } catch (e) {
     showToast('Error: ' + e.message, true)
   } finally {
     saving.value = false
-  }
-}
-
-// ── Scan promo ─────────────────────────────────────────────────────────────
-async function saveScanPromo() {
-  if (!eventId.value) return
-  savingPromo.value = true
-  const trimmed = scanPromo.value.trim()
-  try {
-    await updateDoc(doc(db, 'events', eventId.value), {
-      scanPromo: trimmed.length ? trimmed : deleteField(),
-    })
-    showToast(trimmed.length ? 'Promo message saved' : 'Promo message removed')
-  } catch (e) {
-    showToast('Error: ' + e.message, true)
-  } finally {
-    savingPromo.value = false
   }
 }
 
@@ -711,6 +819,54 @@ function showToast(msg, isErr = false) {
   align-items: start;
 }
 .es-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Tabbed settings layout ─────────────────────────────────────────────── */
+.es-summary {
+  margin: 0 0 18px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background 300ms ease, border-color 300ms ease;
+}
+.es-tabs {
+  width: 100%;
+  margin: 0 0 20px;
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.es-tabs::-webkit-scrollbar { display: none; }
+.es-tab {
+  flex: 1;
+  padding: 9px 20px;
+  border: none;
+  background: transparent;
+  color: var(--c-txt-3);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 140ms, color 140ms;
+  white-space: nowrap;
+}
+.es-tab:hover { color: var(--c-txt); }
+.es-tab--on { background: rgb(from var(--gold) r g b / 0.12); color: var(--gold); }
+.es-tab--danger.es-tab--on { background: rgba(255,59,48,0.1); color: #FF3B30; }
+.es-tabpanes {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -886,20 +1042,32 @@ function showToast(msg, isErr = false) {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(180deg, #2A2A2D 0%, #0A0A0B 100%);
-  color: #fff;
-  border: none;
+  background: transparent;
+  color: var(--c-txt);
+  border: 1px solid var(--c-border);
   border-radius: 10px;
-  padding: 9px 20px;
+  padding: 9px 18px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  transition: opacity 150ms;
+  transition: background 150ms, border-color 150ms, color 150ms, box-shadow 150ms;
   flex-shrink: 0;
 }
-.es-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.es-save-btn:not(:disabled):hover { opacity: 0.88; }
+.es-save-btn:disabled { color: var(--c-txt-2); cursor: default; }
+/* Dirty state — the button "screams" to be saved: gold fill + soft pulse. */
+.es-save-btn--dirty {
+  background: var(--gold);
+  color: #0a0a0b;
+  border-color: transparent;
+  animation: es-save-pulse 1.8s ease-in-out infinite;
+}
+.es-save-btn--dirty:hover { filter: brightness(1.06); }
+.es-save-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+@keyframes es-save-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(from var(--gold) r g b / 0.5); }
+  50%      { box-shadow: 0 0 0 6px rgb(from var(--gold) r g b / 0); }
+}
 .es-edit-btn {
   display: flex;
   align-items: center;
@@ -1007,6 +1175,24 @@ function showToast(msg, isErr = false) {
   font-weight: 500;
 }
 
+/* ── Visibility list (owner-only) ──────────────────────────────────────── */
+.es-vis-list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.es-vis-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.es-vis-row--busy { opacity: 0.6; }
+.es-vis-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.es-vis-name { font-size: 13px; font-weight: 600; color: var(--c-txt); }
+.es-vis-email { font-size: 12px; color: var(--c-txt-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.es-vis-check { width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; accent-color: var(--gold); }
+
 /* ── Locations list ────────────────────────────────────────────────────── */
 .es-location-list { margin-top: 10px; }
 .es-location-row {
@@ -1102,21 +1288,6 @@ function showToast(msg, isErr = false) {
   font-size: 11.5px;
   color: var(--c-txt-2);
 }
-.es-inline-save {
-  background: rgb(from var(--gold) r g b / 0.08);
-  border: 1px solid rgba(10,10,11,0.12);
-  color: var(--gold);
-  border-radius: 8px;
-  padding: 6px 16px;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 130ms;
-  flex-shrink: 0;
-}
-.es-inline-save:hover:not(:disabled) { background: rgba(184,146,77,0.18); }
-.es-inline-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Language radio group ──────────────────────────────────────────────── */
 .es-radio-group { display: flex; flex-direction: column; }

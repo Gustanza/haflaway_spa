@@ -3,7 +3,7 @@ import { auth, db } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import {
   collection, doc, getDoc, updateDoc, addDoc,
-  query, where, onSnapshot, arrayUnion, arrayRemove, serverTimestamp,
+  query, where, onSnapshot, arrayUnion, arrayRemove, serverTimestamp, deleteField,
 } from 'firebase/firestore'
 
 const DEFAULT_NAME = 'Haflaway'
@@ -80,6 +80,35 @@ const isOwner = computed(() =>
   !!activeOrg.value && !!currentUser.value && activeOrg.value.ownerId === currentUser.value.uid
 )
 
+// Per-member capabilities live in the org's `memberPerms` map, keyed by uid:
+//   { [uid]: { canCreate: true, ... } }
+// The owner is implicitly all-true and never appears in the map. Adding a
+// member grants nothing — every capability is an explicit grant.
+
+// Does the current user have permission to create events in the active org?
+// (i.e. spend the org's wallet balance via an event) — owner always; otherwise
+// only if the owner has explicitly granted canCreate.
+const canCreateEvents = computed(() => {
+  if (isOwner.value) return true
+  const uid = currentUser.value?.uid
+  const perms = activeOrg.value?.memberPerms ?? {}
+  return !!(uid && perms[uid]?.canCreate)
+})
+
+// Read a specific member's capability flag (used by the owner's management UI).
+function memberCan(memberUid, key) {
+  if (memberUid && activeOrg.value?.ownerId === memberUid) return true
+  return !!(activeOrg.value?.memberPerms?.[memberUid]?.[key])
+}
+
+// Owner-only: grant/revoke one capability for one member. Writes only the
+// nested field so other members' permissions are left untouched.
+async function setMemberPermission(orgId, memberUid, key, value) {
+  await updateDoc(doc(db, 'organizations', orgId), {
+    [`memberPerms.${memberUid}.${key}`]: value,
+  })
+}
+
 // Apply the active org's branding to the whole app shell (tab title, favicon, colors).
 // Overriding the existing --gold variable (rather than a separate one) means every view that
 // already reads var(--gold) — plus everything retrofitted from hardcoded #C9A84C — picks this up.
@@ -145,7 +174,10 @@ async function addMember(orgId, uid) {
 }
 
 async function removeMember(orgId, uid) {
-  await updateDoc(doc(db, 'organizations', orgId), { memberIds: arrayRemove(uid) })
+  await updateDoc(doc(db, 'organizations', orgId), {
+    memberIds: arrayRemove(uid),
+    [`memberPerms.${uid}`]: deleteField(),
+  })
 }
 
 // Owner-only: hides the org, blocks new events, keeps all data intact. Real
@@ -180,6 +212,9 @@ export function useOrg() {
     activeOrg,
     activeOrgId,
     isOwner,
+    canCreateEvents,
+    memberCan,
+    setMemberPermission,
     loading,
     setActiveOrg,
     createOrg,

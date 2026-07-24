@@ -114,7 +114,7 @@
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
           </button>
-          <button class="me-create-btn" @click="$router.push('/create-event')">
+          <button v-if="canCreateEvents" class="me-create-btn" @click="$router.push('/create-event')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
@@ -273,8 +273,8 @@
       <!-- Empty -->
       <div v-else-if="sourceEvents.length === 0" class="me-empty">
         <span class="me-empty-glyph">✦</span>
-        <p class="me-empty-title">{{ searchQuery ? `No results for "${searchQuery}"` : 'No events yet. Create your first.' }}</p>
-        <button v-if="!searchQuery" class="me-create-btn me-create-btn--lg" @click="$router.push('/create-event')">
+        <p class="me-empty-title">{{ searchQuery ? `No results for "${searchQuery}"` : (canCreateEvents ? 'No events yet. Create your first.' : 'No events shared with you yet.') }}</p>
+        <button v-if="!searchQuery && canCreateEvents" class="me-create-btn me-create-btn--lg" @click="$router.push('/create-event')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
@@ -470,7 +470,7 @@ import { useOrg } from '../composables/useOrg.js'
 import { useTopUp } from '../composables/useTopUp.js'
 
 const { isDark, toggleTheme } = useTheme()
-const { activeOrg } = useOrg()
+const { activeOrg, isOwner, canCreateEvents } = useOrg()
 const {
   orgBalance, formatBalance, topUpAmount, topUpPhone, topUpStatus, topUpError,
   checkingStatus, canTopUp, handleTopUp, handleCheckStatus, handleStartNewTopUp,
@@ -539,18 +539,24 @@ async function logout() {
 }
 
 // ── Firestore ────────────────────────────────────────────────────────────
-// Events are strictly org-scoped: every org member sees every event under the
-// currently active org, full stop. authorId/adminsIds stay on the event doc
-// for attribution (and the OWNER/ADMIN badge) but no longer gate visibility.
+// Events are org-scoped with a per-member visibility layer:
+//   • Owner sees every event in the active org.
+//   • Everyone else sees only events whose `visibleTo` list includes them
+//     (owner-granted, or their own creations).
+// authorId/adminsIds stay on the event doc for attribution (and the
+// OWNER/ADMIN badge) but do not gate visibility.
 async function loadEvents() {
   if (!uid) { loading.value = false; return }
   const orgId = activeOrg.value?.id ?? null
   if (!orgId) { events.value = []; loading.value = false; return }
   loading.value = true
   try {
+    const constraints = isOwner.value
+      ? [where('orgId', '==', orgId)]
+      : [where('orgId', '==', orgId), where('visibleTo', 'array-contains', uid)]
     const snap = await getDocs(query(
       collection(db, 'events'),
-      where('orgId', '==', orgId),
+      ...constraints,
       orderBy('startDate', 'desc'),
     ))
     events.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -904,25 +910,49 @@ onUnmounted(() => {
   --me-page-bg:     var(--org-page-bg, #0a0a0b);
 
   min-height: 100vh;
+  /* flow-root establishes a BFC so the topbar's 16px top margin is contained
+     here instead of collapsing through the root and exposing the flat dark
+     body background as a band at the very top edge. */
+  display: flow-root;
   background-color: var(--me-page-bg);
+  /* Photo background: drop a wedding image at public/wedding_bg.jpg and it
+     appears here, dimmed under a dark scrim for legibility. If the file is
+     missing it simply 404s and the purple-night gradient below shows instead
+     (served from public/, so a missing file never breaks the build). */
   background-image:
-    linear-gradient(160deg, rgba(10,10,11,0.76) 0%, rgba(10,10,11,0.52) 55%, rgba(10,10,11,0.78) 100%),
-    url('../assets/celebration_bg.png');
-  background-size: cover, cover;
-  background-position: center, center;
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: fixed, fixed;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    linear-gradient(180deg, rgba(8,6,10,0.5) 0%, rgba(8,6,10,0.38) 50%, rgba(8,6,10,0.5) 100%),
+    url('/wedding_bg.jpg'),
+    radial-gradient(80% 60% at 50% -10%, rgba(90,50,150,0.35) 0%, transparent 55%),
+    linear-gradient(180deg, #17111f 0%, #0b0a0d 70%);
+  background-size: cover, cover, cover, cover;
+  background-position: center, center, center, center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  /* Apple system font (San Francisco) on Apple devices; Inter — the SF-like
+     substitute — everywhere else (SF can't be bundled for licensing reasons). */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
   color: var(--ink);
   transition: background 300ms ease, color 300ms ease;
 }
 
-/* ── Topbar — floats as a rounded glass capsule, not a full-bleed bar ── */
+/* ── Topbar — floats as a rounded glass capsule, aligned to the same 1200px
+   content column as .me-page so its edges line up with the cards below.
+   The outer element is just the width container; the capsule visual lives on
+   .me-topbar-inner. ── */
 .me-topbar {
   position: sticky;
   top: 16px;
   z-index: 100;
-  margin: 16px 24px 0;
+  max-width: 1200px;
+  margin: 16px auto 0;
+  padding: 0 32px;
+  box-sizing: border-box;
+}
+.me-topbar-inner {
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   border-radius: 28px;
   background: var(--me-topbar-bg);
   backdrop-filter: blur(28px) saturate(180%);
@@ -930,14 +960,6 @@ onUnmounted(() => {
   border: 1px solid rgba(255,255,255,0.16);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.3), 0 20px 48px -12px rgba(0,0,0,0.35);
   transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
-}
-.me-topbar-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 14px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 .me-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .me-brand-glyph { font-size: 13px; color: var(--gold); line-height: 1; }
@@ -968,12 +990,13 @@ onUnmounted(() => {
   color: var(--gold);
   letter-spacing: 0.1px;
   white-space: nowrap;
-  border: none;
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
   cursor: pointer;
   font-family: inherit;
-  transition: background 130ms;
+  transition: background 130ms, border-color 130ms;
 }
-.me-balance-pill:hover { background: rgb(from var(--gold) r g b / 0.14); }
+.me-balance-pill:hover { background: rgb(from var(--gold) r g b / 0.14); border-color: rgba(255,255,255,0.24); }
 .me-balance-chevron { transition: transform 180ms ease; flex-shrink: 0; }
 .me-balance-chevron--open { transform: rotate(180deg); }
 
@@ -983,10 +1006,14 @@ onUnmounted(() => {
   right: 0;
   width: 260px;
   max-width: calc(100vw - 32px);
-  background: var(--paper-soft);
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.35);
+  background:
+    linear-gradient(155deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 42%, rgba(255,255,255,0.07) 100%),
+    rgba(20,20,26,0.42);
+  backdrop-filter: blur(44px) saturate(210%);
+  -webkit-backdrop-filter: blur(44px) saturate(210%);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(255,255,255,0.05), 0 20px 50px rgba(0,0,0,0.5);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -994,20 +1021,20 @@ onUnmounted(() => {
   z-index: 200;
 }
 .me-tu-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; gap: 8px; }
-.me-tu-title { font-size: 13px; font-weight: 700; color: var(--ink); }
-.me-tu-balance { font-size: 13px; font-weight: 700; color: var(--gold); white-space: nowrap; }
-.me-tu-label { font-size: 11px; font-weight: 600; color: var(--ink-muted); margin-top: 4px; }
+.me-tu-title { font-size: 13px; font-weight: 700; color: var(--ink); text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+.me-tu-balance { font-size: 13px; font-weight: 700; color: var(--gold); white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+.me-tu-label { font-size: 11px; font-weight: 600; color: var(--ink-soft); margin-top: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
 .me-tu-input {
-  padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line-strong);
-  background: rgba(255,255,255,0.03); color: var(--ink); font-size: 12.5px; font-family: inherit;
+  padding: 8px 10px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.07); color: var(--ink); font-size: 12.5px; font-family: inherit;
   outline: none; width: 100%; box-sizing: border-box;
 }
 .me-tu-input:disabled { opacity: 0.6; cursor: not-allowed; }
 .me-tu-input:focus { border-color: rgb(from var(--gold) r g b / 0.5); }
 .me-tu-phone-row { display: flex; align-items: center; gap: 6px; }
 .me-tu-phone-prefix {
-  flex-shrink: 0; padding: 8px 8px; border: 1px solid var(--line-strong); border-radius: 9px;
-  background: rgba(255,255,255,0.04); font-size: 12.5px; font-weight: 600; color: var(--ink-muted);
+  flex-shrink: 0; padding: 8px 8px; border: 1px solid rgba(255,255,255,0.14); border-radius: 9px;
+  background: rgba(255,255,255,0.07); font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
 }
 .me-tu-phone-input { flex: 1; min-width: 0; }
 .me-tu-submit {
@@ -1016,7 +1043,7 @@ onUnmounted(() => {
 }
 .me-tu-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 .me-tu-check {
-  background: transparent; border: 1px solid var(--line-strong); color: var(--ink);
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.14); color: var(--ink);
   border-radius: 9px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 .me-tu-hint { font-size: 11px; color: var(--ink-muted); margin: 0; line-height: 1.4; }
@@ -1034,16 +1061,17 @@ onUnmounted(() => {
   gap: 7px;
   padding: 6px 12px 6px 14px;
   border-radius: 20px;
-  border: 1px solid var(--line-strong);
-  background: transparent;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.04);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
   font-size: 12.5px;
   font-weight: 500;
-  color: var(--ink-muted);
+  color: var(--ink-soft);
   cursor: pointer;
   font-family: inherit;
-  transition: background 130ms, color 130ms;
+  transition: background 130ms, color 130ms, border-color 130ms;
 }
-.me-admin-pill:hover { background: var(--paper-soft); color: var(--ink); }
+.me-admin-pill:hover { background: rgba(255,255,255,0.1); color: var(--ink); border-color: rgba(255,255,255,0.22); }
 .me-admin-chevron {
   color: var(--ink-dim);
   transition: transform 180ms ease;
@@ -1056,10 +1084,14 @@ onUnmounted(() => {
   top: calc(100% + 8px);
   right: 0;
   min-width: 210px;
-  background: var(--me-dropdown-bg);
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.35);
+  background:
+    linear-gradient(155deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 42%, rgba(255,255,255,0.07) 100%),
+    rgba(20,20,26,0.42);
+  backdrop-filter: blur(44px) saturate(210%);
+  -webkit-backdrop-filter: blur(44px) saturate(210%);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(255,255,255,0.05), 0 20px 50px rgba(0,0,0,0.5);
   overflow: hidden;
   z-index: 200;
   transition: background 300ms ease, border-color 300ms ease;
@@ -1079,10 +1111,11 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 .me-dropdown-email {
   font-size: 11.5px;
-  color: var(--ink-dim);
+  color: var(--ink-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1104,7 +1137,7 @@ onUnmounted(() => {
   text-align: left;
   transition: background 120ms, color 120ms;
 }
-.me-dropdown-item:hover { background: var(--paper-soft); color: var(--ink); }
+.me-dropdown-item:hover { background: rgba(255,255,255,0.07); color: var(--ink); }
 .me-dropdown-item--signout:hover { background: rgba(255,69,58,0.08); color: #FF453A; }
 .me-admin-pill {
   display: flex;
@@ -1166,7 +1199,7 @@ onUnmounted(() => {
 .me-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px 32px 80px;
+  padding: 24px 32px 32px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -1193,9 +1226,10 @@ onUnmounted(() => {
 }
 .me-header-sub {
   font-size: 13px;
-  color: var(--ink-muted);
+  color: rgba(255,255,255,0.88);
   margin: 0;
   font-weight: 400;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
 }
 .me-header-sub--loading { color: var(--ink-dim); }
 
@@ -1225,6 +1259,7 @@ onUnmounted(() => {
   color: var(--ink);
   line-height: 1;
   letter-spacing: -0.5px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.55);
 }
 .me-hstat-val--gold  { color: var(--gold); }
 .me-hstat-val--green { color: var(--emerald); }
@@ -1233,7 +1268,8 @@ onUnmounted(() => {
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: var(--ink-dim);
+  color: rgba(255,255,255,0.72);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 
 /* ── Controls bar ── */
@@ -1266,29 +1302,30 @@ onUnmounted(() => {
   background: transparent;
   font-size: 13px;
   font-weight: 500;
-  color: var(--ink-muted);
+  color: rgba(255,255,255,0.78);
   cursor: pointer;
   font-family: inherit;
   transition: background 120ms, color 120ms;
   white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
-.me-tab:hover { background: rgba(255,255,255,0.04); color: var(--ink-soft); }
+.me-tab:hover { background: rgba(255,255,255,0.04); color: #fff; }
 .me-tab--active {
   background: rgba(240,240,236,0.09);
-  color: var(--ink);
+  color: #fff;
   font-weight: 600;
 }
 .me-tab-count {
   font-size: 10.5px;
   font-weight: 600;
-  background: rgba(255,255,255,0.06);
-  color: var(--ink-dim);
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.7);
   padding: 1px 6px;
   border-radius: 6px;
 }
 .me-tab-count--active {
-  background: rgba(240,240,236,0.10);
-  color: var(--ink-muted);
+  background: rgba(240,240,236,0.16);
+  color: rgba(255,255,255,0.9);
 }
 .me-controls-right {
   display: flex;
@@ -1391,7 +1428,7 @@ onUnmounted(() => {
 .me-search-icon-svg {
   position: absolute;
   left: 11px;
-  color: var(--ink-dim);
+  color: rgba(255,255,255,0.7);
   pointer-events: none;
   flex-shrink: 0;
 }
@@ -1405,7 +1442,7 @@ onUnmounted(() => {
   outline: none;
   font-family: inherit;
 }
-.me-search-input::placeholder { color: var(--ink-dim); }
+.me-search-input::placeholder { color: rgba(255,255,255,0.6); }
 .me-search-clear {
   position: absolute;
   right: 6px;
@@ -1454,16 +1491,18 @@ onUnmounted(() => {
 .me-chip-count--active { background: rgba(226,232,240,0.10); color: rgba(226,232,240,0.7); }
 .me-fb-select {
   padding: 6px 10px;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.16);
   border-radius: 8px;
   background: rgba(255,255,255,0.06);
   font-size: 12.5px;
   font-weight: 500;
-  color: var(--ink-muted);
+  color: rgba(255,255,255,0.85);
   font-family: inherit;
   outline: none;
   cursor: pointer;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
+.me-fb-select option { color: #1a1a1a; text-shadow: none; }
 .me-fb-select:focus { border-color: rgba(255,255,255,0.2); }
 
 /* ── Loading skeletons ── */
@@ -1504,21 +1543,28 @@ onUnmounted(() => {
   border-radius: 20px;
   letter-spacing: 0.1px;
   white-space: nowrap;
+  /* Frosted glass so pills read as one material over the photo backdrop
+     instead of flat dark chips. */
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 .me-status-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-.me-status-pill--upcoming  { background: var(--paper-soft); color: var(--ink-muted); }
-.me-status-pill--upcoming .me-status-dot { background: var(--ink-dim); }
-.me-status-pill--ongoing   { background: rgb(from var(--gold) r g b / 0.10); color: var(--gold); }
+.me-status-pill--upcoming  { background: rgba(255,255,255,0.13); color: rgba(255,255,255,0.92); }
+.me-status-pill--upcoming .me-status-dot { background: rgba(255,255,255,0.85); }
+.me-status-pill--ongoing   { background: rgb(from var(--gold) r g b / 0.16); border-color: rgb(from var(--gold) r g b / 0.35); color: var(--gold); }
 .me-status-pill--ongoing .me-status-dot { background: var(--gold); animation: pulse-dot 1.6s ease-in-out infinite; }
-.me-status-pill--completed { background: var(--paper-soft); color: var(--ink-dim); }
-.me-status-pill--completed .me-status-dot { background: var(--ink-dim); }
+.me-status-pill--completed { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.72); }
+.me-status-pill--completed .me-status-dot { background: rgba(255,255,255,0.6); }
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.5; transform: scale(0.7); }
 }
 /* draft status treated same as upcoming */
-.me-status-pill--draft { background: var(--line-soft); color: var(--ink-muted); }
-.me-status-pill--draft .me-status-dot { background: var(--ink-dim); }
+.me-status-pill--draft { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.85); }
+.me-status-pill--draft .me-status-dot { background: rgba(255,255,255,0.7); }
 
 /* ── Role badge ── */
 .me-role-badge {
@@ -1531,8 +1577,14 @@ onUnmounted(() => {
   padding: 2px 8px;
   border-radius: 6px;
 }
-.me-role-badge--owner { background: rgba(226,232,240,0.12); border: 1px solid rgba(226,232,240,0.16); color: #e2e8f0; }
-.me-role-badge--admin { background: transparent; border: 1px solid var(--line-strong); color: var(--ink-muted); }
+.me-role-badge {
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.me-role-badge--owner { background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.22); color: #fff; }
+.me-role-badge--admin { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.85); }
 
 /* ── Featured hero ── */
 .me-featured {
@@ -1715,15 +1767,18 @@ onUnmounted(() => {
   text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7);
 }
 .me-feat-cd-ticket {
-  background: #191919;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-  border: 1px solid var(--line-strong);
-  color: var(--ink);
+  background: rgba(255,255,255,0.10);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 4px 12px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
   border-radius: 10px;
   padding: 8px 14px;
   display: flex;
   align-items: center;
   gap: 6px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 .me-feat-cd-num {
   font-family: 'Instrument Serif', Georgia, serif;
@@ -1815,13 +1870,11 @@ onUnmounted(() => {
   padding: 14px 10px;
   border-right: 1px solid rgba(255,255,255,0.06);
   overflow: hidden;
-  background-image: radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px);
-  background-size: 9px 9px;
 }
 .me-row-card-outline {
   position: absolute;
   inset: 8px 5px;
-  border: 1px solid rgba(255,255,255,0.13);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 9px;
   transform: rotate(-2.5deg);
   pointer-events: none;
@@ -1832,14 +1885,14 @@ onUnmounted(() => {
   border-radius: 6px;
   overflow: hidden;
   transform: rotate(1.5deg);
-  box-shadow: 4px 8px 24px rgba(0,0,0,0.65), 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.28);
   line-height: 0;
   z-index: 1;
   transition: transform 240ms ease, box-shadow 240ms ease;
 }
 .me-row:hover .me-row-card-inner {
   transform: rotate(0.3deg) scale(1.06);
-  box-shadow: 6px 12px 32px rgba(0,0,0,0.75), 0 3px 8px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.4);
 }
 .me-row-card-inner :deep(svg) { display: block; width: 100%; height: auto; }
 
@@ -1956,21 +2009,23 @@ onUnmounted(() => {
 }
 .me-row-cd-ticket {
   margin-top: 11px;
-  background: rgba(10,10,10,0.35);
-  border: 1px dashed rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.10);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 6px;
   padding: 4px 9px;
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  color: rgba(255,255,255,0.85);
+  color: rgba(255,255,255,0.9);
   text-align: center;
   line-height: 1.3;
   display: flex;
   align-items: center;
   gap: 4px;
   white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
 }
 .me-row-cd-ticket.me-row-days-pill--live {
   border-style: solid;
@@ -2125,6 +2180,7 @@ onUnmounted(() => {
 
 @media (max-width: 860px) {
   .me-page { padding: 24px 20px 60px; gap: 22px; }
+  .me-topbar { padding: 0 20px; }
   .me-greeting { font-size: 40px; letter-spacing: -1px; }
   /* Featured: thumb (small) + content, no countdown */
   .me-featured { grid-template-columns: 120px 1fr; gap: 24px; padding: 24px; }
@@ -2160,6 +2216,7 @@ onUnmounted(() => {
     max-width: none;
   }
   .me-page { padding: 16px 14px 48px; gap: 16px; }
+  .me-topbar { padding: 0 14px; }
   .me-greeting { font-size: 30px; letter-spacing: -0.6px; }
   .me-header-sub { font-size: 12.5px; }
   .me-header { padding-bottom: 16px; gap: 12px; }
@@ -2215,6 +2272,7 @@ onUnmounted(() => {
 
 @media (max-width: 400px) {
   .me-topbar-inner { padding: 10px 14px; }
+  .me-topbar { padding: 0 12px; }
   .me-create-label { display: none; }
   .me-bc-page { display: none; }
   .me-bc-sep { display: none; }
