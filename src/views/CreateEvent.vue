@@ -236,6 +236,7 @@ import {
 } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useOrg } from '../composables/useOrg.js'
+import { toStoredEventDate } from '../utils/eventDates.js'
 
 const router = useRouter()
 const uid = auth.currentUser?.uid
@@ -367,8 +368,10 @@ async function handleSubmit() {
       location: form.value.location.trim(),
       eventThumbnail: thumbnailUrl,
       eventPlanId: form.value.eventPlanId ?? null,
-      startDate: form.value.startDate ? new Date(form.value.startDate).toISOString() : null,
-      endDate: form.value.endDate ? new Date(form.value.endDate).toISOString() : null,
+      // Naive local wall-clock, matching the Flutter app's format — NOT
+      // toISOString(). See utils/eventDates.js.
+      startDate: toStoredEventDate(form.value.startDate),
+      endDate: toStoredEventDate(form.value.endDate),
       supportPhone: form.value.supportPhone.trim(),
       language: form.value.language,
       usepng: true,

@@ -87,7 +87,7 @@
                 transform="rotate(-90 60 60)"
                 style="transition: stroke-dashoffset 800ms cubic-bezier(.4,0,.2,1)"
               />
-              <text x="60" y="56" text-anchor="middle" font-family="'Instrument Serif',Georgia,serif" font-size="20" :fill="isDark ? '#f0f0ec' : '#1a1a2e'">{{ progressPct }}%</text>
+              <text x="60" y="56" text-anchor="middle" font-family="'Playfair Display',Georgia,serif" font-size="20" :fill="isDark ? '#f0f0ec' : '#1a1a2e'">{{ progressPct }}%</text>
               <text x="60" y="70" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" :fill="isDark ? '#555' : '#9ca3af'" letter-spacing="0.5">REACHED</text>
             </svg>
           </div>
@@ -390,7 +390,7 @@ watch(() => props.event, loadStats)
 /* ══ Quick navigate ══ */
 .eo-nav-hd { display: flex; align-items: center; gap: 12px; }
 .eo-nav-title {
-  font-family: 'Instrument Serif', Georgia, serif; font-style: italic;
+  font-family: 'Playfair Display', Georgia, serif; font-style: italic;
   font-size: 15px; color: var(--c-txt); white-space: nowrap;
 }
 .eo-nav-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--c-arrow), transparent); }

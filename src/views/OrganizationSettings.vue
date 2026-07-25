@@ -13,7 +13,10 @@
           <div class="os-admin-wrap" ref="adminWrapRef">
             <button class="os-admin-pill" @click="showAdminDropdown = !showAdminDropdown">
               <span class="os-admin-dot" />
-              <span class="os-admin-label">Admin · {{ userDisplayName }}</span>
+              <!-- Role prefix is a separate span so the pill can shed it as an
+                   intermediate step ("Admin · Stanley Sam" → "Stanley Sam" →
+                   icon only) instead of jumping straight to no label. -->
+              <span class="os-admin-label"><span class="os-admin-role">Admin · </span>{{ userDisplayName }}</span>
               <svg class="os-admin-chevron" :class="{ 'os-admin-chevron--open': showAdminDropdown }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -716,9 +719,23 @@ function avatarStyle(u) {
      default fallback without stomping on an org's custom page color. The old
      "transparent" fallback here let the body's slightly-blue #0a0e1c show
      through instead of the app's actual neutral near-black page background. */
-  --os-page-bg: var(--org-page-bg, #0a0a0b);
-  background: var(--os-page-bg);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --os-page-bg: var(--org-page-bg, #040308);
+  /* flow-root establishes a BFC so the topbar's 16px top margin is contained
+     here rather than collapsing through the root and exposing a flat band at
+     the very top edge. */
+  display: flow-root;
+  background-color: var(--os-page-bg);
+  /* Cosmic nebula base — same three radials as .me-root, so "/" and this screen
+     sit on one continuous backdrop. Light theme replaces the image layer
+     wholesale (see style.css). */
+  background-image:
+    radial-gradient(circle at 80% 20%, rgba(201,168,76,0.08) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(6,182,212,0.04) 0%, transparent 40%),
+    radial-gradient(140% 120% at 50% 100%, #090815 0%, #030206 100%);
+  position: relative;
+  overflow: clip; /* clip orb overflow */
+  z-index: 1;     /* stacking context so the z-index:-1 orbs stay above the base */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
   transition: background 300ms ease;
   --c-bg:     #141414;
   --c-border: #2a2a2a;
@@ -740,8 +757,66 @@ function avatarStyle(u) {
   --paper-soft: #141414;
   --emerald:    #30D158;
   --emerald-soft: rgba(48,209,88,0.12);
-  --os-topbar-bg:   var(--org-topbar-bg, rgba(10,10,11,0.88));
+  --os-topbar-bg:   var(--org-topbar-bg, rgba(14,14,18,0.28));
   --os-dropdown-bg: #141414;
+}
+
+/* ── Animated ambient glow — two slow liquid orbs drifting behind everything.
+   `screen` blending keeps them additive over the nebula instead of muddying it.
+   Identical to .me-root's so both screens read as one lit space. ── */
+.os-root::before,
+.os-root::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(140px);
+  opacity: 0.85;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: -1;
+  will-change: transform, border-radius;
+}
+.os-root::before {
+  top: -15%;
+  left: -5%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle,
+    rgba(6,182,212,0.22) 0%,
+    rgba(124,58,237,0.08) 55%,
+    transparent 100%);
+  animation: os-float-aurora-indigo 26s infinite alternate ease-in-out;
+}
+.os-root::after {
+  bottom: -15%;
+  right: -10%;
+  width: 55vw;
+  height: 55vw;
+  background: radial-gradient(circle,
+    rgba(236,72,153,0.18) 0%,
+    rgba(201,168,76,0.05) 60%,
+    transparent 100%);
+  animation: os-float-aurora-gold 30s infinite alternate ease-in-out;
+}
+
+/* The border-radius morph is what makes them read as liquid rather than as a
+   blurred circle sliding around. */
+@keyframes os-float-aurora-indigo {
+  0%   { transform: translate(0, 0) scale(1) rotate(0deg);           border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+  33%  { transform: translate(8vw, 6vh) scale(1.15) rotate(120deg);  border-radius: 60% 40% 50% 50% / 50% 60% 40% 60%; }
+  66%  { transform: translate(-4vw, 10vh) scale(0.9) rotate(240deg); border-radius: 50% 60% 40% 60% / 60% 40% 60% 40%; }
+  100% { transform: translate(0, 0) scale(1) rotate(360deg);         border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+}
+@keyframes os-float-aurora-gold {
+  0%   { transform: translate(0, 0) scale(1) rotate(0deg);              border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%; }
+  33%  { transform: translate(-10vw, -12vh) scale(1.2) rotate(-120deg); border-radius: 30% 70% 60% 40% / 60% 40% 60% 40%; }
+  66%  { transform: translate(6vw, 4vh) scale(0.95) rotate(-240deg);    border-radius: 60% 40% 50% 50% / 40% 60% 40% 60%; }
+  100% { transform: translate(0, 0) scale(1) rotate(-360deg);           border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .os-root::before,
+  .os-root::after { animation: none; }
 }
 
 .os-page {
@@ -755,48 +830,78 @@ function avatarStyle(u) {
 
 .os-page-header { display: flex; flex-direction: column; gap: 5px; padding-bottom: 4px; }
 .os-page-title {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 32px;
   font-weight: 400;
-  letter-spacing: -0.8px;
+  letter-spacing: -0.4px;
   color: var(--c-txt);
   line-height: 1;
   margin: 0;
 }
 .os-page-sub { font-size: 13px; color: var(--c-txt-2); margin: 0; }
 
-/* ── Topbar (matches MyEvents.vue's .me-topbar exactly) ── */
+/* ── Topbar — floats as a rounded glass capsule, aligned to the same 1200px
+   content column as .os-page so its edges line up with the panels below. The
+   outer element is just the width container; the capsule visual lives on
+   .os-topbar-inner. Mirrors MyEvents.vue's .me-topbar. ── */
 .os-topbar {
   position: sticky;
-  top: 0;
+  top: 16px;
   z-index: 100;
-  background: var(--os-topbar-bg);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid var(--line);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
-  transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+  max-width: 1200px;
+  margin: 16px auto 0;
+  padding: 0 32px;
+  box-sizing: border-box;
 }
 .os-topbar-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 28px 32px;
+  padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%),
+    var(--os-topbar-bg);
+  backdrop-filter: blur(36px) saturate(190%);
+  -webkit-backdrop-filter: blur(36px) saturate(190%);
+  border: 1px solid rgba(255,255,255,0.16);
+  /* Top inset = light catching the upper lip of the glass; bottom inset = the
+     shaded underside. Both are what sell it as a physical surface. */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 -1px 0 rgba(0,0,0,0.22),
+    0 8px 32px rgba(0,0,0,0.35),
+    0 20px 48px -12px rgba(0,0,0,0.4);
+  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.os-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.os-topbar-inner:hover {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.03) 100%),
+    var(--os-topbar-bg);
+  border-color: rgba(255,255,255,0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 -1px 0 rgba(0,0,0,0.22),
+    0 12px 40px rgba(0,0,0,0.45);
+}
+/* The brand is the element that yields when the topbar runs out of room: it
+   truncates first (org names are arbitrary length), then drops out entirely at
+   the 640px breakpoint. Everything to its right is a control with a job. */
+.os-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; min-width: 0; }
 .os-brand-glyph { font-size: 13px; color: var(--gold); line-height: 1; }
-.os-brand-logo { width: 20px; height: 20px; border-radius: 6px; object-fit: cover; }
+.os-brand-logo { width: 20px; height: 20px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
 .os-brand-name {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 20px;
   font-weight: 400;
   color: var(--org-topbar-text, var(--ink));
-  letter-spacing: -0.3px;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.os-topbar-right { display: flex; align-items: center; gap: 10px; }
+.os-topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
 .os-admin-wrap { position: relative; }
 .os-admin-pill {
@@ -821,6 +926,14 @@ function avatarStyle(u) {
   flex-shrink: 0;
 }
 .os-admin-chevron--open { transform: rotate(180deg); }
+/* Ceiling on the label so an unusually long display name can't push the other
+   controls around before the breakpoint ladder gets a chance to act on it. */
+.os-admin-label {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .os-admin-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
@@ -909,6 +1022,10 @@ function avatarStyle(u) {
   border-radius: 10px;
   font-size: 13px;
   font-weight: 700;
+  /* Never let the label break onto a second line — a squeezed flex item
+     wrapping mid-phrase is what makes the whole bar look mangled. */
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   font-family: inherit;
   transition: background 150ms;
@@ -940,12 +1057,12 @@ function avatarStyle(u) {
   transition: background 300ms ease, border-color 300ms ease;
 }
 .os-modal-title {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 22px;
   font-weight: 400;
   color: var(--ink);
   margin: 0;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.1px;
 }
 .os-modal-body { font-size: 13.5px; color: var(--ink-muted); margin: 0 0 8px; line-height: 1.5; }
 .os-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
@@ -1116,6 +1233,10 @@ function avatarStyle(u) {
   padding: 6px 12px 6px 6px;
   cursor: pointer;
   font-family: inherit;
+  /* Org names are arbitrary length — without these a long one makes the chip
+     wider than its wrapping container and overflows the panel. */
+  min-width: 0;
+  max-width: 100%;
 }
 .os-org-chip--active { border-color: var(--gold); background: rgb(from var(--gold) r g b / 0.08); }
 .os-org-chip-avatar {
@@ -1125,7 +1246,10 @@ function avatarStyle(u) {
   overflow: hidden;
 }
 .os-org-chip-img { width: 100%; height: 100%; object-fit: cover; }
-.os-org-chip-name { font-size: 13px; font-weight: 600; color: var(--c-txt); }
+.os-org-chip-name {
+  font-size: 13px; font-weight: 600; color: var(--c-txt);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .os-owner-badge {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
   color: var(--gold); background: rgb(from var(--gold) r g b / 0.12); border-radius: 6px; padding: 2px 6px;
@@ -1314,4 +1438,100 @@ function avatarStyle(u) {
   color: var(--gold);
 }
 .os-perm-toggle--on .os-perm-dot { background: var(--gold); }
+
+/* ── Responsive topbar ──────────────────────────────────────────────────────
+   Same ladder as MyEvents.vue: the bar sheds text in priority order as width
+   runs out — wordmark, then the admin pill's label, then the create button's
+   label — so controls keep their tap targets instead of being squeezed. ── */
+@media (max-width: 860px) {
+  .os-topbar { padding: 0 20px; }
+  .os-page { padding: 22px 20px 56px; }
+}
+
+/* Wordmark first — decorative, and the logo still links to /. */
+@media (max-width: 740px) {
+  .os-brand-name { display: none; }
+  /* With the wordmark gone the glyph fallback (orgs with no logo) is the whole
+     target, so give it some size. */
+  .os-brand-glyph { font-size: 17px; }
+}
+
+@media (max-width: 640px) {
+  .os-topbar { padding: 0 14px; }
+  .os-topbar-inner { padding: 12px 16px; }
+  .os-page { padding: 18px 14px 48px; gap: 16px; }
+  /* The dropdown is right:0-anchored to its trigger, but the trigger isn't the
+     rightmost element (theme toggle and create button follow it) — at narrow
+     widths that pushed the 210px panel's left edge off-screen. Anchor it to the
+     viewport instead once space is tight. */
+  /* Clears the floating capsule: 16px sticky offset + 12/12 padding + 34px
+     control height + borders ≈ 76px, so 84px leaves a visible gap under it. */
+  .os-admin-dropdown {
+    position: fixed;
+    top: 84px;
+    left: 12px;
+    right: 12px;
+    min-width: 0;
+    width: auto;
+  }
+  .os-page-title { font-size: 27px; }
+}
+
+/* ── Phone content reflow ──
+   430px rather than 400 so it covers the common large phones (Pixel 412,
+   iPhone Pro Max 428), not just the narrow ones. Below this the side-by-side
+   rows stop fitting and start crushing their own contents. ── */
+@media (max-width: 430px) {
+  .os-panel-body { padding: 14px; }
+  .os-panel-hd { padding-left: 14px; padding-right: 14px; }
+
+  /* input + button side by side leaves the input unusably narrow once the
+     button reserves its (nowrap) label width — stack and go full-width. */
+  .os-create-row,
+  .os-search-row {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: none;
+  }
+
+  /* Avatar + name/email + permission pill + remove button can't share one line
+     at this width without squeezing the name to nothing. Let the actions drop
+     to a second row, pinned right so the card still reads as one unit. */
+  .os-member-card { flex-wrap: wrap; row-gap: 8px; }
+  .os-member-info { min-width: 120px; }
+  .os-perm-toggle { margin-left: auto; }
+
+  .os-archived-banner { flex-direction: column; align-items: flex-start; }
+  .os-save-row { flex-wrap: wrap; }
+}
+
+/* Step 2 of the shed order: the role prefix goes, leaving just the name. */
+@media (max-width: 620px) {
+  .os-admin-role { display: none; }
+}
+
+/* Step 3: the name goes too. Collapse to an icon-only tap target rather than
+   hiding the pill outright — it's the only way to reach My Events / Sign out
+   from this screen. */
+@media (max-width: 560px) {
+  .os-admin-label { display: none; }
+  .os-admin-pill { padding: 7px 9px; gap: 4px; }
+}
+
+/* Step 4 — matches MyEvents.vue: the create button drops its label at 480,
+   before the 400px tier, since the bar is already tight by ~450px. */
+@media (max-width: 480px) {
+  .os-create-label { display: none; }
+  /* Square up the tap target — 18px of side padding around a lone 14px glyph
+     leaves a stretched pill with the icon floating in it. */
+  .os-create-btn { padding: 9px 11px; gap: 0; }
+}
+
+@media (max-width: 400px) {
+  .os-topbar { padding: 0 12px; }
+  .os-topbar-inner { padding: 10px 14px; }
+  .os-page { padding: 14px 12px 40px; }
+  .os-page-title { font-size: 24px; }
+  .os-page-sub { display: none; }
+}
 </style>

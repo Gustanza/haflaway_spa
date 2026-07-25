@@ -268,7 +268,9 @@ html[data-theme="light"] .os-root {
 
   /* ── OrganizationSettings layout tokens ── */
   --os-page-bg:     var(--org-page-bg, #f0f0f8) !important;
-  --os-topbar-bg:   var(--org-topbar-bg, rgba(255,255,255,0.92)) !important;
+  /* Matches --me-topbar-bg: a glass capsule needs a light tint, not a near-opaque
+     panel, or the backdrop-filter has nothing to show through. */
+  --os-topbar-bg:   var(--org-topbar-bg, rgba(255,255,255,0.32)) !important;
   --os-dropdown-bg: #ffffff !important;
 }
 
@@ -384,8 +386,12 @@ html[data-theme="light"] .os-root {
   color: #9ca3af !important;
 }
 
-/* ── MyEvents refinements in light ── */
-[data-theme="light"] .me-root {
+/* ── MyEvents + Organization refinements in light ──
+   Both roots carry the dark cosmic-nebula radials by default; light mode has to
+   replace that image layer outright, otherwise those dark stops paint over the
+   light page. ── */
+[data-theme="light"] .me-root,
+[data-theme="light"] .os-root {
   background-color: var(--org-page-bg, #f0f0f8) !important;
   background-image:
     linear-gradient(160deg, rgba(240,240,248,0.90) 0%, rgba(240,240,248,0.72) 55%, rgba(240,240,248,0.90) 100%),
@@ -395,7 +401,10 @@ html[data-theme="light"] .os-root {
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: fixed, fixed !important;
 }
-[data-theme="light"] .me-topbar {
+/* The capsule visual lives on the -inner element (the outer one is just the
+   1200px width container and has no border or shadow to restyle). */
+[data-theme="light"] .me-topbar-inner,
+[data-theme="light"] .os-topbar-inner {
   border-color: rgba(0,0,0,0.06) !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 8px 32px rgba(0,0,0,0.08) !important;
 }

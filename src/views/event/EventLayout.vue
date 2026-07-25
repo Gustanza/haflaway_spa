@@ -76,7 +76,9 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
               </svg>
-              {{ formatBalance(orgBalance) }}
+              <!-- Currency and figure are separate spans so the pill can shed
+                   "TZS" at narrow widths before it has to drop the number. -->
+              <span class="el-balance-label"><span class="el-balance-cur">TZS </span>{{ balanceAmount }}</span>
               <svg class="el-balance-chevron" :class="{ 'el-balance-chevron--open': showTopUp }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -128,9 +130,12 @@
               <p v-if="topUpError" class="el-tu-error">{{ topUpError }}</p>
             </div>
           </div>
+          <!-- The label sheds on narrow screens but the dot never does — it
+               carries the status colour, so a dot-only pill still tells you
+               whether the event is upcoming, live or done. -->
           <div class="el-status-pill" :class="`el-status-pill--${eventStatus}`">
             <span class="el-status-dot" />
-            {{ statusLabel }}
+            <span class="el-status-label">{{ statusLabel }}</span>
           </div>
         </div>
       </header>
@@ -158,6 +163,15 @@ const {
   orgBalance, formatBalance, topUpAmount, topUpPhone, topUpStatus, topUpError,
   checkingStatus, canTopUp, handleTopUp, handleCheckStatus, handleStartNewTopUp,
 } = useTopUp()
+
+// The topbar pill renders the currency and the figure separately so it can shed
+// "TZS" before dropping the number. formatBalance() still returns the joined
+// string everywhere else a balance is shown (including the top-up dropdown).
+const balanceAmount = computed(() =>
+  orgBalance.value == null
+    ? '—'
+    : Number(orgBalance.value).toLocaleString('en-US', { maximumFractionDigits: 0 })
+)
 
 const route = useRoute()
 const router = useRouter()
@@ -399,11 +413,11 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 .el-brand-name {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: 19px;
   font-weight: 400;
   color: var(--org-sidebar-text, var(--ink));
-  letter-spacing: -0.3px;
+  letter-spacing: -0.1px;
 }
 
 /* Back button */
@@ -486,23 +500,40 @@ onMounted(async () => {
 }
 
 /* Topbar */
+/* Same glass family as the floating capsules on / and /organization — the sheen,
+   the saturation, the hairline and the inset top-lip highlight — but deliberately
+   NOT floating. Nothing scrolls beneath this bar (.el-content is its own scroll
+   pane, and .el-root is a fixed 100vh shell), so a detached capsule would hover
+   over a static backdrop and read as a flat pill; its vertical cost would also
+   come straight out of the content pane rather than being absorbed by page
+   scroll. The material is shared; the behaviour isn't. */
 .el-topbar {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 28px 32px;
-  background: var(--el-topbar-bg);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid var(--line);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.015) 100%),
+    var(--el-topbar-bg);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.16),
+    inset 0 -1px 0 rgba(0,0,0,0.22),
+    0 4px 16px rgba(0,0,0,0.3),
+    0 12px 32px -12px rgba(0,0,0,0.35);
   transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
 }
+/* flex:1 so the title claims the slack instead of only getting what the
+   (non-shrinking) control group leaves behind. */
 .el-topbar-left {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
   min-width: 0;
 }
 .el-event-title {
@@ -512,6 +543,7 @@ onMounted(async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
   max-width: 360px;
 }
 .el-topbar-right {
@@ -714,6 +746,35 @@ onMounted(async () => {
   .el-hamburger { display: flex; }
 
   .el-topbar { padding: 14px 16px; }
-  .el-event-title { font-size: 15px; max-width: 55vw; }
+  /* Drop the fixed cap and let flex govern — the shed ladder below frees the
+     width, and a vw cap would just re-impose a limit the bar no longer needs. */
+  .el-event-title { font-size: 15px; max-width: none; }
+}
+
+/* ── Topbar shed order ───────────────────────────────────────────────────────
+   The event title is the primary orientation cue on this screen, and it was
+   losing every fight: .el-topbar-right is flex-shrink:0 and at ~412px it held
+   about 285px (theme toggle + full "TZS 2,849,540" + "Upcoming"), leaving the
+   title roughly 60px — it rendered as "The…". The controls now give ground in
+   priority order instead:
+
+     680  status label out  (the dot keeps the colour, so status survives)
+     480  "TZS" out         (a figure beside a wallet icon still reads as money)
+     380  balance figure out
+
+   Matches the ladder on / and /organization. ── */
+@media (max-width: 680px) {
+  .el-status-label { display: none; }
+  /* Square up once it's a lone 6px dot, or the pill keeps its label-width padding. */
+  .el-status-pill { padding: 7px; gap: 0; }
+}
+
+@media (max-width: 480px) {
+  .el-balance-cur { display: none; }
+}
+
+@media (max-width: 380px) {
+  .el-balance-label { display: none; }
+  .el-balance-pill { padding: 5px 8px 5px 10px; gap: 4px; }
 }
 </style>

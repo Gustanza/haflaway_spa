@@ -225,6 +225,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { db, auth, storage } from '../firebase'
 import { doc, getDoc, setDoc, getDocs, collection, query, orderBy } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { toStoredEventDate, toDatetimeLocal } from '../utils/eventDates.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -262,17 +263,6 @@ const form = ref({
   language: 'sw',
 })
 
-// ── ISO → datetime-local string ────────────────────────────────────────────
-
-function toDatetimeLocal(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  // datetime-local needs "YYYY-MM-DDTHH:mm" in the BROWSER'S local time — build
-  // it from local getters, not toISOString() (which is always UTC and was
-  // showing times ~3 hours behind for EAT organizers on every re-open).
-  const pad = n => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 
 // ── Load existing event ────────────────────────────────────────────────────
 
@@ -395,8 +385,10 @@ async function handleSubmit() {
       location: form.value.location.trim(),
       eventThumbnail: thumbnailUrl,
       eventPlanId: form.value.eventPlanId ?? null,
-      startDate: form.value.startDate ? new Date(form.value.startDate).toISOString() : null,
-      endDate: form.value.endDate ? new Date(form.value.endDate).toISOString() : null,
+      // Naive local wall-clock, matching the Flutter app's format — NOT
+      // toISOString(). See utils/eventDates.js.
+      startDate: toStoredEventDate(form.value.startDate),
+      endDate: toStoredEventDate(form.value.endDate),
       supportPhone: form.value.supportPhone.trim(),
       language: form.value.language,
       updatedAt: new Date().toISOString(),
