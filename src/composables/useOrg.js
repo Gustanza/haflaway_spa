@@ -5,6 +5,7 @@ import {
   collection, doc, getDoc, updateDoc, addDoc,
   query, where, onSnapshot, arrayUnion, arrayRemove, serverTimestamp, deleteField,
 } from 'firebase/firestore'
+import DEFAULT_LOGO_URL from '../assets/icon-512.png'
 
 const DEFAULT_NAME = 'Haflaway'
 const DEFAULT_FAVICON = '/src/assets/favicon.ico'
@@ -80,6 +81,18 @@ const isOwner = computed(() =>
   !!activeOrg.value && !!currentUser.value && activeOrg.value.ownerId === currentUser.value.uid
 )
 
+// Whether the active org has been manually vetted to customize the app shell
+// (title/favicon/colors) — see the watchEffect below. Set by hand in Firestore,
+// not through any in-app flow.
+const isBrandingApproved = computed(() => activeOrg.value?.brandingApproved === true)
+
+// The org's own name/logo shown as the app-shell wordmark (topbar, sidebar) —
+// same gate as the watchEffect below, exposed here so every view's brand
+// markup reads one source of truth instead of re-deriving "approved ? org.x :
+// default" inline (and risking a spot that forgets the check).
+const brandName = computed(() => (isBrandingApproved.value && activeOrg.value?.name) || DEFAULT_NAME)
+const brandLogoUrl = computed(() => (isBrandingApproved.value && activeOrg.value?.logoUrl) || DEFAULT_LOGO_URL)
+
 // Per-member capabilities live in the org's `memberPerms` map, keyed by uid:
 //   { [uid]: { canCreate: true, ... } }
 // The owner is implicitly all-true and never appears in the map. Adding a
@@ -114,14 +127,22 @@ async function setMemberPermission(orgId, memberUid, key, value) {
 // already reads var(--gold) — plus everything retrofitted from hardcoded #C9A84C — picks this up.
 // --gold-contrast / --org-secondary-contrast are computed so text stays legible no matter
 // which color (light or dark) an org picks.
+//
+// Gated on `brandingApproved`: any org can save branding fields (see updateBranding /
+// OrganizationSettings.vue), but they only take effect once we've manually vetted the org
+// and set that flag — self-signup shouldn't be enough to repaint the whole app shell for
+// every visitor. There's no in-app way to grant this on purpose; it's flipped by hand in
+// the Firestore console per org.
 watchEffect(() => {
   const org = activeOrg.value
-  document.title = org?.name || DEFAULT_NAME
-  const iconLink = document.querySelector('link[rel="icon"]')
-  if (iconLink) iconLink.href = org?.faviconUrl || DEFAULT_FAVICON
+  const approved = org?.brandingApproved === true
 
-  const primary = org?.accentColor || DEFAULT_ACCENT
-  const secondary = org?.secondaryColor || DEFAULT_SECONDARY
+  document.title = (approved && org?.name) || DEFAULT_NAME
+  const iconLink = document.querySelector('link[rel="icon"]')
+  if (iconLink) iconLink.href = (approved && org?.faviconUrl) || DEFAULT_FAVICON
+
+  const primary = (approved && org?.accentColor) || DEFAULT_ACCENT
+  const secondary = (approved && org?.secondaryColor) || DEFAULT_SECONDARY
   const root = document.documentElement.style
   root.setProperty('--gold', primary)
   root.setProperty('--gold-contrast', contrastColor(primary))
@@ -129,7 +150,7 @@ watchEffect(() => {
   root.setProperty('--org-secondary-contrast', contrastColor(secondary))
 
   for (const [field, bgVar, textVar] of SURFACE_TOKENS) {
-    const value = org?.[field]
+    const value = approved && org?.[field]
     if (value) {
       root.setProperty(bgVar, value)
       if (textVar) root.setProperty(textVar, contrastColor(value))
@@ -212,6 +233,9 @@ export function useOrg() {
     activeOrg,
     activeOrgId,
     isOwner,
+    isBrandingApproved,
+    brandName,
+    brandLogoUrl,
     canCreateEvents,
     memberCan,
     setMemberPermission,

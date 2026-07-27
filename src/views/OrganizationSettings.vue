@@ -5,9 +5,8 @@
     <nav class="os-topbar">
       <div class="os-topbar-inner">
         <div class="os-brand" @click="router.push('/')">
-          <img v-if="activeOrg?.logoUrl" :src="activeOrg.logoUrl" class="os-brand-logo" />
-          <span v-else class="os-brand-glyph">✦</span>
-          <span class="os-brand-name">{{ activeOrg?.name || 'Haflaway' }}</span>
+          <img :src="brandLogoUrl" class="os-brand-logo" />
+          <span class="os-brand-name">{{ brandName }}</span>
         </div>
         <div class="os-topbar-right">
           <div class="os-admin-wrap" ref="adminWrapRef">
@@ -205,6 +204,10 @@
                 <button v-if="isOwner" class="os-secondary-btn" :disabled="archiving" @click="handleUnarchive">
                   {{ archiving ? 'Unarchiving…' : 'Unarchive' }}
                 </button>
+              </div>
+
+              <div v-else-if="isOwner && !isBrandingApproved" class="os-archived-banner">
+                <span>Custom branding isn't enabled for this organization yet — contact support to turn it on.</span>
               </div>
 
               <div class="os-brand-row">
@@ -438,14 +441,16 @@ const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
 
 const {
-  currentUser, orgs, activeOrg, isOwner, loading,
+  currentUser, orgs, activeOrg, isOwner, isBrandingApproved, brandName, brandLogoUrl, loading,
   setActiveOrg, createOrg, updateBranding, addMember, removeMember,
   archiveOrg, unarchiveOrg, leaveOrg, memberCan, setMemberPermission,
 } = useOrg()
 
 const activeOrgsList = computed(() => orgs.value.filter(o => !o.archived))
 const archivedOrgsList = computed(() => orgs.value.filter(o => o.archived))
-const canEditBranding = computed(() => isOwner.value && !activeOrg.value?.archived)
+const canEditBranding = computed(() =>
+  isOwner.value && !activeOrg.value?.archived && isBrandingApproved.value
+)
 
 // ── Topbar ───────────────────────────────────────────────────────────────────
 const showLogoutModal = ref(false)
@@ -888,7 +893,6 @@ function avatarStyle(u) {
    truncates first (org names are arbitrary length), then drops out entirely at
    the 640px breakpoint. Everything to its right is a control with a job. */
 .os-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; min-width: 0; }
-.os-brand-glyph { font-size: 13px; color: var(--gold); line-height: 1; }
 .os-brand-logo { width: 20px; height: 20px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
 .os-brand-name {
   font-family: 'Playfair Display', Georgia, serif;
@@ -1117,18 +1121,28 @@ function avatarStyle(u) {
 }
 
 .os-panel {
-  background: var(--c-bg);
-  border: 1px solid var(--c-border);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.01) 100%
+    ),
+    rgba(18, 18, 22, 0.35);
+  backdrop-filter: blur(32px) saturate(190%);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.25);
 }
 .os-panel-hd {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 18px;
-  border-bottom: 1px solid var(--c-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .os-panel-title {
   font-size: 14px;
@@ -1174,16 +1188,19 @@ function avatarStyle(u) {
 .os-input {
   flex: 1;
   padding: 10px 12px;
-  border: 0.8px solid var(--c-border);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
-  background: rgba(255,255,255,0.02);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   font-size: 13px;
   color: var(--c-txt);
   outline: none;
   font-family: inherit;
+  transition: all 180ms ease;
 }
 .os-input:disabled { opacity: 0.6; cursor: not-allowed; }
-.os-input:focus { border-color: rgb(from var(--gold) r g b / 0.5); }
+.os-input:focus { border-color: rgb(from var(--gold) r g b / 0.5); background: rgba(255, 255, 255, 0.06); }
 
 .os-field-label {
   font-size: 12px;
@@ -1205,8 +1222,11 @@ function avatarStyle(u) {
 }
 .os-primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .os-secondary-btn {
-  background: transparent;
-  border: 1px solid var(--c-border);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: var(--c-txt);
   border-radius: 10px;
   padding: 10px 14px;
@@ -1214,6 +1234,11 @@ function avatarStyle(u) {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 180ms ease;
+}
+.os-secondary-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 .os-secondary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .os-save-row { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
@@ -1227,18 +1252,30 @@ function avatarStyle(u) {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--c-border);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   padding: 6px 12px 6px 6px;
   cursor: pointer;
   font-family: inherit;
+  transition: all 180ms ease;
   /* Org names are arbitrary length — without these a long one makes the chip
      wider than its wrapping container and overflows the panel. */
   min-width: 0;
   max-width: 100%;
 }
-.os-org-chip--active { border-color: var(--gold); background: rgb(from var(--gold) r g b / 0.08); }
+.os-org-chip:hover:not(.os-org-chip--active) {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.os-org-chip--active {
+  border-color: var(--gold);
+  background: rgb(from var(--gold) r g b / 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
 .os-org-chip-avatar {
   width: 24px; height: 24px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -1451,9 +1488,6 @@ function avatarStyle(u) {
 /* Wordmark first — decorative, and the logo still links to /. */
 @media (max-width: 740px) {
   .os-brand-name { display: none; }
-  /* With the wordmark gone the glyph fallback (orgs with no logo) is the whole
-     target, so give it some size. */
-  .os-brand-glyph { font-size: 17px; }
 }
 
 @media (max-width: 640px) {

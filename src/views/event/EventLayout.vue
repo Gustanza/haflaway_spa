@@ -16,9 +16,8 @@
 
       <!-- Brand -->
       <div class="el-brand" @click="$router.push('/')">
-        <img v-if="activeOrg?.logoUrl" :src="activeOrg.logoUrl" class="el-brand-logo" />
-        <span v-else class="el-brand-glyph">✦</span>
-        <span class="el-brand-name">{{ activeOrg?.name || 'Haflaway' }}</span>
+        <img :src="brandLogoUrl" class="el-brand-logo" />
+        <span class="el-brand-name">{{ brandName }}</span>
       </div>
 
       <!-- Back link -->
@@ -158,7 +157,7 @@ import { useOrg } from '../../composables/useOrg.js'
 import { useTopUp } from '../../composables/useTopUp.js'
 
 const { isDark, toggleTheme } = useTheme()
-const { activeOrg } = useOrg()
+const { brandName, brandLogoUrl } = useOrg()
 const {
   orgBalance, formatBalance, topUpAmount, topUpPhone, topUpStatus, topUpError,
   checkingStatus, canTopUp, handleTopUp, handleCheckStatus, handleStartNewTopUp,
@@ -310,12 +309,16 @@ function resolvedTo(segment) {
   return `/event/${eventId.value}/${segment}`
 }
 
-// Restores whichever My Events page the user was on (see MyEvents.vue's
-// currentPage watcher) — this is a fresh navigation, not a history pop, so
-// the target route's query isn't otherwise available to us here.
+// Restores whichever My Events page/tab the user was on (see MyEvents.vue's
+// currentPage + activeFilter watcher) — this is a fresh navigation, not a
+// history pop, so the target route's query isn't otherwise available to us here.
 function goAllEvents() {
   const page = parseInt(localStorage.getItem('haflaway:myEventsPage'))
-  router.push({ path: '/', query: page > 1 ? { page } : {} })
+  const filter = localStorage.getItem('haflaway:myEventsFilter')
+  const query = {}
+  if (page > 1) query.page = page
+  if (filter && filter !== 'all') query.filter = filter
+  router.push({ path: '/', query })
 }
 
 const eventStatus = computed(() => {
@@ -397,12 +400,6 @@ onMounted(async () => {
   padding: 28px 18px;
   border-bottom: 1px solid var(--line);
   cursor: pointer;
-  flex-shrink: 0;
-}
-.el-brand-glyph {
-  font-size: 16px;
-  color: var(--gold);
-  line-height: 1;
   flex-shrink: 0;
 }
 .el-brand-logo {

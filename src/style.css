@@ -386,11 +386,15 @@ html[data-theme="light"] .os-root {
   color: #9ca3af !important;
 }
 
-/* ── MyEvents + Organization refinements in light ──
-   Both roots carry the dark cosmic-nebula radials by default; light mode has to
+/* ── MyEvents: flat surface, no decoration — matches el-root. ── */
+[data-theme="light"] .me-root {
+  background-color: var(--org-page-bg, #f0f0f8) !important;
+  background-image: none !important;
+}
+/* ── Organization refinements in light ──
+   os-root carries the dark cosmic-nebula radials by default; light mode has to
    replace that image layer outright, otherwise those dark stops paint over the
    light page. ── */
-[data-theme="light"] .me-root,
 [data-theme="light"] .os-root {
   background-color: var(--org-page-bg, #f0f0f8) !important;
   background-image:
@@ -405,8 +409,8 @@ html[data-theme="light"] .os-root {
    1200px width container and has no border or shadow to restyle). */
 [data-theme="light"] .me-topbar-inner,
 [data-theme="light"] .os-topbar-inner {
-  border-color: rgba(0,0,0,0.06) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 8px 32px rgba(0,0,0,0.08) !important;
+  border-color: #e8e8f4 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 8px 32px rgba(99,102,241,0.08) !important;
 }
 [data-theme="light"] .me-admin-pill {
   border-color: #e8e8f4 !important;
@@ -428,13 +432,17 @@ html[data-theme="light"] .os-root {
 [data-theme="light"] .me-dropdown-item:hover { background: #f4f4fd !important; color: #1a1a2e !important; }
 [data-theme="light"] .me-dbal-amount { color: #1a1a2e !important; }
 [data-theme="light"] .me-dbal-amount--loading { color: #9ca3af !important; }
-[data-theme="light"] .me-header { border-bottom-color: rgba(255,255,255,0.5) !important; }
+[data-theme="light"] .me-header { border-bottom-color: #e8e8f4 !important; }
+[data-theme="light"] .me-header-sub { color: #6b7280 !important; text-shadow: none !important; }
+[data-theme="light"] .me-hstat-val { text-shadow: none !important; }
+[data-theme="light"] .me-hstat-label { color: #9ca3af !important; text-shadow: none !important; }
 [data-theme="light"] .me-controls {
   background: rgba(255,255,255,0.22) !important;
   border-color: rgba(255,255,255,0.4) !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 2px 8px rgba(0,0,0,0.04) !important;
 }
-[data-theme="light"] .me-tab:hover { background: rgba(99,102,241,0.04) !important; }
+[data-theme="light"] .me-tab { color: #6b7280 !important; text-shadow: none !important; }
+[data-theme="light"] .me-tab:hover { background: rgba(99,102,241,0.04) !important; color: #1a1a2e !important; }
 [data-theme="light"] .me-tab--active {
   background: rgb(from var(--gold) r g b / 0.10) !important;
   color: #7a5a0a !important;
@@ -448,14 +456,23 @@ html[data-theme="light"] .os-root {
 }
 [data-theme="light"] .me-search-input { color: #1a1a2e !important; }
 [data-theme="light"] .me-search-input::placeholder { color: #9ca3af !important; }
+[data-theme="light"] .me-search-icon-svg { color: #9ca3af !important; }
+[data-theme="light"] .me-status-pill--draft { background: #f0f0f8 !important; color: #6b7280 !important; }
+[data-theme="light"] .me-status-pill--draft .me-status-dot { background: #9ca3af !important; }
+[data-theme="light"] .me-status-pill,
+[data-theme="light"] .me-role-badge { text-shadow: none !important; }
 [data-theme="light"] .me-skeleton {
   background: linear-gradient(90deg, #f0f0f8 25%, #e8e8f4 50%, #f0f0f8 75%) !important;
 }
+[data-theme="light"] .me-featured,
+[data-theme="light"] .me-row {
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.5), 0 2px 8px rgba(0,0,0,0.05), 0 8px 28px rgba(99,102,241,0.08) !important;
+}
 [data-theme="light"] .me-featured:hover {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 12px 44px rgba(0,0,0,0.35), 0 32px 72px -14px rgba(0,0,0,0.4) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 24px rgba(0,0,0,0.06), 0 20px 48px rgba(99,102,241,0.14) !important;
 }
 [data-theme="light"] .me-row:hover {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 44px rgba(0,0,0,0.35) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 24px rgba(0,0,0,0.06), 0 18px 40px rgba(99,102,241,0.12) !important;
   filter: none !important;
 }
 [data-theme="light"] .me-row--upcoming  { border-left-color: rgb(from var(--gold) r g b / 0.7) !important; }
@@ -469,6 +486,66 @@ html[data-theme="light"] .os-root {
 [data-theme="light"] .me-row-card-inner {
   box-shadow: 4px 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06) !important;
 }
+
+/* ── Featured + row cards in light theme ──
+   Both cards' borders, dividers, meta text and "ticket" pills were tuned as
+   white-on-photo glass (the org's cover photo used to show through the
+   translucent card body). Now that the card sits on a flat --me-card-bg,
+   those white-based accents and the black text-shadows that kept them
+   legible over a photo need to flip to ink-based equivalents, or they read
+   as near-invisible (white hairlines/text) or pointlessly smudged (shadows
+   with nothing dark behind them) on the light surface. ── */
+[data-theme="light"] .me-featured,
+[data-theme="light"] .me-row {
+  border-color: rgba(0,0,0,0.08) !important;
+  border-top-color: rgba(0,0,0,0.10) !important;
+}
+[data-theme="light"] .me-feat-thumb-outline { border-color: rgba(0,0,0,0.10) !important; }
+[data-theme="light"] .me-feat-eyebrow-label,
+[data-theme="light"] .me-feat-cd-month,
+[data-theme="light"] .me-feat-cd-year {
+  color: #6b7280 !important;
+  text-shadow: none !important;
+}
+[data-theme="light"] .me-feat-eyebrow-line,
+[data-theme="light"] .me-feat-progress-track {
+  background: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .me-feat-title,
+[data-theme="light"] .me-row-title,
+[data-theme="light"] .me-row-cd-day {
+  text-shadow: none !important;
+}
+[data-theme="light"] .me-feat-meta-item svg {
+  color: #6b7280 !important;
+  filter: none !important;
+}
+[data-theme="light"] .me-feat-meta-val {
+  color: #374151 !important;
+  text-shadow: none !important;
+}
+[data-theme="light"] .me-feat-cd-ticket,
+[data-theme="light"] .me-row-cd-ticket {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.10) !important;
+  color: #1a1a2e !important;
+  text-shadow: none !important;
+}
+[data-theme="light"] .me-feat-cd-words { color: #9ca3af !important; }
+[data-theme="light"] .me-row-eyebrow-line {
+  background: linear-gradient(90deg, rgb(from var(--gold) r g b / 0.35) 0%, rgba(0,0,0,0.06) 100%) !important;
+}
+[data-theme="light"] .me-row-meta-item {
+  color: #6b7280 !important;
+  text-shadow: none !important;
+}
+[data-theme="light"] .me-row-meta-item svg { filter: none !important; }
+[data-theme="light"] .me-row-cd { border-left-color: rgba(0,0,0,0.08) !important; }
+[data-theme="light"] .me-row-cd-year,
+[data-theme="light"] .me-row-cd-mon {
+  color: #6b7280 !important;
+  text-shadow: none !important;
+}
 [data-theme="light"] .me-role-badge--owner {
   background: rgb(from var(--gold) r g b / 0.12) !important;
   border-color: rgb(from var(--gold) r g b / 0.28) !important;
@@ -478,7 +555,7 @@ html[data-theme="light"] .os-root {
   border-color: #e8e8f4 !important;
   color: #9ca3af !important;
 }
-[data-theme="light"] .me-section-line { background: rgba(255,255,255,0.4) !important; }
+[data-theme="light"] .me-section-line { background: #e8e8f4 !important; }
 [data-theme="light"] .me-empty {
   border-color: #dcdcec !important;
 }
@@ -495,7 +572,7 @@ html[data-theme="light"] .os-root {
 [data-theme="light"] .me-modal-cancel:hover { background: #e8e8f4 !important; }
 [data-theme="light"] .me-status-pill--upcoming { background: #f0f0f8 !important; color: #6b7280 !important; }
 [data-theme="light"] .me-status-pill--completed { background: #f0f0f8 !important; color: #9ca3af !important; }
-[data-theme="light"] .me-hstat-div { background: rgba(255,255,255,0.5) !important; }
+[data-theme="light"] .me-hstat-div { background: #e8e8f4 !important; }
 [data-theme="light"] .me-page-btn {
   background: rgba(255,255,255,0.3) !important;
   color: #4a4a5a !important;

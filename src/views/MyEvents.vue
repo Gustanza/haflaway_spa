@@ -4,13 +4,8 @@
     <nav class="me-topbar">
       <div class="me-topbar-inner">
         <div class="me-brand" @click="$router.push('/')">
-          <img
-            v-if="activeOrg?.logoUrl"
-            :src="activeOrg.logoUrl"
-            class="me-brand-logo"
-          />
-          <span v-else class="me-brand-glyph">✦</span>
-          <span class="me-brand-name">{{ activeOrg?.name || "Haflaway" }}</span>
+          <img :src="brandLogoUrl" class="me-brand-logo" />
+          <span class="me-brand-name">{{ brandName }}</span>
         </div>
         <div class="me-topbar-right">
           <!-- Wallet balance / top-up — top-level so it works with zero events -->
@@ -904,7 +899,7 @@ import { useOrg } from "../composables/useOrg.js";
 import { useTopUp } from "../composables/useTopUp.js";
 
 const { isDark, toggleTheme } = useTheme();
-const { activeOrg, isOwner, canCreateEvents } = useOrg();
+const { activeOrg, isOwner, canCreateEvents, brandName, brandLogoUrl } = useOrg();
 const {
   orgBalance,
   formatBalance,
@@ -1420,14 +1415,21 @@ function goToEvent(id) {
   router.push(`/event/${id}`);
 }
 
-// Sync page to URL so browser back/forward preserve position, and to
+// Sync page + tab to URL so browser back/forward preserve position, and to
 // localStorage so EventLayout.vue's "All Events" link can jump back to the
-// same page too (it's a fresh navigation, not a history pop, so it has no
+// same page/tab too (it's a fresh navigation, not a history pop, so it has no
 // access to this route's query on its own).
-watch(currentPage, (n) => {
-  router.replace({ query: n > 1 ? { page: n } : {} });
-  if (n > 1) localStorage.setItem("haflaway:myEventsPage", String(n));
+watch([currentPage, activeFilter], ([page, filter]) => {
+  const query = {};
+  if (page > 1) query.page = page;
+  if (filter !== "all") query.filter = filter;
+  router.replace({ query });
+
+  if (page > 1) localStorage.setItem("haflaway:myEventsPage", String(page));
   else localStorage.removeItem("haflaway:myEventsPage");
+
+  if (filter !== "all") localStorage.setItem("haflaway:myEventsFilter", filter);
+  else localStorage.removeItem("haflaway:myEventsFilter");
 });
 
 watch([activeFilter, activeRole, activeSort], () => {
@@ -1446,6 +1448,12 @@ watch(
 );
 
 onMounted(() => {
+  // Filter first: setting it resets currentPage to 1 (see the watcher above),
+  // so the page query has to be applied after or it'd get clobbered back to 1.
+  const qFilter = route.query.filter;
+  if (["upcoming", "ongoing", "completed"].includes(qFilter)) {
+    activeFilter.value = qFilter;
+  }
   const qPage = parseInt(route.query.page);
   if (qPage > 1) currentPage.value = qPage;
   document.addEventListener("click", onClickOutside);
@@ -1485,26 +1493,12 @@ onUnmounted(() => {
   --me-page-bg: var(--org-page-bg, #040308);
 
   min-height: 100vh;
-  /* flow-root establishes a BFC so the topbar's 16px top margin is contained
+  /* flow-root establishes a BFC so the topbar's 32px top margin is contained
      here instead of collapsing through the root and exposing the flat dark
      body background as a band at the very top edge. */
   display: flow-root;
   background-color: var(--me-page-bg);
-  /* Liquid Cosmic Nebula Base Backing */
-  background-image:
-    radial-gradient(
-      circle at 80% 20%,
-      rgba(201, 168, 76, 0.08) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 20% 80%,
-      rgba(6, 182, 212, 0.04) 0%,
-      transparent 40%
-    ),
-    radial-gradient(140% 120% at 50% 100%, #090815 0%, #030206 100%);
   position: relative;
-  overflow: clip; /* clip orb overflow */
 
   /* Apple system font (San Francisco) on Apple devices; Inter — the SF-like
      substitute — everywhere else (SF can't be bundled for licensing reasons). */
@@ -1518,98 +1512,16 @@ onUnmounted(() => {
   z-index: 1; /* create context */
 }
 
-/* Animated Ambient Glow (Designed by Apple aesthetic) */
-.me-root::before,
-.me-root::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(140px);
-  opacity: 0.85;
-  mix-blend-mode: screen;
-  pointer-events: none;
-  z-index: -1;
-  will-change: transform, border-radius;
-}
-
-/* Vibrant Indigo-Cyan Liquid Aurora */
-.me-root::before {
-  top: -15%;
-  left: -5%;
-  width: 60vw;
-  height: 60vw;
-  background: radial-gradient(
-    circle,
-    rgba(6, 182, 212, 0.22) 0%,
-    rgba(124, 58, 237, 0.08) 55%,
-    transparent 100%
-  );
-  animation: float-aurora-indigo 26s infinite alternate ease-in-out;
-}
-
-/* Vibrant Fuchsia-Gold Liquid Aurora */
-.me-root::after {
-  bottom: -15%;
-  right: -10%;
-  width: 55vw;
-  height: 55vw;
-  background: radial-gradient(
-    circle,
-    rgba(236, 72, 153, 0.18) 0%,
-    rgba(201, 168, 76, 0.05) 60%,
-    transparent 100%
-  );
-  animation: float-aurora-gold 30s infinite alternate ease-in-out;
-}
-
-@keyframes float-aurora-indigo {
-  0% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-  }
-  33% {
-    transform: translate(8vw, 6vh) scale(1.15) rotate(120deg);
-    border-radius: 60% 40% 50% 50% / 50% 60% 40% 60%;
-  }
-  66% {
-    transform: translate(-4vw, 10vh) scale(0.9) rotate(240deg);
-    border-radius: 50% 60% 40% 60% / 60% 40% 60% 40%;
-  }
-  100% {
-    transform: translate(0, 0) scale(1) rotate(360deg);
-    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-  }
-}
-
-@keyframes float-aurora-gold {
-  0% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-    border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%;
-  }
-  33% {
-    transform: translate(-10vw, -12vh) scale(1.2) rotate(-120deg);
-    border-radius: 30% 70% 60% 40% / 60% 40% 60% 40%;
-  }
-  66% {
-    transform: translate(6vw, 4vh) scale(0.95) rotate(-240deg);
-    border-radius: 60% 40% 50% 50% / 40% 60% 40% 60%;
-  }
-  100% {
-    transform: translate(0, 0) scale(1) rotate(-360deg);
-    border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%;
-  }
-}
-
 /* ── Topbar — floats as a rounded glass capsule, aligned to the same 1200px
    content column as .me-page so its edges line up with the cards below.
    The outer element is just the width container; the capsule visual lives on
    .me-topbar-inner. ── */
 .me-topbar {
   position: sticky;
-  top: 16px;
+  top: 32px;
   z-index: 100;
   max-width: 1200px;
-  margin: 16px auto 0;
+  margin: 32px auto 0;
   padding: 0 32px;
   box-sizing: border-box;
 }
@@ -1661,11 +1573,6 @@ onUnmounted(() => {
   cursor: pointer;
   min-width: 0;
 }
-.me-brand-glyph {
-  font-size: 13px;
-  color: var(--gold);
-  line-height: 1;
-}
 .me-brand-logo {
   width: 20px;
   height: 20px;
@@ -1713,27 +1620,28 @@ onUnmounted(() => {
   font-weight: 700;
   padding: 6px 12px;
   border-radius: 20px;
-  background: rgba(201, 168, 76, 0.08);
-  color: var(--gold);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink-soft);
   letter-spacing: 0.1px;
   white-space: nowrap;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(201, 168, 76, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 2px 8px rgba(0, 0, 0, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 2px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   font-family: inherit;
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .me-balance-pill:hover {
-  background: rgba(201, 168, 76, 0.15);
-  border-color: rgba(201, 168, 76, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  border-color: rgba(255, 255, 255, 0.22);
   transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 4px 12px rgba(201, 168, 76, 0.22);
+    0 4px 12px rgba(255, 255, 255, 0.12);
 }
 .me-balance-pill:active {
   transform: translateY(0);
@@ -2664,7 +2572,7 @@ onUnmounted(() => {
       rgba(255, 255, 255, 0.01) 60%,
       rgba(255, 255, 255, 0.03) 100%
     ),
-    rgba(20, 20, 24, 0.35);
+    var(--me-card-bg);
   backdrop-filter: blur(32px) saturate(190%);
   -webkit-backdrop-filter: blur(32px) saturate(190%);
   overflow: hidden;
@@ -2676,18 +2584,6 @@ onUnmounted(() => {
     0 20px 50px rgba(0, 0, 0, 0.5),
     0 32px 72px -14px rgba(0, 0, 0, 0.55);
   transform: translateY(-3px) scale(1.002);
-}
-
-/* These two cards are a fixed dark-glass surface in both page themes (their
-   text/icons are hardcoded light), so pin the ink tokens back to their dark-
-   theme values here — otherwise light mode's global --ink flip makes titles
-   and the countdown number render as dark navy on dark glass. */
-.me-featured,
-.me-row {
-  --ink: #f0f0ec;
-  --ink-soft: #d8d4cd;
-  --ink-muted: #888;
-  --ink-dim: #555;
 }
 
 /* Soft diagonal light catch on top of the page's own photo backdrop, which shows through the card. */
@@ -2892,7 +2788,7 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: 2px;
   color: rgba(255, 255, 255, 0.8);
-  margin-top: 4px;
+  margin-top: 12px;
   margin-bottom: 10px;
   text-shadow:
     0 1px 2px rgba(0, 0, 0, 0.9),
@@ -2915,9 +2811,8 @@ onUnmounted(() => {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .me-feat-cd-num {
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 28px;
-  font-weight: 400;
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1;
   letter-spacing: -0.2px;
 }
@@ -2978,7 +2873,7 @@ onUnmounted(() => {
   cursor: pointer;
   overflow: hidden;
   min-height: 124px;
-  background: rgba(20, 20, 24, 0.35);
+  background: var(--me-card-bg);
   backdrop-filter: blur(32px) saturate(190%);
   -webkit-backdrop-filter: blur(32px) saturate(190%);
   /* A resting shadow is the other half of it — glass has to float above the
@@ -3499,11 +3394,6 @@ onUnmounted(() => {
   .me-brand-name {
     display: none;
   }
-  /* With the wordmark gone the glyph fallback (orgs with no logo) is the whole
-     target, so give it some size. */
-  .me-brand-glyph {
-    font-size: 17px;
-  }
 }
 
 @media (max-width: 640px) {
@@ -3529,6 +3419,8 @@ onUnmounted(() => {
     gap: 16px;
   }
   .me-topbar {
+    top: 16px;
+    margin-top: 16px;
     padding: 0 14px;
   }
   .me-greeting {
