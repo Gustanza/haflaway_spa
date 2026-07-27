@@ -234,6 +234,51 @@
             </div>
           </div>
 
+          <!-- 3b. SMS SENDER ID — General tab -->
+          <div v-if="approvedSenderIds.length" v-show="activeTab === 'general'" class="es-panel">
+            <div class="es-panel-hd es-panel-hd--flat">
+              <div class="es-accent-bar" />
+              <div class="es-section-meta">
+                <span class="es-section-label">SMS SENDER ID</span>
+                <span class="es-section-hint">Who guests see this event's messages from</span>
+              </div>
+            </div>
+
+            <div class="es-sid-options">
+              <!-- Follow the org default -->
+              <button
+                class="es-sid-opt"
+                :class="{ 'es-sid-opt--on': !eventSenderId }"
+                :disabled="savingSenderId"
+                @click="chooseSenderId(null)"
+              >
+                <span class="es-sid-opt-val">{{ orgDefaultSenderId || 'HAFLAWAY' }}</span>
+                <span class="es-sid-opt-tag">Organization default</span>
+                <svg v-if="!eventSenderId" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+
+              <!-- Anything else this org has had approved -->
+              <button
+                v-for="sid in approvedSenderIds"
+                :key="sid.id"
+                class="es-sid-opt"
+                :class="{ 'es-sid-opt--on': eventSenderId === sid.value }"
+                :disabled="savingSenderId"
+                @click="chooseSenderId(sid.value)"
+              >
+                <span class="es-sid-opt-val">{{ sid.value }}</span>
+                <span v-if="eventSenderId === sid.value" class="es-sid-opt-tag">Only this event</span>
+                <svg v-if="eventSenderId === sid.value" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+            </div>
+
+            <p v-if="senderIdError" class="es-sid-error">{{ senderIdError }}</p>
+            <span v-else class="es-sid-note">
+              Applies to every SMS this event sends. Changing the organization's default won't
+              override a choice made here.
+            </span>
+          </div>
+
           <!-- 4. CARD FORMAT — General tab -->
           <div v-show="activeTab === 'general'" class="es-panel">
             <div class="es-panel-hd es-panel-hd--flat">
@@ -491,7 +536,36 @@ const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 const props = defineProps({ event: Object, eventId: String })
 const route  = useRoute()
 const router = useRouter()
-const { activeOrg, isOwner } = useOrg()
+const {
+  activeOrg, isOwner,
+  approvedSenderIds, defaultSenderId: orgDefaultSenderId, setEventSenderId,
+} = useOrg()
+
+// ── SMS sender ID ──────────────────────────────────────────────────────────
+// Writes immediately rather than joining the Save-button dirty set: it's a
+// single discrete choice, and the callable has to validate it against the org's
+// approved pool server-side anyway.
+const eventSenderId  = ref(props.event?.senderId ?? null)
+const savingSenderId = ref(false)
+const senderIdError  = ref('')
+
+watch(() => props.event?.senderId, (v) => { eventSenderId.value = v ?? null })
+
+async function chooseSenderId(value) {
+  if (savingSenderId.value || eventSenderId.value === (value ?? null)) return
+  savingSenderId.value = true
+  senderIdError.value = ''
+  const previous = eventSenderId.value
+  eventSenderId.value = value ?? null
+  try {
+    await setEventSenderId(eventId.value, value)
+  } catch (e) {
+    eventSenderId.value = previous
+    senderIdError.value = e?.message || 'Could not change the sender ID. Try again.'
+  } finally {
+    savingSenderId.value = false
+  }
+}
 
 const eventId = computed(() => props.eventId ?? route.params.eventId)
 
@@ -1119,6 +1193,38 @@ function showToast(msg, isErr = false) {
 }
 .es-section-label--red { color: #FF453A; }
 .es-section-hint { font-size: 12px; color: var(--c-txt-3); line-height: 1.4; }
+
+/* ── SMS sender ID picker ── */
+.es-sid-options { display: flex; flex-direction: column; gap: 8px; }
+.es-sid-opt {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 11px 13px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 150ms, background 150ms;
+}
+.es-sid-opt:hover:not(:disabled) { border-color: rgba(255,255,255,0.22); }
+.es-sid-opt--on {
+  border-color: rgb(from var(--gold) r g b / 0.55);
+  background: rgb(from var(--gold) r g b / 0.07);
+}
+.es-sid-opt:disabled { opacity: 0.6; cursor: not-allowed; }
+.es-sid-opt-val {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px; font-weight: 700; letter-spacing: 1px; color: var(--c-txt);
+}
+.es-sid-opt-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+  color: var(--c-txt-3); background: rgba(255,255,255,0.06);
+  border-radius: 6px; padding: 3px 7px; margin-left: auto;
+}
+.es-sid-opt--on .es-sid-opt-tag { color: var(--gold); background: rgb(from var(--gold) r g b / 0.14); }
+.es-sid-note  { font-size: 11.5px; color: var(--c-txt-3); line-height: 1.5; margin-top: 10px; display: block; }
+.es-sid-error { font-size: 12px; color: #FF453A; margin: 10px 0 0; }
 
 /* ── Card shell ────────────────────────────────────────────────────────── */
 .es-card {

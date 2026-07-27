@@ -209,8 +209,11 @@
           </div>
           <div class="ce-modal-list">
             <div v-if="loadingPlans" class="ce-modal-loading">Loading…</div>
+            <div v-else-if="!availablePlans.length" class="ce-modal-loading">
+              No packages are available to this organization yet.
+            </div>
             <button
-              v-for="plan in plans"
+              v-for="plan in availablePlans"
               :key="plan.id"
               type="button"
               class="ce-modal-item"
@@ -228,7 +231,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { db, auth, storage } from '../firebase'
 import {
@@ -236,6 +239,7 @@ import {
 } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useOrg } from '../composables/useOrg.js'
+import { visiblePlansFor } from '../utils/planVisibility.js'
 import { toStoredEventDate } from '../utils/eventDates.js'
 
 const router = useRouter()
@@ -273,6 +277,10 @@ const thumbPreview = ref('')
 
 const categories = ref([])
 const plans = ref([])
+
+// Only the packages this org is entitled to. `plans` keeps the full catalogue so
+// the filter re-evaluates if the active org changes mid-session.
+const availablePlans = computed(() => visiblePlansFor(activeOrg.value, plans.value))
 const loadingCats = ref(false)
 const loadingPlans = ref(false)
 const showCatPicker = ref(false)

@@ -310,6 +310,106 @@
             </div>
           </div>
 
+          <!-- ══ SMS Sender IDs panel ══ -->
+          <div class="os-panel">
+            <div class="os-panel-hd">
+              <h2 class="os-panel-title">SMS Sender IDs</h2>
+              <span v-if="!isOwner" class="os-readonly-badge">Read only</span>
+              <span v-else-if="senderIds.length" class="os-section-cnt">{{ senderIds.length }}</span>
+            </div>
+            <div class="os-panel-body">
+
+              <!-- What guests see right now -->
+              <div class="os-sid-current">
+                <span class="os-sid-current-lbl">
+                  {{ hasCustomSenderId ? 'Events send from this by default' : 'Your guests currently see messages from' }}
+                </span>
+                <span class="os-sid-current-val">{{ activeSenderId }}</span>
+                <span v-if="!hasCustomSenderId" class="os-sid-current-hint">
+                  the shared Haflaway sender — used by every organization without an approved ID of its own
+                </span>
+                <span v-else class="os-sid-current-hint">
+                  Any event can pick a different approved ID in its own settings.
+                </span>
+              </div>
+
+              <!-- The org's IDs -->
+              <div v-if="senderIds.length" class="os-sid-list">
+                <div
+                  v-for="sid in sortedSenderIds"
+                  :key="sid.id"
+                  class="os-sid-row"
+                  :class="{ 'os-sid-row--muted': sid.status === 'revoked' || sid.status === 'rejected' }"
+                >
+                  <div class="os-sid-row-main">
+                    <span class="os-sid-row-val">{{ sid.value }}</span>
+                    <span class="os-sid-chip" :class="`os-sid-chip--${sid.status}`">
+                      {{ sidStatusLabel(sid.status) }}
+                    </span>
+                    <span v-if="sid.value === defaultSenderId" class="os-sid-chip os-sid-chip--default">Default</span>
+                  </div>
+
+                  <p v-if="sid.rejectionReason" class="os-sid-row-note">{{ sid.rejectionReason }}</p>
+                  <p v-else-if="sid.status === 'pending'" class="os-sid-row-note">
+                    With our team for review — networks have to register it first, so this usually takes a few working days.
+                  </p>
+
+                  <div v-if="isOwner && !activeOrg.archived" class="os-sid-row-actions">
+                    <button
+                      v-if="sid.status === 'approved' && sid.value !== defaultSenderId"
+                      class="os-secondary-btn os-sid-mini-btn"
+                      :disabled="defaultingSenderId === sid.value"
+                      @click="makeDefault(sid.value)"
+                    >{{ defaultingSenderId === sid.value ? 'Setting…' : 'Make default' }}</button>
+                    <button
+                      v-if="sid.status === 'rejected' || sid.status === 'revoked'"
+                      class="os-secondary-btn os-sid-mini-btn"
+                      :disabled="requestingSenderId"
+                      @click="senderIdDraft = sid.value; submitSenderIdRequest()"
+                    >Request again</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Request form -->
+              <template v-if="isOwner && !activeOrg.archived">
+                <label class="os-field-label">
+                  {{ senderIds.length ? 'Request another sender ID' : 'Request your own sender ID' }}
+                </label>
+                <div class="os-search-row">
+                  <input
+                    v-model="senderIdDraft"
+                    class="os-input os-sid-input"
+                    type="text"
+                    :maxlength="SENDER_ID_MAX"
+                    placeholder="e.g. GUSTANZA"
+                    :disabled="requestingSenderId"
+                    @input="senderIdError = ''"
+                    @keydown.enter="submitSenderIdRequest"
+                  />
+                  <button
+                    class="os-primary-btn"
+                    :disabled="requestingSenderId || !senderIdDraft.trim()"
+                    @click="submitSenderIdRequest"
+                  >{{ requestingSenderId ? 'Sending…' : 'Request' }}</button>
+                </div>
+                <span class="os-advanced-hint">
+                  3–{{ SENDER_ID_MAX }} letters and numbers, no spaces, can't start with a number.
+                  It's shown in place of a phone number on every SMS your events send.
+                </span>
+                <span v-if="senderIdError" class="os-search-error">{{ senderIdError }}</span>
+                <span v-if="senderIdSuccess" class="os-save-status os-save-status--ok">✓ Request sent for review</span>
+                <span v-if="!hasCustomSenderId && !senderIds.length" class="os-advanced-hint">
+                  Your first approved ID automatically becomes the default.
+                </span>
+              </template>
+
+              <div v-else-if="activeOrg.archived" class="os-archived-banner">
+                <span>Unarchive this organization to request a sender ID.</span>
+              </div>
+            </div>
+          </div>
+
           <!-- ══ Team panel ══ -->
           <div class="os-panel">
             <div class="os-panel-hd">
@@ -435,7 +535,7 @@ import {
 } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useTheme } from '../composables/useTheme.js'
-import { useOrg, contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY } from '../composables/useOrg.js'
+import { useOrg, contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY, DEFAULT_SENDER_ID } from '../composables/useOrg.js'
 
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
@@ -444,6 +544,8 @@ const {
   currentUser, orgs, activeOrg, isOwner, isBrandingApproved, brandName, brandLogoUrl, loading,
   setActiveOrg, createOrg, updateBranding, addMember, removeMember,
   archiveOrg, unarchiveOrg, leaveOrg, memberCan, setMemberPermission,
+  senderIds, defaultSenderId, activeSenderId, hasCustomSenderId,
+  requestSenderId, setDefaultSenderId,
 } = useOrg()
 
 const activeOrgsList = computed(() => orgs.value.filter(o => !o.archived))
@@ -530,6 +632,73 @@ async function handleLeave() {
     confirmLeave.value = false
   } finally {
     leaving.value = false
+  }
+}
+
+// ── SMS sender IDs ───────────────────────────────────────────────────────────
+const SENDER_ID_MAX = 11
+const senderIdDraft = ref('')
+const senderIdError = ref('')
+const senderIdSuccess = ref(false)
+const requestingSenderId = ref(false)
+const defaultingSenderId = ref(null)
+
+const SID_STATUS_LABELS = {
+  pending:  'Pending review',
+  approved: 'Approved',
+  rejected: 'Not approved',
+  revoked:  'Removed',
+}
+const sidStatusLabel = (s) => SID_STATUS_LABELS[s] ?? s
+
+// Usable IDs first, then the ones that are only history — an owner scanning
+// this list cares about what can send today, not what once could.
+const SID_ORDER = { approved: 0, pending: 1, rejected: 2, revoked: 3 }
+const sortedSenderIds = computed(() =>
+  [...senderIds.value].sort((a, b) =>
+    (SID_ORDER[a.status] ?? 9) - (SID_ORDER[b.status] ?? 9) ||
+    String(a.value).localeCompare(String(b.value))
+  )
+)
+
+async function makeDefault(value) {
+  if (defaultingSenderId.value || !activeOrg.value) return
+  defaultingSenderId.value = value
+  senderIdError.value = ''
+  try {
+    await setDefaultSenderId(activeOrg.value.id, value)
+  } catch (e) {
+    senderIdError.value = e?.message || 'Could not change the default. Try again.'
+  } finally {
+    defaultingSenderId.value = null
+  }
+}
+
+// Switching orgs must not carry one org's draft (or another's error) over.
+watch(() => activeOrg.value?.id, () => {
+  senderIdDraft.value = ''
+  senderIdError.value = ''
+  senderIdSuccess.value = false
+})
+
+async function submitSenderIdRequest() {
+  if (requestingSenderId.value || !activeOrg.value) return
+  const value = senderIdDraft.value.trim()
+  if (!value) return
+
+  requestingSenderId.value = true
+  senderIdError.value = ''
+  senderIdSuccess.value = false
+  try {
+    await requestSenderId(activeOrg.value.id, value)
+    senderIdDraft.value = ''
+    senderIdSuccess.value = true
+  } catch (e) {
+    // The callable re-validates and returns the human-readable rule it failed,
+    // so surface its message rather than a generic failure line.
+    senderIdError.value = e?.message || 'Could not send that request. Try again.'
+  } finally {
+    requestingSenderId.value = false
   }
 }
 
@@ -1406,6 +1575,62 @@ function avatarStyle(u) {
   cursor: pointer;
 }
 .os-toggle-row input[type="checkbox"] { cursor: pointer; }
+
+/* ── SMS sender ID ── */
+.os-sid-current {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.os-sid-current-lbl  { font-size: 11.5px; color: var(--c-txt-3); }
+.os-sid-current-val {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--gold);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.os-sid-current-hint { font-size: 11.5px; color: var(--c-txt-3); line-height: 1.5; }
+
+.os-sid-list { display: flex; flex-direction: column; gap: 8px; }
+.os-sid-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.os-sid-row--muted { opacity: 0.7; }
+.os-sid-row-main { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.os-sid-row-val {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 15px; font-weight: 700; letter-spacing: 1px; color: var(--c-txt);
+}
+.os-sid-row-note { font-size: 11.5px; color: var(--c-txt-3); margin: 0; line-height: 1.5; }
+.os-sid-row-actions { display: flex; gap: 8px; }
+.os-sid-mini-btn { padding: 5px 10px; font-size: 11.5px; align-self: flex-start; }
+
+.os-sid-chip {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+  text-transform: uppercase; border-radius: 6px; padding: 3px 7px;
+}
+.os-sid-chip--approved { color: #34d399; background: rgba(52,211,153,0.12); }
+.os-sid-chip--pending  { color: #FF9F0A; background: rgba(255,159,10,0.12); }
+.os-sid-chip--rejected { color: #FF453A; background: rgba(255,69,58,0.12); }
+.os-sid-chip--revoked  { color: var(--c-txt-3); background: rgba(255,255,255,0.06); }
+.os-sid-chip--default  { color: var(--gold); background: rgb(from var(--gold) r g b / 0.14); }
+
+.os-sid-input {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
 
 .os-section-lbl { font-size: 12px; font-weight: 600; color: var(--c-txt-2); margin: 0; }
 .os-search-row { display: flex; gap: 8px; }

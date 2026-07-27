@@ -1,6 +1,7 @@
 import { ref, computed, watchEffect } from 'vue'
-import { auth, db } from '../firebase'
+import { auth, db, functions } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
+import { httpsCallable } from 'firebase/functions'
 import {
   collection, doc, getDoc, updateDoc, addDoc,
   query, where, onSnapshot, arrayUnion, arrayRemove, serverTimestamp, deleteField,
@@ -8,6 +9,10 @@ import {
 import DEFAULT_LOGO_URL from '../assets/icon-512.png'
 
 const DEFAULT_NAME = 'Haflaway'
+// What recipients see as the SMS originator until an org has its own approved
+// alphanumeric sender ID. Mirrors functions/utils/senderId.js — the two SPAs
+// and the functions package don't share a module tree.
+const DEFAULT_SENDER_ID = 'HAFLAWAY'
 const DEFAULT_FAVICON = '/src/assets/favicon.ico'
 const DEFAULT_ACCENT = '#C9A84C'
 const DEFAULT_SECONDARY = '#3B82F6'
@@ -92,6 +97,73 @@ const isBrandingApproved = computed(() => activeOrg.value?.brandingApproved === 
 // default" inline (and risking a spot that forgets the check).
 const brandName = computed(() => (isBrandingApproved.value && activeOrg.value?.name) || DEFAULT_NAME)
 const brandLogoUrl = computed(() => (isBrandingApproved.value && activeOrg.value?.logoUrl) || DEFAULT_LOGO_URL)
+
+// ── SMS sender IDs ──────────────────────────────────────────────────────────
+// An org owns a set of these, one document each under organizations/{id}/senderIds,
+// keyed by the value itself: { value, status, isDefault, requestedAt/By,
+// reviewedAt/By, approvedAt, rejectionReason }. Status is pending | approved |
+// rejected | revoked.
+const senderIds = ref([])
+let unsubSenderIds = null
+
+// Scoped to whichever org is active — switching orgs tears the old listener
+// down so a stale org's IDs can never show under a different one.
+watchEffect(() => {
+  const orgId = activeOrg.value?.id
+  if (unsubSenderIds) { unsubSenderIds(); unsubSenderIds = null }
+  if (!orgId) { senderIds.value = []; return }
+
+  unsubSenderIds = onSnapshot(
+    collection(db, 'organizations', orgId, 'senderIds'),
+    snap => { senderIds.value = snap.docs.map(d => ({ id: d.id, ...d.data() })) },
+    () => { senderIds.value = [] },
+  )
+})
+
+const approvedSenderIds = computed(() => senderIds.value.filter(s => s.status === 'approved'))
+const pendingSenderIds  = computed(() => senderIds.value.filter(s => s.status === 'pending'))
+
+// Mirrors sortForDefault() in functions/utils/senderId.js — oldest approved
+// first, value as tiebreak — so the "(default)" the UI marks is the same one
+// the dispatch path would actually choose when nothing is flagged.
+function sortForDefault(list) {
+  const ms = (v) => {
+    if (!v) return Number.MAX_SAFE_INTEGER
+    if (typeof v.toMillis === 'function') return v.toMillis()
+    const p = Date.parse(v)
+    return Number.isNaN(p) ? Number.MAX_SAFE_INTEGER : p
+  }
+  return [...list].sort((a, b) =>
+    (ms(a.approvedAt) - ms(b.approvedAt)) || String(a.value).localeCompare(String(b.value))
+  )
+}
+
+// The org's effective default — the flagged one, else the deterministic pick.
+const defaultSenderId = computed(() => {
+  const approved = approvedSenderIds.value
+  if (!approved.length) return null
+  return (approved.find(s => s.isDefault === true) ?? sortForDefault(approved)[0]).value
+})
+
+// What an event sends as when it hasn't pinned one of its own.
+const activeSenderId = computed(() => defaultSenderId.value || DEFAULT_SENDER_ID)
+const hasCustomSenderId = computed(() => activeSenderId.value !== DEFAULT_SENDER_ID)
+
+// Owner-only, enforced server-side. The callables also re-validate, so the
+// client-side checks in the forms are a convenience, not the guard.
+async function requestSenderId(orgId, senderId) {
+  const res = await httpsCallable(functions, 'requestOrgSenderId')({ orgId, senderId })
+  return res.data
+}
+async function setDefaultSenderId(orgId, senderId) {
+  const res = await httpsCallable(functions, 'setOrgDefaultSenderId')({ orgId, senderId })
+  return res.data
+}
+// senderId null/'' clears the pin so the event follows the org default.
+async function setEventSenderId(eventId, senderId) {
+  const res = await httpsCallable(functions, 'setEventSenderId')({ eventId, senderId })
+  return res.data
+}
 
 // Per-member capabilities live in the org's `memberPerms` map, keyed by uid:
 //   { [uid]: { canCreate: true, ... } }
@@ -236,6 +308,15 @@ export function useOrg() {
     isBrandingApproved,
     brandName,
     brandLogoUrl,
+    senderIds,
+    approvedSenderIds,
+    pendingSenderIds,
+    defaultSenderId,
+    activeSenderId,
+    hasCustomSenderId,
+    requestSenderId,
+    setDefaultSenderId,
+    setEventSenderId,
     canCreateEvents,
     memberCan,
     setMemberPermission,
@@ -251,4 +332,4 @@ export function useOrg() {
   }
 }
 
-export { contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY }
+export { contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY, DEFAULT_SENDER_ID }

@@ -208,7 +208,7 @@
           </div>
           <div class="ce-modal-list">
             <div v-if="loadingPlans" class="ce-modal-loading">Loading…</div>
-            <button v-for="plan in plans" :key="plan.id" type="button" class="ce-modal-item" :class="{ 'ce-modal-item--active': form.eventPlanId === plan.id }" @click="selectPlan(plan)">
+            <button v-for="plan in availablePlans" :key="plan.id" type="button" class="ce-modal-item" :class="{ 'ce-modal-item--active': form.eventPlanId === plan.id }" @click="selectPlan(plan)">
               ★ {{ plan.name }}
             </button>
           </div>
@@ -220,12 +220,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { db, auth, storage } from '../firebase'
 import { doc, getDoc, setDoc, getDocs, collection, query, orderBy } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { toStoredEventDate, toDatetimeLocal } from '../utils/eventDates.js'
+import { useOrg } from '../composables/useOrg.js'
+import { visiblePlansFor } from '../utils/planVisibility.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -241,8 +243,17 @@ const thumbFile = ref(null)
 const thumbPreview = ref('')
 const existingThumbUrl = ref('')
 
+const { activeOrg } = useOrg()
+
 const categories = ref([])
 const plans = ref([])
+
+// The plan already on this event stays listed even if the org can no longer
+// choose it — restricting a package must never blank out an event that's
+// already using it. Entitlement governs what can be picked, not what's held.
+const availablePlans = computed(() =>
+  visiblePlansFor(activeOrg.value, plans.value, { keepPlanId: form.value.eventPlanId })
+)
 const loadingCats = ref(false)
 const loadingPlans = ref(false)
 const showCatPicker = ref(false)
