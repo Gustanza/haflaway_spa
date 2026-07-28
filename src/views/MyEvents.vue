@@ -1984,38 +1984,81 @@ onUnmounted(() => {
 }
 
 .me-create-btn {
+  --neon: var(--gold-rgb);     /* org's own accent color, not a fixed hue */
+  --neon-lit: var(--gold-rgb);
+
   display: flex;
   align-items: center;
   gap: 7px;
-  background: var(--gold);
-  color: var(--gold-contrast);
-  border: none;
+  position: relative;
+  background:
+    linear-gradient(135deg,
+      rgba(var(--neon), 0.30) 0%,
+      rgba(var(--neon), 0.14) 55%,
+      rgba(var(--neon), 0.20) 100%),
+    rgba(8, 24, 32, 0.55);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  color: #fff9ea;
+  border: 1px solid rgba(var(--neon-lit), 0.75);
   padding: 8px 18px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  transition: all 180ms ease;
+  transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
   letter-spacing: 0.1px;
-  box-shadow: 0 2px 6px rgba(201, 168, 76, 0.25);
   /* Never let the label break onto a second line — a squeezed flex item wrapping
      mid-word is what makes the whole bar look mangled. It holds its size and the
      brand gives way instead. */
   white-space: nowrap;
   flex-shrink: 0;
+  text-shadow: 0 0 12px rgba(var(--neon-lit), 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 0 18px rgba(var(--neon), 0.22),
+    0 0 0 1px rgba(var(--neon), 0.18),
+    0 0 18px rgba(var(--neon), 0.38),
+    0 0 44px rgba(var(--neon), 0.20);
 }
 .me-create-btn:hover {
-  background: #d4b560;
-  transform: translateY(-0.5px);
+  border-color: rgba(var(--neon-lit), 0.95);
+  transform: translateY(-1px);
+  background:
+    linear-gradient(135deg,
+      rgba(var(--neon), 0.42) 0%,
+      rgba(var(--neon), 0.20) 55%,
+      rgba(var(--neon), 0.28) 100%),
+    rgba(8, 24, 32, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 0 24px rgba(var(--neon), 0.32),
+    0 0 0 1px rgba(var(--neon), 0.28),
+    0 0 26px rgba(var(--neon), 0.55),
+    0 0 66px rgba(var(--neon), 0.30);
 }
+/* Pressed = the tube dimming, so the halo contracts rather than the button
+   just sliding back down. */
 .me-create-btn:active {
   transform: translateY(0);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 0 14px rgba(var(--neon), 0.28),
+    0 0 12px rgba(var(--neon), 0.32);
+}
+.me-create-btn:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 0 18px rgba(var(--neon), 0.22),
+    0 0 0 3px rgba(var(--neon), 0.45),
+    0 0 26px rgba(var(--neon), 0.5);
 }
 .me-create-btn--lg {
   padding: 10px 24px;
   font-size: 14px;
-  border-radius: 12px;
+  border-radius: 14px;
 }
 
 /* ── Page shell ── */
@@ -2733,22 +2776,68 @@ onUnmounted(() => {
   gap: 10px;
 }
 .me-feat-open-btn {
+  --neon: var(--gold-rgb);     /* org's own accent color, not a fixed hue */
+  --neon-lit: var(--gold-rgb);
+
   display: flex;
   align-items: center;
   gap: 7px;
-  background: var(--gold);
-  color: var(--gold-contrast);
-  border: none;
+  position: relative;
+  background:
+    linear-gradient(135deg,
+      rgba(var(--neon), 0.30) 0%,
+      rgba(var(--neon), 0.14) 55%,
+      rgba(var(--neon), 0.20) 100%),
+    rgba(8, 24, 32, 0.55);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  color: #fff9ea;
+  border: 1px solid rgba(var(--neon-lit), 0.75);
   padding: 8px 16px;
   border-radius: 9px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  transition: background 140ms;
+  transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  text-shadow: 0 0 12px rgba(var(--neon-lit), 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 0 18px rgba(var(--neon), 0.22),
+    0 0 0 1px rgba(var(--neon), 0.18),
+    0 0 18px rgba(var(--neon), 0.38),
+    0 0 44px rgba(var(--neon), 0.20);
 }
 .me-feat-open-btn:hover {
-  background: #d4b560;
+  border-color: rgba(var(--neon-lit), 0.95);
+  transform: translateY(-1px);
+  background:
+    linear-gradient(135deg,
+      rgba(var(--neon), 0.42) 0%,
+      rgba(var(--neon), 0.20) 55%,
+      rgba(var(--neon), 0.28) 100%),
+    rgba(8, 24, 32, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 0 24px rgba(var(--neon), 0.32),
+    0 0 0 1px rgba(var(--neon), 0.28),
+    0 0 26px rgba(var(--neon), 0.55),
+    0 0 66px rgba(var(--neon), 0.30);
+}
+.me-feat-open-btn:active {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 0 14px rgba(var(--neon), 0.28),
+    0 0 12px rgba(var(--neon), 0.32);
+}
+.me-feat-open-btn:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 0 18px rgba(var(--neon), 0.22),
+    0 0 0 3px rgba(var(--neon), 0.45),
+    0 0 26px rgba(var(--neon), 0.5);
 }
 
 /* Featured countdown col */

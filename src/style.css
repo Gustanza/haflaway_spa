@@ -10,6 +10,7 @@
   --line-strong:#2a3a52;
   --paper:      #111827;
   --gold:       #C9A84C;
+  --gold-rgb:   201, 168, 76;
   --emerald:    #34d399;
   /* Overlay backdrop — solid, no blur */
   --overlay-bg: rgba(0,0,0,0.92);

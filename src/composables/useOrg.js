@@ -28,6 +28,15 @@ function contrastColor(hex) {
   return luminance > 0.45 ? '#070707' : '#f5f5f5'
 }
 
+// "#C9A84C" -> "201, 168, 76", so CSS can drop it straight into rgba(var(--gold-rgb), alpha)
+// for glow effects — org-branded buttons glow in the org's own accent color.
+function hexToRgb(hex) {
+  const clean = (hex || '').replace('#', '')
+  if (clean.length !== 6) return '201, 168, 76'
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(clean.slice(i, i + 2), 16))
+  return `${r}, ${g}, ${b}`
+}
+
 // Optional surface overrides — org left them unset means "keep whatever the
 // light/dark theme already renders there" (each field maps to a background var
 // and, where text sits directly on that surface, a companion contrast-text var).
@@ -217,6 +226,7 @@ watchEffect(() => {
   const secondary = (approved && org?.secondaryColor) || DEFAULT_SECONDARY
   const root = document.documentElement.style
   root.setProperty('--gold', primary)
+  root.setProperty('--gold-rgb', hexToRgb(primary))
   root.setProperty('--gold-contrast', contrastColor(primary))
   root.setProperty('--org-secondary', secondary)
   root.setProperty('--org-secondary-contrast', contrastColor(secondary))
