@@ -4,7 +4,7 @@
     <!-- ── Sticky topbar ── -->
     <nav class="os-topbar">
       <div class="os-topbar-inner">
-        <div class="os-brand" @click="router.push('/')">
+        <div class="os-brand" @click="router.push('/events')">
           <img :src="brandLogoUrl" class="os-brand-logo" />
           <span class="os-brand-name">{{ brandName }}</span>
         </div>
@@ -29,7 +29,7 @@
                 </div>
               </div>
               <div class="os-dropdown-divider" />
-              <button class="os-dropdown-item" @click="showAdminDropdown = false; router.push('/')">
+              <button class="os-dropdown-item" @click="showAdminDropdown = false; router.push('/events')">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
                   <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>

@@ -845,7 +845,7 @@ async function deleteEvent() {
   deleting.value = true
   try {
     await deleteDoc(doc(db, 'events', eventId.value))
-    router.push('/')
+    router.push('/events')
   } catch (e) {
     showToast('Error: ' + e.message, true)
     deleting.value = false

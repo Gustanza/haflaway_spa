@@ -124,7 +124,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                         </p>
 
                         <div class="flex flex-col sm:flex-row gap-3 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-                            <button class="btn-primary px-7 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest">
+                            <button class="btn-primary px-7 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest" @click="$router.push('/events')">
                                 Start Planning Your Event
                             </button>
                             <a href="https://wa.me/255625689904" target="_blank"
@@ -535,7 +535,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                             Join thousands of event organizers using Haflaway to make their weddings, sendoffs, and kitchen parties truly unforgettable.
                         </p>
                         <div class="flex flex-col sm:flex-row gap-5 justify-center">
-                            <button class="btn-primary px-12 py-5 rounded-2xl text-sm font-black uppercase tracking-widest">Start Free Today</button>
+                            <button class="btn-primary px-12 py-5 rounded-2xl text-sm font-black uppercase tracking-widest" @click="$router.push('/events')">Start Free Today</button>
                             <a href="https://wa.me/255625689904" target="_blank"
                                 class="btn-outline px-12 py-5 rounded-2xl text-sm font-black uppercase tracking-widest flex items-center justify-center gap-3">
                                 <ChatBubbleLeftRightIcon class="size-4" />WhatsApp Now

@@ -187,7 +187,7 @@ async function handleRegister() {
       createdAt: serverTimestamp(),
     })
 
-    const redirect = route.query.redirect ?? '/'
+    const redirect = route.query.redirect ?? '/events'
     router.push(redirect)
   } catch (e) {
     authError.value = friendlyError(e.code)

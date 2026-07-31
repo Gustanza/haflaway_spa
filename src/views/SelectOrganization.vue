@@ -62,7 +62,7 @@ function chipStyle(org) {
 }
 
 function proceed() {
-  router.replace(route.query.redirect || '/')
+  router.replace(route.query.redirect || '/events')
 }
 
 // Direct navigation / refresh safety net — nothing meaningful to choose from.

@@ -43,7 +43,7 @@ const waitForAuth = new Promise(resolve => {
 })
 
 const PROTECTED = ['/create-event', '/edit-event', '/event/', '/dashboard', '/organization', '/select-org']
-const PROTECTED_EXACT = ['/']
+const PROTECTED_EXACT = ['/events']
 
 const routes = [
     {
@@ -82,6 +82,12 @@ const routes = [
     },
     {
         path: '/',
+        name: 'Landing',
+        component: Landing_Page,
+        meta: { title: 'Haflaway' },
+    },
+    {
+        path: '/events',
         name: 'MyEvents',
         component: MyEvents,
         meta: { title: 'My Events' },

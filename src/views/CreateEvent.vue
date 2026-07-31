@@ -5,13 +5,13 @@
     <nav class="ce-nav">
       <div class="ce-nav-inner">
         <div class="ce-nav-left">
-          <div class="ce-brand" @click="$router.push('/')">
+          <div class="ce-brand" @click="$router.push('/events')">
             <span class="ce-brand-dot" />
             <span class="ce-brand-name">Haflaway</span>
           </div>
           <div class="ce-breadcrumb">
             <span class="ce-sep">/</span>
-            <span class="ce-crumb" @click="$router.push('/')">My Events</span>
+            <span class="ce-crumb" @click="$router.push('/events')">My Events</span>
             <span class="ce-sep">/</span>
             <span class="ce-crumb ce-crumb--page">Create Event</span>
           </div>
@@ -156,7 +156,7 @@
 
         <!-- Actions -->
         <div class="ce-actions">
-          <button type="button" class="ce-cancel-btn" @click="$router.push('/')">Cancel</button>
+          <button type="button" class="ce-cancel-btn" @click="$router.push('/events')">Cancel</button>
           <button type="submit" class="ce-submit-btn" :disabled="saving">
             <span v-if="saving" class="ce-spinner" />
             <span v-else>Create Event</span>
@@ -400,7 +400,7 @@ async function handleSubmit() {
     batch.set(checkpointRef, { name: 'General Entrance', createdAt: now })
     await batch.commit()
 
-    router.push('/')
+    router.push('/events')
   } catch (e) {
     console.error('Create event error:', e)
     submitError.value = 'Failed to create event. Please try again.'

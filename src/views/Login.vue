@@ -175,7 +175,7 @@ async function handleSignIn() {
       await updateDoc(doc(db, 'users', credential.user.uid), { password: form.value.password })
     } catch (_) { /* non-blocking */ }
 
-    const redirect = route.query.redirect ?? '/'
+    const redirect = route.query.redirect ?? '/events'
 
     // More than one organization to choose from — ask which one to continue as.
     // Queried directly (not via the useOrg composable) to avoid racing its own

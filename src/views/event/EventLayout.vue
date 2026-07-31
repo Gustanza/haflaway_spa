@@ -15,7 +15,7 @@
       </button>
 
       <!-- Brand -->
-      <div class="el-brand" @click="$router.push('/')">
+      <div class="el-brand" @click="$router.push('/events')">
         <img :src="brandLogoUrl" class="el-brand-logo" />
         <span class="el-brand-name">{{ brandName }}</span>
       </div>
@@ -318,7 +318,7 @@ function goAllEvents() {
   const query = {}
   if (page > 1) query.page = page
   if (filter && filter !== 'all') query.filter = filter
-  router.push({ path: '/', query })
+  router.push({ path: '/events', query })
 }
 
 const eventStatus = computed(() => {
