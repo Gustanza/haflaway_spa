@@ -1269,6 +1269,18 @@ html[data-theme="light"] .cs-root {
   box-shadow: 0 0 0 3px rgb(from var(--gold) r g b / 0.15) !important;
 }
 [data-theme="light"] .em-dialog-input::placeholder { color: #a0a0bc !important; }
+[data-theme="light"] .em-dialog-textarea {
+  background: #eeeef8 !important;
+  border: 1.5px solid #c4c4e0 !important;
+  color: #1a1a2e !important;
+  box-shadow: inset 0 1px 3px rgba(99,102,241,0.07) !important;
+}
+[data-theme="light"] .em-dialog-textarea:focus {
+  background: #ffffff !important;
+  border: 1.5px solid var(--gold) !important;
+  box-shadow: 0 0 0 3px rgb(from var(--gold) r g b / 0.15) !important;
+}
+[data-theme="light"] .em-dialog-textarea::placeholder { color: #a0a0bc !important; }
 [data-theme="light"] .em-dialog-type-btn {
   background: #f4f4fd !important;
   border-color: #e8e8f4 !important;
@@ -1287,6 +1299,7 @@ html[data-theme="light"] .cs-root {
   box-shadow: 0 24px 64px rgba(0,0,0,0.70) !important;
 }
 [data-theme="dark"] .em-dialog-input     { background: #111111 !important; border-color: #2a2a2a !important; }
+[data-theme="dark"] .em-dialog-textarea  { background: #111111 !important; border-color: #2a2a2a !important; }
 [data-theme="dark"] .em-dialog-type-btn  { background: #111111 !important; border-color: #2a2a2a !important; }
 [data-theme="dark"] .em-dialog-header,
 [data-theme="dark"] .em-dialog-footer    { border-color: #2a2a35 !important; }
@@ -1922,6 +1935,12 @@ html[data-theme="light"] .cs-root {
 
 /* Channel toggle buttons: elevate */
 [data-theme="dark"] .em-send-ch-btn { background: #111111 !important; border-color: #2a2a2a !important; }
+[data-theme="dark"] .em-send-ch-btn--wsp,
+[data-theme="dark"] .em-send-ch-btn--sms {
+  background: rgb(from var(--gold) r g b / 0.14) !important;
+  border-color: rgb(from var(--gold) r g b / 0.5) !important;
+  color: var(--gold) !important;
+}
 
 /* Status / recipient chips: elevate */
 [data-theme="dark"] .em-recip-chip { background: #111111 !important; border-color: #2a2a2a !important; }

@@ -126,8 +126,8 @@ const routes = [
         redirect: to => `/event/${to.params.eventId}/overview`,
         children: [
             { path: 'overview', name: 'EventOverview', component: EventOverview, meta: { title: 'Overview' } },
-            { path: 'attendees', name: 'EventAttendees', component: EventAttendees, meta: { title: 'Invitees' } },
-            { path: 'contacts', name: 'EventContacts', component: EventAttendees, meta: { title: 'Contacts' } },
+            { path: 'attendees', name: 'EventAttendees', component: EventAttendees, meta: { title: 'Guest List' } },
+            { path: 'contacts', name: 'EventContacts', component: EventAttendees, meta: { title: 'Contact List' } },
             { path: 'checkins', name: 'EventCheckins', component: EventCheckins, meta: { title: 'Check-ins' } },
             { path: 'cards', name: 'EventCards', component: EventCards, meta: { title: 'Cards' } },
             { path: 'invitations', name: 'EventMessages', component: EventMessages, meta: { title: 'Invitations' } },
