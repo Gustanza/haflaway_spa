@@ -14,7 +14,7 @@
             </svg>
           </div>
           <div class="ea-stat-body">
-            <span class="ea-stat-lbl">Invitees</span>
+            <span class="ea-stat-lbl">Guest List</span>
             <span class="ea-stat-val">{{ typeCount.invitation ?? 0 }}</span>
           </div>
         </div>
@@ -63,7 +63,7 @@
             </svg>
           </div>
           <div class="ea-stat-body">
-            <span class="ea-stat-lbl">Contacts</span>
+            <span class="ea-stat-lbl">Contact List</span>
             <span class="ea-stat-val">{{ typeCount.contact }}</span>
           </div>
         </div>
@@ -109,7 +109,7 @@
 
       <!-- ── Panel header ── -->
       <div class="ea-panel-hd">
-        <h2 class="ea-panel-title">{{ isContactsView ? 'Contacts' : 'Invitees' }}</h2>
+        <h2 class="ea-panel-title">{{ isContactsView ? 'Contact List' : 'Guest List' }}</h2>
 
         <div class="ea-panel-acts">
 
@@ -1625,12 +1625,12 @@ function toggleSort(key) {
 const isContactsView = computed(() => route.name === 'EventContacts')
 
 const personLabel = computed(() => {
-  if (!isContactsView.value) return 'Invitee'
+  if (!isContactsView.value) return 'Guest'
   if (activeType.value === 'contribution') return 'Contributor'
   return 'Contact'
 })
 const personLabelPlural = computed(() => {
-  if (!isContactsView.value) return 'Invitees'
+  if (!isContactsView.value) return 'Guests'
   if (activeType.value === 'contribution') return 'Contributors'
   return 'Contacts'
 })

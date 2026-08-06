@@ -212,7 +212,7 @@ const navItems = [
     </svg>`,
   },
   {
-    label: 'Invitees',
+    label: 'Guest List',
     to: 'attendees',
     icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -220,7 +220,7 @@ const navItems = [
     </svg>`,
   },
   {
-    label: 'Contacts',
+    label: 'Contact List',
     to: 'contacts',
     icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -252,13 +252,6 @@ const navItems = [
     to: 'bulk-messages',
     icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-    </svg>`,
-  },
-  {
-    label: 'Templates',
-    to: 'templates',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
     </svg>`,
   },
   {

@@ -149,6 +149,10 @@
                   <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
                 </svg>
               </button>
+              <button class="em-edit-camp-btn" title="Edit this step's WhatsApp/SMS message" @click="openCampMsgDialog(activeCampaign)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Templates
+              </button>
               <button class="em-send-btn" @click="openSendDrawer">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -434,81 +438,52 @@
                   </p>
                 </div>
 
-                <!-- Template -->
+                <!-- Template / Message -->
                 <div class="em-drawer-section">
                   <p class="em-drawer-section-label">
-                    Template
-                    <button v-if="sendChannel === 'sms'" class="em-browse-tpl-btn" @click="openTemplatePicker">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                      Browse Haflaway templates
-                    </button>
-                    <RouterLink v-if="sendChannel === 'sms'" :to="`/event/${eventId}/templates`" class="em-browse-tpl-btn">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      Manage templates
-                    </RouterLink>
-                    <span v-if="loadingTemplates" class="em-tpl-loading">
+                    {{ sendChannel === 'whatsapp' ? 'Template' : 'Message' }}
+                    <span v-if="sendChannel === 'whatsapp' && loadingTemplates" class="em-tpl-loading">
                       <svg class="em-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                       Loading…
                     </span>
+                    <button class="em-browse-tpl-btn" @click="openCampMsgDialog(sendCampaign)">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Edit message
+                    </button>
                   </p>
-                  <div v-if="!loadingTemplates && !templates.length" class="em-tpl-empty">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    No templates found for this campaign + channel.
-                  </div>
-                  <div v-else class="em-tpl-list">
-                    <div v-for="tpl in templates" :key="tpl.id"
-                      class="em-tpl-item"
-                      :class="{ 'em-tpl-item--active': selectedTemplate?.id === tpl.id, 'em-tpl-item--editing': editingTplId === tpl.id }"
-                      @click="editingTplId !== tpl.id && (selectedTemplate = tpl)">
 
-                      <!-- View mode -->
-                      <template v-if="editingTplId !== tpl.id">
-                        <div class="em-tpl-radio" @click.stop="selectedTemplate = tpl">
+                  <template v-if="sendChannel === 'whatsapp'">
+                    <div v-if="!loadingTemplates && !templates.length" class="em-tpl-empty">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                      No templates found for this campaign + channel.
+                    </div>
+                    <div v-else class="em-tpl-list">
+                      <div v-for="tpl in templates" :key="tpl.id"
+                        class="em-tpl-item"
+                        :class="{ 'em-tpl-item--active': selectedTemplate?.id === tpl.id }"
+                        @click="selectedTemplate = tpl">
+                        <div class="em-tpl-radio">
                           <div class="em-tpl-radio-dot" v-if="selectedTemplate?.id === tpl.id" />
                         </div>
                         <div class="em-tpl-body">
                           <p class="em-tpl-content">{{ tpl.content }}</p>
                           <p v-if="tpl.language" class="em-tpl-meta">{{ tpl.language.toUpperCase() }}</p>
                         </div>
-                        <div v-if="sendChannel === 'sms'" class="em-tpl-actions" @click.stop>
-                          <button class="em-tpl-act-btn" title="Edit" @click="startEditTpl(tpl, $event)">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                          </button>
-                          <button
-                            class="em-tpl-act-btn em-tpl-act-btn--del"
-                            :class="{ 'em-tpl-act-btn--confirm': deletingTplId === tpl.id }"
-                            :title="deletingTplId === tpl.id ? 'Tap again to confirm' : 'Delete'"
-                            @click="deleteTpl(tpl, $event)">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                            <span v-if="deletingTplId === tpl.id" class="em-tpl-act-confirm-txt">Confirm</span>
-                          </button>
-                        </div>
-                      </template>
-
-                      <!-- Edit mode -->
-                      <template v-else>
-                        <div class="em-tpl-edit" @click.stop>
-                          <textarea
-                            v-model="editingTplBody"
-                            class="em-tpl-edit-ta"
-                            rows="5"
-                            autocomplete="off"
-                            @keydown.esc="cancelEditTpl"
-                          />
-                          <div class="em-tpl-edit-actions">
-                            <button class="em-tpl-edit-cancel" @click.stop="cancelEditTpl">Cancel</button>
-                            <button
-                              class="em-tpl-edit-save"
-                              :disabled="savingTplId === tpl.id || !editingTplBody.trim()"
-                              @click.stop="saveEditTpl(tpl)">
-                              {{ savingTplId === tpl.id ? 'Saving…' : 'Save' }}
-                            </button>
-                          </div>
-                        </div>
-                      </template>
-
+                      </div>
                     </div>
-                  </div>
+                  </template>
+
+                  <template v-else>
+                    <div v-if="campaignMessages[sendCampaign]?.smsMessage" class="em-tpl-item em-tpl-item--active" style="cursor: default">
+                      <div class="em-tpl-body">
+                        <p class="em-tpl-content">{{ campaignMessages[sendCampaign].smsMessage }}</p>
+                      </div>
+                    </div>
+                    <div v-else class="em-msg-missing-warn">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      <span>No SMS message set for this campaign — it will be sent blank. <button class="em-msg-missing-warn-btn" @click="openCampMsgDialog(sendCampaign)">Set it now</button> before sending.</span>
+                    </div>
+                  </template>
                 </div>
 
               </div>
@@ -588,53 +563,62 @@
   </div>
 
   <!-- ══════════════════════════════════════════════
-       GLOBAL TEMPLATE PICKER
+       EDIT CAMPAIGN MESSAGE DIALOG
        ══════════════════════════════════════════════ -->
   <Teleport to="body">
-    <Transition name="em-tpk-fade">
-      <div v-if="tplPickerOpen" class="em-tpk-backdrop" @click.self="tplPickerOpen = false">
-        <div class="em-tpk-panel">
-
-          <div class="em-tpk-header">
-            <span class="em-tpk-title">Haflaway Templates</span>
-            <button class="em-tpk-close" @click="tplPickerOpen = false">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <Transition name="em-fade">
+      <div v-if="campMsgDialogOpen" class="em-overlay em-overlay--center" @click.self="campMsgDialogOpen = false">
+        <div class="em-dialog">
+          <div class="em-dialog-header">
+            <h3 class="em-dialog-title">Edit {{ KNOWN_CAMPAIGNS.find(c => c.id === campMsgDialogCampaign)?.label }} Message</h3>
+            <button class="em-drawer-close" @click="campMsgDialogOpen = false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
+          <div class="em-dialog-body">
+            <div class="em-send-ch-toggle">
+              <button class="em-send-ch-btn" :class="{ 'em-send-ch-btn--wsp': campMsgDialogTab === 'whatsapp' }" @click="campMsgDialogTab = 'whatsapp'">
+                <svg width="14" height="14" viewBox="0 0 448 512" fill="#128C7E"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
+                WhatsApp
+              </button>
+              <button class="em-send-ch-btn" :class="{ 'em-send-ch-btn--sms': campMsgDialogTab === 'sms' }" @click="campMsgDialogTab = 'sms'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                SMS
+              </button>
+            </div>
 
-          <div class="em-tpk-body">
-            <p class="em-tpk-sub">Pick one to import into this event</p>
-            <div v-if="loadingGlobalTpls" class="em-tpk-empty">
-              <svg class="em-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              Loading templates…
-            </div>
-            <div v-else-if="!globalTemplates.length" class="em-tpk-empty">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              No global templates available yet for this message type.
-            </div>
-            <div v-else class="em-tpk-list">
-              <div v-for="tpl in globalTemplates" :key="tpl.id" class="em-tpk-card">
-                <div class="em-tpk-card-head">
-                  <span class="em-tpk-name">{{ tpl.name }}</span>
-                  <div class="em-tpk-badges">
-                    <span v-if="tpl.language" class="em-tpk-badge em-tpk-badge--lang">{{ tpl.language }}</span>
-                    <span class="em-tpk-badge em-tpk-badge--ch">{{ tpl.channel?.toUpperCase() ?? 'SMS' }}</span>
-                  </div>
-                </div>
-                <p class="em-tpk-body-text">{{ tpl.body }}</p>
-                <button
-                  class="em-tpk-import-btn"
-                  :disabled="importingTplId === tpl.id"
-                  @click="importGlobalTemplate(tpl)"
-                >
-                  <svg v-if="importingTplId !== tpl.id" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  <svg v-else class="em-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                  {{ importingTplId === tpl.id ? 'Importing…' : 'Import' }}
-                </button>
+            <template v-if="campMsgDialogTab === 'whatsapp'">
+              <label class="em-dialog-lbl" style="margin-top:14px">WhatsApp Custom Message (optional)</label>
+              <div class="em-dialog-tpl-acts">
+                <select class="em-copy-prev-select" :disabled="loadingGlobalTpls || !globalTplsForWa.length" @change="useGlobalTemplate('whatsapp', $event)">
+                  <option value="">{{ loadingGlobalTpls ? 'Loading…' : globalTplsForWa.length ? 'Import from library…' : 'No library templates' }}</option>
+                  <option v-for="t in globalTplsForWa" :key="t.id" :value="t.id">{{ t.name }}</option>
+                </select>
               </div>
-            </div>
+              <textarea v-model="campMsgDialogWa" class="em-dialog-textarea" rows="4"
+                placeholder="e.g. Unakumbushwa kuwahi kwenye kikao cha leo saa tisa alasiri."></textarea>
+              <p class="em-dialog-hint">Fills an optional custom message slot in this campaign's WhatsApp template. Not required — the template already carries the full invitation content.</p>
+            </template>
+            <template v-else>
+              <label class="em-dialog-lbl" style="margin-top:14px">SMS Custom Message</label>
+              <div class="em-dialog-tpl-acts">
+                <select class="em-copy-prev-select" :disabled="loadingGlobalTpls || !globalTplsForSms.length" @change="useGlobalTemplate('sms', $event)">
+                  <option value="">{{ loadingGlobalTpls ? 'Loading…' : globalTplsForSms.length ? 'Import from library…' : 'No library templates' }}</option>
+                  <option v-for="t in globalTplsForSms" :key="t.id" :value="t.id">{{ t.name }}</option>
+                </select>
+              </div>
+              <textarea v-model="campMsgDialogSms" class="em-dialog-textarea" rows="4"
+                placeholder="e.g. Unakumbushwa kuwahi kwenye kikao cha leo saa tisa alasiri."></textarea>
+              <p class="em-dialog-hint">Sent as-is to every recipient — no per-send template picking needed.</p>
+            </template>
           </div>
-
+          <div class="em-dialog-footer">
+            <button class="em-drawer-cancel" @click="campMsgDialogOpen = false">Cancel</button>
+            <button class="em-drawer-send" :disabled="savingCampMsg" @click="saveCampMsg">
+              <svg v-if="savingCampMsg" class="em-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              {{ savingCampMsg ? 'Saving…' : 'Save' }}
+            </button>
+          </div>
         </div>
       </div>
     </Transition>
@@ -646,7 +630,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, auth } from '../../firebase'
-import { collection, query, orderBy, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore'
+import { collection, query, orderBy, where, getDocs, setDoc, doc } from 'firebase/firestore'
 
 const vClickOutside = {
   mounted(el, binding) {
@@ -701,16 +685,6 @@ const CAMPAIGN_TEMPLATE_CATEGORIES = {
   'haflaway-invitation-gratitude-campaign': 'haflaway-invitation-gratitude-campaign',
 }
 
-// Maps campaign ID → smsTemplates category key
-const CAMPAIGN_TO_SMS_CATEGORY = {
-  'haflaway-invitation-campaign':           'invitation',
-  'haflaway-invitation-reminder-campaign':  'reminder',
-  'haflaway-contribution-campaign':         'invitation',
-  'haflaway-save-the-date-campaign':        'save-the-date',
-  'haflaway-gratitude-campaign':            'gratitude',
-  'haflaway-invitation-gratitude-campaign': 'gratitude',
-}
-
 const CAMPAIGN_KARD_TYPE = {
   'haflaway-invitation-campaign':           'invitation',
   'haflaway-invitation-reminder-campaign':  'invitation',
@@ -750,6 +724,108 @@ const AUDIENCE_GROUPS = [
 
 const WSP_URL = 'https://sendwhatsappinvitationmessages-frbu33fema-uc.a.run.app'
 const SMS_URL = 'https://sendsmsaction-frbu33fema-uc.a.run.app'
+
+// ── Campaign messages (scoped WhatsApp/SMS content per fixed campaign) ─────────
+// Stored at events/{eventId}/campaignMessages/{campaignId} — read server-side by
+// functions/whatsapp/invitation.js (var 8) and passed directly in the SMS send
+// body. Keyed by campaign id for O(1) lookup from the send drawer.
+const campaignMessages = ref({})
+
+async function loadCampaignMessages() {
+  if (!eventId.value) return
+  try {
+    const snap = await getDocs(collection(db, 'events', eventId.value, 'campaignMessages'))
+    const map = {}
+    snap.docs.forEach(d => { map[d.id] = d.data() })
+    campaignMessages.value = map
+  } catch (e) {
+    console.error('Failed to load campaign messages', e)
+  }
+}
+
+// ── Edit campaign message dialog ────────────────────────────────────────────────
+const campMsgDialogOpen      = ref(false)
+const campMsgDialogCampaign  = ref(null)
+const campMsgDialogWa        = ref('')
+const campMsgDialogSms       = ref('')
+const campMsgDialogTab       = ref('whatsapp')
+const savingCampMsg          = ref(false)
+
+function openCampMsgDialog(campaignId) {
+  campMsgDialogCampaign.value = campaignId
+  campMsgDialogTab.value = 'whatsapp'
+  const existing = campaignMessages.value[campaignId] ?? {}
+  campMsgDialogWa.value = existing.whatsappMessage ?? ''
+  campMsgDialogSms.value = existing.smsMessage ?? ''
+  campMsgDialogOpen.value = true
+  loadGlobalTemplates()
+}
+
+// ── Global template library (superuser-managed, haflaway_admin_spa) ────────────
+// Invitations' fixed campaign ids map to the shared category taxonomy used by
+// both this feature and Bulk Messages' campaign `type`.
+const CAMPAIGN_ID_TO_TEMPLATE_CATEGORY = {
+  'haflaway-invitation-campaign':           'invitation',
+  'haflaway-invitation-reminder-campaign':  'reminder',
+  'haflaway-save-the-date-campaign':        'save-the-date',
+  'haflaway-contribution-campaign':         'contribution',
+  'haflaway-gratitude-campaign':            'gratitude',
+  'haflaway-invitation-gratitude-campaign': 'gratitude',
+}
+
+const globalTemplates   = ref([])
+const loadingGlobalTpls = ref(false)
+let globalTplsLoaded = false
+
+async function loadGlobalTemplates() {
+  if (globalTplsLoaded) return
+  loadingGlobalTpls.value = true
+  try {
+    const snap = await getDocs(query(collection(db, 'smsTemplates'), orderBy('createdAt', 'desc')))
+    globalTemplates.value = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.active !== false)
+    globalTplsLoaded = true
+  } catch (e) {
+    console.error('Failed to load global templates', e)
+  } finally {
+    loadingGlobalTpls.value = false
+  }
+}
+
+const campMsgDialogCategory = computed(() => CAMPAIGN_ID_TO_TEMPLATE_CATEGORY[campMsgDialogCampaign.value])
+const globalTplsForWa  = computed(() => globalTemplates.value.filter(t =>
+  t.category === campMsgDialogCategory.value && (t.channel === 'whatsapp' || t.channel === 'both')))
+const globalTplsForSms = computed(() => globalTemplates.value.filter(t =>
+  t.category === campMsgDialogCategory.value && (t.channel === 'sms' || t.channel === 'both')))
+
+function useGlobalTemplate(channel, e) {
+  const id = e.target.value
+  e.target.value = ''
+  if (!id) return
+  const tpl = globalTemplates.value.find(t => t.id === id)
+  if (!tpl) return
+  if (channel === 'whatsapp') campMsgDialogWa.value = tpl.body ?? ''
+  else campMsgDialogSms.value = tpl.body ?? ''
+}
+
+async function saveCampMsg() {
+  if (!campMsgDialogCampaign.value || !eventId.value) return
+  savingCampMsg.value = true
+  try {
+    const whatsappMessage = campMsgDialogWa.value.trim() || null
+    const smsMessage      = campMsgDialogSms.value.trim() || null
+    await setDoc(
+      doc(db, 'events', eventId.value, 'campaignMessages', campMsgDialogCampaign.value),
+      { whatsappMessage, smsMessage, updatedAt: new Date().toISOString() },
+      { merge: true }
+    )
+    campaignMessages.value = { ...campaignMessages.value, [campMsgDialogCampaign.value]: { ...campaignMessages.value[campMsgDialogCampaign.value], whatsappMessage, smsMessage } }
+    campMsgDialogOpen.value = false
+  } catch (e) {
+    console.error('Failed to save campaign message', e)
+  } finally {
+    savingCampMsg.value = false
+  }
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const attendees    = ref([])
@@ -816,83 +892,6 @@ const sendResult       = ref(null)
 
 const chipsScrollEl    = ref(null)
 function scrollChips(dir) { chipsScrollEl.value?.scrollBy({ left: dir * 120, behavior: 'smooth' }) }
-
-// ── Global template picker ────────────────────────────────────────────────────
-const tplPickerOpen       = ref(false)
-const globalTemplates     = ref([])
-const loadingGlobalTpls   = ref(false)
-const importingTplId      = ref(null)
-
-async function openTemplatePicker() {
-  tplPickerOpen.value = true
-  if (globalTemplates.value.length) return
-  loadingGlobalTpls.value = true
-  try {
-    const category = CAMPAIGN_TO_SMS_CATEGORY[sendCampaign.value]
-    const snap = await getDocs(query(collection(db, 'smsTemplates'), orderBy('createdAt', 'desc')))
-    const all = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.active !== false)
-    globalTemplates.value = category ? all.filter(t => t.category === category || !t.category) : all
-  } catch (e) { console.error(e) }
-  finally { loadingGlobalTpls.value = false }
-}
-
-// ── Per-event template inline edit / delete ───────────────────────────────────
-const editingTplId   = ref(null)
-const editingTplBody = ref('')
-const savingTplId    = ref(null)
-const deletingTplId  = ref(null)
-
-function startEditTpl(tpl, e) {
-  e.stopPropagation()
-  editingTplId.value   = tpl.id
-  editingTplBody.value = tpl.content ?? ''
-}
-
-function cancelEditTpl() { editingTplId.value = null; editingTplBody.value = '' }
-
-async function saveEditTpl(tpl) {
-  if (!eventId.value || !editingTplBody.value.trim()) return
-  savingTplId.value = tpl.id
-  try {
-    await updateDoc(doc(db, 'events', eventId.value, 'messageTemplates', tpl.id), { content: editingTplBody.value.trim() })
-    tpl.content = editingTplBody.value.trim()
-    if (selectedTemplate.value?.id === tpl.id) selectedTemplate.value = { ...selectedTemplate.value, content: tpl.content }
-    cancelEditTpl()
-  } catch (e) { console.error(e) }
-  finally { savingTplId.value = null }
-}
-
-async function deleteTpl(tpl, e) {
-  e.stopPropagation()
-  if (deletingTplId.value === tpl.id) {
-    // second click = confirm
-    try {
-      await deleteDoc(doc(db, 'events', eventId.value, 'messageTemplates', tpl.id))
-      templates.value = templates.value.filter(t => t.id !== tpl.id)
-      if (selectedTemplate.value?.id === tpl.id) selectedTemplate.value = null
-    } catch (e) { console.error(e) }
-    finally { deletingTplId.value = null }
-  } else {
-    deletingTplId.value = tpl.id
-    // auto-reset confirm state after 3s if user doesn't click again
-    setTimeout(() => { if (deletingTplId.value === tpl.id) deletingTplId.value = null }, 3000)
-  }
-}
-
-async function importGlobalTemplate(tpl) {
-  if (!eventId.value) return
-  importingTplId.value = tpl.id
-  try {
-    await addDoc(
-      collection(db, 'events', eventId.value, 'messageTemplates'),
-      { name: tpl.name ?? '', content: tpl.body, language: tpl.language ?? null, campaignId: sendCampaign.value, channel: 'sms', importedFrom: tpl.id, createdAt: serverTimestamp() }
-    )
-    tplPickerOpen.value = false
-    globalTemplates.value = []
-    await loadSendTemplates()
-  } catch (e) { console.error(e) }
-  finally { importingTplId.value = null }
-}
 
 const campGridEl       = ref(null)
 function scrollCampGrid(dir) { campGridEl.value?.scrollBy({ left: dir * 160, behavior: 'smooth' }) }
@@ -973,26 +972,18 @@ function onCampaignChange(id) { sendCampaign.value = id; selectedTemplate.value 
 function onChannelChange(ch)  { sendChannel.value = ch;  selectedTemplate.value = null; loadSendTemplates() }
 
 async function loadSendTemplates() {
-  if (!eventId.value) return
+  if (!eventId.value || sendChannel.value !== 'whatsapp') { templates.value = []; selectedTemplate.value = null; return }
   loadingTemplates.value = true
   templates.value = []
   selectedTemplate.value = null
   try {
-    if (sendChannel.value === 'whatsapp') {
-      const category = CAMPAIGN_TEMPLATE_CATEGORIES[sendCampaign.value]
-      if (category) {
-        const lang = props.event?.language ?? 'sw'
-        const snap = await getDocs(
-          query(collection(db, 'messageTemplates'), where('category', '==', category), where('language', '==', lang))
-        )
-        templates.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      }
-      // Custom campaigns: no WhatsApp templates — user sees empty state
-    } else {
-      const snap = await getDocs(collection(db, 'events', eventId.value, 'messageTemplates'))
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      // Only show templates tagged for this campaign, plus untagged "General" ones
-      templates.value = all.filter(t => !t.campaignId || t.campaignId === sendCampaign.value)
+    const category = CAMPAIGN_TEMPLATE_CATEGORIES[sendCampaign.value]
+    if (category) {
+      const lang = props.event?.language ?? 'sw'
+      const snap = await getDocs(
+        query(collection(db, 'messageTemplates'), where('category', '==', category), where('language', '==', lang))
+      )
+      templates.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
     }
     if (templates.value.length === 1) selectedTemplate.value = templates.value[0]
   } catch (e) {
@@ -1046,9 +1037,13 @@ const sendRecipIds = computed(() => {
   if (sendRecipMode.value === 'all') return sendRecipPool.value.map(a => a.id)
   return sendRecipPool.value.filter(a => (getStatusForSend(a) ?? 'unsent') === sendRecipMode.value).map(a => a.id)
 })
-const canSend = computed(() =>
-  sendCampaign.value && sendChannel.value && selectedTemplate.value && sendRecipCount.value > 0 && !sending.value
-)
+const canSend = computed(() => {
+  if (!sendCampaign.value || !sendChannel.value || sendRecipCount.value === 0 || sending.value) return false
+  // Unlike Bulk Messages, Invitations' WhatsApp templates are fully pre-authored —
+  // the custom-message slot (variable 8) is optional here, not required.
+  if (sendChannel.value === 'whatsapp') return !!selectedTemplate.value
+  return !!campaignMessages.value[sendCampaign.value]?.smsMessage
+})
 
 async function executeSend() {
   if (!canSend.value) return
@@ -1062,7 +1057,7 @@ async function executeSend() {
     const kardType = CAMPAIGN_KARD_TYPE[sendCampaign.value] ?? 'invitation'
     const body = sendChannel.value === 'whatsapp'
       ? { templateId: selectedTemplate.value.id, type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipIds.value, kardType }
-      : { content: selectedTemplate.value.content,  type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipIds.value, kardType }
+      : { content: campaignMessages.value[sendCampaign.value]?.smsMessage, type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipIds.value, kardType }
 
     const res  = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) })
     const data = await res.json()
@@ -1602,8 +1597,8 @@ function avatarFg(n) { return `hsl(${nameHash(n ?? '') % 360}, 50%, 30%)` }
 function rsvpColor(s) { return { Confirmed: '#30D158', Declined: '#FF453A', Called: '#64D2FF', Unreachable: '#FF9F0A', 'Not Confirmed': '#8E8E93' }[s] ?? '#8E8E93' }
 function formatDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' }) } catch { return '—' } }
 
-onMounted(load)
-watch(eventId, () => { if (eventId.value) load() })
+onMounted(() => { load(); loadCampaignMessages() })
+watch(eventId, () => { if (eventId.value) { load(); loadCampaignMessages() } })
 </script>
 
 <style scoped>
@@ -1733,7 +1728,6 @@ watch(eventId, () => { if (eventId.value) load() })
   border-radius: 50%;
   background: #34d399;
 }
-
 .em-step-num {
   width: 24px; height: 24px;
   border-radius: 50%;
@@ -1766,6 +1760,14 @@ watch(eventId, () => { if (eventId.value) load() })
   font-size: 13px; font-weight: 600; cursor: pointer; transition: all 130ms; font-family: inherit;
 }
 .em-export-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+.em-edit-camp-btn {
+  display: flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 14px; border-radius: 8px;
+  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 130ms; font-family: inherit; flex-shrink: 0;
+}
+.em-edit-camp-btn:hover { border-color: var(--gold); color: var(--gold); }
 
 /* Export dialog */
 .em-expd-backdrop {
@@ -2325,6 +2327,16 @@ watch(eventId, () => { if (eventId.value) load() })
 }
 .em-tpl-loading { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--gold); font-weight: 500; text-transform: none; letter-spacing: 0; }
 .em-tpl-empty   { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--c-txt-2); padding: 12px; border: 0.8px dashed var(--c-border); border-radius: 10px; }
+.em-msg-missing-warn {
+  display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; margin-bottom: 10px;
+  border-radius: 10px; background: rgba(255,159,10,0.08); border: 1px solid rgba(255,159,10,0.3);
+  color: #f59e0b; font-size: 12px; line-height: 1.5;
+}
+.em-msg-missing-warn svg { flex-shrink: 0; margin-top: 1px; }
+.em-msg-missing-warn-btn {
+  background: none; border: none; padding: 0; color: #f59e0b; font-weight: 700; text-decoration: underline;
+  cursor: pointer; font-family: inherit; font-size: inherit;
+}
 .em-tpl-list    { display: flex; flex-direction: column; gap: 8px; }
 .em-tpl-item    { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-bg); cursor: pointer; transition: all 130ms; }
 .em-tpl-item:hover { border-color: var(--gold); }
@@ -2352,12 +2364,29 @@ watch(eventId, () => { if (eventId.value) load() })
 .em-dialog-title  { font-size: 16px; font-weight: 700; color: var(--c-txt); margin: 0; }
 .em-dialog-body   { padding: 20px; }
 .em-dialog-lbl    { display: block; font-size: 11px; font-weight: 700; color: var(--c-txt-2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+.em-dialog-tpl-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.em-copy-prev-select {
+  max-width: 180px; height: 26px; padding: 0 10px; border: 1px solid var(--c-border); border-radius: 999px;
+  background: var(--c-bg); color: var(--c-txt-2); color-scheme: dark;
+  font-size: 11px; font-weight: 600; font-family: inherit; cursor: pointer; outline: none;
+  text-align: left; text-transform: none; letter-spacing: 0; transition: border-color 130ms, color 130ms;
+}
+.em-copy-prev-select:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.em-copy-prev-select:disabled { color: var(--c-txt-3, #555); cursor: default; opacity: 0.6; }
 .em-dialog-input  {
   width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--c-border);
   border-radius: 10px; font-size: 14px; color: var(--c-txt); background: var(--c-bg);
   outline: none; box-sizing: border-box; transition: border-color 130ms;
 }
 .em-dialog-input:focus { border-color: var(--gold); }
+.em-dialog-textarea {
+  width: 100%; min-height: 88px; padding: 10px 12px; border: 1px solid var(--c-border, #2a2a2a);
+  border-radius: 10px; font-size: 14px; color: var(--c-txt, #f0f0ec); background: var(--c-bg, #1c1c1f);
+  outline: none; box-sizing: border-box; transition: border-color 130ms; font-family: inherit; resize: vertical;
+}
+.em-dialog-textarea:hover { border-color: rgb(from var(--gold) r g b / 0.35); }
+.em-dialog-textarea:focus { border-color: var(--gold); }
+.em-dialog-hint { margin: 6px 0 0; font-size: 11px; color: var(--c-txt-2); line-height: 1.4; }
 .em-dialog-type-row { display: flex; gap: 8px; }
 .em-dialog-type-btn {
   flex: 1; height: 36px; border-radius: 9px; border: 1px solid var(--c-border);
@@ -2436,7 +2465,7 @@ watch(eventId, () => { if (eventId.value) load() })
 @media (max-width: 640px) {
   .em-panel-title { flex: 1; font-size: 16px; }
   .em-panel-acts  { flex-shrink: 0; }
-  .em-send-btn, .em-export-btn { padding: 7px 12px; font-size: 12px; }
+  .em-send-btn, .em-export-btn, .em-edit-camp-btn { padding: 7px 12px; font-size: 12px; }
   .em-hd-search { order: 3; flex: unset; width: 100%; }
   .em-aud-tabs  { order: 4; }
 
