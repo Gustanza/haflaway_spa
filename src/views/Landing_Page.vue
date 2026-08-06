@@ -1,53 +1,150 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import {
-    SparklesIcon,
     EnvelopeIcon,
     UsersIcon,
-    RocketLaunchIcon,
     ChatBubbleLeftRightIcon,
     QrCodeIcon,
     CurrencyDollarIcon,
     PhotoIcon,
     DevicePhoneMobileIcon,
+    RocketLaunchIcon,
+    MicrophoneIcon,
+    SwatchIcon,
+    BuildingLibraryIcon,
+    MusicalNoteIcon,
+    CameraIcon,
+    CakeIcon,
+    Bars3Icon,
+    XMarkIcon,
+    ArrowRightIcon,
+    ArrowUpRightIcon,
+    MapPinIcon,
+    CalendarDaysIcon,
 } from '@heroicons/vue/24/outline';
 import { collection, getCountFromServer } from 'firebase/firestore';
 import { db } from '../firebase';
 
-// ── Scroll ────────────────────────────────────────────────────────────────────
-const scrollY = ref(0);
-const handleScroll = () => { scrollY.value = window.scrollY; };
+// ── Motion preference ─────────────────────────────────────────────────────────
+const reduceMotion = ref(false);
 
-const phoneStyle   = computed(() => ({ transform: `translateY(${-scrollY.value * 0.07}px)`, willChange: 'transform' }));
-const innerScroll  = computed(() => Math.min(scrollY.value * 0.14, 90));
-const pill1Style   = computed(() => ({ transform: `translateY(${-scrollY.value * 0.04}px)` }));
-const pill2Style   = computed(() => ({ transform: `translateY(${-scrollY.value * 0.09}px)` }));
-const pill3Style   = computed(() => ({ transform: `translateY(${-scrollY.value * 0.06}px)` }));
+// ── Nav ───────────────────────────────────────────────────────────────────────
+const navOpen = ref(false);
+const navLinks = [
+    { label: 'Features', href: '#features' },
+    { label: 'How it works', href: '#process' },
+    { label: 'Stories', href: '#stories' },
+];
+
+const goToSection = (href) => {
+    navOpen.value = false;
+    document.querySelector(href)?.scrollIntoView({
+        behavior: reduceMotion.value ? 'auto' : 'smooth',
+        block: 'start',
+    });
+};
 
 // ── Data ──────────────────────────────────────────────────────────────────────
-const steps = [
-    { icon: DevicePhoneMobileIcon, title: 'Create Your Event',                   desc: 'Enter your event details — name, date, venue, and cover photo. Takes just a few minutes.' },
-    { icon: EnvelopeIcon,          title: 'Design Invitation Cards',              desc: 'Pick a card style, add a QR Code, and your invitation is ready to send to every guest.' },
-    { icon: UsersIcon,             title: 'Import Your Guest List',               desc: 'Upload from Excel, CSV, or your phone contacts. Send in bulk with a single tap.' },
-    { icon: QrCodeIcon,            title: 'Scan at the Gate — Effortlessly',      desc: 'Our team or you can scan guest QR codes in real time. No queues, no confusion.' },
-    { icon: CurrencyDollarIcon,    title: 'Track Contributions in Real Time',     desc: 'Receive pledges, record payments, and view a full financial summary from anywhere.' },
+const occasions = ['Weddings', 'Kitchen parties', 'Sendoffs', 'Celebrations'];
+
+const features = [
+    {
+        icon: EnvelopeIcon, title: 'Invitations worth keeping',
+        desc: 'Choose a card, add your photograph and a QR code, and send it over WhatsApp or SMS. No printer, no courier, no reprints when the list changes.',
+        tags: ['Card templates', 'QR codes', 'Save the date'],
+    },
+    {
+        icon: UsersIcon, title: 'Your guest list, alive',
+        desc: 'Import from Excel, CSV or your contacts. Every guest carries a status you can see at a glance — invited, confirmed, arrived.',
+        tags: ['Excel & CSV', 'Live status', 'Bulk send'],
+    },
+    {
+        icon: QrCodeIcon, title: 'A gate that flows',
+        desc: 'Scan guests in at the door in real time, across as many entrances as the venue needs. Nobody queues, nobody argues about the list.',
+        tags: ['Multi-entrance', 'Live count', 'Offline tolerant'],
+    },
+    {
+        icon: CurrencyDollarIcon, title: 'Every contribution, counted',
+        desc: 'Record pledges and payments as they arrive. The number stays right whether you are at the venue or three cities away.',
+        tags: ['Pledges', 'Payments', 'Full summary'],
+    },
+    {
+        icon: ChatBubbleLeftRightIcon, title: 'WhatsApp & SMS',
+        desc: 'Invitations, reminders and thank-you notes go out together, on the channels your guests actually read. Email optional.',
+        tags: ['Bulk send', 'Templates', 'Receipts'],
+    },
+    {
+        icon: PhotoIcon, title: 'The day, kept',
+        desc: 'Gather photographs and video from everyone who came, in one place, then share the whole set back with them.',
+        tags: ['Photo & video', 'Guest uploads', 'Downloads'],
+    },
 ];
+
+const steps = [
+    { n: 'I', icon: DevicePhoneMobileIcon, title: 'Create your event', desc: 'Name, date, venue and a cover photograph. A few minutes, no more.' },
+    { n: 'II', icon: EnvelopeIcon, title: 'Design the invitation', desc: 'Pick a card, add the QR code, and it is ready for every guest.' },
+    { n: 'III', icon: UsersIcon, title: 'Bring your guest list', desc: 'Excel, CSV or phone contacts. Send to everyone in one action.' },
+    { n: 'IV', icon: QrCodeIcon, title: 'Welcome them at the gate', desc: 'Your team scans guests in live, at every entrance, as they arrive.' },
+    { n: 'V', icon: CurrencyDollarIcon, title: 'Follow every contribution', desc: 'Pledges and payments, reconciled as they come in.' },
+];
+
+const services = [
+    { icon: MicrophoneIcon, label: 'MCs' },
+    { icon: SwatchIcon, label: 'Decorators' },
+    { icon: BuildingLibraryIcon, label: 'Venues' },
+    { icon: MusicalNoteIcon, label: 'Artists' },
+    { icon: CameraIcon, label: 'Photographers' },
+    { icon: CakeIcon, label: 'Catering' },
+];
+
+const stories = [
+    {
+        quote: 'We welcomed four hundred guests and not one paper card. The gate moved faster than any wedding I have been to.',
+        name: 'Amina & Said Juma', role: 'Wedding · Dar es Salaam',
+    },
+    {
+        quote: 'Contributions used to be a notebook and an argument. Now the number is simply there, and it is right.',
+        name: 'Fatma Omar', role: 'Kitchen party · Arusha',
+    },
+    {
+        quote: 'I ran the sendoff from Mwanza while the family was in Dodoma. Everyone was looking at the same list.',
+        name: 'John Makwela', role: 'Sendoff · Mwanza',
+    },
+];
+
+const checkpoints = [
+    { name: 'Main Entrance', scanned: 182, total: 247 },
+    { name: 'VIP Entrance', scanned: 41, total: 60 },
+];
+
 const stats = ref([
-    { value: '…',   label: 'Guests Served'    },
-    { value: '…',   label: 'Events Hosted'    },
-    { value: '98%', label: 'Check-in Rate'    },
-    { value: '0',   label: 'Paper Cards'      },
+    { key: 'guests', value: null, label: 'Guests welcomed' },
+    { key: 'events', value: null, label: 'Events hosted' },
+    { key: 'checkin', value: '98%', label: 'Check-in rate' },
+    { key: 'paper', value: '0', label: 'Paper cards' },
 ]);
 
-onMounted(async () => {
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    const observer = new IntersectionObserver(
-        (entries) => entries.forEach(el => { if (el.isIntersecting) el.target.classList.add('is-visible'); }),
-        { threshold: 0.08 }
-    );
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+let observer = null;
+let motionQuery = null;
+const onMotionChange = (e) => { reduceMotion.value = e.matches; };
 
-    const fmt = (n) => `${n.toLocaleString()}+`;
+onMounted(async () => {
+    motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    reduceMotion.value = motionQuery.matches;
+    motionQuery.addEventListener('change', onMotionChange);
+
+    observer = new IntersectionObserver(
+        (entries) => entries.forEach((el) => {
+            if (el.isIntersecting) {
+                el.target.classList.add('is-visible');
+                observer.unobserve(el.target);
+            }
+        }),
+        { threshold: 0.12 }
+    );
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+    const fmt = (n) => n.toLocaleString();
     try {
         const [attendeesSnap, eventsSnap] = await Promise.all([
             getCountFromServer(collection(db, 'attendeeProfiles')),
@@ -56,659 +153,789 @@ onMounted(async () => {
         stats.value[0].value = fmt(attendeesSnap.data().count);
         stats.value[1].value = fmt(eventsSnap.data().count);
     } catch (e) {
-        stats.value[0].value = '10K+';
-        stats.value[1].value = '500+';
+        stats.value[0].value = '10,000';
+        stats.value[1].value = '500';
     }
 });
-onUnmounted(() => window.removeEventListener('scroll', handleScroll));
+
+onUnmounted(() => {
+    observer?.disconnect();
+    motionQuery?.removeEventListener('change', onMotionChange);
+});
 </script>
 
 <template>
-    <div class="min-h-screen font-sans overflow-x-hidden relative" style="background:#0a0e1c; color:#e2e8f0;">
+    <div class="hf">
 
-        <!-- ░░ AMBIENT ORBS ░░ -->
-        <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-            <div class="absolute -top-20 -right-20 w-[500px] h-[500px] rounded-full orb-hi"></div>
-            <div class="absolute top-[60%] -left-20 w-80 h-80 rounded-full orb-lo"></div>
-        </div>
+        <a href="#main" class="skip">Skip to main content</a>
 
         <!-- ░░ NAV ░░ -->
-        <nav class="sticky top-0 z-[100] backdrop-blur-xl border-b" style="background:rgba(10,14,28,0.92); border-color:#1e2d44;">
-            <div class="max-w-4xl mx-auto px-3 py-4 flex justify-between items-center gap-4">
-                <div class="flex items-center gap-3 cursor-pointer" @click="$router.push('/')">
-                    <div class="size-8 rounded-xl overflow-hidden border" style="border-color:#1e2d44;">
-                        <img src="/src/assets/icon-512.png" alt="Haflaway" class="size-full object-cover" />
-                    </div>
-                    <span class="text-xl font-black tracking-tighter uppercase amber-text">Haflaway</span>
+        <header class="nav">
+            <div class="shell nav-bar">
+                <button class="mark" @click="$router.push('/')">
+                    <img src="/src/assets/icon-512.png" alt="" width="30" height="30" />
+                    <span>Haflaway</span>
+                </button>
+
+                <nav class="nav-links" aria-label="Primary">
+                    <a v-for="l in navLinks" :key="l.href" :href="l.href" @click.prevent="goToSection(l.href)">{{ l.label }}</a>
+                    <a @click="$router.push('/pricing')" class="is-link">Pricing</a>
+                </nav>
+
+                <div class="nav-end">
+                    <a href="https://wa.me/255625689904" target="_blank" rel="noopener" class="btn btn-line btn-sm">
+                        Contact us
+                    </a>
+                    <button class="nav-burger" :aria-expanded="navOpen" aria-controls="mnav"
+                        :aria-label="navOpen ? 'Close menu' : 'Open menu'" @click="navOpen = !navOpen">
+                        <XMarkIcon v-if="navOpen" class="size-5" />
+                        <Bars3Icon v-else class="size-5" />
+                    </button>
                 </div>
-                <div class="hidden md:flex items-center gap-8">
-                    <a href="#features" class="nav-link">Features</a>
-                    <a href="#how"      class="nav-link">How It Works</a>
-                    <a href="#cta"      class="nav-link">Get Started</a>
-                    <a @click="$router.push('/pricing')" class="nav-link cursor-pointer" style="color:#C9A84C;">Pricing</a>
-                </div>
-                <a href="https://wa.me/255625689904" target="_blank" class="btn-outline text-[10px] px-5 py-2.5 rounded-full">
-                    Contact Us
+            </div>
+
+            <div v-show="navOpen" id="mnav" class="mnav">
+                <a v-for="l in navLinks" :key="l.href" :href="l.href" @click.prevent="goToSection(l.href)">
+                    {{ l.label }}<ArrowRightIcon class="size-4" aria-hidden="true" />
+                </a>
+                <a @click="navOpen = false; $router.push('/pricing')">
+                    Pricing<ArrowRightIcon class="size-4" aria-hidden="true" />
                 </a>
             </div>
-        </nav>
+        </header>
 
-        <main class="relative z-10">
+        <main id="main">
 
             <!-- ╔══════════════════════════════════════════════════════════╗ -->
-            <!-- ║  HERO                                                    ║ -->
+            <!-- ║  HERO — centred and formal, the way an invitation is     ║ -->
             <!-- ╚══════════════════════════════════════════════════════════╝ -->
-            <section class="max-w-4xl mx-auto px-3 pt-20 sm:pt-28 pb-0">
-                <div class="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 lg:gap-4 items-start">
+            <section class="shell hero">
+                <p class="occasions">
+                    <span v-for="(o, i) in occasions" :key="o">
+                        {{ o }}<i v-if="i < occasions.length - 1" aria-hidden="true">·</i>
+                    </span>
+                </p>
 
-                    <!-- ── Left: Copy ── -->
-                    <div>
-                        <!-- Event type pills -->
-                        <div class="flex flex-wrap gap-2 mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                            <span class="event-pill">💍 Wedding</span>
-                            <span class="event-pill">🎀 Kitchen Party</span>
-                            <span class="event-pill">🎉 Sendoff</span>
-                            <span class="event-pill">🥂 Celebration</span>
-                        </div>
+                <h1 class="h-hero">
+                    Every guest
+                    <span class="script">remembered</span>
+                </h1>
 
-                        <h1 class="font-black tracking-tighter leading-[1.15] mb-5 animate-in fade-in slide-in-from-bottom-6 duration-1000"
-                            style="font-size:clamp(2rem,4vw,2.8rem);">
-                            <span style="color:#e2e8f0;">Invitations with Class.</span><br />
-                            <span class="amber-text">Guests Welcomed.</span><br />
-                            <span style="color:#C4BBAE;">Perfect Celebration.</span>
-                        </h1>
+                <!-- Ornamental rule — an SVG motif, so it scales and takes theme
+                     colour. Decorative only, hidden from assistive tech. -->
+                <svg class="orn" viewBox="0 0 200 14" aria-hidden="true" focusable="false">
+                    <line x1="0" y1="7" x2="78" y2="7" />
+                    <circle cx="85" cy="7" r="2" />
+                    <path d="M100 1.5 L105.5 7 L100 12.5 L94.5 7 Z" />
+                    <circle cx="115" cy="7" r="2" />
+                    <line x1="122" y1="7" x2="200" y2="7" />
+                </svg>
 
-                        <p class="text-sm sm:text-base font-medium leading-relaxed mb-6 max-w-md animate-in fade-in duration-1000 delay-150"
-                            style="color:#8892a4;">
-                            Haflaway helps you plan weddings, sendoffs, kitchen parties and any event — digital invitations with QR codes, guest management, and contributions tracking, all from one app.
+                <p class="lede">
+                    Haflaway carries the whole occasion — invitations with QR codes, the guest list,
+                    a gate that flows, and every contribution counted — from one place.
+                </p>
+
+                <div class="actions actions-center">
+                    <button class="btn btn-solid" @click="$router.push('/events')">
+                        Start planning
+                        <ArrowRightIcon class="size-4" aria-hidden="true" />
+                    </button>
+                    <a href="https://wa.me/255625689904" target="_blank" rel="noopener" class="btn btn-line">
+                        <ChatBubbleLeftRightIcon class="size-4" aria-hidden="true" />
+                        Talk to us
+                    </a>
+                </div>
+
+                <!-- The product, dressed as the thing it makes: an invitation card -->
+                <aside class="invite reveal" aria-label="Example event dashboard">
+                    <div class="invite-inner">
+                        <p class="invite-kicker">Live event</p>
+                        <h2 class="invite-title">Amina <span class="amp">&amp;</span> Said Juma</h2>
+
+                        <svg class="orn orn-sm" viewBox="0 0 200 14" aria-hidden="true" focusable="false">
+                            <line x1="20" y1="7" x2="86" y2="7" />
+                            <path d="M100 2 L105 7 L100 12 L95 7 Z" />
+                            <line x1="114" y1="7" x2="180" y2="7" />
+                        </svg>
+
+                        <p class="invite-meta">
+                            <span><CalendarDaysIcon class="size-4" aria-hidden="true" />Ijumaa, 14 June · 14:00</span>
+                            <span><MapPinIcon class="size-4" aria-hidden="true" />Dar es Salaam</span>
                         </p>
 
-                        <div class="flex flex-col sm:flex-row gap-3 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-                            <button class="btn-primary px-7 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest" @click="$router.push('/events')">
-                                Start Planning Your Event
-                            </button>
-                            <a href="https://wa.me/255625689904" target="_blank"
-                                class="btn-outline px-7 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2">
-                                <ChatBubbleLeftRightIcon class="size-4" />
-                                Chat With Us
-                            </a>
+                        <div class="invite-figures">
+                            <div class="fig">
+                                <p class="fig-label">Contributions</p>
+                                <p class="figure">2,400,000<span class="unit">TZS</span></p>
+                                <div class="bar"><span style="width:75%"></span></div>
+                                <p class="fine">75% of the 3,200,000 goal</p>
+                            </div>
+                            <div class="fig">
+                                <p class="fig-label">Invitations</p>
+                                <p class="figure">247</p>
+                                <div class="bar"><span style="width:100%"></span></div>
+                                <p class="fine">Delivered over WhatsApp</p>
+                            </div>
                         </div>
 
-                        <!-- Social proof -->
-                        <div class="flex items-center gap-5 animate-in fade-in duration-1000 delay-300">
-                            <div class="flex -space-x-3">
-                                <div v-for="(c, i) in ['#C9A84C','#8E6E2C','#E8C87C','#A07830']" :key="i"
-                                    class="size-9 rounded-full border-2 flex items-center justify-center text-xs font-black"
-                                    :style="`background:${c}18; border-color:#0a0e1c; color:${c};`">
-                                    {{ ['A','F','Z','J'][i] }}
-                                </div>
-                            </div>
-                            <div>
-                                <div class="flex items-center gap-1 mb-0.5">
-                                    <span class="text-[11px] amber-text font-black">★★★★★</span>
-                                </div>
-                                <p class="text-[11px] font-medium" style="color:#8892a4;">
-                                    <span style="color:#e2e8f0; font-weight:800;">500+</span> organizers trust Haflaway
-                                </p>
-                            </div>
+                        <div class="invite-cp">
+                            <p class="fig-label">At the gate</p>
+                            <ul>
+                                <li v-for="cp in checkpoints" :key="cp.name">
+                                    <span>{{ cp.name }}</span>
+                                    <span class="cp-count">{{ cp.scanned }}<i>/{{ cp.total }}</i></span>
+                                </li>
+                            </ul>
                         </div>
                     </div>
-
-                    <!-- ── Right: Phone ── -->
-                    <div class="relative flex justify-center lg:justify-end items-end pb-12 lg:pb-0 mt-8 lg:mt-0">
-
-                        <!-- Amber glow behind phone -->
-                        <div class="absolute inset-0 phone-glow pointer-events-none"></div>
-
-                        <!-- Phone frame -->
-                        <div class="relative z-10 phone-shell" :style="phoneStyle">
-
-                            <!-- Physical buttons -->
-                            <div class="hw-vol-up"></div>
-                            <div class="hw-vol-dn"></div>
-                            <div class="hw-power"></div>
-
-                            <!-- Screen (clips inner scroll) -->
-                            <div class="screen-area">
-
-                                <!-- Status bar -->
-                                <div class="flex items-center justify-between px-5 pt-3 pb-1" style="background:#111114; flex-shrink:0;">
-                                    <span style="font-size:10px; font-weight:700; color:#EEEEF0; letter-spacing:-0.2px;">9:41</span>
-                                    <div class="dynamic-island-abs"></div>
-                                    <div style="display:flex; align-items:center; gap:4px;">
-                                        <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
-                                            <rect x="0"  y="7" width="2.5" height="3"  rx="0.5" fill="#EEEEF0"/>
-                                            <rect x="3.5" y="5" width="2.5" height="5" rx="0.5" fill="#EEEEF0"/>
-                                            <rect x="7"  y="3" width="2.5" height="7"  rx="0.5" fill="#EEEEF0"/>
-                                            <rect x="10.5" y="0" width="2.5" height="10" rx="0.5" fill="#EEEEF0" opacity="0.35"/>
-                                        </svg>
-                                        <svg width="22" height="11" viewBox="0 0 22 11" fill="none">
-                                            <rect x="0.5" y="0.5" width="18" height="10" rx="2.5" stroke="#EEEEF0" stroke-opacity="0.5"/>
-                                            <rect x="2"   y="2"   width="14" height="7" rx="1.5" fill="#C9A84C"/>
-                                            <path d="M19.5 3.5 C20.6 3.5 21.5 4.4 21.5 5.5 C21.5 6.6 20.6 7.5 19.5 7.5 V3.5Z" fill="#EEEEF0" opacity="0.4"/>
-                                        </svg>
-                                    </div>
-                                </div>
-
-                                <!-- Dynamic island pill -->
-                                <div class="dynamic-island-pill"></div>
-
-                                <!-- App content — scrolls with page -->
-                                <div class="app-content-scroll" :style="{ transform: `translateY(${-innerScroll}px)` }">
-
-                                    <!-- ══ Top bar ══ -->
-                                    <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px 6px;">
-                                        <div style="display:flex; align-items:center; gap:5px; padding:5px 10px 5px 8px; background:#1C1C1E; border-radius:16px; border:0.8px solid #2C2C2E;">
-                                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                                            <span style="font-size:10px; font-weight:600; color:#EEEEF0; font-family:system-ui;">Back</span>
-                                        </div>
-                                        <div style="padding:7px; background:#1C1C1E; border-radius:10px; border:0.8px solid #2C2C2E;">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#AEAEB2"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-                                        </div>
-                                    </div>
-
-                                    <!-- ══ Hero block ══ -->
-                                    <div style="padding:10px 14px 16px;">
-                                        <div style="display:inline-flex; align-items:center; gap:5px; padding:4px 9px; background:#2A2210; border-radius:7px; border:0.8px solid rgba(201,168,76,0.35); margin-bottom:13px;">
-                                            <div style="width:5px; height:5px; border-radius:50%; background:#C9A84C;"></div>
-                                            <span style="font-size:8px; font-weight:800; color:#C9A84C; letter-spacing:0.12em; text-transform:uppercase; font-family:system-ui;">LIVE NOW</span>
-                                        </div>
-                                        <div style="font-size:20px; font-weight:800; color:#EEEEF0; letter-spacing:-0.6px; line-height:1.1; margin-bottom:13px; font-family:system-ui;">
-                                            Wedding of<br/>Amina &amp; Said Juma
-                                        </div>
-                                        <div style="padding:10px 12px; background:#1C1C1E; border-radius:13px; border:0.8px solid #2C2C2E;">
-                                            <div style="display:flex; align-items:center; gap:7px;">
-                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                                <span style="font-size:10px; color:#AEAEB2; font-weight:500; font-family:system-ui;">Ijumaa, Jun 14 · 2:00 PM</span>
-                                            </div>
-                                            <div style="height:0.6px; background:#2C2C2E; margin:8px 0;"></div>
-                                            <div style="display:flex; align-items:center; gap:7px;">
-                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                                <span style="font-size:10px; color:#AEAEB2; font-weight:500; font-family:system-ui; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Dar es Salaam, Tanzania</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- ══ Contributions card ══ -->
-                                    <div style="margin:0 14px 10px; padding:16px; background:#1C1C1E; border-radius:18px; border:0.8px solid #2C2C2E; box-shadow:0 6px 24px rgba(201,168,76,0.06);">
-                                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-                                            <div style="display:flex; align-items:center; gap:8px;">
-                                                <div style="padding:6px; background:rgba(201,168,76,0.12); border-radius:8px;">
-                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
-                                                </div>
-                                                <span style="font-size:9px; font-weight:700; color:#8E8E93; letter-spacing:0.11em; text-transform:uppercase; font-family:system-ui;">CONTRIBUTIONS</span>
-                                            </div>
-                                            <div style="padding:3px 9px; background:#2A2210; border-radius:7px; border:0.6px solid rgba(201,168,76,0.3);">
-                                                <span style="font-size:11px; font-weight:800; color:#C9A84C; font-family:system-ui;">75%</span>
-                                            </div>
-                                        </div>
-                                        <div style="font-size:20px; font-weight:800; color:#EEEEF0; letter-spacing:-1px; line-height:1; margin-bottom:14px; font-family:system-ui;">TZS 2,400,000</div>
-                                        <div style="height:5px; background:#3A3A3C; border-radius:4px; margin-bottom:9px; overflow:hidden;">
-                                            <div style="height:100%; width:75%; background:linear-gradient(90deg,rgba(201,168,76,0.65),#C9A84C); border-radius:4px;"></div>
-                                        </div>
-                                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                                            <span style="font-size:9px; color:#8E8E93; font-family:system-ui;">Goal: TZS 3,200,000</span>
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#48484A" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                                        </div>
-                                    </div>
-
-                                    <!-- ══ Mini stat row ══ -->
-                                    <div style="margin:0 14px 10px; display:grid; grid-template-columns:1fr 1fr; gap:9px;">
-                                        <div style="padding:14px; background:#1C1C1E; border-radius:18px; border:0.8px solid #2C2C2E;">
-                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:11px;">
-                                                <span style="font-size:7.5px; font-weight:700; color:#8E8E93; letter-spacing:0.11em; text-transform:uppercase; font-family:system-ui;">INVITATIONS</span>
-                                                <div style="padding:5px; background:rgba(201,168,76,0.12); border-radius:7px;">
-                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
-                                                </div>
-                                            </div>
-                                            <div style="font-size:28px; font-weight:800; color:#EEEEF0; letter-spacing:-1.5px; line-height:1; font-family:system-ui;">247</div>
-                                            <div style="font-size:10px; color:#8E8E93; margin-top:3px; font-family:system-ui;">sent</div>
-                                        </div>
-                                        <div style="padding:14px; background:#1C1C1E; border-radius:18px; border:0.8px solid #2C2C2E;">
-                                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:11px;">
-                                                <span style="font-size:7.5px; font-weight:700; color:#8E8E93; letter-spacing:0.11em; text-transform:uppercase; font-family:system-ui;">ADMINS</span>
-                                                <div style="padding:5px; background:rgba(201,168,76,0.12); border-radius:7px;">
-                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                                </div>
-                                            </div>
-                                            <div style="font-size:28px; font-weight:800; color:#EEEEF0; letter-spacing:-1.5px; line-height:1; font-family:system-ui;">3</div>
-                                            <div style="font-size:10px; color:#8E8E93; margin-top:3px; font-family:system-ui;">active</div>
-                                        </div>
-                                    </div>
-
-                                    <!-- ══ Checkpoints ══ -->
-                                    <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 14px 9px;">
-                                        <div style="display:flex; align-items:center; gap:7px;">
-                                            <div style="width:2.5px; height:12px; background:#C9A84C; border-radius:2px;"></div>
-                                            <span style="font-size:8.5px; font-weight:700; color:#8E8E93; letter-spacing:0.13em; text-transform:uppercase; font-family:system-ui;">SCAN CHECKPOINTS</span>
-                                        </div>
-                                        <div style="padding:3px 8px; background:#2A2210; border-radius:7px; border:0.6px solid rgba(201,168,76,0.3);">
-                                            <span style="font-size:9px; font-weight:700; color:#C9A84C; font-family:system-ui;">Add new</span>
-                                        </div>
-                                    </div>
-                                    <div style="margin:0 14px; display:flex; flex-direction:column; gap:7px;">
-                                        <div v-for="cp in ['Main Entrance','VIP Entrance']" :key="cp"
-                                            style="display:flex; align-items:center; gap:11px; padding:12px 13px; background:#1C1C1E; border-radius:14px; border:0.8px solid #2C2C2E;">
-                                            <div style="padding:7px; background:rgba(201,168,76,0.11); border-radius:9px; flex-shrink:0;">
-                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9v11a1 1 0 0 0 1 1h7V9"/><path d="M21 9H3"/><rect x="9" y="14" width="6" height="8"/><path d="M15 4h-6v5h6V4z"/></svg>
-                                            </div>
-                                            <span style="flex:1; font-size:11.5px; font-weight:500; color:#EEEEF0; font-family:system-ui;">{{ cp }}</span>
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#48484A" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                                        </div>
-                                    </div>
-
-                                    <!-- ══ Event Tools ══ -->
-                                    <div style="display:flex; align-items:center; padding:18px 14px 9px; gap:7px;">
-                                        <div style="width:2.5px; height:12px; background:#C9A84C; border-radius:2px;"></div>
-                                        <span style="font-size:8.5px; font-weight:700; color:#8E8E93; letter-spacing:0.13em; text-transform:uppercase; font-family:system-ui;">EVENT TOOLS</span>
-                                    </div>
-                                    <div style="margin:0 14px 24px; display:grid; grid-template-columns:1fr 1fr; gap:9px;">
-                                        <div v-for="tool in [
-                                            {icon:'people', count:'34', title:'Contacts',       sub:'Send messages'},
-                                            {icon:'wallet', count:'12', title:'Contributions',  sub:'Track payments'},
-                                            {icon:'card',   count:'4',  title:'Card Templates', sub:'Design invitations'},
-                                            {icon:'chat',   count:'6',  title:'SMS Templates',  sub:'Broadcast messages'},
-                                        ]" :key="tool.title"
-                                            style="padding:13px; background:#1C1C1E; border-radius:17px; border:0.8px solid #2C2C2E; position:relative;">
-                                            <div style="position:absolute; top:8px; right:8px; padding:2px 5px; background:#2A2210; border-radius:4px; border:0.6px solid rgba(201,168,76,0.4);">
-                                                <span style="font-size:6px; font-weight:800; color:#C9A84C; text-transform:uppercase; letter-spacing:0.1em; font-family:system-ui;">ACTIVE</span>
-                                            </div>
-                                            <div style="padding:7px; background:rgba(201,168,76,0.13); border-radius:10px; width:fit-content; margin-bottom:20px;">
-                                                <svg v-if="tool.icon==='people'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                                <svg v-if="tool.icon==='wallet'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>
-                                                <svg v-if="tool.icon==='card'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                                                <svg v-if="tool.icon==='chat'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                            </div>
-                                            <div style="font-size:25px; font-weight:800; color:#EEEEF0; letter-spacing:-1px; line-height:1; font-family:system-ui;">{{ tool.count }}</div>
-                                            <div style="font-size:10.5px; font-weight:600; color:#EEEEF0; margin-top:3px; font-family:system-ui;">{{ tool.title }}</div>
-                                            <div style="font-size:9px; color:#8E8E93; font-family:system-ui;">{{ tool.sub }}</div>
-                                        </div>
-                                    </div>
-
-                                </div><!-- end app-content-scroll -->
-                            </div><!-- end screen-area -->
-
-                            <!-- Screen glass shine -->
-                            <div class="screen-shine"></div>
-
-                        </div><!-- end phone-shell -->
-
-                        <!-- ── Floating pills ── -->
-                        <div class="absolute top-8 -right-2 sm:right-0 lg:-right-4 z-30 pill-drift-a" :style="pill1Style">
-                            <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-lg" style="background:#111827; border-color:#1e2d44;">
-                                <span class="text-base leading-none">📲</span>
-                                <div>
-                                    <p style="font-size:9px; font-weight:800; color:#e2e8f0; line-height:1.3;">Sent · 247 guests</p>
-                                    <p style="font-size:8px; color:#8892a4;">WhatsApp ✓✓</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="absolute bottom-24 right-[160px] z-30 pill-drift-b" :style="pill2Style">
-                            <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-lg" style="background:#111827; border-color:#1e2d44;">
-                                <span class="size-2 rounded-full flex-shrink-0" style="background:#C9A84C;"></span>
-                                <div>
-                                    <p style="font-size:9px; font-weight:800; color:#C9A84C; line-height:1.3;">Amina Hassan checked in</p>
-                                    <p style="font-size:8px; color:#8892a4;">Just now · Main Entrance</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="absolute top-1/3 -right-2 sm:right-0 lg:-right-6 z-30 pill-drift-c hidden sm:block" :style="pill3Style">
-                            <div class="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full border shadow-lg" style="background:#111827; border-color:#1e2d44;">
-                                <span class="text-base leading-none">💰</span>
-                                <div>
-                                    <p style="font-size:9px; font-weight:800; font-family:system-ui; line-height:1.3;" class="amber-text">TZS 2.4M</p>
-                                    <p style="font-size:8px; color:#8892a4;">Contributions collected</p>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div><!-- end right col -->
-                </div>
-
-                <div class="mt-16 h-px w-full" style="background:linear-gradient(90deg,transparent,#1e2d44 30%,#1e2d44 70%,transparent);"></div>
+                </aside>
             </section>
 
-            <!-- ╔═══════════════╗ -->
-            <!-- ║  STATS BAND   ║ -->
-            <!-- ╚═══════════════╝ -->
-            <section class="py-16 reveal">
-                <div class="max-w-4xl mx-auto px-3">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-10 text-center">
-                        <div v-for="stat in stats" :key="stat.value" class="space-y-2">
-                            <span class="text-4xl sm:text-5xl font-black amber-text block italic">{{ stat.value }}</span>
-                            <span class="text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap" style="color:#C4BBAE;">{{ stat.label }}</span>
-                        </div>
+            <!-- ── STATS ────────────────────────────────────────────────── -->
+            <section class="shell band">
+                <dl class="stats">
+                    <div v-for="s in stats" :key="s.key" class="stat reveal">
+                        <dd class="figure figure-lg">
+                            <span v-if="s.value">{{ s.value }}</span>
+                            <span v-else class="skel" aria-label="Loading"></span>
+                        </dd>
+                        <dt class="stat-label">{{ s.label }}</dt>
                     </div>
+                </dl>
+            </section>
+
+            <!-- ╔══════════════════════════════════════════════════════════╗ -->
+            <!-- ║  FEATURES                                                ║ -->
+            <!-- ╚══════════════════════════════════════════════════════════╝ -->
+            <section id="features" class="shell sec">
+                <div class="sec-head">
+                    <p class="kicker">What Haflaway carries</p>
+                    <h2 class="h-sec">Everything the day asks of you,<br /><span class="script script-inline">in one place</span></h2>
+                </div>
+
+                <ul class="cards">
+                    <li v-for="(f, i) in features" :key="f.title" class="card reveal" :style="{ '--d': `${i * 60}ms` }">
+                        <span class="card-badge"><component :is="f.icon" class="size-6" aria-hidden="true" /></span>
+                        <h3 class="h-item">{{ f.title }}</h3>
+                        <p class="body">{{ f.desc }}</p>
+                        <ul class="tags">
+                            <li v-for="t in f.tags" :key="t">{{ t }}</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- ╔══════════════════════════════════════════════════════════╗ -->
+            <!-- ║  PROCESS                                                 ║ -->
+            <!-- ╚══════════════════════════════════════════════════════════╝ -->
+            <section id="process" class="shell sec">
+                <div class="sec-head">
+                    <p class="kicker">How it works</p>
+                    <h2 class="h-sec">Five steps,<br /><span class="script script-inline">start to gate</span></h2>
+                </div>
+
+                <ol class="steps">
+                    <li v-for="(s, i) in steps" :key="s.n" class="step reveal" :style="{ '--d': `${i * 60}ms` }">
+                        <span class="step-n">{{ s.n }}</span>
+                        <div class="step-body">
+                            <h3 class="h-item step-title">{{ s.title }}</h3>
+                            <p class="body">{{ s.desc }}</p>
+                        </div>
+                        <component :is="s.icon" class="size-5 step-icon" aria-hidden="true" />
+                    </li>
+                </ol>
+            </section>
+
+            <!-- ╔══════════════════════════════════════════════════════════╗ -->
+            <!-- ║  STORIES                                                 ║ -->
+            <!-- ╚══════════════════════════════════════════════════════════╝ -->
+            <section id="stories" class="shell sec">
+                <div class="sec-head">
+                    <p class="kicker">Stories</p>
+                    <h2 class="h-sec">The people who<br /><span class="script script-inline">ran the day</span></h2>
+                </div>
+
+                <ul class="stories">
+                    <li v-for="(t, i) in stories" :key="t.name">
+                        <figure class="story reveal" :style="{ '--d': `${i * 70}ms` }">
+                            <span class="quote-glyph" aria-hidden="true">&rdquo;</span>
+                            <blockquote><p class="story-text">{{ t.quote }}</p></blockquote>
+                            <figcaption class="story-by">
+                                <span class="avatar" aria-hidden="true">{{ t.name[0] }}</span>
+                                <span>
+                                    <span class="story-name">{{ t.name }}</span>
+                                    <span class="story-role">{{ t.role }}</span>
+                                </span>
+                            </figcaption>
+                        </figure>
+                    </li>
+                </ul>
+
+                <!-- Service providers -->
+                <div class="svc reveal">
+                    <div class="svc-copy">
+                        <span class="card-badge"><RocketLaunchIcon class="size-6" aria-hidden="true" /></span>
+                        <h3 class="h-item">Hands you can trust</h3>
+                        <p class="body">We connect you with MCs, decorators, venues, artists, photographers and
+                            caterers we have already worked with.</p>
+                    </div>
+                    <ul class="svc-grid">
+                        <li v-for="s in services" :key="s.label">
+                            <component :is="s.icon" class="size-5" aria-hidden="true" />
+                            <span>{{ s.label }}</span>
+                        </li>
+                    </ul>
                 </div>
             </section>
 
-            <!-- ╔══════════════════╗ -->
-            <!-- ║  FEATURES GRID   ║ -->
-            <!-- ╚══════════════════╝ -->
-            <section id="features" class="max-w-4xl mx-auto px-3 py-16 border-t" style="border-color:#1e2d44;">
-                <div class="flex items-center gap-3 mb-4 reveal">
-                    <div class="w-0.5 h-3.5 rounded-full" style="background:#C9A84C;"></div>
-                    <span class="text-[11px] font-black uppercase tracking-[0.4em]" style="color:#8892a4;">Our Features</span>
-                </div>
-                <h2 class="text-3xl sm:text-4xl font-black tracking-tighter mb-12 reveal" style="color:#e2e8f0;">
-                    Everything You Need<br /><span class="amber-text">In One Place.</span>
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                    <div class="md:col-span-2 feature-card p-7 reveal">
-                        <div class="icon-badge mb-6"><EnvelopeIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-2xl">Digital Invitations</h3>
-                        <p class="feature-desc max-w-md mb-8">Create beautiful invitation cards with QR codes. Choose a design, pick colors, and send via WhatsApp or SMS in seconds.</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span v-for="tag in ['Invitations','QR Code','Save the Date','Contributions']" :key="tag" class="tag">{{ tag }}</span>
-                        </div>
-                    </div>
-                    <div class="feature-card p-7 reveal">
-                        <div class="icon-badge mb-5"><QrCodeIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-xl">Gate Check-in</h3>
-                        <p class="feature-desc text-sm">Our team or you can scan guest QR codes instantly. No queues. No confusion.</p>
-                    </div>
-                    <div class="feature-card p-7 reveal">
-                        <div class="icon-badge mb-5"><ChatBubbleLeftRightIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-xl">WhatsApp & SMS</h3>
-                        <p class="feature-desc text-sm">Send invitations, reminders, and thank-you notes in bulk. No email required.</p>
-                    </div>
-                    <div class="md:col-span-2 feature-card p-7 reveal">
-                        <div class="icon-badge mb-6"><UsersIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-2xl">Manage Guests</h3>
-                        <p class="feature-desc max-w-sm mb-7 text-sm">Import your list from Excel, CSV, or contacts. Track every guest's status live.</p>
-                        <div class="space-y-2.5">
-                            <div v-for="(g, i) in [
-                                {name:'Amina Hassan',   status:'Confirmed',      dot:'#C9A84C'},
-                                {name:'John Makwela',   status:'Checked In',     dot:'#C9A84C'},
-                                {name:'Fatma Omar',     status:'Pending',        dot:'#C4BBAE'},
-                                {name:'Khalid Juma',    status:'No Response',    dot:'#D8D2C8'},
-                            ]" :key="i" class="flex items-center justify-between px-4 py-3 rounded-2xl border" style="background:#111827; border-color:#1e2d44;">
-                                <div class="flex items-center gap-3">
-                                    <div class="size-8 rounded-full flex items-center justify-center text-[11px] font-black" style="background:#1e2d44; color:#8892a4;">{{ g.name[0] }}</div>
-                                    <span class="text-sm font-medium" style="color:#8892a4;">{{ g.name }}</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="size-1.5 rounded-full" :style="`background:${g.dot};`"></span>
-                                    <span class="text-[10px] font-black uppercase tracking-widest" :style="`color:${g.dot};`">{{ g.status }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="feature-card p-7 reveal">
-                        <div class="icon-badge mb-5"><CurrencyDollarIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-xl">Contributions</h3>
-                        <p class="feature-desc text-sm mb-5">Record pledges and payments in real time — no paperwork needed.</p>
-                        <div class="space-y-3">
-                            <div class="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                                <span style="color:#C4BBAE;">Total Pledged</span>
-                                <span class="amber-text">TZS 4.8M</span>
-                            </div>
-                            <div class="h-1.5 rounded-full overflow-hidden" style="background:#1e2d44;">
-                                <div class="h-full rounded-full" style="width:72%; background:linear-gradient(90deg,#C9A84C,#E8C87C);"></div>
-                            </div>
-                            <div class="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                                <span style="color:#C9A84C;">72% Received</span>
-                                <span style="color:#C4BBAE;">28% Incoming</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="md:col-span-2 feature-card p-7 reveal flex flex-col">
-                        <div class="icon-badge mb-5"><PhotoIcon class="size-6 amber-icon" /></div>
-                        <h3 class="feature-title text-xl">Photo Gallery</h3>
-                        <p class="feature-desc text-sm mb-5">Store photos and videos from your event. Share them with guests effortlessly.</p>
-                        <div class="grid grid-cols-4 gap-2 mt-auto">
-                            <div v-for="(item, i) in [
-                                {bg:'#FFF8EC', opacity:1},
-                                {bg:'#111827', opacity:1},
-                                {bg:'#FFF8EC', opacity:0.7},
-                                {bg:'#111827', opacity:0.9},
-                            ]" :key="i"
-                                class="rounded-xl flex items-center justify-center"
-                                :style="`background:${item.bg}; aspect-ratio:1.8; opacity:${item.opacity};`">
-                                <PhotoIcon class="size-4" style="color:#C9A84C; opacity:0.45;" />
-                            </div>
-                        </div>
-                    </div>
-                    <div class="md:col-span-3 feature-card p-8 sm:p-10 reveal">
-                        <div class="flex flex-col sm:flex-row sm:items-start gap-8">
-                            <div class="flex-1">
-                                <div class="icon-badge mb-6"><RocketLaunchIcon class="size-6 amber-icon" /></div>
-                                <h3 class="feature-title text-2xl sm:text-3xl">Find Top Service Providers</h3>
-                                <p class="feature-desc max-w-xl text-sm">We connect you with MCs, decorators, venues, artists, and carefully vetted service providers.</p>
-                            </div>
-                            <div class="flex-shrink-0 grid grid-cols-3 gap-3">
-                                <div v-for="svc in [{n:'MC',e:'🎤'},{n:'Decor',e:'🌸'},{n:'Venue',e:'🏛️'},{n:'Artists',e:'🎵'},{n:'Photos',e:'📸'},{n:'Catering',e:'🍽️'}]" :key="svc.n"
-                                    class="flex flex-col items-center gap-2 p-4 rounded-2xl border hover:border-[#C9A84C]/40 transition-all cursor-pointer group/svc"
-                                    style="background:#111827; border-color:#1e2d44;">
-                                    <span class="text-2xl">{{ svc.e }}</span>
-                                    <span class="text-[9px] font-black uppercase tracking-widest transition-colors group-hover/svc:text-[#C9A84C]" style="color:#8892a4;">{{ svc.n }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ╔═══════════════╗ -->
-            <!-- ║  HOW IT WORKS ║ -->
-            <!-- ╚═══════════════╝ -->
-            <section id="how" class="max-w-4xl mx-auto px-3 py-16 border-t" style="border-color:#1e2d44;">
-                <div class="flex items-center gap-3 mb-4 reveal">
-                    <div class="w-0.5 h-3.5 rounded-full" style="background:#C9A84C;"></div>
-                    <span class="text-[11px] font-black uppercase tracking-[0.4em]" style="color:#8892a4;">Guide</span>
-                </div>
-                <h2 class="text-3xl sm:text-4xl font-black tracking-tighter mb-12 reveal" style="color:#e2e8f0;">
-                    How It <span class="amber-text">Works.</span>
-                </h2>
-                <div class="relative">
-                    <div class="absolute left-[27px] top-12 bottom-12 w-px hidden sm:block" style="background:linear-gradient(to bottom,rgba(201,168,76,0.4),transparent);"></div>
-                    <div class="space-y-4">
-                        <div v-for="(step, i) in steps" :key="i"
-                            class="relative flex items-start gap-6 feature-card p-8 reveal group" :style="`transition-delay:${i*80}ms`">
-                            <div class="flex-shrink-0 size-[54px] rounded-2xl border flex items-center justify-center text-lg font-black group-hover:scale-110 transition-transform duration-300 z-10"
-                                style="background:#FFF8EC; border-color:rgba(201,168,76,0.35); color:#C9A84C;">{{ i + 1 }}</div>
-                            <div class="flex-1 pt-1">
-                                <h3 class="text-lg font-black mb-2" style="color:#e2e8f0;">{{ step.title }}</h3>
-                                <p class="font-medium leading-relaxed text-sm" style="color:#8892a4;">{{ step.desc }}</p>
-                            </div>
-                            <component :is="step.icon" class="size-5 flex-shrink-0 mt-1.5" style="color:#C4BBAE;" />
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ╔═══════════════╗ -->
-            <!-- ║  FINAL CTA    ║ -->
-            <!-- ╚═══════════════╝ -->
-            <section id="cta" class="max-w-4xl mx-auto px-3 py-16 reveal">
-                <div class="rounded-[28px] sm:rounded-[48px] border p-14 sm:p-24 relative overflow-hidden text-center" style="background:#111827; border-color:#1e2d44; box-shadow:0 8px 48px rgba(201,168,76,0.08), 0 2px 8px rgba(0,0,0,0.04);">
-                    <div class="absolute inset-0 pointer-events-none cta-glow"></div>
-                    <div class="relative z-10">
-                        <div class="icon-badge mx-auto mb-10"><SparklesIcon class="size-8 amber-icon" /></div>
-                        <h2 class="text-3xl sm:text-5xl font-black tracking-tighter mb-6 leading-tight" style="color:#e2e8f0;">
-                            Ready to Transform<br /><span class="amber-text">Your Event?</span>
-                        </h2>
-                        <p class="text-lg font-medium mb-14 max-w-lg mx-auto leading-relaxed" style="color:#8892a4;">
-                            Join thousands of event organizers using Haflaway to make their weddings, sendoffs, and kitchen parties truly unforgettable.
-                        </p>
-                        <div class="flex flex-col sm:flex-row gap-5 justify-center">
-                            <button class="btn-primary px-12 py-5 rounded-2xl text-sm font-black uppercase tracking-widest" @click="$router.push('/events')">Start Free Today</button>
-                            <a href="https://wa.me/255625689904" target="_blank"
-                                class="btn-outline px-12 py-5 rounded-2xl text-sm font-black uppercase tracking-widest flex items-center justify-center gap-3">
-                                <ChatBubbleLeftRightIcon class="size-4" />WhatsApp Now
-                            </a>
-                        </div>
+            <!-- ── CTA ──────────────────────────────────────────────────── -->
+            <section class="shell sec">
+                <div class="cta reveal">
+                    <p class="invite-kicker">Your turn</p>
+                    <h2 class="h-hero cta-title">
+                        Let us carry
+                        <span class="script">the day</span>
+                    </h2>
+                    <svg class="orn orn-sm" viewBox="0 0 200 14" aria-hidden="true" focusable="false">
+                        <line x1="20" y1="7" x2="86" y2="7" />
+                        <path d="M100 2 L105 7 L100 12 L95 7 Z" />
+                        <line x1="114" y1="7" x2="180" y2="7" />
+                    </svg>
+                    <p class="lede">Join the organisers using Haflaway to make their weddings, sendoffs and
+                        kitchen parties worth remembering.</p>
+                    <div class="actions actions-center">
+                        <button class="btn btn-solid btn-lg" @click="$router.push('/events')">
+                            Start free today
+                            <ArrowRightIcon class="size-4" aria-hidden="true" />
+                        </button>
+                        <a href="https://wa.me/255625689904" target="_blank" rel="noopener" class="btn btn-line btn-lg">
+                            <ChatBubbleLeftRightIcon class="size-4" aria-hidden="true" />
+                            WhatsApp us
+                        </a>
                     </div>
                 </div>
             </section>
         </main>
 
         <!-- ░░ FOOTER ░░ -->
-        <footer class="max-w-4xl mx-auto px-3 py-14 border-t" style="border-color:#1e2d44;">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
-                <div class="flex items-center gap-3 cursor-pointer opacity-50 hover:opacity-80 transition-opacity" @click="$router.push('/')">
-                    <div class="size-8 rounded-xl overflow-hidden border" style="border-color:#1e2d44;"><img src="/src/assets/icon-512.png" alt="Logo" class="size-full object-cover" /></div>
-                    <span class="text-sm font-black tracking-tighter uppercase amber-text">Haflaway</span>
+        <footer class="foot">
+            <div class="shell foot-grid">
+                <div class="foot-brand">
+                    <button class="mark" @click="$router.push('/')">
+                        <img src="/src/assets/icon-512.png" alt="" width="30" height="30" />
+                        <span>Haflaway</span>
+                    </button>
+                    <p class="fine">Invitations, guests and contributions,<br />carried from one place.</p>
                 </div>
-                <div class="flex items-center gap-8">
-                    <a href="#" class="footer-link">Privacy</a>
-                    <a href="#" class="footer-link">Terms</a>
-                    <a href="https://wa.me/255625689904" target="_blank" class="footer-link">Support</a>
-                </div>
-                <p class="text-[9px] font-black uppercase tracking-[0.35em]" style="color:#C4BBAE;">© 2026 Haflaway.</p>
+
+                <nav class="foot-col" aria-label="Product">
+                    <p class="foot-head">Product</p>
+                    <a href="#features" @click.prevent="goToSection('#features')">Features</a>
+                    <a href="#process" @click.prevent="goToSection('#process')">How it works</a>
+                    <a @click="$router.push('/pricing')">Pricing</a>
+                </nav>
+
+                <nav class="foot-col" aria-label="Company">
+                    <p class="foot-head">Company</p>
+                    <a href="/privacy">Privacy</a>
+                    <a href="/terms">Terms</a>
+                    <a href="https://wa.me/255625689904" target="_blank" rel="noopener">
+                        Support <ArrowUpRightIcon class="size-3" aria-hidden="true" />
+                    </a>
+                </nav>
+
+                <p class="foot-note">© 2026 Haflaway<br />Dar es Salaam, Tanzania</p>
             </div>
         </footer>
     </div>
 </template>
 
 <style scoped>
-/* ── Orbs ── */
-.orb-hi { background:rgba(201,168,76,0.13); filter:blur(110px); }
-.orb-lo { background:rgba(201,168,76,0.08); filter:blur(90px);  }
+/* ══════════════════════════════════════════════════════════════════════════════
+   BURGUNDY & CHAMPAGNE
+   Ivory stock, deep wine accent, champagne ornament — the evening-wedding
+   register. Symmetric and centred rather than asymmetric: an invitation is a
+   formal object, and the layout borrows that posture.
 
-/* ── Amber text shimmer ── */
-.amber-text {
-    background-image: linear-gradient(90deg,#C9A84C,#E8C87C,#C9A84C);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: amber-slide 5s linear infinite;
+   Scoped to .hf so none of it reaches the ~24 views still reading the
+   gold/navy tokens in style.css.
+
+   Contrast, measured not assumed — on ivory #FAF7F2:
+     ink       #2A1F22 → 14.9:1  (AAA)
+     muted     #6E5D62 →  5.8:1
+     burgundy  #7A2233 →  9.3:1   white on burgundy → 10.0:1
+     gold      #8A6420 →  5.0:1   white on gold      →  7.2:1
+   --champagne #B08A3E is 3.0:1 — ornament and large display only, never body
+   text. Keep it out of anything under 24px.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.hf {
+    --ivory: #FAF7F2;
+    --ivory-2: #F3EDE4;
+    --card: #FFFFFF;
+    --ink: #2A1F22;
+    --muted: #6E5D62;
+    --burgundy: #7A2233;
+    --burgundy-deep: #5E1A27;
+    --gold: #8A6420;
+    --champagne: #B08A3E;
+    --line: #EAE0D4;
+    --line-strong: #DCCDBA;
+
+    --u: 8px;
+    --sec-y: 104px;
+
+    --serif: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+    --script: 'Great Vibes', 'Cormorant Garamond', cursive;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    --shadow: 0 1px 2px rgba(74, 52, 40, .05), 0 8px 28px rgba(74, 52, 40, .07);
+    --shadow-lift: 0 2px 4px rgba(74, 52, 40, .06), 0 16px 44px rgba(74, 52, 40, .12);
+
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background: var(--ivory);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
 }
-@keyframes amber-slide {
-    0%   { background-position:0%   50%; }
-    100% { background-position:200% 50%; }
+@media (min-width: 768px) { .hf { --sec-y: 136px; } }
+
+.hf :focus-visible { outline: 2px solid var(--burgundy); outline-offset: 3px; border-radius: 4px; }
+
+.shell { max-width: 1140px; margin-inline: auto; padding-inline: 20px; }
+@media (min-width: 768px) { .shell { padding-inline: 40px; } }
+
+.skip {
+    position: absolute; left: -9999px; top: var(--u); z-index: 200;
+    padding: 12px 20px; border-radius: 999px;
+    background: var(--burgundy); color: #fff; font-weight: 600;
+}
+.skip:focus { left: 20px; }
+
+/* ── Type ─────────────────────────────────────────────────────────────────── */
+.h-hero {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(2.75rem, 7vw, 5rem);
+    font-weight: 500;
+    letter-spacing: -.015em;
+    line-height: 1.05;
+    text-wrap: balance;
+}
+.h-sec {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(2rem, 4.4vw, 3.125rem);
+    font-weight: 500;
+    letter-spacing: -.01em;
+    line-height: 1.12;
+}
+.h-item {
+    margin: 0 0 calc(var(--u) * 1.5);
+    font-family: var(--serif);
+    font-size: 1.5rem; font-weight: 600; letter-spacing: -.005em; line-height: 1.2;
 }
 
-/* ── Utilities ── */
-.nav-link { font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.2em; color:#8892a4; transition:color .2s; }
-.nav-link:hover { color:#e2e8f0; }
-
-.btn-primary { background:#C9A84C; color:#fff; transition:transform .15s, box-shadow .15s; box-shadow:0 8px 24px rgba(201,168,76,0.3); }
-.btn-primary:hover  { box-shadow:0 12px 36px rgba(201,168,76,0.45); }
-.btn-primary:active { transform:scale(.97); }
-
-.btn-outline { border:1px solid rgba(201,168,76,0.35); color:#C9A84C; transition:background .2s, transform .15s; }
-.btn-outline:hover  { background:#FFF8EC; }
-.btn-outline:active { transform:scale(.97); }
-
-.event-pill { padding:.4rem .9rem; border-radius:100px; border:1px solid rgba(201,168,76,0.25); background:#FFF8EC; color:#C9A84C; font-size:11px; font-weight:800; }
-
-.feature-card  {
-    background:#111827;
-    border:1px solid #1e2d44;
-    border-radius:32px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
-    transition:border-color .3s, box-shadow .3s;
+/* Great Vibes is a script. It appears only at display size, never in UI, never
+   in body copy, and never below 2rem — below that it stops being readable. */
+.script {
+    display: block;
+    font-family: var(--script);
+    font-weight: 400;
+    font-size: 1.32em;
+    line-height: 1.25;
+    letter-spacing: .01em;
+    color: var(--burgundy);
+    /* Script ascenders and descenders overrun the em box — this keeps the
+       flourishes from being clipped by the parent's overflow. */
+    padding: .08em .12em .18em;
+    margin-top: -.06em;
 }
-.feature-card:hover {
-    border-color:rgba(201,168,76,0.35);
-    box-shadow:0 4px 24px rgba(201,168,76,0.10), 0 1px 3px rgba(0,0,0,0.04);
+.script-inline { display: inline-block; font-size: 1.18em; }
+
+.lede {
+    margin: 0 auto calc(var(--u) * 4);
+    font-size: 1.125rem; line-height: 1.7; color: var(--muted);
+    max-width: 52ch;
+}
+.body { margin: 0; font-size: .9688rem; line-height: 1.7; color: var(--muted); }
+.fine { margin: 0; font-size: .8125rem; line-height: 1.6; color: var(--muted); }
+
+.kicker, .invite-kicker, .foot-head {
+    margin: 0 0 calc(var(--u) * 2);
+    font-family: var(--sans);
+    font-size: .75rem; font-weight: 600;
+    letter-spacing: .2em; text-transform: uppercase;
+    color: var(--gold);
 }
 
-.feature-title { font-weight:900; color:#e2e8f0; letter-spacing:-.03em; margin-bottom:.75rem; }
-.feature-desc  { color:#8892a4; line-height:1.65; font-weight:500; }
+.figure {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 2.25rem; font-weight: 600; letter-spacing: -.01em; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+}
+.figure-lg { font-size: clamp(2.75rem, 5.5vw, 4rem); }
+.unit {
+    margin-left: 8px;
+    font-family: var(--sans); font-size: .75rem; font-weight: 600;
+    letter-spacing: .12em; color: var(--gold);
+}
 
-.icon-badge { width:3.5rem; height:3.5rem; background:#FFF8EC; border:1px solid rgba(201,168,76,0.25); border-radius:1rem; display:flex; align-items:center; justify-content:center; transition:transform .3s; }
-.feature-card:hover .icon-badge { transform:scale(1.08); }
-.amber-icon { color:#C9A84C; }
+/* ── Ornament ─────────────────────────────────────────────────────────────── */
+.orn {
+    display: block; width: 100%; max-width: 260px; height: auto;
+    margin: calc(var(--u) * 3) auto;
+    stroke: var(--champagne); stroke-width: 1;
+    fill: var(--champagne);
+}
+.orn line { stroke: var(--champagne); }
+.orn-sm { max-width: 180px; margin-block: calc(var(--u) * 2.5); }
 
-.tag { padding:.35rem .75rem; border-radius:100px; background:#FFF8EC; border:1px solid rgba(201,168,76,0.22); color:#C9A84C; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.1em; }
+/* ── Nav ──────────────────────────────────────────────────────────────────── */
+.nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(250, 247, 242, .9);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+}
+.nav-bar { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 76px; }
 
-.footer-link { font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.15em; color:#C4BBAE; transition:color .2s; }
-.footer-link:hover { color:#8892a4; }
+.mark {
+    display: inline-flex; align-items: center; gap: 11px;
+    padding: 6px; margin-left: -6px;
+    background: none; border: 0; cursor: pointer;
+    font-family: var(--serif); font-size: 1.375rem; font-weight: 600;
+    letter-spacing: .005em; color: var(--ink);
+}
+.mark img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid var(--line-strong); }
 
-.cta-glow { background:radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.08) 0%, transparent 65%); }
+.nav-links { display: none; align-items: center; gap: 4px; }
+@media (min-width: 900px) { .nav-links { display: flex; } }
+.nav-links a {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 0 15px;
+    border-radius: 999px;
+    font-size: .9375rem; font-weight: 500; color: var(--muted);
+    cursor: pointer; transition: color .2s ease, background .2s ease;
+}
+.nav-links a:hover { color: var(--ink); background: var(--ivory-2); }
+.nav-links .is-link { color: var(--burgundy); }
 
-/* ── Phone shell (stays dark — it's the physical hardware) ── */
-.phone-shell {
-    width: 224px;
-    height: 462px;
-    background: #0A0A0C;
-    border-radius: 43px;
-    border: 1.5px solid #3A3A3C;
-    position: relative;
-    box-shadow:
-        0 40px 80px -20px rgba(0,0,0,0.25),
-        0 0 0 1px rgba(255,255,255,0.05) inset,
-        0 1px 0 rgba(255,255,255,0.08) inset;
+.nav-end { display: flex; align-items: center; gap: var(--u); }
+.nav-burger {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 999px;
+    border: 1px solid var(--line-strong); background: transparent; color: var(--ink);
+    cursor: pointer;
+}
+@media (min-width: 900px) { .nav-burger { display: none; } }
+
+.mnav { border-top: 1px solid var(--line); padding: 0 20px 8px; }
+@media (min-width: 900px) { .mnav { display: none !important; } }
+.mnav a {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 56px; border-bottom: 1px solid var(--line);
+    font-size: 1.0625rem; font-weight: 500; color: var(--ink); cursor: pointer;
+}
+.mnav a:last-child { border-bottom: 0; }
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    min-height: 52px; padding: 0 28px;
+    border: 1px solid transparent; border-radius: 999px;
+    font-family: var(--sans); font-size: .9375rem; font-weight: 600; line-height: 1;
+    cursor: pointer; white-space: nowrap;
+    transition: background .2s ease, color .2s ease, border-color .2s ease,
+                box-shadow .25s ease, transform .15s ease;
+}
+.btn:active { transform: scale(.98); }
+
+/* White on burgundy = 10.0:1 */
+.btn-solid { background: var(--burgundy); color: #fff; box-shadow: 0 6px 20px rgba(122, 34, 51, .24); }
+.btn-solid:hover { background: var(--burgundy-deep); box-shadow: 0 10px 30px rgba(122, 34, 51, .32); }
+
+.btn-line { border-color: var(--line-strong); color: var(--ink); background: transparent; }
+.btn-line:hover { border-color: var(--burgundy); color: var(--burgundy); background: var(--card); }
+
+.btn-sm { min-height: 44px; padding: 0 20px; font-size: .875rem; }
+.btn-lg { min-height: 58px; padding: 0 34px; font-size: 1rem; }
+
+.actions { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 480px) { .actions { flex-direction: row; } }
+.actions-center { justify-content: center; }
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+.hero { padding-top: calc(var(--u) * 9); padding-bottom: var(--sec-y); text-align: center; }
+
+.occasions {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+    margin: 0 0 calc(var(--u) * 3);
+    font-size: .8125rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted);
+}
+.occasions i { margin-left: 10px; font-style: normal; color: var(--champagne); }
+
+/* ── Invitation card ──────────────────────────────────────────────────────── */
+.invite {
+    max-width: 620px;
+    margin: calc(var(--u) * 8) auto 0;
+    padding: 6px;
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    background: var(--card);
+    box-shadow: var(--shadow-lift);
+    text-align: left;
+}
+/* The inner hairline gives the double-rule of an engraved card */
+.invite-inner {
+    padding: calc(var(--u) * 5) calc(var(--u) * 3);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+}
+@media (min-width: 640px) { .invite-inner { padding: calc(var(--u) * 6) calc(var(--u) * 5); } }
+
+.invite-kicker { text-align: center; }
+.invite-title {
+    margin: 0; text-align: center;
+    font-family: var(--serif);
+    font-size: clamp(1.875rem, 4.5vw, 2.625rem);
+    font-weight: 500; letter-spacing: -.005em; line-height: 1.15;
+}
+.invite-title .amp { font-family: var(--script); font-size: 1.15em; color: var(--burgundy); padding-inline: 2px; }
+
+.invite-meta {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px;
+    margin: 0 0 calc(var(--u) * 5);
+    font-size: .875rem; color: var(--muted);
+}
+.invite-meta span { display: inline-flex; align-items: center; gap: 7px; }
+.invite-meta svg { color: var(--champagne); }
+
+.invite-figures {
+    display: grid; grid-template-columns: 1fr; gap: calc(var(--u) * 4);
+    padding-block: calc(var(--u) * 4);
+    border-block: 1px solid var(--line);
+}
+@media (min-width: 560px) { .invite-figures { grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 5); } }
+.fig { display: flex; flex-direction: column; gap: 10px; }
+.fig-label {
+    margin: 0;
+    font-size: .75rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--muted);
+}
+.bar { height: 3px; border-radius: 999px; background: var(--ivory-2); overflow: hidden; }
+.bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--burgundy), var(--champagne)); }
+
+.invite-cp { padding-top: calc(var(--u) * 4); }
+.invite-cp ul { list-style: none; margin: calc(var(--u) * 1.5) 0 0; padding: 0; }
+.invite-cp li {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: calc(var(--u) * 1.5) 0;
+    border-bottom: 1px solid var(--line);
+    font-size: .9375rem;
+}
+.invite-cp li:last-child { border-bottom: 0; padding-bottom: 0; }
+.cp-count { font-variant-numeric: tabular-nums; font-weight: 600; }
+.cp-count i { font-style: normal; font-weight: 400; color: var(--muted); }
+
+/* ── Stats ────────────────────────────────────────────────────────────────── */
+.band { padding-block: var(--sec-y); border-top: 1px solid var(--line); }
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: calc(var(--u) * 6) calc(var(--u) * 3); margin: 0; }
+@media (min-width: 768px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+.stat { text-align: center; }
+.stat-label {
+    margin-top: 10px;
+    font-size: .75rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted);
+}
+.skel {
+    display: inline-block; width: 4ch; height: .7em; border-radius: 999px;
+    background: linear-gradient(90deg, var(--ivory-2) 25%, #E8DCCB 50%, var(--ivory-2) 75%);
+    background-size: 200% 100%;
+    animation: skel 1.4s linear infinite;
+}
+@keyframes skel { to { background-position: -200% 0; } }
+
+/* ── Sections ─────────────────────────────────────────────────────────────── */
+.sec { padding-block: var(--sec-y); border-top: 1px solid var(--line); }
+.sec-head { max-width: 40ch; margin: 0 auto calc(var(--u) * 8); text-align: center; }
+
+/* ── Feature cards ────────────────────────────────────────────────────────── */
+.cards {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: 1fr; gap: calc(var(--u) * 3);
+}
+@media (min-width: 640px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+
+.card {
+    display: flex; flex-direction: column;
+    padding: calc(var(--u) * 4);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    transition: box-shadow .3s ease, transform .3s ease, border-color .3s ease;
+}
+.card:hover { box-shadow: var(--shadow-lift); transform: translateY(-3px); border-color: var(--line-strong); }
+
+.card-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 54px; height: 54px; margin-bottom: calc(var(--u) * 3);
+    border-radius: 50%;
+    background: var(--ivory); border: 1px solid var(--line);
+    color: var(--burgundy);
+}
+
+.tags { list-style: none; margin: calc(var(--u) * 3) 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.tags li {
+    padding: 5px 12px; border-radius: 999px;
+    background: var(--ivory); border: 1px solid var(--line);
+    font-size: .75rem; font-weight: 600; letter-spacing: .05em; color: var(--gold);
+}
+
+/* ── Steps ────────────────────────────────────────────────────────────────── */
+.steps { list-style: none; margin: 0 auto; padding: 0; max-width: 780px; }
+.step {
+    display: flex; align-items: flex-start; gap: calc(var(--u) * 3);
+    padding: calc(var(--u) * 3.5) 0;
+    border-bottom: 1px solid var(--line);
+}
+.step:first-child { border-top: 1px solid var(--line); }
+.step-n {
     flex-shrink: 0;
-    overflow: visible;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--card); border: 1px solid var(--line-strong);
+    font-family: var(--serif); font-size: 1.0625rem; font-weight: 600; letter-spacing: .04em;
+    color: var(--burgundy);
 }
+.step-body { flex: 1; }
+.step-title { font-size: 1.25rem; margin-bottom: 6px; }
+.step-icon { flex-shrink: 0; margin-top: 14px; color: var(--champagne); }
+@media (max-width: 639px) { .step-icon { display: none; } }
 
-.hw-vol-up, .hw-vol-dn, .hw-power { position:absolute; background:#2C2C2E; border-radius:2px 0 0 2px; z-index:5; }
-.hw-vol-up { left:-4px; top:99px; width:4px; height:23px; }
-.hw-vol-dn { left:-4px; top:130px; width:4px; height:23px; }
-.hw-power  { right:-4px; top:115px; width:4px; height:36px; border-radius:0 2px 2px 0; }
-
-.screen-area {
-    position: absolute;
-    inset: 3px;
-    border-radius: 40px;
-    background: #111114;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+/* ── Stories ──────────────────────────────────────────────────────────────── */
+.stories {
+    list-style: none; margin: 0 0 calc(var(--u) * 10); padding: 0;
+    display: grid; grid-template-columns: 1fr; gap: calc(var(--u) * 3);
 }
+@media (min-width: 900px) { .stories { grid-template-columns: repeat(3, 1fr); } }
 
-.dynamic-island-abs {
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 65px;
-    height: 22px;
-    background: #0A0A0C;
-    border-radius: 100px;
-    z-index: 10;
+.story {
+    position: relative; height: 100%; margin: 0;
+    display: flex; flex-direction: column; justify-content: space-between; gap: calc(var(--u) * 4);
+    padding: calc(var(--u) * 4);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    box-shadow: var(--shadow);
 }
-
-.dynamic-island-pill {
-    width: 65px;
-    height: 22px;
-    background: #0A0A0C;
-    border-radius: 100px;
-    margin: -16px auto 4px;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 10;
+.quote-glyph {
+    position: absolute; top: 10px; right: 22px;
+    font-family: var(--serif); font-size: 4.5rem; line-height: 1;
+    color: var(--line-strong);
 }
-
-.app-content-scroll {
-    flex: 1;
-    overflow: hidden;
-    transition: transform 0.05s linear;
-    will-change: transform;
+.story blockquote { position: relative; margin: 0; }
+.story-text {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 1.3125rem; font-weight: 400; line-height: 1.45;
+    color: var(--ink); text-wrap: pretty;
 }
-
-.screen-shine {
-    position: absolute;
-    inset: 4px;
-    border-radius: 48px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 45%);
-    pointer-events: none;
-    z-index: 20;
+.story-by { display: flex; align-items: center; gap: 12px; }
+.avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%;
+    background: var(--ivory); border: 1px solid var(--line);
+    font-family: var(--serif); font-size: 1.125rem; font-weight: 600; color: var(--burgundy);
 }
+.story-name { display: block; font-size: .9375rem; font-weight: 600; }
+.story-role { display: block; font-size: .75rem; letter-spacing: .06em; color: var(--muted); }
 
-.phone-glow {
-    background: radial-gradient(ellipse at center, rgba(201,168,76,0.10) 0%, transparent 65%);
-    filter: blur(20px);
-    z-index: 0;
+/* ── Service providers ────────────────────────────────────────────────────── */
+.svc {
+    display: grid; grid-template-columns: 1fr; gap: calc(var(--u) * 5); align-items: center;
+    padding: calc(var(--u) * 5);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--card);
+    box-shadow: var(--shadow);
 }
+@media (min-width: 900px) { .svc { grid-template-columns: 5fr 7fr; gap: calc(var(--u) * 7); } }
 
-/* ── Floating pill animations ── */
-.pill-drift-a { animation: pill-a 5s ease-in-out infinite; }
-.pill-drift-b { animation: pill-b 6s ease-in-out infinite; }
-.pill-drift-c { animation: pill-c 7s ease-in-out infinite; }
+.svc-grid {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+}
+@media (min-width: 560px) { .svc-grid { grid-template-columns: repeat(3, 1fr); } }
+.svc-grid li {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: calc(var(--u) * 2.5) 12px;
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--ivory);
+    font-size: .8125rem; font-weight: 600; text-align: center;
+    transition: border-color .2s ease, background .2s ease;
+}
+.svc-grid li:hover { border-color: var(--line-strong); background: var(--ivory-2); }
+.svc-grid svg { color: var(--champagne); }
 
-@keyframes pill-a { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
-@keyframes pill-b { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-9px)} }
-@keyframes pill-c { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+/* ── CTA ──────────────────────────────────────────────────────────────────── */
+.cta {
+    max-width: 760px; margin-inline: auto;
+    padding: calc(var(--u) * 8) calc(var(--u) * 3);
+    border: 1px solid var(--line-strong);
+    border-radius: 24px;
+    background: var(--card);
+    box-shadow: var(--shadow-lift);
+    text-align: center;
+}
+@media (min-width: 768px) { .cta { padding: calc(var(--u) * 11) calc(var(--u) * 8); } }
+.cta-title { margin-bottom: 0; }
 
-/* ── Scroll reveal ── */
-.reveal { opacity:0; transform:translateY(28px); transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1); }
-.reveal.is-visible { opacity:1; transform:translateY(0); }
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+.foot { padding-block: calc(var(--u) * 8); border-top: 1px solid var(--line); }
+.foot-grid {
+    display: grid; grid-template-columns: 1fr; gap: calc(var(--u) * 5);
+}
+@media (min-width: 768px) { .foot-grid { grid-template-columns: 2fr 1fr 1fr 1.4fr; gap: calc(var(--u) * 4); } }
+.foot-brand .fine { margin-top: 12px; }
+.foot-col { display: flex; flex-direction: column; }
+.foot-col a {
+    display: inline-flex; align-items: center; gap: 4px;
+    min-height: 40px;
+    font-size: .9375rem; color: var(--muted); cursor: pointer;
+    transition: color .2s ease;
+}
+.foot-col a:hover { color: var(--burgundy); }
+.foot-note { margin: 0; font-size: .8125rem; line-height: 1.7; color: var(--muted); }
+@media (min-width: 768px) { .foot-note { text-align: right; } }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MOTION — a soft settle, nothing more. No parallax: it is decorative, and the
+   DB flags scroll-driven effects as a High-severity motion-sensitivity issue.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity .7s cubic-bezier(.16, 1, .3, 1), transform .7s cubic-bezier(.16, 1, .3, 1);
+    transition-delay: var(--d, 0ms);
+}
+.reveal.is-visible { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .hf *, .hf *::before, .hf *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+    }
+    .reveal { opacity: 1 !important; transform: none !important; }
+}
 </style>
