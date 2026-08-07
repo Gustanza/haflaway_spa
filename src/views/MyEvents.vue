@@ -715,9 +715,6 @@
             :key="event.id"
             class="me-row"
             :class="`me-row--${statusClass(event)}`"
-            :style="{
-              background: `linear-gradient(105deg, ${thumbColors(event).bg.replace(/,[\d.]+\)$/, ',0.22)')} 0px, ${thumbColors(event).bg.replace(/,[\d.]+\)$/, ',0.08)')} 118px, rgba(20,20,24,0) 380px)`,
-            }"
             @click="goToEvent(event.id)"
           >
             <!-- Frosted-glass sheen, no photo backdrop -->
@@ -1447,7 +1444,21 @@ watch(
   { immediate: true },
 );
 
+// This page has its own always-on Bento Glow theme (.me-root's own tokens,
+// below) rather than following the app-wide dark/light toggle — style.css
+// has a separate, older `[data-theme="light"] .me-root { ... !important }`
+// set of overrides for the other admin views' generic light mode, which
+// would otherwise fight these tokens if the user had ever toggled to light
+// elsewhere in the app. Forcing data-theme away from "light" while mounted
+// keeps those !important rules from ever matching; nothing under
+// [data-theme="dark"] touches .me-root, so this page's own tokens win either
+// way. Restored on unmount so the toggle still works normally on other pages.
+let previousDataTheme = null;
+
 onMounted(() => {
+  previousDataTheme = document.documentElement.getAttribute("data-theme");
+  document.documentElement.setAttribute("data-theme", "dark");
+
   // Filter first: setting it resets currentPage to 1 (see the watcher above),
   // so the page query has to be applied after or it'd get clobbered back to 1.
   const qFilter = route.query.filter;
@@ -1461,50 +1472,58 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (previousDataTheme === null) {
+    document.documentElement.removeAttribute("data-theme");
+  } else {
+    document.documentElement.setAttribute("data-theme", previousDataTheme);
+  }
   document.removeEventListener("click", onClickOutside);
   document.removeEventListener("click", onClickOutsideBalance);
 });
 </script>
 
 <style scoped>
-/* ── Tokens & Glassmorphic Primitives ── */
+/* ── Tokens — Bento Glow (matches the "/" landing page: cloud-white surfaces,
+   solid shadow-based depth, one rose-gold accent). Scoped to .me-root, so
+   this doesn't touch the shared dark tokens the other ~23 admin views read
+   from style.css. Structural glass effects (backdrop-filter, translucent
+   layered gradients, dark-tuned inset highlights) are stripped rule-by-rule
+   below in favor of solid surfaces + soft shadows — glass depth and
+   shadow depth are different instincts, and Bento Glow is the latter. ── */
 .me-root {
-  --ink: #f0f0ec;
-  --ink-soft: #d8d4cd;
-  --ink-muted: #8a8a8e;
-  --ink-dim: #636366;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-soft: rgba(255, 255, 255, 0.04);
-  --line-strong: rgba(255, 255, 255, 0.16);
-  --paper-soft: rgba(20, 20, 25, 0.35);
-  --emerald: #30d158;
-  --emerald-soft: rgba(48, 209, 88, 0.12);
+  --ink: #1d1d1f;
+  --ink-soft: #374151;
+  --ink-muted: #6e6e73;
+  --ink-dim: #9ca3af;
+  --line: #e5e5e7;
+  --line-soft: #f1f1f3;
+  --line-strong: #d4d4d8;
+  --paper-soft: rgba(255, 255, 255, 0.6);
+  --emerald: #16a34a;
+  --emerald-soft: rgba(22, 163, 74, 0.12);
+  --accent: #a8574b;
+  --accent-deep: #8b4239;
+  --accent-soft: #e8b9ae;
+  --shadow: 0 1px 2px rgba(20, 20, 25, 0.04), 0 8px 24px rgba(20, 20, 25, 0.06);
+  --shadow-lift: 0 2px 6px rgba(20, 20, 25, 0.06), 0 20px 48px rgba(20, 20, 25, 0.1);
 
-  /* ── Layout tokens (overridden by global light-theme CSS; org can override the
-     surface color itself via --org-*-bg, set in useOrg.js's watchEffect) ── */
-  --me-topbar-bg: var(--org-topbar-bg, rgba(14, 14, 18, 0.28));
-  --me-controls-bg: rgba(18, 18, 22, 0.35);
-  --me-card-bg: rgba(22, 22, 28, 0.38);
-  /* Overlay panels are near-opaque on purpose. Menus and modals are read-and-act
-     surfaces — anything showing through them is competing with the thing the
-     user opened them to do. The glass treatment stays in the sheen, hairline and
-     insets; it just doesn't come out of the body's alpha. */
-  --me-dropdown-bg: rgba(17, 17, 23, 0.985);
-  --me-page-bg: var(--org-page-bg, #040308);
+  /* ── Layout tokens (org can override the surface color itself via
+     --org-*-bg, set in useOrg.js's watchEffect) ── */
+  --me-topbar-bg: var(--org-topbar-bg, #ffffff);
+  --me-controls-bg: #ffffff;
+  --me-card-bg: #ffffff;
+  --me-dropdown-bg: #ffffff;
+  --me-page-bg: var(--org-page-bg, #fafafa);
 
   min-height: 100vh;
   /* flow-root establishes a BFC so the topbar's 32px top margin is contained
-     here instead of collapsing through the root and exposing the flat dark
-     body background as a band at the very top edge. */
+     here instead of collapsing through the root and exposing the flat page
+     background as a band at the very top edge. */
   display: flow-root;
   background-color: var(--me-page-bg);
   position: relative;
 
-  /* Apple system font (San Francisco) on Apple devices; Inter — the SF-like
-     substitute — everywhere else (SF can't be bundled for licensing reasons). */
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter",
-    "Segoe UI", sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--ink);
   transition:
     background 300ms ease,
@@ -1531,36 +1550,15 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   border-radius: 28px;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.08) 0%,
-      rgba(255, 255, 255, 0.02) 100%
-    ),
-    var(--me-topbar-bg);
-  backdrop-filter: blur(36px) saturate(190%);
-  -webkit-backdrop-filter: blur(36px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    0 20px 48px -12px rgba(0, 0, 0, 0.4);
+  background: var(--me-topbar-bg);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
   transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .me-topbar-inner:hover {
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.11) 0%,
-      rgba(255, 255, 255, 0.03) 100%
-    ),
-    var(--me-topbar-bg);
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
-    0 12px 40px rgba(0, 0, 0, 0.45);
+  background: var(--me-topbar-bg);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lift);
 }
 /* The brand is the element that yields when the topbar runs out of room: it
    truncates first (org names are arbitrary length), then drops out entirely at
@@ -1580,9 +1578,9 @@ onUnmounted(() => {
   object-fit: cover;
 }
 .me-brand-name {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
   font-size: 20px;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--org-topbar-text, var(--ink));
   letter-spacing: -0.1px;
   white-space: nowrap;
@@ -1620,28 +1618,21 @@ onUnmounted(() => {
   font-weight: 700;
   padding: 6px 12px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--me-page-bg);
   color: var(--ink-soft);
   letter-spacing: 0.1px;
   white-space: nowrap;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--line);
   cursor: pointer;
   font-family: inherit;
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .me-balance-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--me-card-bg);
   color: var(--ink);
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--line-strong);
   transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 4px 12px rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow);
 }
 .me-balance-pill:active {
   transform: translateY(0);
@@ -1660,26 +1651,10 @@ onUnmounted(() => {
   right: 0;
   width: 260px;
   max-width: calc(100vw - 32px);
-  /* The sheen gradient rides on an opaque body (--me-dropdown-bg), so the panel
-     still reads as glass without the page bleeding through it. Light theme swaps
-     the token to #ffffff. */
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.07) 0%,
-      rgba(255, 255, 255, 0.01) 60%,
-      rgba(255, 255, 255, 0.03) 100%
-    ),
-    var(--me-dropdown-bg);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--me-dropdown-bg);
+  border: 1px solid var(--line);
   border-radius: 16px;
-  box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.2),
-    0 24px 64px rgba(0, 0, 0, 0.62),
-    0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lift);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -1697,27 +1672,24 @@ onUnmounted(() => {
   font-size: 13px;
   font-weight: 700;
   color: var(--ink);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 .me-tu-balance {
   font-size: 13px;
   font-weight: 700;
-  color: var(--gold);
+  color: var(--accent);
   white-space: nowrap;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 .me-tu-label {
   font-size: 11px;
   font-weight: 600;
   color: var(--ink-soft);
   margin-top: 4px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .me-tu-input {
   padding: 8px 10px;
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  background: var(--me-page-bg);
   color: var(--ink);
   font-size: 12.5px;
   font-family: inherit;
@@ -1731,8 +1703,8 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 .me-tu-input:focus {
-  border-color: rgba(201, 168, 76, 0.5);
-  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--accent);
+  background: var(--me-card-bg);
 }
 .me-tu-phone-row {
   display: flex;
@@ -1742,9 +1714,9 @@ onUnmounted(() => {
 .me-tu-phone-prefix {
   flex-shrink: 0;
   padding: 8px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--line);
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--me-page-bg);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-soft);
@@ -1755,8 +1727,8 @@ onUnmounted(() => {
 }
 .me-tu-submit {
   margin-top: 4px;
-  background: var(--gold);
-  color: var(--gold-contrast);
+  background: var(--accent);
+  color: #fff;
   border: none;
   border-radius: 9px;
   padding: 9px 12px;
@@ -1765,10 +1737,10 @@ onUnmounted(() => {
   cursor: pointer;
   font-family: inherit;
   transition: all 150ms ease;
-  box-shadow: 0 2px 6px rgba(201, 168, 76, 0.3);
+  box-shadow: 0 4px 14px rgba(139, 66, 57, 0.28);
 }
 .me-tu-submit:hover:not(:disabled) {
-  background: #d4b560;
+  background: var(--accent-deep);
   transform: translateY(-0.5px);
 }
 .me-tu-submit:active:not(:disabled) {
@@ -1779,8 +1751,8 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 .me-tu-check {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--me-page-bg);
+  border: 1px solid var(--line);
   color: var(--ink);
   border-radius: 9px;
   padding: 8px 12px;
@@ -1791,8 +1763,8 @@ onUnmounted(() => {
   transition: all 150ms ease;
 }
 .me-tu-check:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--me-card-bg);
+  border-color: var(--line-strong);
 }
 .me-tu-hint {
   font-size: 11px;
@@ -1807,17 +1779,17 @@ onUnmounted(() => {
   line-height: 1.4;
 }
 .me-tu-status--ok {
-  color: #34d399;
+  color: var(--emerald);
 }
 .me-tu-status--err {
-  color: #ff453a;
+  color: #dc2626;
 }
 .me-tu-status--warn {
-  color: #eab308;
+  color: #d97706;
 }
 .me-tu-error {
   font-size: 11.5px;
-  color: #ff453a;
+  color: #dc2626;
   margin: 0;
 }
 
@@ -1831,13 +1803,8 @@ onUnmounted(() => {
   gap: 7px;
   padding: 6px 12px 6px 14px;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--line);
+  background: var(--me-page-bg);
   font-size: 12.5px;
   font-weight: 500;
   color: var(--ink-soft);
@@ -1846,13 +1813,11 @@ onUnmounted(() => {
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .me-admin-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--me-card-bg);
   color: var(--ink);
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--line-strong);
   transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 4px 12px rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow);
 }
 .me-admin-pill:active {
   transform: translateY(0);
@@ -1879,23 +1844,10 @@ onUnmounted(() => {
   top: calc(100% + 8px);
   right: 0;
   min-width: 210px;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.07) 0%,
-      rgba(255, 255, 255, 0.01) 60%,
-      rgba(255, 255, 255, 0.03) 100%
-    ),
-    var(--me-dropdown-bg);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--me-dropdown-bg);
+  border: 1px solid var(--line);
   border-radius: 16px;
-  box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.2),
-    0 24px 64px rgba(0, 0, 0, 0.62),
-    0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lift);
   overflow: hidden;
   z-index: 200;
   transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -1922,7 +1874,6 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .me-dropdown-email {
   font-size: 11.5px;
@@ -1933,7 +1884,7 @@ onUnmounted(() => {
 }
 .me-dropdown-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--line);
 }
 .me-dropdown-item {
   display: flex;
@@ -1954,12 +1905,12 @@ onUnmounted(() => {
     color 120ms;
 }
 .me-dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--me-page-bg);
   color: var(--ink);
 }
 .me-dropdown-item--signout:hover {
-  background: rgba(255, 69, 58, 0.1);
-  color: #ff453a;
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
 }
 .me-admin-dot {
   width: 7px;
@@ -1973,12 +1924,12 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  background: rgb(from var(--gold) r g b / 0.1);
-  border: 1px solid rgb(from var(--gold) r g b / 0.25);
+  background: var(--accent-soft);
+  border: 1px solid rgb(from var(--accent) r g b / 0.3);
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
-  color: #9a7218;
+  color: var(--accent-deep);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1988,8 +1939,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 7px;
   position: relative;
-  background: var(--gold);
-  color: var(--gold-contrast);
+  background: var(--accent);
+  color: #fff;
   border: none;
   padding: 8px 18px;
   border-radius: 12px;
@@ -2015,7 +1966,7 @@ onUnmounted(() => {
 }
 .me-create-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(var(--gold-rgb), 0.45);
+  box-shadow: 0 0 0 3px rgb(from var(--accent) r g b / 0.4);
 }
 .me-create-btn--lg {
   padding: 10px 24px;
@@ -2040,7 +1991,7 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 32px;
   padding-bottom: 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid var(--line);
 }
 .me-header-copy {
   display: flex;
@@ -2048,9 +1999,9 @@ onUnmounted(() => {
   gap: 5px;
 }
 .me-greeting {
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 40px;
-  font-weight: 400;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+  font-size: 32px;
+  font-weight: 700;
   letter-spacing: -0.5px;
   color: var(--ink);
   line-height: 1;
@@ -2058,10 +2009,9 @@ onUnmounted(() => {
 }
 .me-header-sub {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--ink-muted);
   margin: 0;
   font-weight: 400;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 .me-header-sub--loading {
   color: var(--ink-dim);
@@ -2083,20 +2033,19 @@ onUnmounted(() => {
 .me-hstat-div {
   width: 1px;
   height: 28px;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--line);
   flex-shrink: 0;
 }
 .me-hstat-val {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
   font-size: 28px;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--ink);
   line-height: 1;
   letter-spacing: -0.2px;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
 }
 .me-hstat-val--gold {
-  color: var(--gold);
+  color: var(--accent);
 }
 .me-hstat-val--green {
   color: var(--emerald);
@@ -2106,8 +2055,7 @@ onUnmounted(() => {
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  color: var(--ink-muted);
 }
 
 /* ── Controls bar ── */
@@ -2116,21 +2064,11 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.05) 0%,
-      rgba(255, 255, 255, 0.01) 100%
-    ),
-    rgba(18, 18, 22, 0.35);
-  backdrop-filter: blur(32px) saturate(190%);
-  -webkit-backdrop-filter: blur(32px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--me-controls-bg);
+  border: 1px solid var(--line);
   border-radius: 14px;
   padding: 6px 6px 6px 12px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow);
   transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .me-tabs {
@@ -2148,45 +2086,36 @@ onUnmounted(() => {
   background: transparent;
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--ink-muted);
   cursor: pointer;
   font-family: inherit;
   transition: all 180ms ease;
   white-space: nowrap;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 .me-tab:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
+  background: var(--me-page-bg);
+  color: var(--ink);
   transform: translateY(-0.5px);
 }
 .me-tab--active {
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.12) 0%,
-      rgba(255, 255, 255, 0.03) 100%
-    ),
-    rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 2px 8px rgba(0, 0, 0, 0.2);
-  color: #fff;
+  background: var(--me-page-bg);
+  border-color: var(--line);
+  box-shadow: none;
+  color: var(--ink);
   font-weight: 600;
 }
 .me-tab-count {
   font-size: 10.5px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.5);
+  background: var(--me-page-bg);
+  color: var(--ink-muted);
   padding: 1px 6px;
   border-radius: 6px;
   transition: all 150ms ease;
 }
 .me-tab-count--active {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.95);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
 }
 .me-controls-right {
   display: flex;
@@ -2223,13 +2152,13 @@ onUnmounted(() => {
   width: fit-content;
 }
 .me-eyebrow-sparkle {
-  color: var(--gold);
+  color: var(--accent);
   font-size: 11px;
 }
 .me-headline {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
   font-size: 64px;
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: -0.7px;
   color: var(--ink);
   margin: 0;
@@ -2255,9 +2184,9 @@ onUnmounted(() => {
   padding: 0 28px;
 }
 .me-stat-value {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
   font-size: 38px;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--ink);
   line-height: 1;
   letter-spacing: -0.5px;
@@ -2287,11 +2216,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: #141414;
-  border: 1px solid var(--line-strong);
+  background: var(--me-controls-bg);
+  border: 1px solid var(--line);
   border-radius: 14px;
   padding: 10px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow);
   flex-wrap: wrap;
 }
 .me-search-wrap {
@@ -2304,7 +2233,7 @@ onUnmounted(() => {
 .me-search-icon-svg {
   position: absolute;
   left: 11px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--ink-muted);
   pointer-events: none;
   flex-shrink: 0;
 }
@@ -2319,7 +2248,7 @@ onUnmounted(() => {
   font-family: inherit;
 }
 .me-search-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ink-dim);
 }
 .me-search-clear {
   position: absolute;
@@ -2339,7 +2268,7 @@ onUnmounted(() => {
 .me-fb-divider {
   width: 1px;
   height: 28px;
-  background: var(--line-strong);
+  background: var(--line);
   flex-shrink: 0;
 }
 
@@ -2366,50 +2295,46 @@ onUnmounted(() => {
     color 130ms;
 }
 .me-status-chip:hover {
-  background: var(--paper-soft);
+  background: var(--me-page-bg);
   color: var(--ink);
 }
 .me-status-chip--active {
-  background: rgba(226, 232, 240, 0.12);
-  border: 1px solid rgba(226, 232, 240, 0.16);
-  color: #e2e8f0;
+  background: var(--me-page-bg);
+  border: 1px solid var(--line);
+  color: var(--ink);
 }
 .me-chip-count {
   font-size: 10.5px;
   font-weight: 600;
-  background: var(--paper-soft);
+  background: var(--me-page-bg);
   color: var(--ink-dim);
   padding: 1px 6px;
   border-radius: 8px;
 }
 .me-chip-count--active {
-  background: rgba(226, 232, 240, 0.1);
-  color: rgba(226, 232, 240, 0.7);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
 }
 .me-fb-select {
   padding: 6px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--me-page-bg);
   font-size: 12.5px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--ink-soft);
   font-family: inherit;
   outline: none;
   cursor: pointer;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   transition: all 180ms ease;
 }
 .me-fb-select option {
   color: #1a1a1a;
-  text-shadow: none;
   background: #ffffff;
 }
 .me-fb-select:focus {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--accent);
+  background: var(--me-card-bg);
 }
 
 /* ── Loading skeletons ── */
@@ -2422,7 +2347,7 @@ onUnmounted(() => {
 .me-skeleton {
   height: 160px;
   border-radius: 16px;
-  background: linear-gradient(90deg, #141414 25%, #1e1e1e 50%, #141414 75%);
+  background: linear-gradient(90deg, var(--me-page-bg) 25%, var(--line) 50%, var(--me-page-bg) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -2447,11 +2372,12 @@ onUnmounted(() => {
 }
 .me-empty-glyph {
   font-size: 32px;
-  color: var(--gold);
+  color: var(--accent);
   opacity: 0.6;
 }
 .me-empty-title {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+  font-weight: 700;
   font-size: 22px;
   color: var(--ink);
   margin: 0;
@@ -2469,13 +2395,7 @@ onUnmounted(() => {
   border-radius: 20px;
   letter-spacing: 0.1px;
   white-space: nowrap;
-  /* Frosted glass so pills read as one material over the photo backdrop
-     instead of flat dark chips. */
-  backdrop-filter: blur(10px) saturate(160%);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  border: 1px solid transparent;
 }
 .me-status-dot {
   width: 5px;
@@ -2484,27 +2404,28 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .me-status-pill--upcoming {
-  background: rgba(255, 255, 255, 0.13);
-  color: rgba(255, 255, 255, 0.92);
+  background: var(--me-page-bg);
+  border-color: var(--line);
+  color: var(--ink-soft);
 }
 .me-status-pill--upcoming .me-status-dot {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--ink-muted);
 }
 .me-status-pill--ongoing {
-  background: rgb(from var(--gold) r g b / 0.16);
-  border-color: rgb(from var(--gold) r g b / 0.35);
-  color: var(--gold);
+  background: var(--accent-soft);
+  border-color: rgb(from var(--accent) r g b / 0.35);
+  color: var(--accent-deep);
 }
 .me-status-pill--ongoing .me-status-dot {
-  background: var(--gold);
+  background: var(--accent);
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
 .me-status-pill--completed {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.72);
+  background: var(--me-page-bg);
+  color: var(--ink-muted);
 }
 .me-status-pill--completed .me-status-dot {
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--ink-dim);
 }
 @keyframes pulse-dot {
   0%,
@@ -2519,11 +2440,11 @@ onUnmounted(() => {
 }
 /* draft status treated same as upcoming */
 .me-status-pill--draft {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--me-page-bg);
+  color: var(--ink-soft);
 }
 .me-status-pill--draft .me-status-dot {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--ink-dim);
 }
 
 /* ── Role badge ── */
@@ -2537,21 +2458,15 @@ onUnmounted(() => {
   padding: 2px 8px;
   border-radius: 6px;
 }
-.me-role-badge {
-  backdrop-filter: blur(10px) saturate(160%);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
 .me-role-badge--owner {
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: #fff;
+  background: var(--accent-soft);
+  border: 1px solid rgb(from var(--accent) r g b / 0.35);
+  color: var(--accent-deep);
 }
 .me-role-badge--admin {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--me-page-bg);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
 }
 
 /* ── Featured hero ── */
@@ -2561,48 +2476,26 @@ onUnmounted(() => {
   grid-template-columns: 165px 1fr 180px;
   gap: 24px;
   padding: 20px 22px 20px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid var(--line);
   border-radius: 18px;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.15),
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    0 28px 64px -16px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow);
   cursor: pointer;
   transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.06) 0%,
-      rgba(255, 255, 255, 0.01) 60%,
-      rgba(255, 255, 255, 0.03) 100%
-    ),
-    var(--me-card-bg);
-  backdrop-filter: blur(32px) saturate(190%);
-  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  background: var(--me-card-bg);
   overflow: hidden;
 }
 .me-featured:hover {
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.25),
-    0 20px 50px rgba(0, 0, 0, 0.5),
-    0 32px 72px -14px rgba(0, 0, 0, 0.55);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lift);
   transform: translateY(-3px) scale(1.002);
 }
 
-/* Soft diagonal light catch on top of the page's own photo backdrop, which shows through the card. */
+/* Kept as a no-op layer (was a light-catch sheen for the old photo-backdrop
+   glass card) — Bento Glow's card is a flat solid surface, no scrim needed. */
 .me-feat-scrim {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.02) 45%,
-    rgba(255, 255, 255, 0) 70%
-  );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
   pointer-events: none;
 }
 
@@ -2617,7 +2510,7 @@ onUnmounted(() => {
 .me-feat-thumb-outline {
   position: absolute;
   inset: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--line);
   border-radius: 10px;
   transform: rotate(-2deg);
   pointer-events: none;
@@ -2627,7 +2520,7 @@ onUnmounted(() => {
   border-radius: 10px;
   overflow: hidden;
   transform: rotate(1deg);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 16px rgba(20, 20, 25, 0.12);
   line-height: 0;
 }
 .me-feat-thumb :deep(svg) {
@@ -2656,33 +2549,32 @@ onUnmounted(() => {
   font-weight: 700;
   letter-spacing: 1.6px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--accent-deep);
   white-space: nowrap;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.9),
-    0 0 10px rgba(0, 0, 0, 0.7);
 }
 .me-feat-eyebrow-sparkle {
-  color: var(--gold);
+  color: var(--accent);
   font-size: 10px;
   flex-shrink: 0;
 }
 .me-feat-eyebrow-line {
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--line);
 }
 .me-feat-title {
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 40px;
-  font-weight: 400;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+  font-size: 30px;
+  font-weight: 700;
   color: var(--ink);
   margin: 0 0 16px;
   letter-spacing: -0.5px;
-  line-height: 1.05;
-  text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.85),
-    0 0 16px rgba(0, 0, 0, 0.5);
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .me-feat-meta {
   display: flex;
@@ -2696,17 +2588,13 @@ onUnmounted(() => {
   gap: 7px;
 }
 .me-feat-meta-item svg {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--ink-muted);
   flex-shrink: 0;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
 }
 .me-feat-meta-val {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--ink-soft);
   font-weight: 500;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.85),
-    0 0 10px rgba(0, 0, 0, 0.6);
 }
 
 .me-feat-progress {
@@ -2716,7 +2604,7 @@ onUnmounted(() => {
 }
 .me-feat-progress-track {
   height: 4px;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--line);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -2742,8 +2630,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 7px;
   position: relative;
-  background: var(--gold);
-  color: var(--gold-contrast);
+  background: var(--accent);
+  color: #fff;
   border: none;
   padding: 8px 16px;
   border-radius: 9px;
@@ -2763,7 +2651,7 @@ onUnmounted(() => {
 }
 .me-feat-open-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(var(--gold-rgb), 0.45);
+  box-shadow: 0 0 0 3px rgb(from var(--accent) r g b / 0.4);
 }
 
 /* Featured countdown col */
@@ -2782,17 +2670,14 @@ onUnmounted(() => {
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--ink-muted);
   line-height: 1;
   margin-bottom: 2px;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.9),
-    0 0 10px rgba(0, 0, 0, 0.7);
 }
 .me-feat-cd-day {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
   font-size: 82px;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--ink);
   letter-spacing: -2px;
   line-height: 0.85;
@@ -2802,28 +2687,20 @@ onUnmounted(() => {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 2px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--ink-muted);
   margin-top: 12px;
   margin-bottom: 10px;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.9),
-    0 0 10px rgba(0, 0, 0, 0.7);
 }
 .me-feat-cd-ticket {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--accent);
+  box-shadow: 0 4px 14px rgb(from var(--accent-deep) r g b / 0.28);
+  border: none;
   color: #fff;
   border-radius: 10px;
   padding: 8px 14px;
   display: flex;
   align-items: center;
   gap: 6px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .me-feat-cd-num {
   font-size: 22px;
@@ -2836,7 +2713,7 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.8);
   white-space: pre-line;
   line-height: 1.3;
 }
@@ -2850,7 +2727,7 @@ onUnmounted(() => {
 .me-section-line {
   flex: 1;
   height: 1px;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--line);
 }
 .me-section-meta {
   font-size: 11px;
@@ -2880,66 +2757,39 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: 118px 1fr 100px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  /* Brighter top edge = the light catching the upper lip of the glass. Without
-     it the border is uniform and the card sits flat on the page. */
-  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid var(--line);
   border-left: 4px solid transparent;
   cursor: pointer;
   overflow: hidden;
   min-height: 124px;
   background: var(--me-card-bg);
-  backdrop-filter: blur(32px) saturate(190%);
-  -webkit-backdrop-filter: blur(32px) saturate(190%);
-  /* A resting shadow is the other half of it — glass has to float above the
-     backdrop it's refracting, otherwise it's just a translucent rectangle.
-     Pulled in tighter than .me-featured's (negative spread, smaller offset):
-     that card stands alone, whereas these sit 8px apart, and featured's
-     0 28px 64px stop would smear down onto the next row and pool in the gaps. */
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.15),
-    0 6px 20px rgba(0, 0, 0, 0.3),
-    0 18px 44px -20px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow);
   transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-/* Soft diagonal light catch on top of the page's own photo backdrop, which shows through the card. */
-/* The card's only light catch — matched to .me-feat-scrim now that the row's
-   background is a flat tint. */
+/* Kept as a no-op layer (was a light-catch sheen for the old photo-backdrop
+   glass card) — Bento Glow's card is a flat solid surface, no scrim needed. */
 .me-row-scrim {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.02) 45%,
-    rgba(255, 255, 255, 0) 70%
-  );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
   pointer-events: none;
 }
-/* Only one row is hovered at a time, so the lifted card can afford a deeper
-   shadow than the resting state allows. */
 .me-row:hover {
-  border-color: rgba(255, 255, 255, 0.22);
-  border-top-color: rgba(255, 255, 255, 0.32);
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.25),
-    0 14px 36px rgba(0, 0, 0, 0.45),
-    0 28px 64px -18px rgba(0, 0, 0, 0.5);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lift);
   transform: translateY(-3px) scale(1.002);
 }
 .me-row--upcoming {
-  border-left-color: rgb(from var(--gold) r g b / 0.8);
+  border-left-color: var(--accent);
 }
 .me-row--ongoing {
-  border-left-color: rgba(48, 209, 88, 0.85);
+  border-left-color: var(--emerald);
 }
 .me-row--completed {
-  border-left-color: rgba(255, 255, 255, 0.12);
+  border-left-color: var(--line-strong);
 }
 .me-row--draft {
-  border-left-color: rgba(255, 255, 255, 0.08);
+  border-left-color: var(--line);
 }
 
 /* Left: invitation card column */
@@ -2950,13 +2800,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 14px 10px;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid var(--line);
   overflow: hidden;
 }
 .me-row-card-outline {
   position: absolute;
   inset: 8px 5px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--line);
   border-radius: 9px;
   transform: rotate(-2.5deg);
   pointer-events: none;
@@ -2967,7 +2817,7 @@ onUnmounted(() => {
   border-radius: 6px;
   overflow: hidden;
   transform: rotate(1.5deg);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 4px 14px rgba(20, 20, 25, 0.16);
   line-height: 0;
   z-index: 1;
   transition:
@@ -2976,7 +2826,7 @@ onUnmounted(() => {
 }
 .me-row:hover .me-row-card-inner {
   transform: rotate(0.3deg) scale(1.06);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 22px rgba(20, 20, 25, 0.2);
 }
 .me-row-card-inner :deep(svg) {
   display: block;
@@ -3003,7 +2853,7 @@ onUnmounted(() => {
 }
 .me-row-eyebrow-spark {
   font-size: 10px;
-  color: var(--gold);
+  color: var(--accent);
   flex-shrink: 0;
 }
 .me-row-eyebrow-line {
@@ -3011,15 +2861,15 @@ onUnmounted(() => {
   height: 1px;
   background: linear-gradient(
     90deg,
-    rgb(from var(--gold) r g b / 0.28) 0%,
-    rgba(255, 255, 255, 0.04) 100%
+    rgb(from var(--accent) r g b / 0.35) 0%,
+    var(--line) 100%
   );
 }
 
 .me-row-title {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
   font-size: 22px;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--ink);
   margin: 0 0 10px;
   letter-spacing: -0.2px;
@@ -3029,9 +2879,6 @@ onUnmounted(() => {
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.85),
-    0 0 14px rgba(0, 0, 0, 0.5);
 }
 .me-row-meta {
   display: flex;
@@ -3044,14 +2891,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 5px;
   font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.85);
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.85),
-    0 0 10px rgba(0, 0, 0, 0.6);
+  color: var(--ink-soft);
 }
 .me-row-meta-item svg {
   flex-shrink: 0;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
 }
 .me-status-pill--inline {
   font-size: 10.5px;
@@ -3064,7 +2907,7 @@ onUnmounted(() => {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--line);
   background: transparent;
   display: flex;
   align-items: center;
@@ -3086,7 +2929,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  border-left: 1px solid var(--line);
   padding: 14px 8px;
   gap: 0;
 }
@@ -3095,65 +2938,56 @@ onUnmounted(() => {
   font-weight: 700;
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--ink-muted);
   line-height: 1;
   margin-bottom: 3px;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.9),
-    0 0 8px rgba(0, 0, 0, 0.7);
 }
 .me-row-cd-mon {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--ink-soft);
   line-height: 1;
   margin-bottom: 0;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.9),
-    0 0 8px rgba(0, 0, 0, 0.7);
 }
 .me-row-cd-day {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
   font-size: 60px;
-  font-weight: 400;
+  font-weight: 700;
   line-height: 0.85;
   letter-spacing: -1.5px;
   display: block;
-  text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.85),
-    0 0 12px rgba(0, 0, 0, 0.5);
+  color: var(--ink);
 }
 .me-row-cd-ticket {
   margin-top: 11px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px) saturate(160%);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--accent);
+  border: none;
   border-radius: 6px;
   padding: 4px 9px;
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
   text-align: center;
   line-height: 1.3;
   display: flex;
   align-items: center;
   gap: 4px;
   white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 .me-row-cd-ticket.me-row-days-pill--live {
   border-style: solid;
-  border-color: rgba(48, 209, 88, 0.4);
+  border-color: rgb(from var(--emerald) r g b / 0.4);
   background: var(--emerald-soft);
   color: var(--emerald);
 }
 .me-row-cd-ticket.me-row-days-pill--soon {
-  border-color: rgb(from var(--gold) r g b / 0.35);
-  color: rgb(from var(--gold) r g b / 0.85);
+  border-style: solid;
+  border-color: rgb(from var(--accent) r g b / 0.35);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
 }
 .me-row-cd-ticket.me-row-days-pill--past {
   opacity: 0.4;
@@ -3191,11 +3025,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  background: var(--me-card-bg);
   font-size: 13px;
   font-weight: 500;
   color: var(--ink-muted);
@@ -3207,13 +3039,13 @@ onUnmounted(() => {
     background 130ms;
 }
 .me-page-btn:hover:not(:disabled):not(.me-page-btn--active) {
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--line-strong);
   color: var(--ink);
 }
 .me-page-btn--active {
-  background: rgba(226, 232, 240, 0.12);
-  border-color: rgba(226, 232, 240, 0.18);
-  color: #e2e8f0;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
   font-weight: 700;
 }
 .me-page-btn--nav {
@@ -3247,9 +3079,7 @@ onUnmounted(() => {
   border-radius: 16px;
   padding: 28px 28px 24px;
   width: 340px;
-  box-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.2),
-    0 16px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-lift);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -3258,9 +3088,9 @@ onUnmounted(() => {
     border-color 300ms ease;
 }
 .me-modal-title {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
   font-size: 22px;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--ink);
   margin: 0;
   letter-spacing: -0.1px;
@@ -3291,13 +3121,12 @@ onUnmounted(() => {
     color 130ms;
 }
 .me-modal-cancel:hover {
-  background: var(--paper-soft);
+  background: var(--me-page-bg);
   color: var(--ink);
 }
 .me-modal-confirm {
-  background: rgba(255, 255, 255, 0.12);
-  color: #e2e8f0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #dc2626;
+  color: #fff;
   border: none;
   padding: 8px 18px;
   border-radius: 9px;
@@ -3719,14 +3548,14 @@ onUnmounted(() => {
 ───────────────────────────────────────────────────────── */
 .me-aff-strip {
   background: var(--me-controls-bg);
-  border: 1px solid var(--line-strong);
-  border-left: 3px solid var(--gold);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
   border-radius: 14px;
   padding: 20px 22px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow);
 }
 
 /* Header */
@@ -3737,7 +3566,7 @@ onUnmounted(() => {
 }
 .me-aff-sparkle {
   font-size: 12px;
-  color: var(--gold);
+  color: var(--accent);
   line-height: 1;
 }
 .me-aff-title {
@@ -3752,9 +3581,9 @@ onUnmounted(() => {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--gold);
-  background: rgb(from var(--gold) r g b / 0.08);
-  border: 1px solid rgb(from var(--gold) r g b / 0.2);
+  color: var(--accent-deep);
+  background: var(--accent-soft);
+  border: 1px solid rgb(from var(--accent) r g b / 0.3);
   border-radius: 6px;
   padding: 3px 9px;
 }
@@ -3770,31 +3599,31 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 5px;
   padding: 16px 18px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-top: 2px solid rgb(from var(--gold) r g b / 0.45);
+  background: var(--me-page-bg);
+  border: 1px solid var(--line);
+  border-top: 2px solid rgb(from var(--accent) r g b / 0.5);
   border-radius: 10px;
   transition:
     background 180ms,
     border-color 180ms;
 }
 .me-aff-stat:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.11);
+  background: var(--me-card-bg);
+  border-color: var(--line-strong);
 }
 .me-aff-stat-val {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
   font-size: 30px;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.2px;
   line-height: 1;
 }
 .me-aff-stat-val--gold {
-  color: var(--gold);
+  color: var(--accent);
 }
 .me-aff-stat-val--green {
-  color: #30d158;
+  color: var(--emerald);
 }
 .me-aff-stat-label {
   font-size: 10px;
@@ -3807,7 +3636,7 @@ onUnmounted(() => {
 /* Divider between stats and list */
 .me-aff-divider {
   height: 1px;
-  background: var(--line-soft);
+  background: var(--line);
   margin: 0 -2px;
 }
 
@@ -3830,11 +3659,11 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: 9px 12px;
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.02);
+  background: transparent;
   transition: background 0.13s;
 }
 .me-aff-com-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--me-page-bg);
 }
 .me-aff-com-left {
   display: flex;
@@ -3848,10 +3677,10 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .me-aff-com-dot--pending {
-  background: var(--gold);
+  background: var(--accent);
 }
 .me-aff-com-dot--paid {
-  background: #30d158;
+  background: var(--emerald);
 }
 .me-aff-com-event {
   font-size: 12px;
@@ -3878,12 +3707,12 @@ onUnmounted(() => {
   letter-spacing: 0.03em;
 }
 .me-aff-com-badge--pending {
-  background: rgb(from var(--gold) r g b / 0.1);
-  color: var(--gold);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
 }
 .me-aff-com-badge--paid {
-  background: rgba(48, 209, 88, 0.1);
-  color: #30d158;
+  background: var(--emerald-soft);
+  color: var(--emerald);
 }
 
 /* Empty state */

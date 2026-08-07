@@ -5,7 +5,17 @@
     <link rel="icon" type="image/x-icon" href="/src/assets/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Haflaway</title>
-  <style>html,body{background:#0a0a0b;color:#f0f0ec}</style>
+    <script>
+      /* Sets the pre-hydration background before first paint, so neither
+         theme flashes the other's color on load or on overscroll — most
+         routes are the dark admin app, but "/", "/pricing" and "/events"
+         are Bento Glow light pages. */
+      (function () {
+        var light = location.pathname === '/' || location.pathname === '/pricing' || location.pathname === '/events';
+        document.documentElement.style.background = light ? '#FAFAFA' : '#0a0a0b';
+        document.documentElement.style.color = light ? '#1D1D1F' : '#f0f0ec';
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Playfair Display carries all display/serif type (greetings, event titles,

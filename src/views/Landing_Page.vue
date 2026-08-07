@@ -24,9 +24,17 @@ import {
 } from '@heroicons/vue/24/outline';
 import { collection, getCountFromServer } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useOrg } from '../composables/useOrg';
+import weddingPhoto from '../assets/hero/wedding.jpg';
+import kitchenPartyPhoto from '../assets/hero/kitchen-party.jpg';
+import sendoffPhoto from '../assets/hero/sendoff.jpg';
+import celebrationPhoto from '../assets/hero/celebration.jpg';
 
 // ── Motion preference ─────────────────────────────────────────────────────────
 const reduceMotion = ref(false);
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+const { currentUser } = useOrg();
 
 // ── Nav ───────────────────────────────────────────────────────────────────────
 const navOpen = ref(false);
@@ -44,8 +52,27 @@ const goToSection = (href) => {
     });
 };
 
-// ── Data ──────────────────────────────────────────────────────────────────────
-const occasions = ['Weddings', 'Kitchen parties', 'Sendoffs', 'Celebrations'];
+// ── Hero slider ───────────────────────────────────────────────────────────────
+// Photos: Unsplash License (free for commercial use, no attribution required).
+const slides = [
+    { label: 'Weddings', icon: BuildingLibraryIcon, photo: weddingPhoto },
+    { label: 'Kitchen parties', icon: CakeIcon, photo: kitchenPartyPhoto },
+    { label: 'Sendoffs', icon: MapPinIcon, photo: sendoffPhoto },
+    { label: 'Celebrations', icon: MusicalNoteIcon, photo: celebrationPhoto },
+];
+const activeSlide = ref(0);
+let sliderTimer = null;
+let sliderPaused = false;
+
+const goToSlide = (i) => { activeSlide.value = i; };
+const startSlider = () => {
+    if (reduceMotion.value) return;
+    sliderTimer = setInterval(() => {
+        if (!sliderPaused) activeSlide.value = (activeSlide.value + 1) % slides.length;
+    }, 5000);
+};
+const pauseSlider = () => { sliderPaused = true; };
+const resumeSlider = () => { sliderPaused = false; };
 
 const features = [
     {
@@ -132,6 +159,7 @@ onMounted(async () => {
     motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     reduceMotion.value = motionQuery.matches;
     motionQuery.addEventListener('change', onMotionChange);
+    startSlider();
 
     observer = new IntersectionObserver(
         (entries) => entries.forEach((el) => {
@@ -161,6 +189,7 @@ onMounted(async () => {
 onUnmounted(() => {
     observer?.disconnect();
     motionQuery?.removeEventListener('change', onMotionChange);
+    clearInterval(sliderTimer);
 });
 </script>
 
@@ -183,9 +212,9 @@ onUnmounted(() => {
                 </nav>
 
                 <div class="nav-end">
-                    <a href="https://wa.me/255625689904" target="_blank" rel="noopener" class="btn btn-line btn-sm">
-                        Contact us
-                    </a>
+                    <button class="btn btn-line btn-sm" @click="$router.push(currentUser ? '/events' : '/login')">
+                        {{ currentUser ? 'Dashboard' : 'Login' }}
+                    </button>
                     <button class="nav-burger" :aria-expanded="navOpen" aria-controls="mnav"
                         :aria-label="navOpen ? 'Close menu' : 'Open menu'" @click="navOpen = !navOpen">
                         <XMarkIcon v-if="navOpen" class="size-5" />
@@ -210,59 +239,61 @@ onUnmounted(() => {
             <!-- ║  HERO — centred and formal, the way an invitation is     ║ -->
             <!-- ╚══════════════════════════════════════════════════════════╝ -->
             <section class="shell hero">
-                <p class="occasions">
-                    <span v-for="(o, i) in occasions" :key="o">
-                        {{ o }}<i v-if="i < occasions.length - 1" aria-hidden="true">·</i>
-                    </span>
-                </p>
+                <div class="hero-copy">
+                    <h1 class="h-hero">
+                        Every guest
+                        <span class="script">remembered</span>
+                    </h1>
 
-                <h1 class="h-hero">
-                    Every guest
-                    <span class="script">remembered</span>
-                </h1>
+                    <p class="lede">
+                        Haflaway carries the whole occasion — invitations with QR codes, the guest list,
+                        a gate that flows, and every contribution counted — from one place.
+                    </p>
 
-                <!-- Ornamental rule — an SVG motif, so it scales and takes theme
-                     colour. Decorative only, hidden from assistive tech. -->
-                <svg class="orn" viewBox="0 0 200 14" aria-hidden="true" focusable="false">
-                    <line x1="0" y1="7" x2="78" y2="7" />
-                    <circle cx="85" cy="7" r="2" />
-                    <path d="M100 1.5 L105.5 7 L100 12.5 L94.5 7 Z" />
-                    <circle cx="115" cy="7" r="2" />
-                    <line x1="122" y1="7" x2="200" y2="7" />
-                </svg>
-
-                <p class="lede">
-                    Haflaway carries the whole occasion — invitations with QR codes, the guest list,
-                    a gate that flows, and every contribution counted — from one place.
-                </p>
-
-                <div class="actions actions-center">
-                    <button class="btn btn-solid" @click="$router.push('/events')">
-                        Start planning
-                        <ArrowRightIcon class="size-4" aria-hidden="true" />
-                    </button>
-                    <a href="https://wa.me/255625689904" target="_blank" rel="noopener" class="btn btn-line">
-                        <ChatBubbleLeftRightIcon class="size-4" aria-hidden="true" />
-                        Talk to us
-                    </a>
+                    <div class="actions actions-center">
+                        <button class="btn btn-solid" @click="$router.push('/events')">
+                            Start planning
+                            <ArrowRightIcon class="size-4" aria-hidden="true" />
+                        </button>
+                        <a href="https://wa.me/255625689904" target="_blank" rel="noopener" class="btn btn-line">
+                            <ChatBubbleLeftRightIcon class="size-4" aria-hidden="true" />
+                            Talk to us
+                        </a>
+                    </div>
                 </div>
 
-                <!-- The product, dressed as the thing it makes: an invitation card -->
+                <!-- Hero visual: the occasion slider only. -->
+                <div class="hero-visual reveal">
+                    <div class="slider" role="region" aria-roledescription="carousel" aria-label="Occasions Haflaway carries"
+                        @mouseenter="pauseSlider" @mouseleave="resumeSlider" @focusin="pauseSlider" @focusout="resumeSlider">
+                        <div v-for="(s, i) in slides" :key="s.label" class="slide" :class="{ 'is-active': i === activeSlide }"
+                            :aria-hidden="i !== activeSlide">
+                            <div class="slide-bg" :style="{ backgroundImage: `url(${s.photo})` }"></div>
+                            <div class="slide-scrim"></div>
+                            <component :is="s.icon" class="slide-icon" aria-hidden="true" />
+                            <p class="slide-label">{{ s.label }}</p>
+                        </div>
+
+                        <div class="slider-dots" role="tablist" aria-label="Choose occasion">
+                            <button v-for="(s, i) in slides" :key="'dot-' + s.label" class="dot"
+                                :class="{ 'is-active': i === activeSlide }" role="tab" :aria-selected="i === activeSlide"
+                                :aria-label="'Show ' + s.label" @click="goToSlide(i)"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The product, dressed as the thing it makes: a live event
+                     card — spans the full width below the title and slider. -->
                 <aside class="invite reveal" aria-label="Example event dashboard">
                     <div class="invite-inner">
-                        <p class="invite-kicker">Live event</p>
-                        <h2 class="invite-title">Amina <span class="amp">&amp;</span> Said Juma</h2>
-
-                        <svg class="orn orn-sm" viewBox="0 0 200 14" aria-hidden="true" focusable="false">
-                            <line x1="20" y1="7" x2="86" y2="7" />
-                            <path d="M100 2 L105 7 L100 12 L95 7 Z" />
-                            <line x1="114" y1="7" x2="180" y2="7" />
-                        </svg>
-
-                        <p class="invite-meta">
-                            <span><CalendarDaysIcon class="size-4" aria-hidden="true" />Ijumaa, 14 June · 14:00</span>
-                            <span><MapPinIcon class="size-4" aria-hidden="true" />Dar es Salaam</span>
-                        </p>
+                        <div class="invite-head">
+                            <p class="invite-kicker">Live event</p>
+                            <h2 class="invite-title">Amina <span class="amp">&amp;</span> Said Juma</h2>
+                            <p class="invite-meta">
+                                <span><CalendarDaysIcon class="size-4" aria-hidden="true" />Ijumaa, 14 June · 14:00</span>
+                                <span><MapPinIcon class="size-4" aria-hidden="true" />Dar es Salaam</span>
+                            </p>
+                        </div>
 
                         <div class="invite-figures">
                             <div class="fig">
@@ -277,16 +308,15 @@ onUnmounted(() => {
                                 <div class="bar"><span style="width:100%"></span></div>
                                 <p class="fine">Delivered over WhatsApp</p>
                             </div>
-                        </div>
-
-                        <div class="invite-cp">
-                            <p class="fig-label">At the gate</p>
-                            <ul>
-                                <li v-for="cp in checkpoints" :key="cp.name">
-                                    <span>{{ cp.name }}</span>
-                                    <span class="cp-count">{{ cp.scanned }}<i>/{{ cp.total }}</i></span>
-                                </li>
-                            </ul>
+                            <div class="fig fig-gate">
+                                <p class="fig-label">At the gate</p>
+                                <ul class="invite-cp">
+                                    <li v-for="cp in checkpoints" :key="cp.name">
+                                        <span>{{ cp.name }}</span>
+                                        <span class="cp-count">{{ cp.scanned }}<i>/{{ cp.total }}</i></span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </aside>
@@ -397,11 +427,6 @@ onUnmounted(() => {
                         Let us carry
                         <span class="script">the day</span>
                     </h2>
-                    <svg class="orn orn-sm" viewBox="0 0 200 14" aria-hidden="true" focusable="false">
-                        <line x1="20" y1="7" x2="86" y2="7" />
-                        <path d="M100 2 L105 7 L100 12 L95 7 Z" />
-                        <line x1="114" y1="7" x2="180" y2="7" />
-                    </svg>
                     <p class="lede">Join the organisers using Haflaway to make their weddings, sendoffs and
                         kitchen parties worth remembering.</p>
                     <div class="actions actions-center">
@@ -453,58 +478,56 @@ onUnmounted(() => {
 
 <style scoped>
 /* ══════════════════════════════════════════════════════════════════════════════
-   BURGUNDY & CHAMPAGNE
-   Ivory stock, deep wine accent, champagne ornament — the evening-wedding
-   register. Symmetric and centred rather than asymmetric: an invitation is a
-   formal object, and the layout borrows that posture.
+   BENTO GLOW
+   Apple/Linear-style modern SaaS: cloud-white surfaces, soft multi-stop
+   shadows, generous rounded corners, one warm rose-gold accent. Depth comes
+   from elevation (shadow), not from rules — the opposite instinct of the
+   editorial pass this replaced.
 
    Scoped to .hf so none of it reaches the ~24 views still reading the
    gold/navy tokens in style.css.
 
-   Contrast, measured not assumed — on ivory #FAF7F2:
-     ink       #2A1F22 → 14.9:1  (AAA)
-     muted     #6E5D62 →  5.8:1
-     burgundy  #7A2233 →  9.3:1   white on burgundy → 10.0:1
-     gold      #8A6420 →  5.0:1   white on gold      →  7.2:1
-   --champagne #B08A3E is 3.0:1 — ornament and large display only, never body
-   text. Keep it out of anything under 24px.
+   Contrast, measured not assumed — on page #FAFAFA:
+     ink          #1D1D1F → 17.9:1  (AAA)
+     muted        #6E6E73 →  4.9:1  (AA)
+     accent       #A8574B →  4.9:1  (AA — kickers/tags/links)   white on accent → 5.1:1 (AA)
+   --accent-soft is decorative only (gradients, ornament, low-emphasis
+   icons) — never used for text.
    ══════════════════════════════════════════════════════════════════════════════ */
 .hf {
-    --ivory: #FAF7F2;
-    --ivory-2: #F3EDE4;
+    --page: #FAFAFA;
+    --page-2: #F1F1F3;
     --card: #FFFFFF;
-    --ink: #2A1F22;
-    --muted: #6E5D62;
-    --burgundy: #7A2233;
-    --burgundy-deep: #5E1A27;
-    --gold: #8A6420;
-    --champagne: #B08A3E;
-    --line: #EAE0D4;
-    --line-strong: #DCCDBA;
+    --ink: #1D1D1F;
+    --muted: #6E6E73;
+    --accent: #A8574B;
+    --accent-deep: #8B4239;
+    --accent-soft: #E8B9AE;
+    --line: #E5E5E7;
+    --line-strong: #D4D4D8;
 
     --u: 8px;
-    --sec-y: 104px;
+    --sec-y: calc(var(--u) * 12);
 
-    --serif: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
-    --script: 'Great Vibes', 'Cormorant Garamond', cursive;
+    --display: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
     --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-    --shadow: 0 1px 2px rgba(74, 52, 40, .05), 0 8px 28px rgba(74, 52, 40, .07);
-    --shadow-lift: 0 2px 4px rgba(74, 52, 40, .06), 0 16px 44px rgba(74, 52, 40, .12);
+    --shadow: 0 1px 2px rgba(20, 20, 25, .04), 0 8px 24px rgba(20, 20, 25, .06);
+    --shadow-lift: 0 2px 6px rgba(20, 20, 25, .06), 0 20px 48px rgba(20, 20, 25, .10);
+    --shadow-accent: 0 10px 28px rgba(139, 66, 57, .28);
 
     min-height: 100vh;
     min-height: 100dvh;
     overflow-x: hidden;
-    background: var(--ivory);
+    background: var(--page);
     color: var(--ink);
     font-family: var(--sans);
     font-size: 16px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
 }
-@media (min-width: 768px) { .hf { --sec-y: 136px; } }
 
-.hf :focus-visible { outline: 2px solid var(--burgundy); outline-offset: 3px; border-radius: 4px; }
+.hf :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 
 .shell { max-width: 1140px; margin-inline: auto; padding-inline: 20px; }
 @media (min-width: 768px) { .shell { padding-inline: 40px; } }
@@ -512,23 +535,23 @@ onUnmounted(() => {
 .skip {
     position: absolute; left: -9999px; top: var(--u); z-index: 200;
     padding: 12px 20px; border-radius: 999px;
-    background: var(--burgundy); color: #fff; font-weight: 600;
+    background: var(--accent); color: #fff; font-weight: 600;
 }
 .skip:focus { left: 20px; }
 
 /* ── Type ─────────────────────────────────────────────────────────────────── */
 .h-hero {
     margin: 0;
-    font-family: var(--serif);
-    font-size: clamp(2.75rem, 7vw, 5rem);
-    font-weight: 500;
-    letter-spacing: -.015em;
-    line-height: 1.05;
+    font-family: var(--display);
+    font-size: clamp(2.75rem, 8vw, 5.5rem);
+    font-weight: 700;
+    letter-spacing: -.03em;
+    line-height: 1.04;
     text-wrap: balance;
 }
 .h-sec {
     margin: 0;
-    font-family: var(--serif);
+    font-family: var(--display);
     font-size: clamp(2rem, 4.4vw, 3.125rem);
     font-weight: 500;
     letter-spacing: -.01em;
@@ -536,26 +559,23 @@ onUnmounted(() => {
 }
 .h-item {
     margin: 0 0 calc(var(--u) * 1.5);
-    font-family: var(--serif);
+    font-family: var(--display);
     font-size: 1.5rem; font-weight: 600; letter-spacing: -.005em; line-height: 1.2;
 }
 
-/* Great Vibes is a script. It appears only at display size, never in UI, never
-   in body copy, and never below 2rem — below that it stops being readable. */
+/* Bento Glow retired the cursive treatment — .script is now the bold-accent
+   emphasis word (kept the class name since the markup/semantics — "the
+   flourish word in a heading" — are unchanged, only the typeface is). */
 .script {
     display: block;
-    font-family: var(--script);
-    font-weight: 400;
-    font-size: 1.32em;
-    line-height: 1.25;
-    letter-spacing: .01em;
-    color: var(--burgundy);
-    /* Script ascenders and descenders overrun the em box — this keeps the
-       flourishes from being clipped by the parent's overflow. */
-    padding: .08em .12em .18em;
-    margin-top: -.06em;
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1em;
+    line-height: 1.02;
+    letter-spacing: -.03em;
+    color: var(--accent);
 }
-.script-inline { display: inline-block; font-size: 1.18em; }
+.script-inline { display: inline-block; }
 
 .lede {
     margin: 0 auto calc(var(--u) * 4);
@@ -570,12 +590,12 @@ onUnmounted(() => {
     font-family: var(--sans);
     font-size: .75rem; font-weight: 600;
     letter-spacing: .2em; text-transform: uppercase;
-    color: var(--gold);
+    color: var(--accent);
 }
 
 .figure {
     margin: 0;
-    font-family: var(--serif);
+    font-family: var(--display);
     font-size: 2.25rem; font-weight: 600; letter-spacing: -.01em; line-height: 1;
     font-variant-numeric: tabular-nums;
     color: var(--ink);
@@ -584,23 +604,13 @@ onUnmounted(() => {
 .unit {
     margin-left: 8px;
     font-family: var(--sans); font-size: .75rem; font-weight: 600;
-    letter-spacing: .12em; color: var(--gold);
+    letter-spacing: .12em; color: var(--accent);
 }
-
-/* ── Ornament ─────────────────────────────────────────────────────────────── */
-.orn {
-    display: block; width: 100%; max-width: 260px; height: auto;
-    margin: calc(var(--u) * 3) auto;
-    stroke: var(--champagne); stroke-width: 1;
-    fill: var(--champagne);
-}
-.orn line { stroke: var(--champagne); }
-.orn-sm { max-width: 180px; margin-block: calc(var(--u) * 2.5); }
 
 /* ── Nav ──────────────────────────────────────────────────────────────────── */
 .nav {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(250, 247, 242, .9);
+    background: rgba(247, 246, 244, .88);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--line);
@@ -611,7 +621,7 @@ onUnmounted(() => {
     display: inline-flex; align-items: center; gap: 11px;
     padding: 6px; margin-left: -6px;
     background: none; border: 0; cursor: pointer;
-    font-family: var(--serif); font-size: 1.375rem; font-weight: 600;
+    font-family: var(--display); font-size: 1.375rem; font-weight: 600;
     letter-spacing: .005em; color: var(--ink);
 }
 .mark img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid var(--line-strong); }
@@ -624,8 +634,8 @@ onUnmounted(() => {
     font-size: .9375rem; font-weight: 500; color: var(--muted);
     cursor: pointer; transition: color .2s ease, background .2s ease;
 }
-.nav-links a:hover { color: var(--ink); background: var(--ivory-2); }
-.nav-links .is-link { color: var(--burgundy); }
+.nav-links a:hover { color: var(--ink); background: var(--page-2); }
+.nav-links .is-link { color: var(--accent); }
 
 .nav-end { display: flex; align-items: center; gap: var(--u); }
 .nav-burger {
@@ -657,12 +667,12 @@ onUnmounted(() => {
 }
 .btn:active { transform: scale(.98); }
 
-/* White on burgundy = 10.0:1 */
-.btn-solid { background: var(--burgundy); color: #fff; box-shadow: 0 6px 20px rgba(122, 34, 51, .24); }
-.btn-solid:hover { background: var(--burgundy-deep); box-shadow: 0 10px 30px rgba(122, 34, 51, .32); }
+/* White on accent = 5.1:1 */
+.btn-solid { background: var(--accent); color: #fff; box-shadow: var(--shadow-accent); }
+.btn-solid:hover { background: var(--accent-deep); box-shadow: 0 14px 32px rgba(139, 66, 57, .34); transform: translateY(-1px); }
 
-.btn-line { border-color: var(--line-strong); color: var(--ink); background: transparent; }
-.btn-line:hover { border-color: var(--burgundy); color: var(--burgundy); background: var(--card); }
+.btn-line { border-color: var(--line-strong); color: var(--ink); background: var(--card); }
+.btn-line:hover { border-color: var(--accent); color: var(--accent); }
 
 .btn-sm { min-height: 44px; padding: 0 20px; font-size: .875rem; }
 .btn-lg { min-height: 58px; padding: 0 34px; font-size: 1rem; }
@@ -672,81 +682,157 @@ onUnmounted(() => {
 .actions-center { justify-content: center; }
 
 /* ── Hero ─────────────────────────────────────────────────────────────────── */
-.hero { padding-top: calc(var(--u) * 9); padding-bottom: var(--sec-y); text-align: center; }
+.hero { padding-top: calc(var(--u) * 9); padding-bottom: calc(var(--u) * 12); text-align: center; }
+.hero-copy { display: contents; }
 
-.occasions {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
-    margin: 0 0 calc(var(--u) * 3);
-    font-size: .8125rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase;
-    color: var(--muted);
+/* ── Hero visual: the occasion slider ────────────────────────────────────── */
+.hero-visual { position: relative; max-width: 780px; margin: calc(var(--u) * 8) auto 0; }
+
+.slider {
+    position: relative;
+    border-radius: 28px;
+    overflow: hidden;
+    aspect-ratio: 16 / 11;
+    border: 2px solid var(--line-strong);
+    box-shadow: var(--shadow-lift);
 }
-.occasions i { margin-left: 10px; font-style: normal; color: var(--champagne); }
+.slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding-top: 13%;
+    opacity: 0;
+    transition: opacity 1.1s cubic-bezier(.16, 1, .3, 1);
+}
+.slide.is-active { opacity: 1; }
+.slide-bg {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+}
+.slide-scrim {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(20, 15, 15, .12) 0%, rgba(20, 15, 15, .05) 45%, rgba(20, 15, 15, .55) 100%);
+}
+.slide-icon { position: relative; width: 40px; height: 40px; color: rgba(255, 255, 255, .85); filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .25)); }
+.slide-label {
+    position: relative; margin-top: 12px;
+    font-family: var(--display); font-weight: 700; font-size: 1.375rem;
+    color: #fff; letter-spacing: -.01em;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+}
+@media (min-width: 640px) {
+    .slide-icon { width: 48px; height: 48px; }
+    .slide-label { font-size: 1.75rem; margin-top: 14px; }
+}
 
-/* ── Invitation card ──────────────────────────────────────────────────────── */
+.slider-dots {
+    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 5;
+    display: flex; gap: 8px;
+}
+.dot {
+    width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px;
+    background: rgba(255, 255, 255, .55); cursor: pointer;
+    transition: width .3s ease, background .3s ease;
+}
+.dot:hover { background: rgba(255, 255, 255, .8); }
+.dot.is-active { width: 22px; background: #fff; }
+
+/* ── Live-event card — stretches full width below the title and slider ──── */
 .invite {
-    max-width: 620px;
-    margin: calc(var(--u) * 8) auto 0;
+    position: relative;
+    margin: calc(var(--u) * 4) auto 0;
     padding: 6px;
-    border: 1px solid var(--line-strong);
-    border-radius: 4px;
+    border-radius: 24px;
     background: var(--card);
+    border: 2px solid var(--line-strong);
     box-shadow: var(--shadow-lift);
     text-align: left;
 }
-/* The inner hairline gives the double-rule of an engraved card */
+
 .invite-inner {
-    padding: calc(var(--u) * 5) calc(var(--u) * 3);
-    border: 1px solid var(--line);
-    border-radius: 2px;
+    padding: calc(var(--u) * 4) calc(var(--u) * 3);
+    display: grid; gap: calc(var(--u) * 4);
 }
-@media (min-width: 640px) { .invite-inner { padding: calc(var(--u) * 6) calc(var(--u) * 5); } }
+@media (min-width: 640px) { .invite-inner { padding: calc(var(--u) * 5) calc(var(--u) * 4); } }
+@media (min-width: 900px) {
+    .invite-inner {
+        grid-template-columns: minmax(220px, 300px) 1fr;
+        align-items: center;
+        gap: calc(var(--u) * 6);
+    }
+}
 
 .invite-kicker { text-align: center; }
+.invite-head .invite-kicker { text-align: left; }
 .invite-title {
     margin: 0; text-align: center;
-    font-family: var(--serif);
-    font-size: clamp(1.875rem, 4.5vw, 2.625rem);
-    font-weight: 500; letter-spacing: -.005em; line-height: 1.15;
+    font-family: var(--display);
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 700; letter-spacing: -.01em; line-height: 1.15;
 }
-.invite-title .amp { font-family: var(--script); font-size: 1.15em; color: var(--burgundy); padding-inline: 2px; }
+.invite-head .invite-title { text-align: left; }
+.invite-title .amp { font-weight: 800; color: var(--accent); padding-inline: 2px; }
 
 .invite-meta {
     display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px;
     margin: 0 0 calc(var(--u) * 5);
     font-size: .875rem; color: var(--muted);
 }
+.invite-head .invite-meta { justify-content: flex-start; margin-bottom: 0; }
 .invite-meta span { display: inline-flex; align-items: center; gap: 7px; }
-.invite-meta svg { color: var(--champagne); }
+.invite-meta svg { color: var(--accent-soft); }
 
 .invite-figures {
     display: grid; grid-template-columns: 1fr; gap: calc(var(--u) * 4);
-    padding-block: calc(var(--u) * 4);
-    border-block: 1px solid var(--line);
+    padding-top: calc(var(--u) * 4);
+    border-top: 1px solid var(--line);
 }
-@media (min-width: 560px) { .invite-figures { grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 5); } }
+@media (min-width: 560px) { .invite-figures { grid-template-columns: repeat(3, 1fr); gap: calc(var(--u) * 5); } }
+@media (min-width: 900px) {
+    .invite-figures { padding-top: 0; padding-left: calc(var(--u) * 6); border-top: 0; border-left: 1px solid var(--line); }
+}
 .fig { display: flex; flex-direction: column; gap: 10px; }
 .fig-label {
     margin: 0;
     font-size: .75rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
     color: var(--muted);
 }
-.bar { height: 3px; border-radius: 999px; background: var(--ivory-2); overflow: hidden; }
-.bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--burgundy), var(--champagne)); }
+.bar { height: 3px; border-radius: 999px; background: var(--page-2); overflow: hidden; }
+.bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-soft)); }
 
-.invite-cp { padding-top: calc(var(--u) * 4); }
-.invite-cp ul { list-style: none; margin: calc(var(--u) * 1.5) 0 0; padding: 0; }
+.invite-cp { list-style: none; margin: calc(var(--u) * 1.5) 0 0; padding: 0; }
 .invite-cp li {
     display: flex; align-items: center; justify-content: space-between;
-    padding: calc(var(--u) * 1.5) 0;
+    padding: 7px 0;
     border-bottom: 1px solid var(--line);
-    font-size: .9375rem;
+    font-size: .875rem;
 }
 .invite-cp li:last-child { border-bottom: 0; padding-bottom: 0; }
 .cp-count { font-variant-numeric: tabular-nums; font-weight: 600; }
 .cp-count i { font-style: normal; font-weight: 400; color: var(--muted); }
 
+/* Desktop hero layout — kept after the base hero/hero-visual/invite rules
+   above so these overrides actually win the cascade (equal specificity,
+   later wins; a media query earlier in the file loses to a plain rule
+   declared after it, which is exactly the bug that made the slider
+   collapse to 0 width before this block was moved down here). */
+@media (min-width: 1024px) {
+    .hero {
+        display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .92fr); align-items: center;
+        gap: calc(var(--u) * 8);
+        text-align: left;
+    }
+    .hero-copy {
+        display: flex; flex-direction: column; align-items: flex-start;
+        grid-column: 1;
+    }
+    .hero-copy .lede { margin-inline: 0; max-width: 44ch; }
+    .hero-copy .actions-center { justify-content: flex-start; }
+    .hero-visual { grid-column: 2; margin: 0; max-width: none; }
+    .invite { grid-column: 1 / -1; }
+}
+
 /* ── Stats ────────────────────────────────────────────────────────────────── */
-.band { padding-block: var(--sec-y); border-top: 1px solid var(--line); }
+.band { padding-top: calc(var(--u) * 12); padding-bottom: var(--sec-y); border-top: 1px solid var(--line); }
 .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: calc(var(--u) * 6) calc(var(--u) * 3); margin: 0; }
 @media (min-width: 768px) { .stats { grid-template-columns: repeat(4, 1fr); } }
 .stat { text-align: center; }
@@ -757,7 +843,7 @@ onUnmounted(() => {
 }
 .skel {
     display: inline-block; width: 4ch; height: .7em; border-radius: 999px;
-    background: linear-gradient(90deg, var(--ivory-2) 25%, #E8DCCB 50%, var(--ivory-2) 75%);
+    background: linear-gradient(90deg, var(--page-2) 25%, #E6DCC5 50%, var(--page-2) 75%);
     background-size: 200% 100%;
     animation: skel 1.4s linear infinite;
 }
@@ -765,44 +851,53 @@ onUnmounted(() => {
 
 /* ── Sections ─────────────────────────────────────────────────────────────── */
 .sec { padding-block: var(--sec-y); border-top: 1px solid var(--line); }
-.sec-head { max-width: 40ch; margin: 0 auto calc(var(--u) * 8); text-align: center; }
+.sec-head { max-width: 900px; margin: 0 auto calc(var(--u) * 8); text-align: center; }
 
-/* ── Feature cards ────────────────────────────────────────────────────────── */
+/* ── Feature cards — bento grid: first tile runs big, fourth runs wide ──────── */
 .cards {
     list-style: none; margin: 0; padding: 0;
     display: grid; grid-template-columns: 1fr; gap: calc(var(--u) * 3);
 }
 @media (min-width: 640px) { .cards { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1024px) {
+    .cards { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; }
+    /* Row 1: card 1 (2 cols wide, 1 row tall) beside cards 2 and 3. */
+    .cards > li:nth-child(1) { grid-column: span 2; grid-row: 1; }
+    /* Row 2: cards 5 and 6 fill the space under card 1; card 4 (auto-placed,
+       2 cols wide) lands beside them in the remaining gap. */
+    .cards > li:nth-child(5) { grid-column: 1; grid-row: 2; }
+    .cards > li:nth-child(6) { grid-column: 2; grid-row: 2; }
+    .cards > li:nth-child(4) { grid-column: span 2; }
+}
 
 .card {
-    display: flex; flex-direction: column;
+    display: flex; flex-direction: column; justify-content: center;
     padding: calc(var(--u) * 4);
     border: 1px solid var(--line);
-    border-radius: 16px;
+    border-radius: 20px;
     background: var(--card);
     box-shadow: var(--shadow);
     transition: box-shadow .3s ease, transform .3s ease, border-color .3s ease;
 }
-.card:hover { box-shadow: var(--shadow-lift); transform: translateY(-3px); border-color: var(--line-strong); }
+.card:hover { box-shadow: var(--shadow-lift); transform: translateY(-3px) scale(1.01); border-color: var(--line-strong); }
 
 .card-badge {
     display: inline-flex; align-items: center; justify-content: center;
     width: 54px; height: 54px; margin-bottom: calc(var(--u) * 3);
-    border-radius: 50%;
-    background: var(--ivory); border: 1px solid var(--line);
-    color: var(--burgundy);
+    border-radius: 16px;
+    background: var(--page); border: 1px solid var(--line);
+    color: var(--accent);
 }
 
 .tags { list-style: none; margin: calc(var(--u) * 3) 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .tags li {
     padding: 5px 12px; border-radius: 999px;
-    background: var(--ivory); border: 1px solid var(--line);
-    font-size: .75rem; font-weight: 600; letter-spacing: .05em; color: var(--gold);
+    background: var(--page); border: 1px solid var(--line);
+    font-size: .75rem; font-weight: 600; letter-spacing: .05em; color: var(--accent);
 }
 
 /* ── Steps ────────────────────────────────────────────────────────────────── */
-.steps { list-style: none; margin: 0 auto; padding: 0; max-width: 780px; }
+.steps { list-style: none; margin: 0; padding: 0; }
 .step {
     display: flex; align-items: flex-start; gap: calc(var(--u) * 3);
     padding: calc(var(--u) * 3.5) 0;
@@ -814,12 +909,12 @@ onUnmounted(() => {
     display: inline-flex; align-items: center; justify-content: center;
     width: 52px; height: 52px; border-radius: 50%;
     background: var(--card); border: 1px solid var(--line-strong);
-    font-family: var(--serif); font-size: 1.0625rem; font-weight: 600; letter-spacing: .04em;
-    color: var(--burgundy);
+    font-family: var(--display); font-size: 1.0625rem; font-weight: 600; letter-spacing: .04em;
+    color: var(--accent);
 }
 .step-body { flex: 1; }
 .step-title { font-size: 1.25rem; margin-bottom: 6px; }
-.step-icon { flex-shrink: 0; margin-top: 14px; color: var(--champagne); }
+.step-icon { flex-shrink: 0; margin-top: 14px; color: var(--accent-soft); }
 @media (max-width: 639px) { .step-icon { display: none; } }
 
 /* ── Stories ──────────────────────────────────────────────────────────────── */
@@ -834,19 +929,21 @@ onUnmounted(() => {
     display: flex; flex-direction: column; justify-content: space-between; gap: calc(var(--u) * 4);
     padding: calc(var(--u) * 4);
     border: 1px solid var(--line);
-    border-radius: 16px;
+    border-radius: 20px;
     background: var(--card);
     box-shadow: var(--shadow);
+    transition: box-shadow .3s ease, transform .3s ease;
 }
+.story:hover { box-shadow: var(--shadow-lift); transform: translateY(-3px); }
 .quote-glyph {
     position: absolute; top: 10px; right: 22px;
-    font-family: var(--serif); font-size: 4.5rem; line-height: 1;
+    font-family: var(--display); font-size: 4.5rem; line-height: 1;
     color: var(--line-strong);
 }
 .story blockquote { position: relative; margin: 0; }
 .story-text {
     margin: 0;
-    font-family: var(--serif);
+    font-family: var(--display);
     font-size: 1.3125rem; font-weight: 400; line-height: 1.45;
     color: var(--ink); text-wrap: pretty;
 }
@@ -854,8 +951,8 @@ onUnmounted(() => {
 .avatar {
     display: inline-flex; align-items: center; justify-content: center;
     width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%;
-    background: var(--ivory); border: 1px solid var(--line);
-    font-family: var(--serif); font-size: 1.125rem; font-weight: 600; color: var(--burgundy);
+    background: var(--page); border: 1px solid var(--line);
+    font-family: var(--display); font-size: 1.125rem; font-weight: 600; color: var(--accent);
 }
 .story-name { display: block; font-size: .9375rem; font-weight: 600; }
 .story-role { display: block; font-size: .75rem; letter-spacing: .06em; color: var(--muted); }
@@ -865,7 +962,7 @@ onUnmounted(() => {
     display: grid; grid-template-columns: 1fr; gap: calc(var(--u) * 5); align-items: center;
     padding: calc(var(--u) * 5);
     border: 1px solid var(--line);
-    border-radius: 20px;
+    border-radius: 24px;
     background: var(--card);
     box-shadow: var(--shadow);
 }
@@ -879,20 +976,19 @@ onUnmounted(() => {
 .svc-grid li {
     display: flex; flex-direction: column; align-items: center; gap: 10px;
     padding: calc(var(--u) * 2.5) 12px;
-    border: 1px solid var(--line); border-radius: 12px;
-    background: var(--ivory);
+    border: 1px solid var(--line); border-radius: 14px;
+    background: var(--page);
     font-size: .8125rem; font-weight: 600; text-align: center;
     transition: border-color .2s ease, background .2s ease;
 }
-.svc-grid li:hover { border-color: var(--line-strong); background: var(--ivory-2); }
-.svc-grid svg { color: var(--champagne); }
+.svc-grid li:hover { border-color: var(--line-strong); background: var(--page-2); }
+.svc-grid svg { color: var(--accent-soft); }
 
 /* ── CTA ──────────────────────────────────────────────────────────────────── */
 .cta {
-    max-width: 760px; margin-inline: auto;
     padding: calc(var(--u) * 8) calc(var(--u) * 3);
-    border: 1px solid var(--line-strong);
-    border-radius: 24px;
+    border: 1px solid var(--line);
+    border-radius: 28px;
     background: var(--card);
     box-shadow: var(--shadow-lift);
     text-align: center;
@@ -914,7 +1010,7 @@ onUnmounted(() => {
     font-size: .9375rem; color: var(--muted); cursor: pointer;
     transition: color .2s ease;
 }
-.foot-col a:hover { color: var(--burgundy); }
+.foot-col a:hover { color: var(--accent); }
 .foot-note { margin: 0; font-size: .8125rem; line-height: 1.7; color: var(--muted); }
 @media (min-width: 768px) { .foot-note { text-align: right; } }
 
