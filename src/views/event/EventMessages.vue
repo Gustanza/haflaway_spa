@@ -131,16 +131,16 @@
               <button class="em-search-cancel" @click="closeSearch">Cancel</button>
             </template>
             <template v-else>
-              <button class="em-search-pill" :class="{ 'em-search-pill--active': searchQ }" @click="openSearch">
+              <button class="em-search-pill" :class="{ 'em-search-pill--active': searchQ }" title="Search" @click="openSearch">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
-                Search
+                <span class="em-act-label">Search</span>
               </button>
-              <button class="em-export-btn" @click="showExportDialog = true">
+              <button class="em-export-btn" title="Export" @click="showExportDialog = true">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                <span class="em-act-label">Export</span>
+                <svg class="em-act-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
               <button class="em-refresh-btn" @click="load()" :disabled="loading" title="Refresh">
                 <svg :class="{ 'em-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -151,16 +151,79 @@
               </button>
               <button class="em-edit-camp-btn" title="Edit this step's WhatsApp/SMS message" @click="openCampMsgDialog(activeCampaign)">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Templates
+                <span class="em-act-label">Templates</span>
               </button>
+              <div class="em-override-wrap" v-click-outside="() => overridePopoverOpen = false">
+                <button class="em-override-btn" :class="{ 'em-override-btn--active': overridePhone }"
+                  title="Redirect manual sends to one number" @click="overridePopoverOpen ? (overridePopoverOpen = false) : openOverridePopover()">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.6" fill="currentColor" stroke="none"/></svg>
+                  <span class="em-act-label">{{ overridePhone ? 'Redirecting' : 'Target' }}</span>
+                </button>
+                <div v-if="overridePopoverOpen" class="em-override-pop">
+                  <p class="em-override-pop-label">Send all manual messages to</p>
+                  <input v-model="overridePhoneDraft" class="em-override-input" placeholder="e.g. 255712345678" @keydown.enter="saveOverridePhone" />
+                  <div class="em-override-pop-acts">
+                    <button v-if="overridePhone" class="em-override-clear" @click="clearOverridePhone">Turn off</button>
+                    <button class="em-override-save" @click="saveOverridePhone">Save</button>
+                  </div>
+                </div>
+              </div>
+              <div class="em-report-wrap" v-click-outside="() => reportPopoverOpen = false">
+                <button class="em-report-btn" :class="{ 'em-report-btn--active': reportToken }"
+                  title="Share an undelivered-invitations report with your client" @click="reportPopoverOpen = !reportPopoverOpen">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a3 3 0 1 0-2.83-4H15a3 3 0 1 0 .09 4.26L8.91 11.4a3 3 0 1 0 0 1.2l6.18 3.14A3 3 0 1 0 18 8z"/></svg>
+                  <span class="em-act-label">Share report</span>
+                </button>
+                <div v-if="reportPopoverOpen" class="em-report-pop">
+                  <p class="em-report-pop-label">Public link for guests whose card wasn't delivered</p>
+                  <template v-if="reportUrl">
+                    <div class="em-report-url">{{ reportUrl }}</div>
+                    <div class="em-report-pop-acts">
+                      <button class="em-report-regen" @click="regenerateReportLink">Regenerate</button>
+                      <button class="em-report-copy" @click="copyReportLink">{{ reportLinkCopied ? 'Copied!' : 'Copy link' }}</button>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <p class="em-report-pop-hint">Anyone with this link can see the undelivered list and fix wrong numbers — no login needed.</p>
+                    <button class="em-report-copy" @click="generateReportLink">Generate link</button>
+                  </template>
+                </div>
+              </div>
               <button class="em-send-btn" @click="openSendDrawer">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
-                Send
+                <span class="em-act-label">Send</span>
               </button>
             </template>
+          </div>
+        </div>
+
+        <!-- ── Manual send override banner ── -->
+        <div v-if="overridePhone" class="em-override-banner">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.6" fill="currentColor" stroke="none"/></svg>
+          <span>Manual sends are being redirected to <strong>{{ overridePhone }}</strong> instead of each guest's own number.</span>
+          <button class="em-override-banner-off" @click="clearOverridePhone">Turn off</button>
+        </div>
+
+        <!-- ── Phone-change notices banner ── -->
+        <div v-if="phoneChangeNotices.length" class="em-notice-banner">
+          <div class="em-notice-banner-hd" @click="noticesExpanded = !noticesExpanded">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span>{{ phoneChangeNotices.length }} phone number{{ phoneChangeNotices.length === 1 ? '' : 's' }} updated by your client — review and resend</span>
+            <svg class="em-notice-chev" :class="{ 'em-notice-chev--open': noticesExpanded }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div v-if="noticesExpanded" class="em-notice-list">
+            <div v-for="n in phoneChangeNotices" :key="n.id" class="em-notice-row">
+              <button class="em-notice-row-main" @click="jumpToNotice(n)">
+                <span class="em-notice-name">{{ n.fullName }}</span>
+                <span class="em-notice-diff">{{ n.previousPhone || '—' }} → <strong>{{ n.newPhone }}</strong></span>
+              </button>
+              <button class="em-notice-dismiss" title="Dismiss" @click="dismissNotice(n)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -230,7 +293,10 @@
             <!-- Identity -->
             <div class="em-gc-info">
               <span class="em-gc-name">{{ att.fullName }}</span>
-              <span class="em-gc-meta">{{ att.phone || '—' }}</span>
+              <span class="em-gc-meta">
+                {{ att.phone || '—' }}
+                <span v-if="att.phoneUpdatedByClientAt" class="em-gc-phone-updated" :title="`Was ${att.previousPhone || '—'}, changed by client ${timeAgo(att.phoneUpdatedByClientAt)}`">· updated {{ timeAgo(att.phoneUpdatedByClientAt) }}</span>
+              </span>
             </div>
 
             <!-- Status badges -->
@@ -247,6 +313,23 @@
                 <span class="em-rsvp-dot" :style="{ background: rsvpColor(att.attendanceStatus) }"/>
                 {{ att.attendanceStatus || 'Not Confirmed' }}
               </span>
+            </div>
+
+            <!-- Manual send -->
+            <div class="em-gc-manual">
+              <button class="em-manual-btn em-manual-btn--wsp" :disabled="!canManualSend(att)"
+                :title="canManualSend(att) ? 'Send manually via WhatsApp' : !activeCampaignSmsMessage.trim() ? 'Set this campaign\'s message first (Edit message)' : 'No phone number to send to'"
+                @click="launchManualSend(att, 'whatsapp')">
+                <svg width="13" height="13" viewBox="0 0 448 512" fill="currentColor"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
+              </button>
+              <span v-if="lastManualSend(att, 'whatsapp')" class="em-manual-mark" :title="`Sent manually ${timeAgo(lastManualSend(att, 'whatsapp').at)}`">•</span>
+
+              <button class="em-manual-btn em-manual-btn--sms" :disabled="!canManualSend(att)"
+                :title="canManualSend(att) ? 'Send manually via SMS' : !activeCampaignSmsMessage.trim() ? 'Set this campaign\'s message first (Edit message)' : 'No phone number to send to'"
+                @click="launchManualSend(att, 'sms')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </button>
+              <span v-if="lastManualSend(att, 'sms')" class="em-manual-mark" :title="`Sent manually ${timeAgo(lastManualSend(att, 'sms').at)}`">•</span>
             </div>
 
             <!-- Date -->
@@ -627,10 +710,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, auth } from '../../firebase'
-import { collection, query, orderBy, where, getDocs, setDoc, doc } from 'firebase/firestore'
+import { collection, query, orderBy, where, getDocs, setDoc, doc, updateDoc, arrayUnion, onSnapshot, deleteDoc } from 'firebase/firestore'
+import { resolveEventTokens, refineMessage } from '../../utils/messageTokens'
 
 const vClickOutside = {
   mounted(el, binding) {
@@ -827,6 +911,172 @@ async function saveCampMsg() {
   }
 }
 
+// ── Manual (device-native) send ─────────────────────────────────────────────────
+// Launches the device's own WhatsApp/SMS app with the campaign's SMS message
+// pre-filled, instead of sending through Twilio. Deliberately reuses the plain
+// SMS text (not the Twilio-approved WhatsApp template) — that template only
+// exists to satisfy Meta's pre-approval rule for API-initiated messages, which
+// doesn't apply once a human is sending from their own app. Does not touch the
+// real messageIndexes/delivery-status pipeline (that's Twilio-webhook driven);
+// each manual send just appends a lightweight, separately-rendered marker.
+const overridePhone       = ref(props.event?.manualSendOverridePhone ?? '')
+const overridePopoverOpen = ref(false)
+const overridePhoneDraft  = ref(overridePhone.value)
+
+function openOverridePopover() {
+  overridePhoneDraft.value = overridePhone.value
+  overridePopoverOpen.value = true
+}
+
+async function saveOverridePhone() {
+  if (!eventId.value) return
+  const next = overridePhoneDraft.value.trim() || null
+  try {
+    await updateDoc(doc(db, 'events', eventId.value), { manualSendOverridePhone: next })
+    overridePhone.value = next ?? ''
+    overridePopoverOpen.value = false
+  } catch (e) {
+    console.error('Failed to save manual send override number', e)
+  }
+}
+
+async function clearOverridePhone() {
+  if (!eventId.value) return
+  try {
+    await updateDoc(doc(db, 'events', eventId.value), { manualSendOverridePhone: null })
+    overridePhone.value = ''
+    overridePhoneDraft.value = ''
+    overridePopoverOpen.value = false
+  } catch (e) {
+    console.error('Failed to clear manual send override number', e)
+  }
+}
+
+const activeCampaignSmsMessage = computed(() => campaignMessages.value[activeCampaign.value]?.smsMessage ?? '')
+
+function canManualSend(att) {
+  if (!activeCampaignSmsMessage.value.trim()) return false
+  return !!(overridePhone.value || att.phone)
+}
+
+function manualMessageFor(att) {
+  return refineMessage(
+    eventId.value,
+    att.fullName,
+    att.id,
+    activeCampaignSmsMessage.value,
+    att.cards?.[getKardType(att)]?.url,
+    att.cards?.[getKardType(att)]?.name,
+    att.pledgedAmount ?? 0,
+    att.paidAmount ?? 0,
+    resolveEventTokens(props.event)
+  )
+}
+
+async function launchManualSend(att, channel) {
+  if (!canManualSend(att)) return
+  const phone = (overridePhone.value || att.phone || '').trim()
+  if (!phone) return
+  const text = manualMessageFor(att)
+  if (channel === 'whatsapp') {
+    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank')
+  } else {
+    window.open(`sms:${phone}?&body=${encodeURIComponent(text)}`, '_blank')
+  }
+
+  const entry = { channel, campaignId: activeCampaign.value, at: new Date().toISOString() }
+  const idx = attendees.value.findIndex(a => a.id === att.id)
+  if (idx !== -1) {
+    attendees.value[idx] = { ...attendees.value[idx], manualSends: [...(attendees.value[idx].manualSends ?? []), entry] }
+  }
+  try {
+    await updateDoc(doc(db, 'events', eventId.value, 'attendees', att.id), { manualSends: arrayUnion(entry) })
+  } catch (e) {
+    console.error('Failed to record manual send', e)
+  }
+}
+
+function lastManualSend(att, channel) {
+  const list = (att.manualSends ?? []).filter(m => m.channel === channel)
+  if (!list.length) return null
+  const scoped = list.filter(m => m.campaignId === activeCampaign.value)
+  const pool = scoped.length ? scoped : list
+  return pool.reduce((latest, m) => (!latest || m.at > latest.at ? m : latest), null)
+}
+
+function timeAgo(iso) {
+  if (!iso) return ''
+  const ms = Date.now() - new Date(iso).getTime()
+  const min = Math.round(ms / 60000)
+  if (min < 1) return 'just now'
+  if (min < 60) return `${min}m ago`
+  const hr = Math.round(min / 60)
+  if (hr < 24) return `${hr}h ago`
+  return `${Math.round(hr / 24)}d ago`
+}
+
+// ── Public "not delivered" report link ──────────────────────────────────────
+const reportToken        = ref(props.event?.invitationsReportToken ?? '')
+const reportPopoverOpen  = ref(false)
+const reportLinkCopied   = ref(false)
+
+const reportUrl = computed(() => {
+  if (!reportToken.value || !eventId.value) return ''
+  return `${window.location.origin}/invitations-report/${eventId.value}/${reportToken.value}`
+})
+
+async function generateReportLink() {
+  if (!eventId.value) return
+  const token = crypto.randomUUID()
+  try {
+    await updateDoc(doc(db, 'events', eventId.value), { invitationsReportToken: token })
+    reportToken.value = token
+  } catch (e) {
+    console.error('Failed to generate report link', e)
+  }
+}
+
+async function regenerateReportLink() {
+  if (!window.confirm("Regenerating invalidates the link you already shared — anyone with the old one loses access. Continue?")) return
+  await generateReportLink()
+}
+
+async function copyReportLink() {
+  if (!reportUrl.value) return
+  try {
+    await navigator.clipboard.writeText(reportUrl.value)
+    reportLinkCopied.value = true
+    setTimeout(() => { reportLinkCopied.value = false }, 2000)
+  } catch (e) {
+    console.error('Failed to copy report link', e)
+  }
+}
+
+// ── Phone-change notices (raised by the public report page) ────────────────
+const phoneChangeNotices = ref([])
+const noticesExpanded    = ref(false)
+let unsubNotices = null
+
+function subscribeNotices() {
+  if (unsubNotices || !eventId.value) return
+  unsubNotices = onSnapshot(collection(db, 'events', eventId.value, 'phoneChangeNotices'), snap => {
+    phoneChangeNotices.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  })
+}
+
+function jumpToNotice(notice) {
+  searchQ.value = notice.fullName
+  searchOpen.value = true
+}
+
+async function dismissNotice(notice) {
+  try {
+    await deleteDoc(doc(db, 'events', eventId.value, 'phoneChangeNotices', notice.id))
+  } catch (e) {
+    console.error('Failed to dismiss phone change notice', e)
+  }
+}
+
 // ── State ─────────────────────────────────────────────────────────────────────
 const attendees    = ref([])
 const loading      = ref(false)
@@ -898,10 +1148,14 @@ function scrollCampGrid(dir) { campGridEl.value?.scrollBy({ left: dir * 160, beh
 const drawerPickSearch = ref('')
 const drawerPickList   = ref([])   // attendee ids picked manually
 const pickOpen         = ref(false)
-// Attendees scoped by sendLabelId — used as the base pool for all send-drawer recipient logic
+// Base pool for all send-drawer recipient logic: attendees eligible for the selected
+// campaign's kardType (an invitation campaign should never count contacts/contributors
+// as "unsent" recipients), further scoped by sendLabelId when a group filter is active.
 const sendRecipPool = computed(() => {
-  if (!sendLabelId.value) return attendees.value
-  return attendees.value.filter(a => (a.labelIds ?? []).includes(sendLabelId.value))
+  const kardType = CAMPAIGN_KARD_TYPE[sendCampaign.value] ?? 'invitation'
+  let list = attendees.value.filter(a => getKardType(a) === kardType)
+  if (sendLabelId.value) list = list.filter(a => (a.labelIds ?? []).includes(sendLabelId.value))
+  return list
 })
 
 const drawerPickFiltered = computed(() => {
@@ -1597,8 +1851,9 @@ function avatarFg(n) { return `hsl(${nameHash(n ?? '') % 360}, 50%, 30%)` }
 function rsvpColor(s) { return { Confirmed: '#30D158', Declined: '#FF453A', Called: '#64D2FF', Unreachable: '#FF9F0A', 'Not Confirmed': '#8E8E93' }[s] ?? '#8E8E93' }
 function formatDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' }) } catch { return '—' } }
 
-onMounted(() => { load(); loadCampaignMessages() })
-watch(eventId, () => { if (eventId.value) { load(); loadCampaignMessages() } })
+onMounted(() => { load(); loadCampaignMessages(); subscribeNotices() })
+watch(eventId, () => { if (eventId.value) { load(); loadCampaignMessages(); unsubNotices?.(); unsubNotices = null; subscribeNotices() } })
+onUnmounted(() => { unsubNotices?.() })
 </script>
 
 <style scoped>
@@ -1768,6 +2023,102 @@ watch(eventId, () => { if (eventId.value) { load(); loadCampaignMessages() } })
   font-size: 13px; font-weight: 600; cursor: pointer; transition: all 130ms; font-family: inherit; flex-shrink: 0;
 }
 .em-edit-camp-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* Manual send target override */
+.em-override-wrap { position: relative; flex-shrink: 0; }
+.em-override-btn {
+  display: flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 14px; border-radius: 8px;
+  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 130ms; font-family: inherit;
+}
+.em-override-btn:hover { border-color: var(--gold); color: var(--gold); }
+.em-override-btn--active { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.10); }
+.em-override-pop {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 40;
+  width: 240px; padding: 12px; border-radius: 10px;
+  background: var(--c-panel, var(--c-bg)); border: 1px solid var(--c-border);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.em-override-pop-label { font-size: 12px; font-weight: 600; color: var(--c-txt-2); margin: 0; }
+.em-override-input {
+  height: 34px; padding: 0 10px; border-radius: 8px;
+  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt);
+  font-size: 13px; font-family: inherit; outline: none;
+}
+.em-override-input:focus { border-color: var(--gold); }
+.em-override-pop-acts { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.em-override-clear { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--c-txt-3); font-weight: 600; padding: 0; font-family: inherit; margin-right: auto; }
+.em-override-clear:hover { color: var(--c-txt); }
+.em-override-save {
+  height: 30px; padding: 0 14px; border-radius: 7px; border: none;
+  background: var(--gold); color: #1a1a1a; font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: opacity 130ms;
+}
+.em-override-save:hover { opacity: 0.85; }
+
+.em-override-banner {
+  flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+  padding: 9px 20px; background: rgba(201,168,76,0.10); border-bottom: 1px solid var(--c-divide);
+  color: var(--gold); font-size: 12px; font-weight: 500;
+}
+.em-override-banner strong { font-weight: 700; }
+.em-override-banner-off {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  font-size: 12px; font-weight: 700; color: var(--gold); padding: 0; font-family: inherit;
+}
+.em-override-banner-off:hover { opacity: 0.75; }
+
+/* Public report link */
+.em-report-wrap { position: relative; flex-shrink: 0; }
+.em-report-btn {
+  display: flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 14px; border-radius: 8px;
+  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 130ms; font-family: inherit;
+}
+.em-report-btn:hover { border-color: var(--gold); color: var(--gold); }
+.em-report-btn--active { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.10); }
+.em-report-pop {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 40;
+  width: 300px; padding: 14px; border-radius: 10px;
+  background: var(--c-panel, var(--c-bg)); border: 1px solid var(--c-border);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.em-report-pop-label { font-size: 12px; font-weight: 600; color: var(--c-txt-2); margin: 0; }
+.em-report-pop-hint { font-size: 12px; color: var(--c-txt-3); margin: 0; line-height: 1.4; }
+.em-report-url {
+  font-size: 11px; color: var(--c-txt-2); background: rgba(255,255,255,0.05);
+  border: 1px solid var(--c-border); border-radius: 7px; padding: 8px; word-break: break-all;
+}
+.em-report-pop-acts { display: flex; align-items: center; gap: 8px; }
+.em-report-regen { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--c-txt-3); font-weight: 600; padding: 0; font-family: inherit; margin-right: auto; }
+.em-report-regen:hover { color: var(--c-txt); }
+.em-report-copy {
+  height: 30px; padding: 0 14px; border-radius: 7px; border: none;
+  background: var(--gold); color: #1a1a1a; font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: opacity 130ms;
+}
+.em-report-copy:hover { opacity: 0.85; }
+
+/* Phone-change notices */
+.em-notice-banner { flex-shrink: 0; background: rgba(255,159,10,0.10); border-bottom: 1px solid var(--c-divide); }
+.em-notice-banner-hd {
+  display: flex; align-items: center; gap: 8px; padding: 9px 20px;
+  color: #B36800; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.em-notice-chev { margin-left: auto; transition: transform 130ms; }
+.em-notice-chev--open { transform: rotate(180deg); }
+.em-notice-list { padding: 0 20px 12px; display: flex; flex-direction: column; gap: 6px; }
+.em-notice-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 6px 10px; }
+.em-notice-row-main { flex: 1; display: flex; align-items: center; gap: 10px; background: none; border: none; cursor: pointer; text-align: left; padding: 0; font-family: inherit; }
+.em-notice-name { font-size: 12px; font-weight: 700; color: var(--c-txt); }
+.em-notice-diff { font-size: 12px; color: var(--c-txt-2); }
+.em-notice-diff strong { color: var(--c-txt); }
+.em-notice-dismiss { background: none; border: none; cursor: pointer; color: var(--c-txt-3); padding: 4px; display: flex; }
+.em-notice-dismiss:hover { color: var(--c-txt); }
 
 /* Export dialog */
 .em-expd-backdrop {
@@ -2010,6 +2361,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCampaignMessages() } })
   letter-spacing: 0.01em;
 }
 .em-gc-meta { font-size: 11px; color: var(--c-txt-3); letter-spacing: 0.02em; }
+.em-gc-phone-updated { color: #B36800; font-weight: 600; }
 
 /* Status badges zone */
 .em-gc-statuses {
@@ -2050,6 +2402,20 @@ watch(eventId, () => { if (eventId.value) { load(); loadCampaignMessages() } })
   min-width: 68px; text-align: right;
   letter-spacing: 0.02em;
 }
+
+/* Manual send */
+.em-gc-manual { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.em-manual-btn {
+  width: 26px; height: 26px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent;
+  cursor: pointer; transition: background 130ms, border-color 130ms;
+}
+.em-manual-btn--wsp { color: #128C7E; }
+.em-manual-btn--sms { color: #5856D6; }
+.em-manual-btn:hover:not(:disabled) { background: rgba(255,255,255,0.06); border-color: var(--c-border); }
+.em-manual-btn:disabled { opacity: 0.28; cursor: default; }
+.em-manual-mark { font-size: 16px; line-height: 1; color: var(--gold); margin: 0 2px 0 -2px; cursor: default; }
 
 /* Mobile */
 
@@ -2215,8 +2581,25 @@ watch(eventId, () => { if (eventId.value) { load(); loadCampaignMessages() } })
 .em-action-btn--sms { background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%); color: var(--c-txt); }
 .em-action-btn--sms:hover { opacity: 1; background: rgb(from var(--gold) r g b / 0.2); }
 
-/* ── Send Drawer ── */
-.em-overlay { position: fixed; inset: 0; background: var(--overlay-bg); z-index: 1000; display: flex; align-items: stretch; justify-content: flex-end; }
+/* ── Send Drawer ──
+   .em-overlay is a Teleport target (<body>), so it's no longer a descendant
+   of .em-root — the --c-* tokens declared there (below) don't cascade here.
+   Redeclare them on this shared Teleport root so every var(--c-*) inside the
+   drawer AND the edit-message dialog (both render through .em-overlay)
+   resolves again, instead of quietly falling back to `transparent`/`initial`
+   and letting whatever sits underneath show through. */
+.em-overlay {
+  --c-bg:     #141414;
+  --c-border: #2a2a2a;
+  --c-track:  #2a2a2a;
+  --c-muted:  #3a3a3a;
+  --c-txt:    #f0f0ec;
+  --c-txt-2:  #888;
+  --c-txt-3:  #555;
+  --c-divide: #2a2a2a;
+  --c-arrow:  #3a3a3a;
+  position: fixed; inset: 0; background: var(--overlay-bg); z-index: 1000; display: flex; align-items: stretch; justify-content: flex-end;
+}
 .em-overlay--center { align-items: center; justify-content: center; }
 .em-drawer  { width: 400px; max-width: 95vw; height: 100%; background: var(--c-bg); display: flex; flex-direction: column; box-shadow: -8px 0 32px rgba(0,0,0,0.45); }
 .em-drawer-header { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--c-divide); }
@@ -2465,7 +2848,18 @@ watch(eventId, () => { if (eventId.value) { load(); loadCampaignMessages() } })
 @media (max-width: 640px) {
   .em-panel-title { flex: 1; font-size: 16px; }
   .em-panel-acts  { flex-shrink: 0; }
-  .em-send-btn, .em-export-btn, .em-edit-camp-btn { padding: 7px 12px; font-size: 12px; }
+  /* Search/Export/Refresh/Templates/Send together are wider than a phone
+     screen. Wrapping them onto a second line technically avoided clipping,
+     but left a lopsided 3-then-2 stack with the title floating alone above
+     a wall of empty space — worse than the clip. Shedding each secondary
+     action's label (Search/Export/Templates), same "icon survives, text
+     goes" pattern as the topbar elsewhere, keeps everything on one row
+     instead: Send is the one action worth spelling out. */
+  .em-search-pill, .em-export-btn, .em-edit-camp-btn {
+    width: 32px; height: 32px; padding: 0; justify-content: center; gap: 0; border-radius: 8px;
+  }
+  .em-act-label, .em-act-chevron { display: none; }
+  .em-send-btn { padding: 7px 12px; font-size: 12px; }
   .em-hd-search { order: 3; flex: unset; width: 100%; }
   .em-aud-tabs  { order: 4; }
 

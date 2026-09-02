@@ -223,47 +223,6 @@
               </button>
             </div>
           </div>
-          <!-- Theme toggle -->
-          <button
-            class="theme-toggle-btn me-theme-toggle"
-            @click="toggleTheme"
-            :title="isDark ? 'Switch to light' : 'Switch to dark'"
-          >
-            <svg
-              v-if="isDark"
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="12" cy="12" r="5" />
-              <line x1="12" y1="1" x2="12" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="23" />
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-              <line x1="1" y1="12" x2="3" y2="12" />
-              <line x1="21" y1="12" x2="23" y2="12" />
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-            </svg>
-            <svg
-              v-else
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          </button>
           <button
             v-if="canCreateEvents"
             class="me-create-btn"
@@ -556,8 +515,10 @@
             <div class="me-feat-thumb" v-html="invitationSvg(featuredEvent)" />
           </div>
 
-          <!-- Middle: content -->
-          <div class="me-feat-content">
+          <!-- Middle: content top group (eyebrow/title/meta/progress). Split from
+               .me-feat-actions below so the actions row can share a grid row with
+               the countdown ticket — see .me-featured's grid-template-areas. -->
+          <div class="me-feat-top">
             <div class="me-feat-eyebrow">
               <span class="me-feat-eyebrow-label">FEATURED · NEXT UP</span>
               <span class="me-feat-eyebrow-sparkle">✦</span>
@@ -625,37 +586,38 @@
                 {{ (featuredEvent.contributionGoal / 1000).toFixed(0) }}k</span
               >
             </div>
-            <div class="me-feat-actions" @click.stop>
-              <button
-                class="me-feat-open-btn"
-                @click="goToEvent(featuredEvent.id)"
+          </div>
+          <div class="me-feat-actions" @click.stop>
+            <button
+              class="me-feat-open-btn"
+              @click="goToEvent(featuredEvent.id)"
+            >
+              Open dashboard
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
               >
-                Open dashboard
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </button>
-              <span
-                class="me-status-pill"
-                :class="`me-status-pill--${statusClass(featuredEvent)}`"
-              >
-                <span class="me-status-dot" />{{ statusLabel(featuredEvent) }}
-              </span>
-            </div>
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </button>
+            <span
+              class="me-status-pill"
+              :class="`me-status-pill--${statusClass(featuredEvent)}`"
+            >
+              <span class="me-status-dot" />{{ statusLabel(featuredEvent) }}
+            </span>
           </div>
 
-          <!-- Right: editorial countdown -->
-          <div class="me-feat-countdown">
+          <!-- Right: editorial countdown top group, mirrors .me-feat-top's split
+               so the ticket below lands in the same grid row as the actions row. -->
+          <div class="me-feat-cd-top">
             <span class="me-feat-cd-month">{{
               formatMonth(featuredEvent.startDate)
             }}</span>
@@ -667,16 +629,16 @@
                 ? new Date(featuredEvent.startDate).getFullYear()
                 : ""
             }}</span>
-            <div class="me-feat-cd-ticket">
-              <span class="me-feat-cd-num">{{
-                Math.abs(daysAway(featuredEvent.startDate) ?? 0)
-              }}</span>
-              <span class="me-feat-cd-words">{{
-                (daysAway(featuredEvent.startDate) ?? 0) > 0
-                  ? "days\naway"
-                  : "days\npast"
-              }}</span>
-            </div>
+          </div>
+          <div class="me-feat-cd-ticket">
+            <span class="me-feat-cd-num">{{
+              Math.abs(daysAway(featuredEvent.startDate) ?? 0)
+            }}</span>
+            <span class="me-feat-cd-words">{{
+              (daysAway(featuredEvent.startDate) ?? 0) > 0
+                ? "days away"
+                : "days past"
+            }}</span>
           </div>
         </div>
 
@@ -891,11 +853,9 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { db, auth } from "../firebase";
 import { signOut } from "firebase/auth";
-import { useTheme } from "../composables/useTheme.js";
 import { useOrg } from "../composables/useOrg.js";
 import { useTopUp } from "../composables/useTopUp.js";
 
-const { isDark, toggleTheme } = useTheme();
 const { activeOrg, isOwner, canCreateEvents, brandName, brandLogoUrl } = useOrg();
 const {
   orgBalance,
@@ -1483,37 +1443,35 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* ── Tokens — Bento Glow (matches the "/" landing page: cloud-white surfaces,
-   solid shadow-based depth, one rose-gold accent). Scoped to .me-root, so
-   this doesn't touch the shared dark tokens the other ~23 admin views read
-   from style.css. Structural glass effects (backdrop-filter, translucent
-   layered gradients, dark-tuned inset highlights) are stripped rule-by-rule
-   below in favor of solid surfaces + soft shadows — glass depth and
-   shadow depth are different instincts, and Bento Glow is the latter. ── */
+/* ── Tokens — Calm Dark (matches the event dashboard's dark theme: charcoal
+   surfaces one step lighter than the page canvas, hairline borders instead of
+   shadows, gold reserved for money/highlight, emerald for live/positive
+   state). Scoped to .me-root, so this doesn't touch the shared tokens the
+   other ~23 admin views read from style.css. ── */
 .me-root {
-  --ink: #1d1d1f;
-  --ink-soft: #374151;
-  --ink-muted: #6e6e73;
-  --ink-dim: #9ca3af;
-  --line: #e5e5e7;
-  --line-soft: #f1f1f3;
-  --line-strong: #d4d4d8;
-  --paper-soft: rgba(255, 255, 255, 0.6);
-  --emerald: #16a34a;
-  --emerald-soft: rgba(22, 163, 74, 0.12);
-  --accent: #a8574b;
-  --accent-deep: #8b4239;
-  --accent-soft: #e8b9ae;
-  --shadow: 0 1px 2px rgba(20, 20, 25, 0.04), 0 8px 24px rgba(20, 20, 25, 0.06);
-  --shadow-lift: 0 2px 6px rgba(20, 20, 25, 0.06), 0 20px 48px rgba(20, 20, 25, 0.1);
+  --ink: #f0f0ec;
+  --ink-soft: #d4cfc8;
+  --ink-muted: #888;
+  --ink-dim: #555;
+  --line: #2a2a2a;
+  --line-soft: #1e1e1e;
+  --line-strong: #3a3a3a;
+  --paper-soft: #1a1a1a;
+  --emerald: #34d399;
+  --emerald-soft: rgba(52, 211, 153, 0.12);
+  --accent: #c9a84c;
+  --accent-deep: #a0863d;
+  --accent-soft: rgba(201, 168, 76, 0.14);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.4);
 
   /* ── Layout tokens (org can override the surface color itself via
      --org-*-bg, set in useOrg.js's watchEffect) ── */
-  --me-topbar-bg: var(--org-topbar-bg, #ffffff);
-  --me-controls-bg: #ffffff;
-  --me-card-bg: #ffffff;
-  --me-dropdown-bg: #ffffff;
-  --me-page-bg: var(--org-page-bg, #fafafa);
+  --me-topbar-bg: var(--org-topbar-bg, #141414);
+  --me-controls-bg: #141414;
+  --me-card-bg: #141414;
+  --me-dropdown-bg: #1a1a1a;
+  --me-page-bg: var(--org-page-bg, #070707);
 
   min-height: 100vh;
   /* flow-root establishes a BFC so the topbar's 32px top margin is contained
@@ -1545,11 +1503,11 @@ onUnmounted(() => {
   box-sizing: border-box;
 }
 .me-topbar-inner {
-  padding: 12px 24px;
+  padding: 18px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-radius: 28px;
+  border-radius: 14px;
   background: var(--me-topbar-bg);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
@@ -1737,7 +1695,7 @@ onUnmounted(() => {
   cursor: pointer;
   font-family: inherit;
   transition: all 150ms ease;
-  box-shadow: 0 4px 14px rgba(139, 66, 57, 0.28);
+  box-shadow: 0 4px 14px rgb(from var(--accent-deep) r g b / 0.28);
 }
 .me-tu-submit:hover:not(:disabled) {
   background: var(--accent-deep);
@@ -2329,8 +2287,8 @@ onUnmounted(() => {
   transition: all 180ms ease;
 }
 .me-fb-select option {
-  color: #1a1a1a;
-  background: #ffffff;
+  color: #f0f0ec;
+  background: #141414;
 }
 .me-fb-select:focus {
   border-color: var(--accent);
@@ -2474,7 +2432,12 @@ onUnmounted(() => {
   position: relative;
   display: grid;
   grid-template-columns: 165px 1fr 180px;
-  gap: 24px;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "thumb top    cd-top"
+    "thumb bottom cd-bottom";
+  column-gap: 24px;
+  row-gap: 10px;
   padding: 20px 22px 20px 18px;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -2501,6 +2464,7 @@ onUnmounted(() => {
 
 /* Featured thumb col */
 .me-feat-thumb-col {
+  grid-area: thumb;
   position: relative;
   z-index: 1;
   display: flex;
@@ -2520,7 +2484,7 @@ onUnmounted(() => {
   border-radius: 10px;
   overflow: hidden;
   transform: rotate(1deg);
-  box-shadow: 0 4px 16px rgba(20, 20, 25, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   line-height: 0;
 }
 .me-feat-thumb :deep(svg) {
@@ -2529,14 +2493,18 @@ onUnmounted(() => {
   height: auto;
 }
 
-/* Featured content col */
-.me-feat-content {
+/* Featured content col — top group. Vertically centered within its own grid
+   row (1fr), independent of the countdown's top group, since only the bottom
+   row (actions/ticket) needs cross-column alignment. */
+.me-feat-top {
+  grid-area: top;
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 0;
   justify-content: center;
+  gap: 0;
+  min-height: 0;
 }
 .me-feat-eyebrow {
   display: flex;
@@ -2621,6 +2589,9 @@ onUnmounted(() => {
 }
 
 .me-feat-actions {
+  grid-area: bottom;
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2654,8 +2625,9 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px rgb(from var(--accent) r g b / 0.4);
 }
 
-/* Featured countdown col */
-.me-feat-countdown {
+/* Featured countdown col — top group, mirrors .me-feat-top's own centering. */
+.me-feat-cd-top {
+  grid-area: cd-top;
   position: relative;
   z-index: 1;
   display: flex;
@@ -2664,6 +2636,7 @@ onUnmounted(() => {
   justify-content: center;
   gap: 0;
   padding-right: 4px;
+  min-height: 0;
 }
 .me-feat-cd-month {
   font-size: 10px;
@@ -2692,15 +2665,19 @@ onUnmounted(() => {
   margin-bottom: 10px;
 }
 .me-feat-cd-ticket {
+  grid-area: cd-bottom;
+  justify-self: end;
+  position: relative;
+  z-index: 1;
   background: var(--accent);
   box-shadow: 0 4px 14px rgb(from var(--accent-deep) r g b / 0.28);
   border: none;
   color: #fff;
   border-radius: 10px;
-  padding: 8px 14px;
+  padding: 7px 18px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 .me-feat-cd-num {
   font-size: 22px;
@@ -2714,7 +2691,7 @@ onUnmounted(() => {
   letter-spacing: 0.8px;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.8);
-  white-space: pre-line;
+  white-space: nowrap;
   line-height: 1.3;
 }
 
@@ -2742,7 +2719,7 @@ onUnmounted(() => {
 .me-hanging-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
   padding-top: 4px;
 }
 
@@ -2817,7 +2794,7 @@ onUnmounted(() => {
   border-radius: 6px;
   overflow: hidden;
   transform: rotate(1.5deg);
-  box-shadow: 0 4px 14px rgba(20, 20, 25, 0.16);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   line-height: 0;
   z-index: 1;
   transition:
@@ -2826,7 +2803,7 @@ onUnmounted(() => {
 }
 .me-row:hover .me-row-card-inner {
   transform: rotate(0.3deg) scale(1.06);
-  box-shadow: 0 8px 22px rgba(20, 20, 25, 0.2);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
 }
 .me-row-card-inner :deep(svg) {
   display: block;
@@ -3194,13 +3171,18 @@ onUnmounted(() => {
   /* Featured: thumb (small) + content, no countdown */
   .me-featured {
     grid-template-columns: 120px 1fr;
-    gap: 24px;
+    grid-template-areas:
+      "thumb top"
+      "thumb bottom";
+    column-gap: 24px;
+    row-gap: 10px;
     padding: 24px;
   }
   .me-feat-thumb-col {
     display: flex;
   }
-  .me-feat-countdown {
+  .me-feat-cd-top,
+  .me-feat-cd-ticket {
     display: none;
   }
   .me-feat-title {
@@ -3242,7 +3224,7 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .me-topbar-inner {
-    padding: 12px 16px;
+    padding: 16px 16px;
   }
   /* Both dropdowns are right:0-anchored to their trigger pill, but neither
      pill is the rightmost element in the topbar (each has 2-3 icon buttons
@@ -3335,11 +3317,16 @@ onUnmounted(() => {
   /* Featured card */
   .me-featured {
     grid-template-columns: 72px 1fr;
-    gap: 12px;
+    grid-template-areas:
+      "thumb top"
+      "thumb bottom";
+    column-gap: 12px;
+    row-gap: 8px;
     padding: 14px 16px;
     border-radius: 14px;
   }
-  .me-feat-countdown {
+  .me-feat-cd-top,
+  .me-feat-cd-ticket {
     display: none;
   }
   /* Thumb: fixed width so it sits INSIDE the outline frame (matches row-card style) */
@@ -3385,6 +3372,9 @@ onUnmounted(() => {
     white-space: nowrap;
   }
   /* Event rows */
+  .me-hanging-list {
+    gap: 10px;
+  }
   .me-row {
     grid-template-columns: 72px 1fr;
     min-height: 96px;
@@ -3477,7 +3467,7 @@ onUnmounted(() => {
 
 @media (max-width: 400px) {
   .me-topbar-inner {
-    padding: 10px 14px;
+    padding: 14px 14px;
   }
   .me-topbar {
     padding: 0 12px;
@@ -3513,7 +3503,8 @@ onUnmounted(() => {
   }
   .me-featured {
     grid-template-columns: 64px 1fr;
-    gap: 10px;
+    column-gap: 10px;
+    row-gap: 6px;
     padding: 12px 14px;
   }
   .me-feat-thumb {

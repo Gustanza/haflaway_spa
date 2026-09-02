@@ -110,9 +110,122 @@
           <div class="ce-fields">
 
             <div class="ce-field" :class="{ 'ce-field--error': errors.location }">
-              <label class="ce-label">Location <span class="ce-req">*</span></label>
-              <input v-model="form.location" type="text" class="ce-input" placeholder="e.g. Mlimani City Hall" @input="errors.location = ''" />
+              <label class="ce-label">Venue <span class="ce-req">*</span></label>
+              <div class="ce-search-wrap">
+                <svg class="ce-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  v-model="form.location"
+                  type="text"
+                  class="ce-input ce-input--search"
+                  placeholder="e.g. Mlimani City Hall"
+                  autocomplete="off"
+                  @input="form.locationLat = null; form.locationLng = null; form.locationAddress = ''; errors.location = ''; venuePlace.search(form.location)"
+                  @keydown.down.prevent="venuePlace.cursor.value = Math.min(venuePlace.cursor.value + 1, venuePlace.suggestions.value.length - 1)"
+                  @keydown.up.prevent="venuePlace.cursor.value = Math.max(venuePlace.cursor.value - 1, 0)"
+                  @keydown.enter.prevent="venuePlace.cursor.value >= 0 && pickVenue(venuePlace.suggestions.value[venuePlace.cursor.value])"
+                  @keydown.escape="venuePlace.clear()"
+                />
+                <svg v-if="venuePlace.loading.value" class="ce-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                <ul v-if="venuePlace.suggestions.value.length" class="ce-suggestions">
+                  <li
+                    v-for="(s, i) in venuePlace.suggestions.value"
+                    :key="s.place"
+                    class="ce-suggestion"
+                    :class="{ 'ce-suggestion--active': i === venuePlace.cursor.value }"
+                    @mousedown.prevent="pickVenue(s)"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <div class="ce-suggestion-text">
+                      <span class="ce-suggestion-main">{{ s.structuredFormat?.mainText?.text }}</span>
+                      <span class="ce-suggestion-sub">{{ s.structuredFormat?.secondaryText?.text }}</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <span v-if="form.locationLat" class="ce-map-hint">&#128205; Matched on map &middot; {{ Number(form.locationLat).toFixed(4) }}, {{ Number(form.locationLng).toFixed(4) }}</span>
               <span v-if="errors.location" class="ce-field-error">{{ errors.location }}</span>
+              <button type="button" class="ce-manual-toggle" @click="venuePlace.toggleManual()">Can't find it on the map?</button>
+              <div v-if="venuePlace.showManual.value" class="ce-manual-box">
+                <button type="button" class="ce-manual-btn" :disabled="venuePlace.manualBusy.value" @click="applyVenueLocation">
+                  &#128205; Use my current location
+                </button>
+                <div class="ce-manual-link-row">
+                  <input
+                    v-model="venuePlace.linkInput.value"
+                    type="text"
+                    class="ce-input ce-manual-link-input"
+                    placeholder="Paste a Google Maps link"
+                    @keydown.enter.prevent="applyVenueLink"
+                  />
+                  <button type="button" class="ce-manual-apply" :disabled="venuePlace.manualBusy.value" @click="applyVenueLink">Apply</button>
+                </div>
+                <span v-if="venuePlace.manualError.value" class="ce-field-error">{{ venuePlace.manualError.value }}</span>
+              </div>
+            </div>
+
+            <div class="ce-field">
+              <label class="ce-label">Place of Worship <span class="ce-optional">(optional)</span></label>
+              <div class="ce-search-wrap">
+                <svg class="ce-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  v-model="form.worshipLocation"
+                  type="text"
+                  class="ce-input ce-input--search"
+                  placeholder="e.g. church, mosque, or temple name"
+                  autocomplete="off"
+                  @input="form.worshipLocationLat = null; form.worshipLocationLng = null; form.worshipLocationAddress = ''; worshipPlace.search(form.worshipLocation)"
+                  @keydown.down.prevent="worshipPlace.cursor.value = Math.min(worshipPlace.cursor.value + 1, worshipPlace.suggestions.value.length - 1)"
+                  @keydown.up.prevent="worshipPlace.cursor.value = Math.max(worshipPlace.cursor.value - 1, 0)"
+                  @keydown.enter.prevent="worshipPlace.cursor.value >= 0 && pickWorship(worshipPlace.suggestions.value[worshipPlace.cursor.value])"
+                  @keydown.escape="worshipPlace.clear()"
+                />
+                <svg v-if="worshipPlace.loading.value" class="ce-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                <ul v-if="worshipPlace.suggestions.value.length" class="ce-suggestions">
+                  <li
+                    v-for="(s, i) in worshipPlace.suggestions.value"
+                    :key="s.place"
+                    class="ce-suggestion"
+                    :class="{ 'ce-suggestion--active': i === worshipPlace.cursor.value }"
+                    @mousedown.prevent="pickWorship(s)"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <div class="ce-suggestion-text">
+                      <span class="ce-suggestion-main">{{ s.structuredFormat?.mainText?.text }}</span>
+                      <span class="ce-suggestion-sub">{{ s.structuredFormat?.secondaryText?.text }}</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <span v-if="form.worshipLocationLat" class="ce-map-hint">&#128205; Matched on map &middot; {{ Number(form.worshipLocationLat).toFixed(4) }}, {{ Number(form.worshipLocationLng).toFixed(4) }}</span>
+              <button type="button" class="ce-manual-toggle" @click="worshipPlace.toggleManual()">Can't find it on the map?</button>
+              <div v-if="worshipPlace.showManual.value" class="ce-manual-box">
+                <button type="button" class="ce-manual-btn" :disabled="worshipPlace.manualBusy.value" @click="applyWorshipLocation">
+                  &#128205; Use my current location
+                </button>
+                <div class="ce-manual-link-row">
+                  <input
+                    v-model="worshipPlace.linkInput.value"
+                    type="text"
+                    class="ce-input ce-manual-link-input"
+                    placeholder="Paste a Google Maps link"
+                    @keydown.enter.prevent="applyWorshipLink"
+                  />
+                  <button type="button" class="ce-manual-apply" :disabled="worshipPlace.manualBusy.value" @click="applyWorshipLink">Apply</button>
+                </div>
+                <span v-if="worshipPlace.manualError.value" class="ce-field-error">{{ worshipPlace.manualError.value }}</span>
+              </div>
             </div>
 
             <div class="ce-field" :class="{ 'ce-field--error': errors.supportPhone }">
@@ -239,12 +352,64 @@ import {
 } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useOrg } from '../composables/useOrg.js'
+import { usePlaceSearch } from '../composables/usePlaceSearch.js'
 import { visiblePlansFor } from '../utils/planVisibility.js'
 import { toStoredEventDate } from '../utils/eventDates.js'
 
 const router = useRouter()
 const uid = auth.currentUser?.uid
 const { activeOrg, canCreateEvents, loading: orgLoading } = useOrg()
+
+const venuePlace = usePlaceSearch()
+const worshipPlace = usePlaceSearch()
+
+async function pickVenue(suggestion) {
+  const r = await venuePlace.resolve(suggestion)
+  form.value.location = r.text
+  form.value.locationAddress = r.address
+  form.value.locationLat = r.lat
+  form.value.locationLng = r.lng
+  errors.value.location = ''
+}
+
+async function pickWorship(suggestion) {
+  const r = await worshipPlace.resolve(suggestion)
+  form.value.worshipLocation = r.text
+  form.value.worshipLocationAddress = r.address
+  form.value.worshipLocationLat = r.lat
+  form.value.worshipLocationLng = r.lng
+}
+
+// Manual fallbacks — venue name stays whatever the admin typed; only the
+// coordinates come from the device or the pasted link.
+async function applyVenueLocation() {
+  const r = await venuePlace.useMyLocation()
+  if (!r) return
+  form.value.locationLat = r.lat
+  form.value.locationLng = r.lng
+  form.value.locationAddress = ''
+}
+async function applyVenueLink() {
+  const r = await venuePlace.useLinkInput()
+  if (!r) return
+  form.value.locationLat = r.lat
+  form.value.locationLng = r.lng
+  form.value.locationAddress = ''
+}
+async function applyWorshipLocation() {
+  const r = await worshipPlace.useMyLocation()
+  if (!r) return
+  form.value.worshipLocationLat = r.lat
+  form.value.worshipLocationLng = r.lng
+  form.value.worshipLocationAddress = ''
+}
+async function applyWorshipLink() {
+  const r = await worshipPlace.useLinkInput()
+  if (!r) return
+  form.value.worshipLocationLat = r.lat
+  form.value.worshipLocationLng = r.lng
+  form.value.worshipLocationAddress = ''
+}
 
 // Guard: creating an event spends the org's wallet balance, so only the owner
 // or a member the owner explicitly granted canCreate may reach this page.
@@ -262,6 +427,13 @@ const form = ref({
   startDate: '',
   endDate: '',
   location: '',
+  locationAddress: '',
+  locationLat: null,
+  locationLng: null,
+  worshipLocation: '',
+  worshipLocationAddress: '',
+  worshipLocationLat: null,
+  worshipLocationLng: null,
   supportPhone: '',
   eventPlanId: null,
   eventPlanName: '',
@@ -374,6 +546,13 @@ async function handleSubmit() {
       categoryLevel: form.value.categoryLevel,
       description: form.value.description.trim(),
       location: form.value.location.trim(),
+      locationAddress: form.value.locationAddress,
+      locationLat: form.value.locationLat,
+      locationLng: form.value.locationLng,
+      worshipLocation: form.value.worshipLocation.trim(),
+      worshipLocationAddress: form.value.worshipLocationAddress,
+      worshipLocationLat: form.value.worshipLocationLat,
+      worshipLocationLng: form.value.worshipLocationLng,
       eventThumbnail: thumbnailUrl,
       eventPlanId: form.value.eventPlanId ?? null,
       // Naive local wall-clock, matching the Flutter app's format — NOT
@@ -602,6 +781,42 @@ onMounted(async () => {
   color: #FF453A;
   font-weight: 500;
 }
+
+.ce-search-wrap { position: relative; }
+.ce-input--search { padding-left: 36px; }
+.ce-search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.ce-search-spin { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); animation: ce-rotate 0.8s linear infinite; }
+@keyframes ce-rotate { to { transform: translateY(-50%) rotate(360deg); } }
+.ce-suggestions {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 200;
+  background: #111827; border: 1px solid #1e2d44; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4); list-style: none; margin: 0; padding: 4px;
+}
+.ce-suggestion { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background 120ms; }
+.ce-suggestion:hover, .ce-suggestion--active { background: rgba(255,255,255,0.06); }
+.ce-suggestion-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ce-suggestion-main { font-size: 13.5px; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ce-suggestion-sub { font-size: 12px; color: #8892a4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ce-map-hint { font-size: 11px; color: var(--gold); font-weight: 500; display: flex; align-items: center; gap: 4px; }
+
+.ce-manual-toggle { align-self: flex-start; background: none; border: none; padding: 0; font-size: 11px; color: #4f617a; text-decoration: underline; cursor: pointer; font-family: inherit; transition: color 130ms; }
+.ce-manual-toggle:hover { color: #8892a4; }
+.ce-manual-box { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px dashed #1e2d44; border-radius: 10px; }
+.ce-manual-btn {
+  padding: 8px 12px; border: 0.8px solid #1e2d44; border-radius: 8px; background: #111827;
+  font-size: 12.5px; font-weight: 600; color: #e2e8f0; cursor: pointer; font-family: inherit;
+  transition: border-color 140ms; text-align: left; width: fit-content;
+}
+.ce-manual-btn:hover:not(:disabled) { border-color: rgb(from var(--gold) r g b / 0.45); }
+.ce-manual-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.ce-manual-link-row { display: flex; gap: 8px; }
+.ce-manual-link-input { flex: 1; padding: 8px 12px; font-size: 12.5px; }
+.ce-manual-apply {
+  padding: 8px 16px; border: none; border-radius: 8px; background: var(--gold); color: #FFFFFF;
+  font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 140ms; flex-shrink: 0;
+}
+.ce-manual-apply:hover:not(:disabled) { opacity: 0.88; }
+.ce-manual-apply:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Select button */
 .ce-select-btn {

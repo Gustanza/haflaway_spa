@@ -9,15 +9,22 @@
       /* Sets the pre-hydration background before first paint, so neither
          theme flashes the other's color on load or on overscroll — most
          routes are the dark admin app, but "/", "/pricing" and "/events"
-         are Bento Glow light pages. */
+         (including guest event pages at "/events/:eventId/:userId") are
+         light pages. */
       (function () {
-        var light = location.pathname === '/' || location.pathname === '/pricing' || location.pathname === '/events';
+        var light = location.pathname === '/' || location.pathname === '/pricing' || location.pathname.indexOf('/events') === 0;
         document.documentElement.style.background = light ? '#FAFAFA' : '#0a0a0b';
         document.documentElement.style.color = light ? '#1D1D1F' : '#f0f0ec';
       })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Opens the TLS connection to Firebase's services while the JS bundle is
+         still downloading/parsing, instead of only starting DNS+TCP+TLS after
+         the app has booted and made its first Firestore/Storage/Auth call. -->
+    <link rel="preconnect" href="https://firestore.googleapis.com">
+    <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com">
     <!-- Playfair Display carries all display/serif type (greetings, event titles,
          stat numerals). Loaded at 400-700 + italic: it's a high-contrast face, so
          the heavier weights are what keep hairlines from thinning out on the dark

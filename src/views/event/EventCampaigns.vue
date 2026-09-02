@@ -442,25 +442,28 @@
                   </div>
 
                   <!-- Status dropdown -->
-                  <div class="em-stat-dd em-recip-dd" v-click-outside="() => recipDropOpen = false">
-                    <button class="em-stat-dd-trigger"
+                  <div class="em-stat-dd em-recip-dd">
+                    <button ref="recipDdTriggerRef" class="em-stat-dd-trigger"
                       :style="DRAWER_STATUS_COLORS[sendRecipMode] ? { background: DRAWER_STATUS_COLORS[sendRecipMode].bg, color: DRAWER_STATUS_COLORS[sendRecipMode].fg, borderColor: DRAWER_STATUS_COLORS[sendRecipMode].border } : {}"
-                      @click="recipDropOpen = !recipDropOpen">
+                      @click="toggleRecipDd">
                       <span class="em-stat-dd-dot" :style="{ background: DRAWER_STATUS_COLORS[sendRecipMode]?.fg ?? '#555' }"/>
                       <span class="em-stat-dd-label">{{ SEND_STATUS_OPTS.find(o => o.v === sendRecipMode)?.l ?? 'All' }}</span>
                       <span class="em-stat-dd-n">{{ sendRecipMode === 'all' ? sendRecipPool.length : (sendStatusCounts[sendRecipMode] ?? 0) }}</span>
                       <svg class="em-stat-dd-chev" :class="{ 'em-stat-dd-chev--open': recipDropOpen }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
-                    <div v-if="recipDropOpen" class="em-stat-dd-menu">
-                      <button v-for="opt in SEND_STATUS_OPTS" :key="opt.v"
-                        class="em-stat-dd-item" :class="{ 'em-stat-dd-item--on': sendRecipMode === opt.v }"
-                        :style="{ color: DRAWER_STATUS_COLORS[opt.v]?.fg }"
-                        @click="sendRecipMode = opt.v; recipDropOpen = false; drawerPickList = []">
-                        <span class="em-stat-dd-dot" :style="{ background: DRAWER_STATUS_COLORS[opt.v]?.fg ?? '#555' }"/>
-                        <span class="em-stat-dd-n">{{ opt.v === 'all' ? sendRecipPool.length : (sendStatusCounts[opt.v] ?? 0) }}</span>
-                        {{ opt.l }}
-                      </button>
-                    </div>
+                    <Teleport to="body">
+                      <div v-if="recipDropOpen" ref="recipDdMenuRef" class="em-stat-dd-menu em-stat-dd-menu--float"
+                        :style="{ top: recipDdPos.top + 'px', left: recipDdPos.left + 'px', width: recipDdPos.width + 'px' }">
+                        <button v-for="opt in SEND_STATUS_OPTS" :key="opt.v"
+                          class="em-stat-dd-item" :class="{ 'em-stat-dd-item--on': sendRecipMode === opt.v }"
+                          :style="{ color: DRAWER_STATUS_COLORS[opt.v]?.fg }"
+                          @click="sendRecipMode = opt.v; recipDropOpen = false; drawerPickList = []">
+                          <span class="em-stat-dd-dot" :style="{ background: DRAWER_STATUS_COLORS[opt.v]?.fg ?? '#555' }"/>
+                          <span class="em-stat-dd-n">{{ opt.v === 'all' ? sendRecipPool.length : (sendStatusCounts[opt.v] ?? 0) }}</span>
+                          {{ opt.l }}
+                        </button>
+                      </div>
+                    </Teleport>
                   </div>
 
                   <!-- Pick manually -->
@@ -669,14 +672,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { db, auth } from '../../firebase'
 import { collection, query, orderBy, where, getDocs, addDoc, setDoc, deleteDoc, doc } from 'firebase/firestore'
 
-const vClickOutside = {
-  mounted(el, binding) {
-    el._co = (e) => { if (!el.contains(e.target)) binding.value(e) }
-    document.addEventListener('mousedown', el._co)
-  },
-  unmounted(el) { document.removeEventListener('mousedown', el._co) }
-}
-
 const props = defineProps({ event: Object, eventId: String })
 const route  = useRoute()
 const router = useRouter()
@@ -823,6 +818,9 @@ function handleFilterDdOutsideClick(e) {
   }
   if (customLabelDropOpen.value && !listDdTriggerRef.value?.contains(e.target) && !listDdMenuRef.value?.contains(e.target)) {
     customLabelDropOpen.value = false
+  }
+  if (recipDropOpen.value && !recipDdTriggerRef.value?.contains(e.target) && !recipDdMenuRef.value?.contains(e.target)) {
+    recipDropOpen.value = false
   }
 }
 onMounted(() => document.addEventListener('mousedown', handleFilterDdOutsideClick))
@@ -1060,6 +1058,24 @@ watch(customFilteredAttendees, () => { detailPage.value = 1 })
 const sendRecipMode    = ref('unsent')
 const sendLabelId      = ref(null)
 const recipDropOpen    = ref(false)
+// Teleported to <body> for the same reason as statusDdMenuRef/listDdMenuRef
+// above — .em-panel's drawer otherwise clips/dims it via its own overflow and
+// transform, which is what made this dropdown look transparent in place. Once
+// teleported, the menu is no longer a DOM descendant of .em-recip-dd, so a
+// generic v-click-outside on that wrapper would treat every click inside the
+// menu as "outside" and close it on mousedown before the option's own click
+// handler ever runs — same trap the other two dropdowns avoid by tracking an
+// explicit menu ref instead. See handleFilterDdOutsideClick below.
+const recipDdTriggerRef = ref(null)
+const recipDdMenuRef    = ref(null)
+const recipDdPos        = ref({ top: 0, left: 0, width: 0 })
+function toggleRecipDd() {
+  if (!recipDropOpen.value) {
+    const r = recipDdTriggerRef.value.getBoundingClientRect()
+    recipDdPos.value = { top: r.bottom + 4, left: r.left, width: r.width }
+  }
+  recipDropOpen.value = !recipDropOpen.value
+}
 const pickOpen         = ref(false)
 const drawerPickList   = ref([])
 const drawerPickSearch = ref('')

@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { db } from '@/firebase';
 import { doc, onSnapshot, updateDoc, collection, addDoc, getDocs, serverTimestamp, query, where, orderBy, increment, limit, startAfter, arrayUnion, arrayRemove } from 'firebase/firestore';
+import QRCode from 'qrcode';
 
 const route = useRoute();
 const eventId = computed(() => route.params.eventId);
@@ -12,6 +13,9 @@ const eventData = ref(null);
 const attendeeData = ref(null);
 const loading = ref(true);
 const hasError = ref(false);
+
+// Toggle the falling-petals hero effect. One-line flag until it's worth an event setting.
+const ENABLE_PETALS = true;
 
 let unsubEvent = null, unsubAttendee = null, unsubComments = null, unsubMediaComments = null;
 
@@ -37,10 +41,8 @@ const startSync = () => {
     });
 };
 
-// ── Hero slider ───────────────────────────────────────────────────────────────
+// ── Hero background image (single photo — event thumbnail, else first gallery photo) ──
 const heroSlides = ref([]);
-const heroIndex = ref(0);
-let heroTimer = null;
 
 const fetchHeroSlides = async () => {
     if (!eventId.value) return;
@@ -69,52 +71,173 @@ const fetchHeroSlides = async () => {
     } catch (e) { console.error('hero_fetch', e); }
 };
 
-const heroNext = () => {
-    if (heroSlides.value.length > 1)
-        heroIndex.value = (heroIndex.value + 1) % heroSlides.value.length;
-};
-const heroPrev = () => {
-    if (heroSlides.value.length > 1)
-        heroIndex.value = (heroIndex.value - 1 + heroSlides.value.length) % heroSlides.value.length;
-};
-const heroGoto = (i) => { heroIndex.value = i; startHeroTimer(); };
+const heroImage = computed(() => eventData.value?.heroImageUrl || eventData.value?.eventThumbnail || heroSlides.value[0]?.url || null);
 
-const startHeroTimer = () => {
-    if (heroTimer) clearInterval(heroTimer);
-    heroTimer = setInterval(() => { if (heroSlides.value.length > 1) heroNext(); }, 4200);
+// ── Hero intro video + background music (organizer-configured, optional) ──
+const heroVideoEnabled = computed(() => !!(eventData.value?.heroVideoEnabled && eventData.value?.heroVideoUrl));
+const heroVideoUrl = computed(() => eventData.value?.heroVideoUrl || '');
+const heroMusicConfigured = computed(() => !!(eventData.value?.heroMusicEnabled && eventData.value?.heroMusicUrl));
+const heroMusicUrl = computed(() => eventData.value?.heroMusicUrl || '');
+
+// ── Scroll-reveal / parallax / petals — initialized once the page content mounts ──
+let revealObserver = null;
+let scrollHandler = null;
+let petalInterval = null;
+let introTimer = null;
+let decorInited = false;
+const backToTopVisible = ref(false);
+
+// ── Video intro — only intro the page has now; nothing shows without one ───
+const showVideoIntro = ref(true);
+const videoIntroRef = ref(null);
+const videoIntroTapHint = ref(false);
+const introActive = computed(() => heroVideoEnabled.value && showVideoIntro.value);
+
+// ── Background music (starts once the intro finishes) ──────────────────────
+const heroMusicRef = ref(null);
+const musicPlaying = ref(false);
+
+const initRevealObserver = () => {
+    revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('reveal-active'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 };
 
-// ── Swipe / drag ─────────────────────────────────────────────────────────────
-let dragStartX = null;
-const heroDragging = ref(false);
-
-const onHeroDragStart = (e) => {
-    if (heroSlides.value.length <= 1) return;
-    dragStartX = e.touches ? e.touches[0].clientX : e.clientX;
-    heroDragging.value = true;
+const initScrollEffects = () => {
+    scrollHandler = () => {
+        const bg = document.getElementById('elHeroBg');
+        if (bg) bg.style.transform = `scale(1.08) translateY(${window.scrollY * 0.35}px)`;
+        backToTopVisible.value = window.scrollY > 400;
+    };
+    window.addEventListener('scroll', scrollHandler, { passive: true });
 };
 
-const onHeroDragEnd = (e) => {
-    if (dragStartX === null) return;
-    const endX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-    const delta = endX - dragStartX;
-    if (Math.abs(delta) > 48) {
-        delta < 0 ? heroNext() : heroPrev();
-        startHeroTimer();
+const spawnPetal = () => {
+    const container = document.getElementById('elPetals');
+    if (!container) return;
+    if (window.scrollY > window.innerHeight) return;
+    if (container.children.length > 30) return;
+    const p = document.createElement('div');
+    p.className = 'petal';
+    const size = (Math.random() * 14 + 8) + 'px';
+    p.style.width = size;
+    p.style.height = size;
+    p.style.left = (Math.random() * 100) + 'vw';
+    p.style.opacity = Math.random() * 0.4 + 0.25;
+    const fallDur = (Math.random() * 4 + 6).toFixed(2);
+    const swayDur = (Math.random() * 2 + 3).toFixed(2);
+    p.style.animation = `elPetalFall ${fallDur}s linear infinite, elPetalSway ${swayDur}s ease-in-out infinite`;
+    container.appendChild(p);
+    p.addEventListener('animationiteration', (e) => {
+        if (e.animationName === 'elPetalFall') p.style.left = (Math.random() * 100) + 'vw';
+    });
+};
+
+const initPetals = () => {
+    for (let i = 0; i < 18; i++) spawnPetal();
+    petalInterval = setInterval(spawnPetal, 900);
+};
+
+function startHeroMusic() {
+    if (!heroMusicConfigured.value) return;
+    const a = heroMusicRef.value;
+    if (!a) return;
+    a.play().then(() => { musicPlaying.value = true; }).catch(() => { musicPlaying.value = false; });
+}
+
+function toggleHeroMusic() {
+    const a = heroMusicRef.value;
+    if (!a) return;
+    if (a.paused) {
+        a.play().then(() => { musicPlaying.value = true; }).catch(() => {});
+    } else {
+        a.pause();
+        musicPlaying.value = false;
     }
-    dragStartX = null;
-    heroDragging.value = false;
+}
+
+function revealFromIntro() {
+    if (introTimer) { clearTimeout(introTimer); introTimer = null; }
+    showVideoIntro.value = false;
+    document.body.style.overflow = '';
+    startHeroMusic();
+}
+
+function onVideoIntroEnded() {
+    revealFromIntro();
+}
+
+function onVideoIntroTap() {
+    const v = videoIntroRef.value;
+    if (v && v.paused) {
+        v.play().then(() => { videoIntroTapHint.value = false; }).catch(() => {});
+    }
+}
+
+watch(eventData, async (val) => {
+    if (!val || decorInited) return;
+    decorInited = true;
+    if (heroVideoEnabled.value) {
+        document.body.style.overflow = 'hidden';
+        // Safety net — reveal anyway if the video never fires `ended` (stuck
+        // load, decode error, or a genuinely blocked/never-resolving play()).
+        introTimer = setTimeout(revealFromIntro, 15000);
+        await nextTick();
+        const v = videoIntroRef.value;
+        // play()'s promise is the real signal for an autoplay-policy block —
+        // it resolves once playback is permitted to start, regardless of how
+        // long the video takes to actually buffer, so this doesn't false-flag
+        // on a slow network the way a fixed timeout + `.paused` check would.
+        v?.play().catch(() => { videoIntroTapHint.value = true; });
+    }
+    await nextTick();
+    initRevealObserver();
+    initScrollEffects();
+    if (ENABLE_PETALS) initPetals();
+});
+
+const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
+// ── Countdown ────────────────────────────────────────────────────────────────
+const countdown = ref({ days: '00', hours: '00', mins: '00', secs: '00' });
+let countdownTimer = null;
+
+const updateCountdown = () => {
+    const target = eventData.value?.startDate ? new Date(eventData.value.startDate).getTime() : null;
+    if (!target) return;
+    const diff = target - Date.now();
+    if (diff <= 0) {
+        countdown.value = { days: '00', hours: '00', mins: '00', secs: '00' };
+        return;
+    }
+    countdown.value = {
+        days: String(Math.floor(diff / 86400000)).padStart(2, '0'),
+        hours: String(Math.floor(diff / 3600000) % 24).padStart(2, '0'),
+        mins: String(Math.floor(diff / 60000) % 60).padStart(2, '0'),
+        secs: String(Math.floor(diff / 1000) % 60).padStart(2, '0'),
+    };
 };
 
 onMounted(() => {
-    startSync(); startZawadiSync(); startAllContribsSync(); fetchHeroSlides().then(startHeroTimer);
+    // Global body background is dark (admin theme) — this page is a light,
+    // ivory theme, so pin body to match while mounted or the dark color
+    // flashes through on load and during elastic overscroll at the top.
+    document.body.style.background = '#FAF6EF';
+    startSync(); startZawadiSync(); startAllContribsSync(); fetchHeroSlides(); fetchGallery(true);
+    updateCountdown();
+    countdownTimer = setInterval(updateCountdown, 1000);
     // Detect return from Pesapal payment page
     if (route.query.OrderTrackingId && route.query.OrderMerchantReference) {
         giftReturnBanner.value = true;
     }
+    window.addEventListener('resize', locResizeHandler);
 });
-watch([eventId, userId], () => { startSync(); startZawadiSync(); startAllContribsSync(); heroIndex.value = 0; fetchHeroSlides().then(startHeroTimer); });
+watch([eventId, userId], () => {
+    startSync(); startZawadiSync(); startAllContribsSync(); fetchHeroSlides(); fetchGallery(true);
+});
 onUnmounted(() => {
+    window.removeEventListener('resize', locResizeHandler);
     if (unsubEvent) unsubEvent();
     if (unsubAttendee) unsubAttendee();
     if (unsubComments) unsubComments();
@@ -122,7 +245,13 @@ onUnmounted(() => {
     if (unsubZawadi) unsubZawadi();
     if (unsubAllContribs) unsubAllContribs();
     if (unsubItemContribs) unsubItemContribs();
-    if (heroTimer) clearInterval(heroTimer);
+    if (countdownTimer) clearInterval(countdownTimer);
+    if (petalInterval) clearInterval(petalInterval);
+    if (introTimer) clearTimeout(introTimer);
+    if (scrollHandler) window.removeEventListener('scroll', scrollHandler);
+    if (revealObserver) revealObserver.disconnect();
+    document.body.style.overflow = '';
+    document.body.style.background = '';
 });
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
@@ -139,8 +268,6 @@ const i18n = {
         guestPass: 'Guest Pass', invitedGuest: 'Invited Guest', attendee: 'Attendee',
         confirmed: 'Confirmed', declined: 'Declined', pendingRsvp: 'Pending RSVP',
         tapToChange: 'Tap to change', viewCard: 'View Card',
-        details: 'Details', gallery: 'Gallery',
-        about: 'About', showLess: 'Show less', readMore: 'Read more',
         comments: 'Comments', reply: 'Reply', hideReplies: 'Hide replies',
         replies: n => `${n} ${n === 1 ? 'reply' : 'replies'}`,
         replyPlaceholder: 'Write a reply…', commentPlaceholder: 'Write a comment…',
@@ -149,7 +276,33 @@ const i18n = {
         noPhotos: 'No photos yet', loadingDots: 'Loading…', loadMore: 'Load more',
         justNow: 'just now', minsAgo: n => `${n}m ago`, hoursAgo: n => `${n}h ago`,
         locale: 'en-TZ',
-        locations: 'Locations', openInMaps: 'Open in Maps', moreLocations: n => `+${n} more`,
+        openInMaps: 'Open in Maps',
+        invitationPlaceholder: 'You are cordially invited to celebrate with us.',
+        countdownLabel: 'Counting down to the big day',
+        venueEyebrow: 'The Details',
+        venueTitle: 'Venues',
+        venuePlaceholderTitle: 'Venue to be announced',
+        venuePlaceholderDesc: "We'll share the location here as soon as it's confirmed.",
+        programmeEyebrow: 'The Day',
+        programmeTitle: 'Programme',
+        showMoreItems: 'Show more',
+        showLessItems: 'Show less',
+        foodBevEyebrow: 'The Menu',
+        foodBevTitle: 'Food & Beverages',
+        dressCodeEyebrow: 'What To Wear',
+        dressCodeTitle: 'Dress Code',
+        mcEyebrow: 'With Us Today',
+        mcSectionTitle: 'Master of Ceremonies',
+        contactsEyebrow: 'Need Help?',
+        contactsTitle: 'Contacts',
+        gallery: 'Gallery',
+        hostEyebrow: 'Hosted With Love',
+        hostTitle: 'You Are Our Guest',
+        hostBody: "We can't wait to celebrate this moment together with the people who matter most to us.",
+        entryPassTitle: 'Your Pass',
+        qrHint: 'Please present this code at the entrance.',
+        footerCredit: 'Made with Haflaway',
+        scrollHint: 'Scroll',
     },
     sw: {
         loading: 'Inapakia', notFound: 'Haikupatikana',
@@ -161,8 +314,6 @@ const i18n = {
         guestPass: 'Kibali cha Mgeni', invitedGuest: 'Mgeni Maalum', attendee: 'Mshiriki',
         confirmed: 'Imethibitishwa', declined: 'Imekataliwa', pendingRsvp: 'Jibu Linasubiri',
         tapToChange: 'Gusa Kubadilisha', viewCard: 'Angalia Kadi',
-        details: 'Maelezo', gallery: 'Picha',
-        about: 'Kuhusu', showLess: 'Onyesha Kidogo', readMore: 'Soma Zaidi',
         comments: 'Maoni', reply: 'Jibu', hideReplies: 'Ficha Majibu',
         replies: n => `Majibu ${n}`,
         replyPlaceholder: 'Andika jibu…', commentPlaceholder: 'Andika maoni…',
@@ -171,7 +322,33 @@ const i18n = {
         noPhotos: 'Hakuna picha bado', loadingDots: 'Inapakia…', loadMore: 'Pakia Zaidi',
         justNow: 'sasa hivi', minsAgo: n => `dak ${n}`, hoursAgo: n => `saa ${n}`,
         locale: 'sw-TZ',
-        locations: 'Maeneo', openInMaps: 'Fungua Ramani', moreLocations: n => `+${n} zaidi`,
+        openInMaps: 'Fungua Ramani',
+        invitationPlaceholder: 'Umealikwa rasmi kuja kusherehekea nasi.',
+        countdownLabel: 'Kuhesabu siku zilizobaki',
+        venueEyebrow: 'Maelezo',
+        venueTitle: 'Maeneo',
+        venuePlaceholderTitle: 'Eneo litatangazwa hivi karibuni',
+        venuePlaceholderDesc: 'Tutashiriki eneo hapa mara litakapothibitishwa.',
+        programmeEyebrow: 'Siku Husika',
+        programmeTitle: 'Ratiba',
+        showMoreItems: 'Onyesha zaidi',
+        showLessItems: 'Onyesha kidogo',
+        foodBevEyebrow: 'Karamu',
+        foodBevTitle: 'Chakula na Vinywaji',
+        dressCodeEyebrow: 'Mwongozo',
+        dressCodeTitle: 'Mavazi',
+        mcEyebrow: 'Leo Nasi',
+        mcSectionTitle: 'Mtangazaji',
+        contactsEyebrow: 'Unahitaji Usaidizi?',
+        contactsTitle: 'Mawasiliano',
+        gallery: 'Picha',
+        hostEyebrow: 'Kwa Upendo',
+        hostTitle: 'Wewe Ni Mgeni Wetu',
+        hostBody: 'Hatuwezi kusubiri kusherehekea wakati huu pamoja na watu tunaowapenda zaidi.',
+        entryPassTitle: 'Kibali Chako',
+        qrHint: 'Tafadhali onyesha msimbo huu langoni.',
+        footerCredit: 'Imetengenezwa na Haflaway',
+        scrollHint: 'Sogeza',
     },
 };
 
@@ -179,8 +356,6 @@ const t = key => (i18n[lang.value] ?? i18n.sw)[key] ?? i18n.sw[key] ?? key;
 const tFn = (key, ...args) => { const fn = (i18n[lang.value] ?? i18n.sw)[key]; return typeof fn === 'function' ? fn(...args) : fn; };
 
 // ── Computed ─────────────────────────────────────────────────────────────────
-const isPublished = computed(() => (eventData.value?.status || '').toLowerCase() === 'published');
-
 const fmtDate = iso => {
     if (!iso) return null;
     const locale = (i18n[lang.value] ?? i18n.sw).locale;
@@ -190,9 +365,48 @@ const fmtDate = iso => {
 const startFmt = computed(() => fmtDate(eventData.value?.startDate));
 const endFmt = computed(() => fmtDate(eventData.value?.endDate));
 
+const ordinal = n => {
+    const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+const fmtVenueDateTime = iso => {
+    if (!iso) return null;
+    try {
+        const d = new Date(iso);
+        const locale = (i18n[lang.value] ?? i18n.sw).locale;
+        const weekday = d.toLocaleDateString(locale, { weekday: 'long' });
+        const month = d.toLocaleDateString(locale, { month: 'long' });
+        const time = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+        return `${weekday}, ${ordinal(d.getDate())} ${month} ${d.getFullYear()}, ${time}`;
+    } catch { return null; }
+};
+const fmtTime = iso => {
+    if (!iso) return null;
+    try {
+        const locale = (i18n[lang.value] ?? i18n.sw).locale;
+        return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    } catch { return null; }
+};
+
 const attendeeName = computed(() => attendeeData.value?.fullName || 'Guest');
 const attendeePhone = computed(() => attendeeData.value?.phone || '');
 const attendeeInitial = computed(() => attendeeName.value.charAt(0).toUpperCase());
+
+// ── Greeting template — organizer writes any sentence with {{username}}
+// placed anywhere in it; wherever it lands, the guest's name breaks onto
+// its own underlined line, with the surrounding text before/after it. ──
+const GREETING_TOKEN = '{{username}}';
+const greetingParts = computed(() => {
+    const raw = (eventData.value?.greetingTemplate ?? '').trim();
+    const template = raw.length ? raw : GREETING_TOKEN;
+    const idx = template.indexOf(GREETING_TOKEN);
+    if (idx === -1) return { before: template, hasName: false, after: '' };
+    return {
+        before: template.slice(0, idx).trim(),
+        hasName: true,
+        after: template.slice(idx + GREETING_TOKEN.length).trim(),
+    };
+});
 
 const palette = [
     { bg: '#1A3A28', fg: '#3DAA76' }, { bg: '#1A2838', fg: '#5A8ADB' },
@@ -204,8 +418,24 @@ const ac = computed(() => palette[attendeeName.value.charCodeAt(0) % palette.len
 const hasInvitation = computed(() => !!attendeeData.value?.cards?.invitation);
 const cardBadge = computed(() => hasInvitation.value ? t('invitedGuest') : t('attendee'));
 
-const aboutExpanded = ref(false);
-const activeTab = ref('details');
+// ── Entry pass QR — same "https://haflaway.com/#/lv0/{eventId}/{attendeeId}"
+// verification-link scheme the invitation-card renderer (functions/attendees/
+// pimagen.js) already encodes into printed cards, generated client-side here
+// with the same 'qrcode' library instead of round-tripping to a function. ──
+const JPWEB = 'https://haflaway.com';
+const qrDataUrl = ref(null);
+watch([eventId, userId], async ([eid, uid]) => {
+    if (!eid || !uid) { qrDataUrl.value = null; return; }
+    try {
+        qrDataUrl.value = await QRCode.toDataURL(`${JPWEB}/#/lv0/${eid}/${uid}`, {
+            margin: 1,
+            width: 320,
+            color: { dark: '#241F18', light: '#FAF6EF' },
+        });
+    } catch (e) {
+        console.error('qr_generate', e);
+    }
+}, { immediate: true });
 
 // ── Gift of Love ──────────────────────────────────────────────────────────────
 const showGiftSheet = ref(false);
@@ -375,6 +605,116 @@ async function sendGift() {
 }
 
 const eventLocations = computed(() => eventData.value?.locations ?? []);
+const mappableLocations = computed(() => eventLocations.value.filter(l => l.lat != null && l.lng != null));
+
+// ── Venue card description clamping — keeps date/map-link rows aligned
+// across cards regardless of how long each venue's description runs. Only
+// shows a "Show more" toggle for descriptions that actually overflow the
+// 3-line clamp (measured via scrollHeight vs clientHeight, not a character
+// guess, since translated copy varies in length between languages).
+const locBodyEls = new Map();
+const expandedLocIds = ref(new Set());
+const clampedLocIds = ref(new Set());
+
+function setLocBodyRef(id, el) {
+    if (el) locBodyEls.set(id, el);
+    else locBodyEls.delete(id);
+}
+
+function measureLocClamping() {
+    const overflowing = new Set();
+    for (const [id, el] of locBodyEls) {
+        if (el.scrollHeight > el.clientHeight + 1) overflowing.add(id);
+    }
+    clampedLocIds.value = overflowing;
+}
+
+function toggleLocDesc(id) {
+    const next = new Set(expandedLocIds.value);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    expandedLocIds.value = next;
+}
+
+watch(eventLocations, async () => {
+    await nextTick();
+    measureLocClamping();
+}, { flush: 'post' });
+
+let locResizeTimer = null;
+function locResizeHandler() {
+    clearTimeout(locResizeTimer);
+    locResizeTimer = setTimeout(measureLocClamping, 200);
+}
+
+// ── Venues map — one Google Map with a pin per venue ───────────────────────
+const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const mapEl = ref(null);
+let venuesMap = null;
+let googleMapsLoadPromise = null;
+
+function loadGoogleMaps() {
+    if (window.google?.maps) return Promise.resolve();
+    if (googleMapsLoadPromise) return googleMapsLoadPromise;
+    googleMapsLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}`;
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+    return googleMapsLoadPromise;
+}
+
+async function initVenuesMap() {
+    if (!mappableLocations.value.length || !MAPS_KEY) return;
+    try {
+        await loadGoogleMaps();
+    } catch {
+        return;
+    }
+    await nextTick();
+    if (!mapEl.value) return;
+
+    const first = mappableLocations.value[0];
+    if (!venuesMap) {
+        venuesMap = new google.maps.Map(mapEl.value, {
+            zoom: 15,
+            center: { lat: first.lat, lng: first.lng },
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+        });
+    }
+
+    const bounds = new google.maps.LatLngBounds();
+    const infoWindow = new google.maps.InfoWindow();
+    mappableLocations.value.forEach(loc => {
+        const position = { lat: loc.lat, lng: loc.lng };
+        const marker = new google.maps.Marker({ position, map: venuesMap, title: loc.placeName });
+        marker.addListener('click', () => {
+            infoWindow.setContent(
+                `<div style="font-family:'Inter',sans-serif;padding:2px 2px;max-width:200px;">
+                    <strong style="display:block;margin-bottom:2px;">${loc.label}</strong>
+                    <span style="color:#666;font-size:12.5px;">${loc.placeName}</span>
+                </div>`
+            );
+            infoWindow.open(venuesMap, marker);
+        });
+        bounds.extend(position);
+    });
+    if (mappableLocations.value.length > 1) venuesMap.fitBounds(bounds, 60);
+}
+
+watch(mappableLocations, (locs) => { if (locs.length) initVenuesMap(); });
+
+const scheduleItems = computed(() => {
+    const arr = Array.isArray(eventData.value?.schedule) ? [...eventData.value.schedule] : [];
+    return arr.sort((a, b) => new Date(a.time) - new Date(b.time));
+});
+const programmeExpanded = ref(false);
+const contacts = computed(() => eventData.value?.contacts ?? []);
 
 const mapsLink = (loc) => {
     if (loc.mapsUrl) return loc.mapsUrl;
@@ -468,7 +808,7 @@ const galleryLastFolderDoc = ref(null);
 
 
 const fetchGallery = async (reset = false) => {
-    if (galleryLoading.value) return;
+    if (galleryLoading.value || !eventId.value) return;
     galleryLoading.value = true;
     try {
         const folderBase = [
@@ -514,10 +854,6 @@ const fetchGallery = async (reset = false) => {
     }
 };
 
-watch(activeTab, (tab) => {
-    if (tab === 'gallery' && galleryGroups.value.length === 0) fetchGallery(true);
-});
-
 const FOLDER_PREVIEW = 6;
 const expandedFolders = ref({});
 const toggleFolderExpand = (folderId) => {
@@ -533,12 +869,6 @@ watch(attendeeData, (val) => {
     const s = val.attendanceStatus;
     if (!s || (s !== 'Confirmed' && s !== 'Declined')) showRsvp.value = true;
 }, { immediate: true });
-
-const needsRsvp = computed(() => {
-    if (!attendeeData.value) return false;
-    const s = attendeeData.value.attendanceStatus;
-    return !s || s !== 'Confirmed';
-});
 
 const submitRsvp = async (status) => {
     if (rsvpSaving.value) return;
@@ -719,11 +1049,6 @@ const toggleLike = async (item) => {
 <template>
     <div class="page">
 
-        <!-- Floating celebration particles -->
-        <div class="bg-anim" aria-hidden="true">
-            <span v-for="n in 18" :key="n"></span>
-        </div>
-
         <!-- Gift return banner (shown after redirect back from Pesapal) -->
         <Transition name="gift-overlay">
             <div v-if="giftReturnBanner" class="gift-return-banner" @click="giftReturnBanner = false">
@@ -754,9 +1079,30 @@ const toggleLike = async (item) => {
         <!-- Main -->
         <template v-if="!loading && !hasError && eventData">
 
+            <!-- Video intro — organizer-uploaded clip, plays once muted then fades into the hero -->
+            <Transition name="el-video-intro-fade">
+                <div v-if="heroVideoEnabled && showVideoIntro" class="el-video-intro" @click="onVideoIntroTap">
+                    <video
+                        ref="videoIntroRef"
+                        class="el-video-intro-el"
+                        :src="heroVideoUrl"
+                        muted
+                        autoplay
+                        playsinline
+                        preload="auto"
+                        @ended="onVideoIntroEnded"
+                        @error="revealFromIntro"
+                    ></video>
+                    <div v-if="videoIntroTapHint" class="el-video-intro-tap">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        <span>{{ lang === 'sw' ? 'Gusa kucheza' : 'Tap to play' }}</span>
+                    </div>
+                </div>
+            </Transition>
+
             <!-- RSVP Prompt — overlays the page so user can see context behind it -->
             <Transition name="rsvp-fade">
-                <div v-if="showRsvp" class="rsvp-overlay">
+                <div v-if="showRsvp && !introActive" class="rsvp-overlay">
                     <div class="rsvp-card">
                         <div class="rsvp-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -787,419 +1133,170 @@ const toggleLike = async (item) => {
                 </div>
             </Transition>
 
-            <div class="wrap">
+            <!-- Back to top -->
+            <button :class="['el-back-top', backToTopVisible ? 'el-back-top-visible' : '']" @click="scrollToTop" aria-label="Back to top">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
 
-                <!-- ── TICKET CARD ── -->
-                <div class="ticket">
+            <!-- Background music -->
+            <audio v-if="heroMusicConfigured" ref="heroMusicRef" :src="heroMusicUrl" loop></audio>
 
-                    <!-- Thumbnail strip / Hero slider -->
-                    <div class="thumb-wrap" @touchstart.passive="onHeroDragStart" @touchend="onHeroDragEnd"
-                        @mousedown="onHeroDragStart" @mouseup="onHeroDragEnd"
-                        @mouseleave="heroDragging = false; dragStartX = null"
-                        :class="{ 'hero-grabbing': heroDragging }">
+            <!-- ── HERO ── -->
+            <section class="el-hero" id="elHero">
+                <div class="el-hero-bg" id="elHeroBg" :style="heroImage ? { backgroundImage: `url(${heroImage})` } : {}"></div>
+                <div class="el-hero-scrim"></div>
+                <div class="el-petals" id="elPetals" aria-hidden="true"></div>
 
-                        <!-- ── Gallery slider ───────────────────────────── -->
-                        <template v-if="heroSlides.length > 0">
-                            <div class="hero-track">
-                                <div v-for="(slide, i) in heroSlides" :key="slide.id"
-                                    :class="['hero-slide', i === heroIndex ? 'hero-slide-active' : '']">
-                                    <img :src="slide.url" alt="" />
-                                </div>
-                            </div>
-                            <button v-if="heroSlides.length > 1" class="hero-arrow hero-arrow-l"
-                                @click="heroPrev(); startHeroTimer()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <polyline points="15 18 9 12 15 6" />
-                                </svg>
-                            </button>
-                            <button v-if="heroSlides.length > 1" class="hero-arrow hero-arrow-r"
-                                @click="heroNext(); startHeroTimer()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <polyline points="9 18 15 12 9 6" />
-                                </svg>
-                            </button>
-                            <div v-if="heroSlides.length > 1" class="hero-dots">
-                                <button v-for="(_, i) in heroSlides" :key="i"
-                                    :class="['hero-dot', i === heroIndex ? 'hero-dot-active' : '']"
-                                    @click="heroGoto(i)"></button>
-                            </div>
-                            <span v-if="heroSlides.length > 1" class="hero-counter">
-                                {{ heroIndex + 1 }} / {{ heroSlides.length }}
-                            </span>
-                            <div v-if="heroSlides.length > 1" class="hero-progress">
-                                <div class="hero-progress-fill"
-                                    :style="{ width: ((heroIndex + 1) / heroSlides.length * 100) + '%' }"></div>
-                            </div>
-                        </template>
+                <button v-if="heroMusicConfigured" class="el-sound-toggle" @click="toggleHeroMusic" :aria-label="musicPlaying ? 'Mute music' : 'Play music'">
+                    <svg v-if="musicPlaying" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                </button>
 
-                        <!-- ── Single thumbnail styled as slider frame ─── -->
-                        <template v-else>
-                            <img v-if="eventData.eventThumbnail" :src="eventData.eventThumbnail" class="thumb-img"
-                                alt="" />
-                            <div v-else class="thumb-placeholder">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="#C9963C" stroke-width="1.5">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                                    <circle cx="8.5" cy="8.5" r="1.5" />
-                                    <path d="m21 15-5-5L5 21" />
-                                </svg>
-                            </div>
-                            <div class="hero-fake-arrow hero-fake-arrow-l" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <polyline points="15 18 9 12 15 6" />
-                                </svg>
-                            </div>
-                            <div class="hero-fake-arrow hero-fake-arrow-r" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <polyline points="9 18 15 12 9 6" />
-                                </svg>
-                            </div>
-                            <div class="hero-dots">
-                                <div class="hero-dot hero-dot-active"></div>
-                            </div>
-                            <div class="hero-progress">
-                                <div class="hero-progress-fill" style="width:100%"></div>
-                            </div>
-                        </template>
-
-                        <!-- Gradient bottom fade -->
-                        <div class="thumb-fade"></div>
-                        <!-- Status badge overlaid -->
-                        <span :class="['ev-status', isPublished ? 's-live' : 's-draft']">
-                            <span class="s-dot"></span>
-                            {{ isPublished ? t('published') : (eventData.status ? t('draft') : t('draft')) }}
-                        </span>
-                    </div>
-
-                    <!-- Event info -->
-                    <div class="ev-info">
-                        <h1 class="ev-title">{{ eventData.title }}</h1>
-
-                        <div class="ev-meta">
-                            <div class="ev-meta-row" v-if="startFmt">
-                                <div class="ev-meta-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" />
-                                        <line x1="16" y1="2" x2="16" y2="6" />
-                                        <line x1="8" y1="2" x2="8" y2="6" />
-                                        <line x1="3" y1="10" x2="21" y2="10" />
-                                    </svg>
-                                </div>
-                                <div class="ev-meta-text">
-                                    <span class="ev-meta-primary">{{ startFmt }}</span>
-                                    <span v-if="endFmt" class="ev-meta-end">
-                                        <span class="ev-meta-until">{{ t('until') }}</span> {{ endFmt }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- locations array: tappable, opens Maps -->
-                            <template v-if="eventLocations.length > 0">
-                                <a v-for="loc in eventLocations" :key="loc.id" :href="mapsLink(loc)" target="_blank"
-                                    rel="noopener noreferrer" class="ev-meta-row ev-meta-loc-link">
-                                    <div class="ev-meta-icon ev-meta-icon-gold">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                                            <path
-                                                d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                                            <circle cx="12" cy="9" r="2.5" />
-                                        </svg>
-                                    </div>
-                                    <div class="ev-meta-text ev-meta-text-loc">
-                                        <span class="ev-meta-loc-label">{{ loc.label }}</span>
-                                        <span class="ev-meta-primary">{{ loc.placeName }}</span>
-                                    </div>
-                                    <div class="ev-meta-arrow-wrap">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                                            <path d="M5 12h14M12 5l7 7-7 7" />
-                                        </svg>
-                                    </div>
-                                </a>
-                            </template>
-                            <!-- location string fallback (no locations set) -->
-                            <div class="ev-meta-row" v-else-if="eventData.location">
-                                <div class="ev-meta-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                                        <path
-                                            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                                        <circle cx="12" cy="9" r="2.5" />
-                                    </svg>
-                                </div>
-                                <span class="ev-meta-primary">{{ eventData.location }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Perforated tear line -->
-                    <div class="tear">
-                        <div class="tear-notch tear-l"></div>
-                        <div class="tear-line"></div>
-                        <div class="tear-notch tear-r"></div>
-                    </div>
-
-                    <!-- ── ATTENDEE STUB ── -->
-                    <div class="stub">
-                        <p class="stub-eyebrow">{{ t('guestPass') }}</p>
-
-                        <div class="stub-main">
-                            <div class="stub-avatar" :style="{ background: ac.bg }">
-                                <span class="stub-initial" :style="{ color: ac.fg }">{{ attendeeInitial }}</span>
-                                <div class="stub-avatar-ring" :style="{ borderColor: ac.fg + '55' }"></div>
-                            </div>
-
-                            <div class="stub-info">
-                                <p class="stub-badge">{{ cardBadge }}</p>
-                                <h2 class="stub-name">{{ attendeeName }}</h2>
-                                <p class="stub-phone" v-if="attendeePhone">{{ attendeePhone }}</p>
-                            </div>
-                        </div>
-
-                        <button v-if="hasInvitation && attendeeData?.cards?.invitation?.url" class="view-card-btn"
-                            @click="lightboxItem = { url: attendeeData.cards.invitation.url, type: 'image' }">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                <circle cx="12" cy="12" r="3" />
-                            </svg>
-                            {{ t('viewCard') }}
-                        </button>
-
-                        <div :class="['stub-status',
-                            attendeeData?.attendanceStatus === 'Confirmed' ? 'status-in' :
-                                attendeeData?.attendanceStatus === 'Declined' ? 'status-declined' :
-                                    'status-pending']" @click="showRsvp = true">
-                            <div class="status-indicator">
-                                <div :class="['status-led',
-                                    attendeeData?.attendanceStatus === 'Confirmed' ? 'led-green' :
-                                        attendeeData?.attendanceStatus === 'Declined' ? 'led-red' :
-                                            'led-amber']">
-                                </div>
-                                <span>{{
-                                    attendeeData?.attendanceStatus === 'Confirmed' ? t('confirmed') :
-                                        attendeeData?.attendanceStatus === 'Declined' ? t('declined') :
-                                            t('pendingRsvp')
-                                    }}</span>
-                            </div>
-                            <div class="status-right">
-                                <svg v-if="attendeeData?.attendanceStatus === 'Confirmed'" class="check-mark"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <path d="M5 13l4 4L19 7" />
-                                </svg>
-                                <svg v-else-if="attendeeData?.attendanceStatus === 'Declined'" class="check-mark"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <path d="M18 6L6 18M6 6l12 12" />
-                                </svg>
-                                <span
-                                    v-if="attendeeData?.attendanceStatus === 'Confirmed' || attendeeData?.attendanceStatus === 'Declined'"
-                                    class="status-change-lbl">{{ t('tapToChange') }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- /ticket -->
-
-                <!-- ── Tab bar ── -->
-                <div class="tab-bar">
-                    <button :class="['tab', activeTab === 'details' && 'tab-active']" @click="activeTab = 'details'">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <rect x="3" y="3" width="18" height="18" rx="3" />
-                            <line x1="3" y1="9" x2="21" y2="9" />
-                            <line x1="9" y1="21" x2="9" y2="9" />
-                        </svg>
-                        {{ t('details') }}
-                    </button>
-                    <button :class="['tab', activeTab === 'gallery' && 'tab-active']" @click="activeTab = 'gallery'">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                            <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                            <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                            <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                        </svg>
-                        {{ t('gallery') }}
-                    </button>
+                <div class="el-hero-content">
+                    <h1 class="el-hero-title">{{ eventData.title }}</h1>
+                    <p v-if="startFmt" class="el-hero-date">{{ startFmt }}</p>
                 </div>
 
-                <!-- ── Details tab ── -->
-                <template v-if="activeTab === 'details'">
-                    <!-- About -->
-                    <div v-if="eventData.description" class="section-card anim" style="--d:.05s">
-                        <div class="s-hdr">
-                            <div class="s-bar"></div>
-                            <span class="s-lbl">{{ t('about') }}</span>
-                        </div>
-                        <p :class="['about-text', { 'about-clamped': !aboutExpanded }]">{{ eventData.description }}</p>
-                        <button v-if="eventData.description.length > 180" class="about-toggle"
-                            @click="aboutExpanded = !aboutExpanded">
-                            {{ aboutExpanded ? t('showLess') : t('readMore') }}
-                        </button>
-                    </div>
+                <div class="el-scroll-cue">
+                    <div class="el-mouse"></div>
+                    <span>{{ t('scrollHint') }}</span>
+                </div>
+            </section>
 
-                    <!-- ── Gift of Love section ── -->
-                    <div class="section-card zawadi-section anim" style="--d:.08s">
-                        <div class="s-hdr">
-                            <div class="s-bar"></div>
-                            <span class="s-lbl">{{ lang === 'sw' ? 'Zawadi ya Upendo' : 'Gift of Love' }}</span>
+            <div class="el-content">
+
+                <!-- To: attendee + Invitation text -->
+                <section class="el-invite reveal">
+                    <p class="el-eyebrow el-eyebrow-center">{{ lang === 'sw' ? 'Kwa' : 'To' }}</p>
+                    <template v-if="greetingParts.hasName">
+                        <p v-if="greetingParts.before" class="el-invite-line">{{ greetingParts.before }}</p>
+                        <h2 class="el-invite-name">{{ attendeeName }}</h2>
+                        <p v-if="greetingParts.after" class="el-invite-line">{{ greetingParts.after }}</p>
+                    </template>
+                    <p v-else class="el-invite-line">{{ greetingParts.before }}</p>
+                    <p class="el-invite-text">{{ eventData.description || t('invitationPlaceholder') }}</p>
+                    <div class="el-divider"></div>
+                </section>
+
+                <!-- Countdown -->
+                <section v-if="eventData.startDate" class="el-countdown-wrap reveal">
+                    <div class="el-glass-card el-countdown-card">
+                        <p class="el-eyebrow el-eyebrow-center">{{ t('countdownLabel') }}</p>
+                        <div class="el-countdown">
+                            <div class="el-count-item"><span>{{ countdown.days }}</span><label>{{ lang === 'sw' ? 'Siku' : 'Days' }}</label></div>
+                            <div class="el-count-item"><span>{{ countdown.hours }}</span><label>{{ lang === 'sw' ? 'Saa' : 'Hrs' }}</label></div>
+                            <div class="el-count-item"><span>{{ countdown.mins }}</span><label>{{ lang === 'sw' ? 'Dak' : 'Min' }}</label></div>
+                            <div class="el-count-item"><span>{{ countdown.secs }}</span><label>{{ lang === 'sw' ? 'Sek' : 'Sec' }}</label></div>
                         </div>
-                        <div v-if="zawadiItems.length === 0" class="zawadi-empty">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-                                <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
-                                <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
-                                <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
-                            </svg>
-                            <p>{{ lang === 'sw' ? 'Hakuna vitu bado' : 'No gift items yet' }}</p>
-                        </div>
-                        <div v-else class="zawadi-list">
-                            <div v-for="(item, idx) in zawadiItems" :key="item.id"
-                                :class="['zawadi-item', idx < zawadiItems.length - 1 ? 'zawadi-item-sep' : '']"
-                                @click="openGiftSheet(item)">
-                                <!-- Top row: icon · title · chevron -->
-                                <div class="zawadi-item-top">
-                                    <div class="zawadi-item-icon">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                                            <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
-                                            <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
-                                            <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
-                                        </svg>
-                                    </div>
-                                    <div class="zawadi-item-info">
-                                        <p class="zawadi-item-title">{{ item.title }}</p>
-                                        <template v-if="item.description">
-                                            <p :class="['zawadi-item-desc', expandedDescs[item.id] ? 'zawadi-item-desc--expanded' : '']">{{ item.description }}</p>
-                                            <button v-if="item.description.length > 80" class="zawadi-read-more"
-                                                @click.stop="expandedDescs[item.id] = !expandedDescs[item.id]">
-                                                {{ expandedDescs[item.id] ? 'Show less' : 'Read more' }}
-                                            </button>
-                                        </template>
-                                    </div>
-                                    <svg class="zawadi-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                                        <path d="M9 18l6-6-6-6"/>
-                                    </svg>
-                                </div>
-                                <!-- Progress bar -->
-                                <div class="zawadi-progress-wrap">
-                                    <div class="zawadi-progress-bar">
-                                        <div class="zawadi-progress-fill"
-                                            :style="{ width: Math.min(100, item.targetAmount > 0 ? (item.totalFunded / item.targetAmount * 100) : 0) + '%' }">
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Footer: amounts · avatar strip -->
-                                <div class="zawadi-item-foot">
-                                    <div class="zawadi-amounts">
-                                        <span class="zawadi-funded">{{ item.currency || 'TZS' }} {{ fmtMoney(item.totalFunded || 0) }}</span>
-                                        <span class="zawadi-target"> / {{ fmtMoney(item.targetAmount) }}</span>
-                                    </div>
-                                    <div v-if="(contribsByItem[item.id] || []).length" class="zawadi-avatars">
-                                        <div v-for="c in (contribsByItem[item.id] || []).slice(0, 4)" :key="c.id"
-                                            class="zawadi-avatar"
-                                            :style="{ background: avatarColor(c.attendeeInitial).bg, color: avatarColor(c.attendeeInitial).fg }">
-                                            {{ c.attendeeInitial }}
-                                        </div>
-                                        <div v-if="(contribsByItem[item.id] || []).length > 4" class="zawadi-avatar zawadi-avatar-more">
-                                            +{{ (contribsByItem[item.id] || []).length - 4 }}
-                                        </div>
-                                    </div>
-                                    <span v-else class="zawadi-no-gifts">{{ lang === 'sw' ? 'Bado hakuna zawadi' : 'Be the first!' }}</span>
-                                </div>
+                    </div>
+                </section>
+
+                <!-- Details / venue cards -->
+                <section class="el-details reveal">
+                    <p class="el-eyebrow el-eyebrow-center">{{ t('venueEyebrow') }}</p>
+                    <h2 class="el-section-title">{{ t('venueTitle') }}</h2>
+                    <div v-if="eventLocations.length" class="el-details-grid">
+                        <div v-for="loc in eventLocations" :key="loc.id" class="el-glass-card el-details-card">
+                            <div class="el-details-card-top">
+                                <p class="el-eyebrow">{{ loc.label }}</p>
+                                <h2 class="el-card-title">{{ loc.placeName }}</h2>
+                                <p
+                                    v-if="loc.description"
+                                    :ref="el => setLocBodyRef(loc.id, el)"
+                                    class="el-card-body"
+                                    :class="{ 'el-card-body--clamped': !expandedLocIds.has(loc.id) }"
+                                >{{ loc.description }}</p>
+                                <button
+                                    v-if="loc.description && clampedLocIds.has(loc.id)"
+                                    class="el-card-readmore"
+                                    @click="toggleLocDesc(loc.id)"
+                                >{{ expandedLocIds.has(loc.id) ? t('showLessItems') : t('showMoreItems') }}</button>
+                            </div>
+                            <div class="el-details-card-footer">
+                                <div v-if="loc.dateTime" class="el-venue-date">{{ fmtVenueDateTime(loc.dateTime) }}</div>
+                                <a :href="mapsLink(loc)" target="_blank" rel="noopener noreferrer" class="el-map-link">{{ t('openInMaps') }}</a>
                             </div>
                         </div>
                     </div>
+                    <div v-else-if="eventData.location" class="el-glass-card el-details-card el-details-single">
+                        <h2 class="el-card-title">{{ eventData.location }}</h2>
+                    </div>
+                    <div v-else class="el-glass-card el-details-card el-details-single">
+                        <h2 class="el-card-title">{{ t('venuePlaceholderTitle') }}</h2>
+                        <p class="el-card-body">{{ t('venuePlaceholderDesc') }}</p>
+                    </div>
+                    <div v-if="mappableLocations.length" ref="mapEl" class="el-venues-map"></div>
+                </section>
 
-                    <!-- Comments -->
-                    <div class="section-card anim" style="--d:.1s">
-                        <div class="s-hdr">
-                            <div class="s-bar"></div>
-                            <span class="s-lbl">{{ t('comments') }}<span v-if="comments.length" class="cmnt-count"> ({{
-                                comments.length }})</span></span>
-                        </div>
-
-                        <div class="cmnt-list" v-if="comments.length">
-                            <div v-for="c in comments" :key="c.id" class="cmnt-item">
-                                <div class="cmnt-avatar"
-                                    :style="{ background: c.userColor?.bg, color: c.userColor?.fg }">{{ c.userInitial }}
-                                </div>
-                                <div class="cmnt-body">
-                                    <div class="cmnt-meta">
-                                        <span class="cmnt-name">{{ c.userName }}</span>
-                                        <span class="cmnt-time">{{ fmtCommentTime(c.createdAt) }}</span>
-                                    </div>
-                                    <p class="cmnt-text">{{ c.text }}</p>
-                                    <div class="cmnt-actions">
-                                        <button class="cmnt-reply-btn" @click="openReply(c.id)">{{ t('reply')
-                                            }}</button>
-                                        <button v-if="c.replyCount > 0" class="cmnt-view-replies"
-                                            @click="toggleReplies(c)">
-                                            {{ expandedReplies[c.id] ? t('hideReplies') : tFn('replies', c.replyCount)
-                                            }}
-                                        </button>
-                                    </div>
-
-                                    <div v-if="replyingTo === c.id" class="cmnt-reply-form">
-                                        <input v-model="replyTexts[c.id]" class="cmnt-input"
-                                            :placeholder="t('replyPlaceholder')"
-                                            @keydown.enter.prevent="postReply(c)" />
-                                        <button class="cmnt-send"
-                                            :disabled="!replyTexts[c.id]?.trim() || replyPosting[c.id]"
-                                            @click="postReply(c)">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <line x1="22" y1="2" x2="11" y2="13" />
-                                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                                            </svg>
-                                        </button>
-                                    </div>
-
-                                    <div v-if="expandedReplies[c.id]" class="cmnt-replies">
-                                        <div v-for="r in expandedReplies[c.id]" :key="r.id" class="cmnt-item">
-                                            <div class="cmnt-avatar cmnt-avatar-sm"
-                                                :style="{ background: r.userColor?.bg, color: r.userColor?.fg }">{{
-                                                    r.userInitial }}</div>
-                                            <div class="cmnt-body">
-                                                <div class="cmnt-meta">
-                                                    <span class="cmnt-name">{{ r.userName }}</span>
-                                                    <span class="cmnt-time">{{ fmtCommentTime(r.createdAt) }}</span>
-                                                </div>
-                                                <p class="cmnt-text">{{ r.text }}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                <!-- Programme -->
+                <section v-if="scheduleItems.length" class="el-programme reveal">
+                    <p class="el-eyebrow el-eyebrow-center">{{ t('programmeEyebrow') }}</p>
+                    <h2 class="el-section-title">{{ t('programmeTitle') }}</h2>
+                    <div class="el-htimeline" :class="{ 'el-htimeline--expanded': programmeExpanded }">
+                        <div
+                            v-for="(item, idx) in scheduleItems"
+                            :key="item.id"
+                            class="el-htimeline-item"
+                            :class="{ 'el-htimeline-item--first': idx === 0, 'el-htimeline-item--last': idx === scheduleItems.length - 1 }"
+                        >
+                            <div class="el-htimeline-dot-row">
+                                <div class="el-htimeline-connector"></div>
+                                <span class="el-htimeline-dot"></span>
                             </div>
-                        </div>
-
-                        <p v-else class="cmnt-empty">{{ t('noComments') }}</p>
-
-                        <div class="cmnt-compose">
-                            <div class="cmnt-avatar cmnt-avatar-sm" :style="{ background: ac?.bg, color: ac?.fg }">{{
-                                attendeeInitial }}</div>
-                            <input v-model="commentText" class="cmnt-input" :placeholder="t('commentPlaceholder')"
-                                @keydown.enter.prevent="postComment" />
-                            <button class="cmnt-send" :disabled="!commentText.trim() || commentPosting"
-                                @click="postComment">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="22" y1="2" x2="11" y2="13" />
-                                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                                </svg>
-                            </button>
+                            <span v-if="item.time" class="el-htimeline-time">{{ fmtTime(item.time) }}</span>
+                            <h3 class="el-htimeline-title">{{ item.title }}</h3>
+                            <p class="el-htimeline-desc">{{ item.description }}</p>
                         </div>
                     </div>
+                    <button v-if="scheduleItems.length > 4" class="el-prog-more" @click="programmeExpanded = !programmeExpanded">
+                        {{ programmeExpanded ? t('showLessItems') : t('showMoreItems') }}
+                    </button>
+                </section>
 
-                    <!-- Support -->
-                    <a v-if="eventData.supportPhone"
-                        :href="`https://wa.me/${eventData.supportPhone.replace(/\D/g, '')}`" target="_blank"
-                        class="support-link anim" style="--d:.15s">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                        </svg>
-                        {{ t('contactSupport') }}
-                    </a>
-                </template>
+                <!-- Food & Beverages -->
+                <section v-if="eventData.foodBeverageEnabled && eventData.foodBeverageImage" class="el-artwork-section reveal">
+                    <p class="el-eyebrow el-eyebrow-center">{{ t('foodBevEyebrow') }}</p>
+                    <h2 class="el-section-title">{{ t('foodBevTitle') }}</h2>
+                    <div class="el-artwork-frame" @click="lightboxItem = { url: eventData.foodBeverageImage, type: 'image' }">
+                        <img :src="eventData.foodBeverageImage" :alt="t('foodBevTitle')" class="el-artwork-img" />
+                    </div>
+                </section>
 
-                <!-- ── Gallery tab ── -->
-                <template v-if="activeTab === 'gallery'">
+                <!-- Dress Code -->
+                <section v-if="eventData.dressCodeEnabled && eventData.dressCodeImage" class="el-artwork-section reveal">
+                    <p class="el-eyebrow el-eyebrow-center">{{ t('dressCodeEyebrow') }}</p>
+                    <h2 class="el-section-title">{{ t('dressCodeTitle') }}</h2>
+                    <div class="el-artwork-frame" @click="lightboxItem = { url: eventData.dressCodeImage, type: 'image' }">
+                        <img :src="eventData.dressCodeImage" :alt="t('dressCodeTitle')" class="el-artwork-img" />
+                    </div>
+                </section>
 
-                    <!-- Initial load spinner -->
+                <!-- Master of Ceremonies -->
+                <section v-if="eventData.mcEnabled && eventData.mcName && eventData.mcPhoto" class="el-mc reveal">
+                    <p class="el-eyebrow el-eyebrow-center">{{ t('mcEyebrow') }}</p>
+                    <h2 class="el-section-title">{{ t('mcSectionTitle') }}</h2>
+                    <div class="el-mc-split">
+                        <div class="el-mc-photo-frame" @click="lightboxItem = { url: eventData.mcPhoto, type: 'image' }">
+                            <img :src="eventData.mcPhoto" :alt="eventData.mcName" class="el-mc-photo" />
+                        </div>
+                        <div class="el-mc-info">
+                            <span v-if="eventData.mcRole" class="el-mc-badge">{{ eventData.mcRole }}</span>
+                            <h3 class="el-mc-name">{{ eventData.mcName }}</h3>
+                            <div class="el-mc-rule"></div>
+                            <p v-if="eventData.mcBio" class="el-mc-bio">{{ eventData.mcBio }}</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── Gallery ── -->
+                <section class="el-gallery-outer reveal">
+                    <p class="el-eyebrow el-eyebrow-center">{{ t('gallery') }}</p>
+                    <h2 class="el-section-title">{{ t('gallery') }}</h2>
+
                     <div v-if="galleryLoading && galleryGroups.length === 0" class="gallery-spinner">
                         <div class="spin-ring"></div>
                     </div>
 
-                    <!-- Empty state -->
                     <div v-else-if="!galleryLoading && galleryGroups.length === 0" class="gallery-empty">
                         <div class="gallery-empty-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -1211,10 +1308,8 @@ const toggleLike = async (item) => {
                         <p class="gallery-empty-txt">{{ t('noPhotos') }}</p>
                     </div>
 
-                    <!-- Grouped grid -->
                     <template v-else>
-                        <div v-for="group in galleryGroups" :key="group.folderId" class="gallery-section anim"
-                            style="--d:0s">
+                        <div v-for="group in galleryGroups" :key="group.folderId" class="gallery-section">
                             <div class="gallery-section-hdr">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                                     <path
@@ -1282,241 +1377,505 @@ const toggleLike = async (item) => {
                             {{ galleryLoading ? t('loadingDots') : t('loadMore') }}
                         </button>
                     </template>
+                </section>
 
-                </template>
+                <!-- Host -->
+                <section class="el-host reveal">
+                    <p class="el-eyebrow el-eyebrow-center">{{ t('hostEyebrow') }}</p>
+                    <h2 class="el-section-title">{{ t('hostTitle') }}</h2>
+                    <p class="el-host-body">{{ t('hostBody') }}</p>
+                </section>
 
-                <!-- Lightbox (always mounted) -->
-                <Teleport to="body">
-                    <Transition name="lb-fade">
-                        <div v-if="lightboxItem" class="lb-overlay" @click.self="onLbBgClick">
-                            <button class="lb-close" @click="closeLightbox">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <line x1="18" y1="6" x2="6" y2="18" />
-                                    <line x1="6" y1="6" x2="18" y2="18" />
+                <!-- ── Gift of Love section ── -->
+                <div class="section-card zawadi-section reveal">
+                    <div class="s-hdr">
+                        <div class="s-bar"></div>
+                        <span class="s-lbl">{{ lang === 'sw' ? 'Zawadi ya Upendo' : 'Gift of Love' }}</span>
+                    </div>
+                    <div v-if="zawadiItems.length === 0" class="zawadi-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                            <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+                            <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
+                            <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
+                        </svg>
+                        <p>{{ lang === 'sw' ? 'Hakuna vitu bado' : 'No gift items yet' }}</p>
+                    </div>
+                    <div v-else class="zawadi-list">
+                        <div v-for="(item, idx) in zawadiItems" :key="item.id"
+                            :class="['zawadi-item', idx < zawadiItems.length - 1 ? 'zawadi-item-sep' : '']"
+                            @click="openGiftSheet(item)">
+                            <!-- Top row: icon · title · chevron -->
+                            <div class="zawadi-item-top">
+                                <div class="zawadi-item-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                        <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+                                        <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
+                                        <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
+                                    </svg>
+                                </div>
+                                <div class="zawadi-item-info">
+                                    <p class="zawadi-item-title">{{ item.title }}</p>
+                                    <template v-if="item.description">
+                                        <p :class="['zawadi-item-desc', expandedDescs[item.id] ? 'zawadi-item-desc--expanded' : '']">{{ item.description }}</p>
+                                        <button v-if="item.description.length > 80" class="zawadi-read-more"
+                                            @click.stop="expandedDescs[item.id] = !expandedDescs[item.id]">
+                                            {{ expandedDescs[item.id] ? 'Show less' : 'Read more' }}
+                                        </button>
+                                    </template>
+                                </div>
+                                <svg class="zawadi-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <path d="M9 18l6-6-6-6"/>
                                 </svg>
-                            </button>
-                            <div class="lb-folder-badge" v-if="lightboxItem.folderName">{{ lightboxItem.folderName }}
                             </div>
-                            <img v-if="lightboxItem.type === 'image'" :src="lightboxItem.url" class="lb-img"
-                                :style="{ transform: `translate(${lbOffX}px, ${lbOffY}px) scale(${lbScale})`, cursor: lbScale > 1 ? 'grab' : 'zoom-in' }"
-                                @touchstart="onLbTouchStart" @touchmove.prevent="onLbTouchMove" @touchend="onLbTouchEnd"
-                                @wheel.prevent="onLbWheel" @dblclick="onLbDblClick" @click.stop />
-                            <video v-else :src="lightboxItem.url" class="lb-video" controls autoplay
-                                playsinline></video>
-
-                            <!-- Like button (gallery items only) -->
-                            <button v-if="lightboxItem.folderId && lightboxItem.id" class="lb-like-btn"
-                                :class="{ 'lb-like-btn-active': (lightboxItem.likedBy ?? []).includes(userId) }"
-                                @click.stop="toggleLike(lightboxItem)">
-                                <svg viewBox="0 0 24 24"
-                                    :fill="(lightboxItem.likedBy ?? []).includes(userId) ? 'currentColor' : 'none'"
-                                    stroke="currentColor" stroke-width="2">
-                                    <path
-                                        d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                                </svg>
-                                <span v-if="(lightboxItem.likedBy ?? []).length" class="lb-like-badge">{{
-                                    (lightboxItem.likedBy ??
-                                    []).length }}</span>
-                            </button>
-
-                            <!-- Comment toggle (gallery items only) -->
-                            <button v-if="lightboxItem.folderId && lightboxItem.id" class="lb-comment-btn"
-                                :class="{ 'lb-comment-btn-active': showMediaComments }"
-                                @click.stop="showMediaComments = !showMediaComments">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                                </svg>
-                                <span v-if="mediaComments.length" class="lb-comment-badge">{{ mediaComments.length
-                                    }}</span>
-                            </button>
-
-                            <!-- Media comments bottom sheet -->
-                            <Transition name="mc-slide">
-                                <div v-if="showMediaComments && lightboxItem.folderId" class="mc-sheet" @click.stop>
-                                    <div class="mc-handle"></div>
-                                    <p class="mc-title">{{ t('comments') }}<span v-if="mediaComments.length"
-                                            class="cmnt-count"> ({{
-                                            mediaComments.length }})</span></p>
-                                    <div class="mc-list">
-                                        <div v-for="c in mediaComments" :key="c.id" class="cmnt-item">
-                                            <div class="cmnt-avatar cmnt-avatar-sm"
-                                                :style="{ background: c.userColor?.bg, color: c.userColor?.fg }">{{
-                                                c.userInitial }}
-                                            </div>
-                                            <div class="cmnt-body">
-                                                <div class="cmnt-meta">
-                                                    <span class="cmnt-name">{{ c.userName }}</span>
-                                                    <span class="cmnt-time">{{ fmtCommentTime(c.createdAt) }}</span>
-                                                </div>
-                                                <p class="cmnt-text">{{ c.text }}</p>
-                                            </div>
-                                        </div>
-                                        <p v-if="!mediaComments.length" class="cmnt-empty mc-empty">{{ t('noComments')
-                                            }}</p>
+                            <!-- Progress bar -->
+                            <div class="zawadi-progress-wrap">
+                                <div class="zawadi-progress-bar">
+                                    <div class="zawadi-progress-fill"
+                                        :style="{ width: Math.min(100, item.targetAmount > 0 ? (item.totalFunded / item.targetAmount * 100) : 0) + '%' }">
                                     </div>
-                                    <div class="cmnt-compose mc-compose">
+                                </div>
+                            </div>
+                            <!-- Footer: amounts · avatar strip -->
+                            <div class="zawadi-item-foot">
+                                <div class="zawadi-amounts">
+                                    <span class="zawadi-funded">{{ item.currency || 'TZS' }} {{ fmtMoney(item.totalFunded || 0) }}</span>
+                                    <span class="zawadi-target"> / {{ fmtMoney(item.targetAmount) }}</span>
+                                </div>
+                                <div v-if="(contribsByItem[item.id] || []).length" class="zawadi-avatars">
+                                    <div v-for="c in (contribsByItem[item.id] || []).slice(0, 4)" :key="c.id"
+                                        class="zawadi-avatar"
+                                        :style="{ background: avatarColor(c.attendeeInitial).bg, color: avatarColor(c.attendeeInitial).fg }">
+                                        {{ c.attendeeInitial }}
+                                    </div>
+                                    <div v-if="(contribsByItem[item.id] || []).length > 4" class="zawadi-avatar zawadi-avatar-more">
+                                        +{{ (contribsByItem[item.id] || []).length - 4 }}
+                                    </div>
+                                </div>
+                                <span v-else class="zawadi-no-gifts">{{ lang === 'sw' ? 'Bado hakuna zawadi' : 'Be the first!' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comments -->
+                <div class="section-card reveal">
+                    <div class="s-hdr">
+                        <div class="s-bar"></div>
+                        <span class="s-lbl">{{ t('comments') }}<span v-if="comments.length" class="cmnt-count"> ({{
+                            comments.length }})</span></span>
+                    </div>
+
+                    <div class="cmnt-list" v-if="comments.length">
+                        <div v-for="c in comments" :key="c.id" class="cmnt-item">
+                            <div class="cmnt-avatar"
+                                :style="{ background: c.userColor?.bg, color: c.userColor?.fg }">{{ c.userInitial }}
+                            </div>
+                            <div class="cmnt-body">
+                                <div class="cmnt-meta">
+                                    <span class="cmnt-name">{{ c.userName }}</span>
+                                    <span class="cmnt-time">{{ fmtCommentTime(c.createdAt) }}</span>
+                                </div>
+                                <p class="cmnt-text">{{ c.text }}</p>
+                                <div class="cmnt-actions">
+                                    <button class="cmnt-reply-btn" @click="openReply(c.id)">{{ t('reply')
+                                        }}</button>
+                                    <button v-if="c.replyCount > 0" class="cmnt-view-replies"
+                                        @click="toggleReplies(c)">
+                                        {{ expandedReplies[c.id] ? t('hideReplies') : tFn('replies', c.replyCount)
+                                        }}
+                                    </button>
+                                </div>
+
+                                <div v-if="replyingTo === c.id" class="cmnt-reply-form">
+                                    <input v-model="replyTexts[c.id]" class="cmnt-input"
+                                        :placeholder="t('replyPlaceholder')"
+                                        @keydown.enter.prevent="postReply(c)" />
+                                    <button class="cmnt-send"
+                                        :disabled="!replyTexts[c.id]?.trim() || replyPosting[c.id]"
+                                        @click="postReply(c)">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="22" y1="2" x2="11" y2="13" />
+                                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div v-if="expandedReplies[c.id]" class="cmnt-replies">
+                                    <div v-for="r in expandedReplies[c.id]" :key="r.id" class="cmnt-item">
                                         <div class="cmnt-avatar cmnt-avatar-sm"
-                                            :style="{ background: ac?.bg, color: ac?.fg }">{{
-                                            attendeeInitial }}</div>
-                                        <input v-model="mediaCommentText" class="cmnt-input"
-                                            :placeholder="t('commentPlaceholder')"
-                                            @keydown.enter.prevent="postMediaComment" />
-                                        <button class="cmnt-send"
-                                            :disabled="!mediaCommentText.trim() || mediaCommentPosting"
-                                            @click="postMediaComment">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <line x1="22" y1="2" x2="11" y2="13" />
-                                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                                            </svg>
-                                        </button>
+                                            :style="{ background: r.userColor?.bg, color: r.userColor?.fg }">{{
+                                                r.userInitial }}</div>
+                                        <div class="cmnt-body">
+                                            <div class="cmnt-meta">
+                                                <span class="cmnt-name">{{ r.userName }}</span>
+                                                <span class="cmnt-time">{{ fmtCommentTime(r.createdAt) }}</span>
+                                            </div>
+                                            <p class="cmnt-text">{{ r.text }}</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </Transition>
+                            </div>
                         </div>
-                    </Transition>
-                </Teleport>
+                    </div>
 
-                <!-- ── Gift bottom-sheet ── -->
-                <Teleport to="body">
-                    <Transition name="gift-overlay">
-                        <div v-if="showGiftSheet" class="gift-overlay" @click.self="closeGiftSheet">
-                            <Transition name="gift-sheet">
-                                <div v-if="showGiftSheet" class="gift-sheet" @click.stop>
-                                    <div class="gift-sheet-handle"></div>
+                    <p v-else class="cmnt-empty">{{ t('noComments') }}</p>
 
-                                    <!-- Persistent header: back · [icon] title · close -->
-                                    <div class="gift-hdr-row">
-                                        <button v-if="giftStep === 'note'" class="gift-hdr-back" @click="giftBack">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
-                                        </button>
-                                        <button v-else-if="giftStep === 'confirm'" class="gift-hdr-back" @click="giftBackToNote">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
-                                        </button>
+                    <div class="cmnt-compose">
+                        <div class="cmnt-avatar cmnt-avatar-sm" :style="{ background: ac?.bg, color: ac?.fg }">{{
+                            attendeeInitial }}</div>
+                        <input v-model="commentText" class="cmnt-input" :placeholder="t('commentPlaceholder')"
+                            @keydown.enter.prevent="postComment" />
+                        <button class="cmnt-send" :disabled="!commentText.trim() || commentPosting"
+                            @click="postComment">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13" />
+                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
 
-                                        <div v-if="giftStep === 'pick'" class="gift-hdr-identity">
-                                            <div class="gift-hdr-icon">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                                                    <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
-                                                    <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
-                                                    <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
-                                                </svg>
-                                            </div>
-                                            <p class="gift-hdr-title">{{ stepTitle }}</p>
+                <!-- Contacts -->
+                <section v-if="contacts.length" class="el-contacts reveal">
+                    <p class="el-eyebrow el-eyebrow-center">{{ t('contactsEyebrow') }}</p>
+                    <h2 class="el-section-title">{{ t('contactsTitle') }}</h2>
+                    <div class="el-contacts-grid">
+                        <div v-for="c in contacts" :key="c.id" class="el-glass-card el-contact-card">
+                            <div class="el-contact-avatar" :style="{ background: avatarColor(c.name.charAt(0)).bg, color: avatarColor(c.name.charAt(0)).fg }">
+                                {{ c.name.charAt(0).toUpperCase() }}
+                            </div>
+                            <p class="el-contact-name">{{ c.name }}</p>
+                            <p v-if="c.role" class="el-contact-role">{{ c.role }}</p>
+                            <a :href="`tel:${c.phone.replace(/\s+/g, '')}`" class="el-contact-phone">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                </svg>
+                                {{ c.phone }}
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Support -->
+                <a v-if="eventData.supportPhone"
+                    :href="`https://wa.me/${eventData.supportPhone.replace(/\D/g, '')}`" target="_blank"
+                    class="support-link reveal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                    </svg>
+                    {{ t('contactSupport') }}
+                </a>
+
+                <!-- ── Entry Pass ── -->
+                <section class="el-pass reveal">
+                    <p class="el-eyebrow el-eyebrow-center">{{ t('guestPass') }}</p>
+                    <h2 class="el-section-title">{{ t('entryPassTitle') }}</h2>
+
+                    <div class="el-glass-card el-pass-card">
+                        <div class="stub-main">
+                            <div class="stub-avatar" :style="{ background: ac.bg }">
+                                <span class="stub-initial" :style="{ color: ac.fg }">{{ attendeeInitial }}</span>
+                                <div class="stub-avatar-ring" :style="{ borderColor: ac.fg + '55' }"></div>
+                            </div>
+
+                            <div class="stub-info">
+                                <p class="stub-badge">{{ cardBadge }}</p>
+                                <h2 class="stub-name">{{ attendeeName }}</h2>
+                                <p class="stub-phone" v-if="attendeePhone">{{ attendeePhone }}</p>
+                            </div>
+                        </div>
+
+                        <div v-if="qrDataUrl" class="el-pass-qr-wrap">
+                            <img :src="qrDataUrl" class="el-pass-qr" alt="Entry QR code" />
+                            <p class="el-pass-qr-hint">{{ t('qrHint') }}</p>
+                        </div>
+
+                        <button v-if="hasInvitation && attendeeData?.cards?.invitation?.url" class="view-card-btn"
+                            @click="lightboxItem = { url: attendeeData.cards.invitation.url, type: 'image' }">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                            {{ t('viewCard') }}
+                        </button>
+
+                        <div :class="['stub-status',
+                            attendeeData?.attendanceStatus === 'Confirmed' ? 'status-in' :
+                                attendeeData?.attendanceStatus === 'Declined' ? 'status-declined' :
+                                    'status-pending']" @click="showRsvp = true">
+                            <div class="status-indicator">
+                                <div :class="['status-led',
+                                    attendeeData?.attendanceStatus === 'Confirmed' ? 'led-green' :
+                                        attendeeData?.attendanceStatus === 'Declined' ? 'led-red' :
+                                            'led-amber']">
+                                </div>
+                                <span>{{
+                                    attendeeData?.attendanceStatus === 'Confirmed' ? t('confirmed') :
+                                        attendeeData?.attendanceStatus === 'Declined' ? t('declined') :
+                                            t('pendingRsvp')
+                                    }}</span>
+                            </div>
+                            <div class="status-right">
+                                <svg v-if="attendeeData?.attendanceStatus === 'Confirmed'" class="check-mark"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M5 13l4 4L19 7" />
+                                </svg>
+                                <svg v-else-if="attendeeData?.attendanceStatus === 'Declined'" class="check-mark"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                                <span
+                                    v-if="attendeeData?.attendanceStatus === 'Confirmed' || attendeeData?.attendanceStatus === 'Declined'"
+                                    class="status-change-lbl">{{ t('tapToChange') }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="eventData.passNote" class="el-pass-note">
+                        <div class="el-divider" style="margin:34px auto 20px"></div>
+                        <p class="el-pass-note-text">{{ eventData.passNote }}</p>
+                    </div>
+                </section>
+
+            </div>
+            <!-- /el-content -->
+
+            <!-- Footer -->
+            <footer class="el-footer">
+                <h2 class="el-footer-title">{{ eventData.title }}</h2>
+                <p v-if="startFmt" class="el-footer-date">{{ startFmt }}</p>
+                <p class="el-footer-credit">{{ t('footerCredit') }}</p>
+            </footer>
+
+            <!-- Lightbox (always mounted) -->
+            <Teleport to="body">
+                <Transition name="lb-fade">
+                    <div v-if="lightboxItem" class="lb-overlay" @click.self="onLbBgClick">
+                        <button class="lb-close" @click="closeLightbox">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                        <div class="lb-folder-badge" v-if="lightboxItem.folderName">{{ lightboxItem.folderName }}
+                        </div>
+                        <img v-if="lightboxItem.type === 'image'" :src="lightboxItem.url" class="lb-img"
+                            :style="{ transform: `translate(${lbOffX}px, ${lbOffY}px) scale(${lbScale})`, cursor: lbScale > 1 ? 'grab' : 'zoom-in' }"
+                            @touchstart="onLbTouchStart" @touchmove.prevent="onLbTouchMove" @touchend="onLbTouchEnd"
+                            @wheel.prevent="onLbWheel" @dblclick="onLbDblClick" @click.stop />
+                        <video v-else :src="lightboxItem.url" class="lb-video" controls autoplay
+                            playsinline></video>
+
+                        <!-- Like button (gallery items only) -->
+                        <button v-if="lightboxItem.folderId && lightboxItem.id" class="lb-like-btn"
+                            :class="{ 'lb-like-btn-active': (lightboxItem.likedBy ?? []).includes(userId) }"
+                            @click.stop="toggleLike(lightboxItem)">
+                            <svg viewBox="0 0 24 24"
+                                :fill="(lightboxItem.likedBy ?? []).includes(userId) ? 'currentColor' : 'none'"
+                                stroke="currentColor" stroke-width="2">
+                                <path
+                                    d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                            </svg>
+                            <span v-if="(lightboxItem.likedBy ?? []).length" class="lb-like-badge">{{
+                                (lightboxItem.likedBy ??
+                                []).length }}</span>
+                        </button>
+
+                        <!-- Comment toggle (gallery items only) -->
+                        <button v-if="lightboxItem.folderId && lightboxItem.id" class="lb-comment-btn"
+                            :class="{ 'lb-comment-btn-active': showMediaComments }"
+                            @click.stop="showMediaComments = !showMediaComments">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                            </svg>
+                            <span v-if="mediaComments.length" class="lb-comment-badge">{{ mediaComments.length
+                                }}</span>
+                        </button>
+
+                        <!-- Media comments bottom sheet -->
+                        <Transition name="mc-slide">
+                            <div v-if="showMediaComments && lightboxItem.folderId" class="mc-sheet" @click.stop>
+                                <div class="mc-handle"></div>
+                                <p class="mc-title">{{ t('comments') }}<span v-if="mediaComments.length"
+                                        class="cmnt-count"> ({{
+                                        mediaComments.length }})</span></p>
+                                <div class="mc-list">
+                                    <div v-for="c in mediaComments" :key="c.id" class="cmnt-item">
+                                        <div class="cmnt-avatar cmnt-avatar-sm"
+                                            :style="{ background: c.userColor?.bg, color: c.userColor?.fg }">{{
+                                            c.userInitial }}
                                         </div>
-                                        <p v-else class="gift-hdr-title">{{ stepTitle }}</p>
-
-                                        <button class="gift-sheet-close" @click="closeGiftSheet">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                                            </svg>
-                                        </button>
+                                        <div class="cmnt-body">
+                                            <div class="cmnt-meta">
+                                                <span class="cmnt-name">{{ c.userName }}</span>
+                                                <span class="cmnt-time">{{ fmtCommentTime(c.createdAt) }}</span>
+                                            </div>
+                                            <p class="cmnt-text">{{ c.text }}</p>
+                                        </div>
                                     </div>
+                                    <p v-if="!mediaComments.length" class="cmnt-empty mc-empty">{{ t('noComments')
+                                        }}</p>
+                                </div>
+                                <div class="cmnt-compose mc-compose">
+                                    <div class="cmnt-avatar cmnt-avatar-sm"
+                                        :style="{ background: ac?.bg, color: ac?.fg }">{{
+                                        attendeeInitial }}</div>
+                                    <input v-model="mediaCommentText" class="cmnt-input"
+                                        :placeholder="t('commentPlaceholder')"
+                                        @keydown.enter.prevent="postMediaComment" />
+                                    <button class="cmnt-send"
+                                        :disabled="!mediaCommentText.trim() || mediaCommentPosting"
+                                        @click="postMediaComment">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="22" y1="2" x2="11" y2="13" />
+                                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </Transition>
+                    </div>
+                </Transition>
+            </Teleport>
 
-                                    <!-- Step: pick amount -->
-                                    <template v-if="giftStep === 'pick'">
-                                        <p class="gift-sheet-sub">{{ lang === 'sw' ? 'Unatoa zawadi kwa ajili ya' : 'Gifting towards' }} <strong style="color:#e8d5a0">{{ selectedItem?.title }}</strong></p>
+            <!-- ── Gift bottom-sheet ── -->
+            <Teleport to="body">
+                <Transition name="gift-overlay">
+                    <div v-if="showGiftSheet" class="gift-overlay" @click.self="closeGiftSheet">
+                        <Transition name="gift-sheet">
+                            <div v-if="showGiftSheet" class="gift-sheet" @click.stop>
+                                <div class="gift-sheet-handle"></div>
 
-                                        <!-- Givers wall — scoped to this item -->
-                                        <div v-if="itemContribs.length" class="givers-wall">
-                                            <div class="givers-wall-scroll">
-                                                <div v-for="c in itemContribs" :key="c.id" class="givers-wall-chip">
-                                                    <div class="givers-wall-avatar" :style="{ background: avatarColor(c.attendeeInitial).bg, color: avatarColor(c.attendeeInitial).fg }">{{ c.attendeeInitial }}</div>
-                                                    <div class="givers-wall-info">
-                                                        <span class="givers-wall-name">{{ c.attendeeName }}</span>
-                                                        <span class="givers-wall-amt">{{ fmtMoney(c.amount) }}</span>
-                                                    </div>
+                                <!-- Persistent header: back · [icon] title · close -->
+                                <div class="gift-hdr-row">
+                                    <button v-if="giftStep === 'note'" class="gift-hdr-back" @click="giftBack">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+                                    </button>
+                                    <button v-else-if="giftStep === 'confirm'" class="gift-hdr-back" @click="giftBackToNote">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+                                    </button>
+
+                                    <div v-if="giftStep === 'pick'" class="gift-hdr-identity">
+                                        <div class="gift-hdr-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                                                <path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+                                                <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/>
+                                                <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/>
+                                            </svg>
+                                        </div>
+                                        <p class="gift-hdr-title">{{ stepTitle }}</p>
+                                    </div>
+                                    <p v-else class="gift-hdr-title">{{ stepTitle }}</p>
+
+                                    <button class="gift-sheet-close" @click="closeGiftSheet">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <!-- Step: pick amount -->
+                                <template v-if="giftStep === 'pick'">
+                                    <p class="gift-sheet-sub">{{ lang === 'sw' ? 'Unatoa zawadi kwa ajili ya' : 'Gifting towards' }} <strong style="color:#e8d5a0">{{ selectedItem?.title }}</strong></p>
+
+                                    <!-- Givers wall — scoped to this item -->
+                                    <div v-if="itemContribs.length" class="givers-wall">
+                                        <div class="givers-wall-scroll">
+                                            <div v-for="c in itemContribs" :key="c.id" class="givers-wall-chip">
+                                                <div class="givers-wall-avatar" :style="{ background: avatarColor(c.attendeeInitial).bg, color: avatarColor(c.attendeeInitial).fg }">{{ c.attendeeInitial }}</div>
+                                                <div class="givers-wall-info">
+                                                    <span class="givers-wall-name">{{ c.attendeeName }}</span>
+                                                    <span class="givers-wall-amt">{{ fmtMoney(c.amount) }}</span>
                                                 </div>
                                             </div>
-                                            <p class="givers-wall-lbl">{{ itemContribs.length }} {{ lang === 'sw' ? 'wametoa zawadi hadi sasa' : 'people have sent gifts' }}</p>
                                         </div>
+                                        <p class="givers-wall-lbl">{{ itemContribs.length }} {{ lang === 'sw' ? 'wametoa zawadi hadi sasa' : 'people have sent gifts' }}</p>
+                                    </div>
 
-                                        <div class="gift-presets">
-                                            <button v-for="p in GIFT_PRESETS" :key="p"
-                                                :class="['gift-preset', giftAmount === p && !giftCustom ? 'gift-preset-active' : '']"
-                                                @click="pickPreset(p)">
-                                                {{ fmtMoney(p) }}<span class="gift-preset-cur">{{ giftCurrency }}</span>
-                                            </button>
-                                        </div>
-                                        <div class="gift-custom-wrap">
-                                            <span class="gift-custom-prefix">{{ giftCurrency }}</span>
-                                            <input v-model="giftCustom" class="gift-custom-input" type="text"
-                                                inputmode="numeric" pattern="[0-9]*"
-                                                :placeholder="lang === 'sw' ? 'Kiasi kingine' : 'Custom amount'"
-                                                @input="onCustomInput" />
-                                        </div>
-                                        <p v-if="giftTotal && giftTotal < 100" class="gift-err">{{ lang === 'sw' ? 'Kiwango cha chini ni' : 'Minimum is' }} {{ fmtMoney(100) }} {{ giftCurrency }}</p>
-                                        <button class="gift-cta" :disabled="!giftTotal || giftTotal < 100" @click="giftNext">
-                                            {{ lang === 'sw' ? 'Endelea' : 'Continue' }}
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    <div class="gift-presets">
+                                        <button v-for="p in GIFT_PRESETS" :key="p"
+                                            :class="['gift-preset', giftAmount === p && !giftCustom ? 'gift-preset-active' : '']"
+                                            @click="pickPreset(p)">
+                                            {{ fmtMoney(p) }}<span class="gift-preset-cur">{{ giftCurrency }}</span>
                                         </button>
-                                    </template>
+                                    </div>
+                                    <div class="gift-custom-wrap">
+                                        <span class="gift-custom-prefix">{{ giftCurrency }}</span>
+                                        <input v-model="giftCustom" class="gift-custom-input" type="text"
+                                            inputmode="numeric" pattern="[0-9]*"
+                                            :placeholder="lang === 'sw' ? 'Kiasi kingine' : 'Custom amount'"
+                                            @input="onCustomInput" />
+                                    </div>
+                                    <p v-if="giftTotal && giftTotal < 100" class="gift-err">{{ lang === 'sw' ? 'Kiwango cha chini ni' : 'Minimum is' }} {{ fmtMoney(100) }} {{ giftCurrency }}</p>
+                                    <button class="gift-cta" :disabled="!giftTotal || giftTotal < 100" @click="giftNext">
+                                        {{ lang === 'sw' ? 'Endelea' : 'Continue' }}
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    </button>
+                                </template>
 
-                                    <!-- Step: note -->
-                                    <template v-if="giftStep === 'note'">
-                                        <p class="gift-sheet-sub" style="margin-bottom:14px">{{ lang === 'sw' ? 'Hiari — maneno yako yataonekana ukutani' : 'Optional — shown on the givers wall' }}</p>
-                                        <div class="gift-amount-pill"><span>{{ fmtMoney(giftTotal) }} {{ giftCurrency }}</span></div>
-                                        <textarea v-model="giftNote" class="gift-note-ta"
-                                            :placeholder="lang === 'sw' ? 'Mfano: Hongera sana! Mungu abariki…' : 'e.g. Congratulations! Wishing you all the best…'"
-                                            rows="4" maxlength="200"></textarea>
-                                        <p class="gift-char-count">{{ giftNote.length }}/200</p>
-                                        <button class="gift-cta" @click="giftConfirm">
-                                            {{ lang === 'sw' ? 'Kagua' : 'Review' }}
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                                        </button>
-                                    </template>
+                                <!-- Step: note -->
+                                <template v-if="giftStep === 'note'">
+                                    <p class="gift-sheet-sub" style="margin-bottom:14px">{{ lang === 'sw' ? 'Hiari — maneno yako yataonekana ukutani' : 'Optional — shown on the givers wall' }}</p>
+                                    <div class="gift-amount-pill"><span>{{ fmtMoney(giftTotal) }} {{ giftCurrency }}</span></div>
+                                    <textarea v-model="giftNote" class="gift-note-ta"
+                                        :placeholder="lang === 'sw' ? 'Mfano: Hongera sana! Mungu abariki…' : 'e.g. Congratulations! Wishing you all the best…'"
+                                        rows="4" maxlength="200"></textarea>
+                                    <p class="gift-char-count">{{ giftNote.length }}/200</p>
+                                    <button class="gift-cta" @click="giftConfirm">
+                                        {{ lang === 'sw' ? 'Kagua' : 'Review' }}
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    </button>
+                                </template>
 
-                                    <!-- Step: confirm -->
-                                    <template v-if="giftStep === 'confirm'">
-                                        <div class="gift-confirm-card">
-                                            <div class="gift-confirm-row">
-                                                <span class="gift-confirm-lbl">{{ lang === 'sw' ? 'Kutoka' : 'From' }}</span>
-                                                <span class="gift-confirm-val">{{ attendeeName }}</span>
-                                            </div>
-                                            <div class="gift-confirm-row">
-                                                <span class="gift-confirm-lbl">{{ lang === 'sw' ? 'Kiasi' : 'Amount' }}</span>
-                                                <span class="gift-confirm-val gift-confirm-amt">{{ fmtMoney(giftTotal) }} {{ giftCurrency }}</span>
-                                            </div>
-                                            <div v-if="giftNote" class="gift-confirm-row gift-confirm-note-row">
-                                                <span class="gift-confirm-lbl">{{ lang === 'sw' ? 'Ujumbe' : 'Note' }}</span>
-                                                <span class="gift-confirm-val gift-confirm-note">{{ giftNote }}</span>
-                                            </div>
+                                <!-- Step: confirm -->
+                                <template v-if="giftStep === 'confirm'">
+                                    <div class="gift-confirm-card">
+                                        <div class="gift-confirm-row">
+                                            <span class="gift-confirm-lbl">{{ lang === 'sw' ? 'Kutoka' : 'From' }}</span>
+                                            <span class="gift-confirm-val">{{ attendeeName }}</span>
                                         </div>
-                                        <p class="gift-confirm-disclaimer">{{ lang === 'sw' ? 'Malipo yatashughulikiwa kwa usalama.' : 'Payment will be processed securely.' }}</p>
-                                        <p v-if="giftError" class="gift-err" style="margin-bottom:10px">{{ giftError }}</p>
-                                        <button class="gift-cta gift-cta-gold" :disabled="giftSending" @click="sendGift">
-                                            <template v-if="giftSending">
-                                                <div class="gift-spinner"></div>
-                                                {{ lang === 'sw' ? 'Inatuma…' : 'Sending…' }}
-                                            </template>
-                                            <template v-else>
-                                                {{ lang === 'sw' ? 'Tuma Zawadi' : 'Send Gift' }}
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
-                                            </template>
-                                        </button>
-                                    </template>
-
-                                    <!-- Step: done -->
-                                    <template v-if="giftStep === 'done'">
-                                        <div class="gift-done">
-                                            <div class="gift-done-icon">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                                    <circle cx="12" cy="12" r="10"/>
-                                                    <path d="M8 12l3 3 5-6" stroke-linecap="round" stroke-linejoin="round"/>
-                                                </svg>
-                                            </div>
-                                            <p class="gift-done-sub">{{ fmtMoney(giftTotal) }} {{ giftCurrency }} — {{ lang === 'sw' ? 'Zawadi yako imetumwa. Asante sana!' : 'Your gift has been sent. Thank you!' }}</p>
-                                            <button class="gift-cta" @click="closeGiftSheet">{{ lang === 'sw' ? 'Funga' : 'Done' }}</button>
+                                        <div class="gift-confirm-row">
+                                            <span class="gift-confirm-lbl">{{ lang === 'sw' ? 'Kiasi' : 'Amount' }}</span>
+                                            <span class="gift-confirm-val gift-confirm-amt">{{ fmtMoney(giftTotal) }} {{ giftCurrency }}</span>
                                         </div>
-                                    </template>
+                                        <div v-if="giftNote" class="gift-confirm-row gift-confirm-note-row">
+                                            <span class="gift-confirm-lbl">{{ lang === 'sw' ? 'Ujumbe' : 'Note' }}</span>
+                                            <span class="gift-confirm-val gift-confirm-note">{{ giftNote }}</span>
+                                        </div>
+                                    </div>
+                                    <p class="gift-confirm-disclaimer">{{ lang === 'sw' ? 'Malipo yatashughulikiwa kwa usalama.' : 'Payment will be processed securely.' }}</p>
+                                    <p v-if="giftError" class="gift-err" style="margin-bottom:10px">{{ giftError }}</p>
+                                    <button class="gift-cta gift-cta-gold" :disabled="giftSending" @click="sendGift">
+                                        <template v-if="giftSending">
+                                            <div class="gift-spinner"></div>
+                                            {{ lang === 'sw' ? 'Inatuma…' : 'Sending…' }}
+                                        </template>
+                                        <template v-else>
+                                            {{ lang === 'sw' ? 'Tuma Zawadi' : 'Send Gift' }}
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+                                        </template>
+                                    </button>
+                                </template>
 
-                                </div>
-                            </Transition>
-                        </div>
-                    </Transition>
-                </Teleport>
+                                <!-- Step: done -->
+                                <template v-if="giftStep === 'done'">
+                                    <div class="gift-done">
+                                        <div class="gift-done-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <path d="M8 12l3 3 5-6" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                        </div>
+                                        <p class="gift-done-sub">{{ fmtMoney(giftTotal) }} {{ giftCurrency }} — {{ lang === 'sw' ? 'Zawadi yako imetumwa. Asante sana!' : 'Your gift has been sent. Thank you!' }}</p>
+                                        <button class="gift-cta" @click="closeGiftSheet">{{ lang === 'sw' ? 'Funga' : 'Done' }}</button>
+                                    </div>
+                                </template>
 
-                <div style="height:56px"></div>
-            </div>
+                            </div>
+                        </Transition>
+                    </div>
+                </Transition>
+            </Teleport>
         </template>
     </div>
 </template>
@@ -1530,323 +1889,27 @@ const toggleLike = async (item) => {
     padding: 0;
 }
 
-/* ── Page ─────────────────────────────────────────────────────────────────── */
+/* ── Design tokens — this guest-facing page intentionally diverges from the
+   app's dark admin theme (src/style.css). Font-family names match Google
+   Fonts already loaded globally in index.html. ── */
 .page {
+    --el-ivory: #FAF6EF;
+    --el-cream: #F3ECDD;
+    --el-gold: #C9A84C;
+    --el-gold-dark: #9C7F32;
+    --el-text-main: #241F18;
+    --el-text-light: #6b6255;
+    --el-radius: 22px;
+    --el-transition-slow: all .8s cubic-bezier(.19,1,.22,1);
+    --el-transition-fast: all .25s ease;
+
     min-height: 100vh;
-    background: #111114;
-    color: #EEEEF0;
+    background: var(--el-ivory);
+    color: var(--el-text-main);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     position: relative;
     overflow-x: hidden;
-}
-
-/* ── Atmospheric orbs ─────────────────────────────────────────────────────── */
-.bg-anim {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    overflow: hidden;
-}
-
-/* Large atmospheric orbs — spans 1-3 */
-.bg-anim span {
-    position: absolute;
-    border-radius: 50%;
-}
-
-.bg-anim span:nth-child(1) {
-    left: -25%;
-    top: -20%;
-    width: 85vw;
-    height: 85vw;
-    background: radial-gradient(circle at center, rgba(201, 150, 60, .11) 0%, transparent 65%);
-    opacity: 1;
-    animation: orbDrift1 32s ease-in-out infinite;
-}
-
-.bg-anim span:nth-child(2) {
-    right: -25%;
-    bottom: 0;
-    left: unset;
-    top: unset;
-    width: 75vw;
-    height: 75vw;
-    background: radial-gradient(circle at center, rgba(160, 100, 30, .08) 0%, transparent 65%);
-    opacity: 1;
-    animation: orbDrift2 38s ease-in-out infinite;
-}
-
-.bg-anim span:nth-child(3) {
-    left: 20%;
-    top: 35%;
-    width: 55vw;
-    height: 55vw;
-    background: radial-gradient(circle at center, rgba(220, 160, 60, .05) 0%, transparent 60%);
-    opacity: 1;
-    animation: orbDrift3 28s ease-in-out infinite;
-}
-
-/* Small floating sparkles — spans 4-18 */
-.bg-anim span:nth-child(n+4) {
-    bottom: -10px;
-    opacity: 0;
-    animation: floatUp var(--dur) ease-in var(--delay) infinite;
-}
-
-.bg-anim span:nth-child(4) {
-    left: 10%;
-    width: 4px;
-    height: 4px;
-    background: rgba(201, 150, 60, .8);
-    --dur: 9s;
-    --delay: 0.3s;
-}
-
-.bg-anim span:nth-child(5) {
-    left: 22%;
-    width: 3px;
-    height: 3px;
-    background: rgba(255, 255, 255, .5);
-    --dur: 11s;
-    --delay: 1.2s;
-    border-radius: 2px;
-}
-
-.bg-anim span:nth-child(6) {
-    left: 33%;
-    width: 5px;
-    height: 5px;
-    background: rgba(201, 150, 60, .7);
-    --dur: 8s;
-    --delay: 2.8s;
-}
-
-.bg-anim span:nth-child(7) {
-    left: 44%;
-    width: 4px;
-    height: 4px;
-    background: rgba(200, 170, 255, .65);
-    --dur: 13s;
-    --delay: 0.6s;
-}
-
-.bg-anim span:nth-child(8) {
-    left: 55%;
-    width: 3px;
-    height: 3px;
-    background: rgba(201, 150, 60, .7);
-    --dur: 10s;
-    --delay: 3.5s;
-}
-
-.bg-anim span:nth-child(9) {
-    left: 64%;
-    width: 5px;
-    height: 5px;
-    background: rgba(255, 255, 255, .35);
-    --dur: 7s;
-    --delay: 1.8s;
-    border-radius: 2px;
-}
-
-.bg-anim span:nth-child(10) {
-    left: 73%;
-    width: 4px;
-    height: 4px;
-    background: rgba(201, 150, 60, .6);
-    --dur: 12s;
-    --delay: 0.9s;
-}
-
-.bg-anim span:nth-child(11) {
-    left: 82%;
-    width: 3px;
-    height: 3px;
-    background: rgba(200, 170, 255, .6);
-    --dur: 9s;
-    --delay: 4.1s;
-}
-
-.bg-anim span:nth-child(12) {
-    left: 91%;
-    width: 4px;
-    height: 4px;
-    background: rgba(201, 150, 60, .75);
-    --dur: 11s;
-    --delay: 2.2s;
-}
-
-.bg-anim span:nth-child(13) {
-    left: 17%;
-    width: 5px;
-    height: 5px;
-    background: rgba(255, 255, 255, .4);
-    --dur: 8s;
-    --delay: 0s;
-}
-
-.bg-anim span:nth-child(14) {
-    left: 40%;
-    width: 3px;
-    height: 3px;
-    background: rgba(201, 150, 60, .8);
-    --dur: 14s;
-    --delay: 3s;
-    border-radius: 2px;
-}
-
-.bg-anim span:nth-child(15) {
-    left: 59%;
-    width: 4px;
-    height: 4px;
-    background: rgba(201, 150, 60, .65);
-    --dur: 9s;
-    --delay: 1.5s;
-}
-
-.bg-anim span:nth-child(16) {
-    left: 78%;
-    width: 5px;
-    height: 5px;
-    background: rgba(200, 170, 255, .5);
-    --dur: 10s;
-    --delay: 2.7s;
-}
-
-.bg-anim span:nth-child(17) {
-    left: 6%;
-    width: 3px;
-    height: 3px;
-    background: rgba(255, 255, 255, .45);
-    --dur: 12s;
-    --delay: 0.5s;
-}
-
-.bg-anim span:nth-child(18) {
-    left: 48%;
-    width: 4px;
-    height: 4px;
-    background: rgba(201, 150, 60, .7);
-    --dur: 8s;
-    --delay: 4.5s;
-    border-radius: 2px;
-}
-
-@keyframes orbDrift1 {
-
-    0%,
-    100% {
-        transform: translate(0, 0) scale(1);
-    }
-
-    33% {
-        transform: translate(4vw, -3vh) scale(1.04);
-    }
-
-    66% {
-        transform: translate(-2vw, 4vh) scale(.97);
-    }
-}
-
-@keyframes orbDrift2 {
-
-    0%,
-    100% {
-        transform: translate(0, 0) scale(1);
-    }
-
-    40% {
-        transform: translate(-5vw, -4vh) scale(1.06);
-    }
-
-    70% {
-        transform: translate(2vw, 2vh) scale(.95);
-    }
-}
-
-@keyframes orbDrift3 {
-
-    0%,
-    100% {
-        transform: translate(0, 0) scale(1);
-    }
-
-    50% {
-        transform: translate(3vw, 5vh) scale(1.08);
-    }
-}
-
-@keyframes floatUp {
-    0% {
-        transform: translateY(0) translateX(0) scale(1);
-        opacity: 0;
-    }
-
-    8% {
-        opacity: 1;
-    }
-
-    85% {
-        opacity: .6;
-    }
-
-    100% {
-        transform: translateY(-100vh) translateX(12px) scale(.5);
-        opacity: 0;
-    }
-}
-
-/* ── Wrap ─────────────────────────────────────────────────────────────────── */
-.wrap {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 24px 16px;
-    position: relative;
-    z-index: 1;
-}
-
-@media (min-width: 760px) {
-    .page {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        padding: 40px 24px 60px;
-    }
-
-    .wrap {
-        width: 100%;
-        max-width: 480px;
-        background: rgba(18, 18, 20, .92);
-        border: 1px solid rgba(44, 44, 46, .7);
-        border-radius: 32px;
-        box-shadow:
-            0 0 0 1px rgba(201, 150, 60, .08),
-            0 40px 80px rgba(0, 0, 0, .6);
-        padding: 0 0 8px;
-        overflow: hidden;
-    }
-
-    .wrap>* {
-        padding-left: 16px;
-        padding-right: 16px;
-    }
-
-    .ticket {
-        border-radius: 0;
-        margin-bottom: 0;
-        border: none;
-        box-shadow: none;
-    }
-
-    .ticket::before {
-        border-radius: 0;
-    }
-
-    .tab-bar {
-        margin: 12px 16px;
-    }
 }
 
 /* ── Loading / Error ──────────────────────────────────────────────────────── */
@@ -1865,16 +1928,14 @@ const toggleLike = async (item) => {
 .spin-ring {
     width: 38px;
     height: 38px;
-    border: 2.5px solid rgba(201, 150, 60, .15);
-    border-top-color: #C9963C;
+    border: 2.5px solid rgba(201, 168, 76, .18);
+    border-top-color: var(--el-gold);
     border-radius: 50%;
-    animation: spin .75s linear infinite;
+    animation: elSpin .75s linear infinite;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+@keyframes elSpin {
+    to { transform: rotate(360deg); }
 }
 
 .spin-lbl {
@@ -1882,907 +1943,782 @@ const toggleLike = async (item) => {
     font-weight: 700;
     letter-spacing: .18em;
     text-transform: uppercase;
-    color: rgba(238, 238, 240, .4);
+    color: var(--el-text-light);
 }
 
 .err-circle {
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: rgba(201, 150, 60, .08);
-    border: 1px solid rgba(201, 150, 60, .2);
+    background: rgba(201, 168, 76, .10);
+    border: 1px solid rgba(201, 168, 76, .3);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 22px;
-    color: #C9963C;
+    color: var(--el-gold-dark);
 }
 
 .err-h {
     font-size: 20px;
     font-weight: 800;
-    color: #EEEEF0;
+    color: var(--el-text-main);
 }
 
 .err-p {
     font-size: 13px;
-    color: rgba(238, 238, 240, .5);
+    color: var(--el-text-light);
     text-align: center;
     line-height: 1.6;
 }
 
-/* ── TICKET ───────────────────────────────────────────────────────────────── */
-.ticket {
-    background: rgba(28, 28, 30, .78);
-    backdrop-filter: blur(40px) saturate(1.6);
-    -webkit-backdrop-filter: blur(40px) saturate(1.6);
-    border: 1px solid rgba(44, 44, 46, .8);
-    border-radius: 24px;
-    overflow: hidden;
-    margin-bottom: 14px;
-    box-shadow:
-        0 0 0 1px rgba(201, 150, 60, .12),
-        0 48px 96px rgba(0, 0, 0, .7),
-        0 16px 40px rgba(201, 150, 60, .10);
-    animation: fadeUp .55s cubic-bezier(.22, 1, .36, 1) both;
-    position: relative;
+/* ── Back to top ──────────────────────────────────────────────────────────── */
+.el-back-top {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: none;
+    background: #fff;
+    color: var(--el-gold-dark);
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(36, 31, 24, .15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(16px);
+    transition: var(--el-transition-fast);
+}
+.el-back-top svg { width: 18px; height: 18px; }
+.el-back-top-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
 }
 
-.ticket::before {
-    content: '';
+/* ── Sound toggle (background music) — sits where the status pill used to,
+   top-right of the hero, and scrolls away with it ─────────────────────────── */
+.el-sound-toggle {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #C9963C 0%, #E8A020 50%, #C9A84C 100%);
-    z-index: 10;
+    top: 20px;
+    right: 20px;
+    z-index: 6;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, .88);
+    color: var(--el-gold-dark);
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+.el-sound-toggle svg { width: 16px; height: 16px; }
 
-@keyframes fadeUp {
-    from {
-        opacity: 0;
-        transform: translateY(24px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* ── Video intro — organizer-uploaded clip, plays once then dissolves into the hero ── */
+.el-video-intro {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: #000;
+    cursor: pointer;
 }
-
-/* Thumbnail */
-.thumb-wrap {
-    position: relative;
-    height: 210px;
-    overflow: hidden;
-    background: #F5EEE6;
-}
-
-.thumb-img {
+.el-video-intro-el {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
-
-.thumb-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #FDF0E0, #F5E8D5);
-}
-
-.thumb-placeholder svg {
-    width: 48px;
-    height: 48px;
-    opacity: .35;
-}
-
-.thumb-fade {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 80px;
-    background: linear-gradient(to bottom, transparent, rgba(28, 28, 30, .78));
-    z-index: 2;
-    pointer-events: none;
-}
-
-/* ── Hero slider ──────────────────────────────────────────────────────────── */
-.hero-track {
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
-
-.hero-slide {
+.el-video-intro-fade-leave-active { transition: opacity .6s ease; }
+.el-video-intro-fade-leave-to { opacity: 0; }
+.el-video-intro-tap {
     position: absolute;
     inset: 0;
-    opacity: 0;
-    transition: opacity .75s ease;
-    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: #fff;
+    background: rgba(0,0,0,.25);
+}
+.el-video-intro-tap svg { width: 46px; height: 46px; }
+.el-video-intro-tap span { font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+.el-hero {
+    height: 100vh;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    text-align: center;
+    overflow: hidden;
+    position: relative;
 }
 
-.hero-slide-active {
-    opacity: 1;
+.el-hero-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(20,16,10,.35), rgba(20,16,10,.55)), var(--el-cream);
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.08);
+    transition: transform .1s ease-out;
+    z-index: 0;
+}
+.el-hero-bg[style*="background-image"] {
+    background-blend-mode: normal;
+}
+
+.el-hero-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+        rgba(0,0,0,.34) 0%,
+        rgba(0,0,0,.28) 22%,
+        rgba(0,0,0,.4) 42%,
+        rgba(0,0,0,.46) 58%,
+        rgba(0,0,0,.32) 75%,
+        rgba(0,0,0,.55) 100%);
     z-index: 1;
 }
 
-.hero-slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.hero-arrow {
+.el-petals {
     position: absolute;
-    top: 50%;
-    transform: translateY(-65%);
-    z-index: 5;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .82);
-    backdrop-filter: blur(10px);
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #1A1A1A;
-    box-shadow: 0 2px 14px rgba(0, 0, 0, .18);
-    opacity: 0;
-    transition: opacity .2s ease, transform .15s ease, background .15s;
-}
-
-.thumb-wrap:hover .hero-arrow {
-    opacity: 1;
-}
-
-.hero-arrow:active {
-    transform: translateY(-65%) scale(.88);
-    background: rgba(255, 255, 255, .97);
-}
-
-.hero-arrow-l {
-    left: 12px;
-}
-
-.hero-arrow-r {
-    right: 12px;
-}
-
-.hero-arrow svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-}
-
-.hero-dots {
-    position: absolute;
-    bottom: 14px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 5px;
-    z-index: 5;
-    align-items: center;
-}
-
-.hero-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, .45);
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    transition: width .3s cubic-bezier(.22, 1, .36, 1), background .3s ease;
-    flex-shrink: 0;
-}
-
-.hero-dot-active {
-    width: 20px;
-    background: #111827;
-    cursor: default;
-}
-
-.hero-progress {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: rgba(255, 255, 255, .15);
-    z-index: 5;
-}
-
-.hero-progress-fill {
-    height: 100%;
-    background: linear-gradient(to right, #C9963C, #E8C070);
-    transition: width .45s ease;
-    border-radius: 0 2px 2px 0;
-}
-
-.hero-counter {
-    position: absolute;
-    top: 14px;
-    left: 14px;
-    z-index: 5;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .5px;
-    color: rgba(255, 255, 255, .92);
-    background: rgba(0, 0, 0, .28);
-    backdrop-filter: blur(8px);
-    padding: 4px 9px;
-    border-radius: 99px;
-}
-
-.hero-fake-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-65%);
-    z-index: 3;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .42);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(26, 26, 26, .22);
+    inset: 0;
     pointer-events: none;
-}
-
-.hero-fake-arrow svg {
-    width: 14px;
-    height: 14px;
-}
-
-.hero-fake-arrow-l {
-    left: 12px;
-}
-
-.hero-fake-arrow-r {
-    right: 12px;
-}
-
-/* Drag handle cursors */
-.thumb-wrap {
-    cursor: grab;
-}
-
-.thumb-wrap.hero-grabbing,
-.thumb-wrap.hero-grabbing * {
-    cursor: grabbing;
-    user-select: none;
-}
-
-/* Status badge */
-.ev-status {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    z-index: 6;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 99px;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    backdrop-filter: blur(12px);
-}
-
-.s-live {
-    background: rgba(255, 255, 255, .88);
-    border: .8px solid rgba(201, 150, 60, .5);
-    color: #B8861E;
-}
-
-.s-draft {
-    background: rgba(255, 255, 255, .88);
-    border: .8px solid rgba(150, 150, 150, .4);
-    color: #8E8E93;
-}
-
-.s-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: currentColor;
-}
-
-/* Event info */
-.ev-info {
-    padding: 16px 20px 20px;
-}
-
-.ev-title {
-    font-size: 24px;
-    font-weight: 800;
-    color: #EEEEF0;
-    letter-spacing: -.6px;
-    line-height: 1.18;
-    margin-bottom: 14px;
-}
-
-.ev-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.ev-meta-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-}
-
-.ev-meta-icon {
-    width: 30px;
-    height: 30px;
-    flex-shrink: 0;
-    background: rgba(201, 150, 60, .14);
-    border: 1px solid rgba(201, 150, 60, .2);
-    border-radius: 9px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ev-meta-icon svg {
-    width: 14px;
-    height: 14px;
-    color: #C9963C;
-}
-
-.ev-meta-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding-top: 5px;
-}
-
-.ev-meta-primary {
-    font-size: 13px;
-    color: rgba(238, 238, 240, .88);
-    font-weight: 500;
-    line-height: 1.4;
-}
-
-.ev-meta-end {
-    font-size: 12px;
-    color: rgba(238, 238, 240, .42);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.ev-meta-until {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: .6px;
-    color: #C9963C;
-    font-weight: 600;
-}
-
-.ev-meta-loc-link {
-    text-decoration: none;
-    border-radius: 10px;
-    transition: background .15s;
-    padding: 4px 6px;
-    margin: -4px -6px;
-}
-
-.ev-meta-loc-link:active {
-    background: rgba(201, 150, 60, .10);
-}
-
-.ev-meta-icon-gold svg {
-    stroke: #C9963C;
-}
-
-.ev-meta-loc-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .8px;
-    text-transform: uppercase;
-    color: #C9963C;
-    line-height: 1;
-}
-
-.ev-meta-text-loc {
-    flex: 1;
-    padding-right: 10px;
-}
-
-.ev-meta-arrow-wrap {
-    flex-shrink: 0;
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
-    background: rgba(201, 150, 60, .13);
-    box-shadow: 0 0 8px rgba(201, 150, 60, .25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    align-self: center;
-}
-
-.ev-meta-arrow-wrap svg {
-    width: 12px;
-    height: 12px;
-    color: #C9963C;
-}
-
-/* ── Tear / perforation ────────────────────────────────────────────────────── */
-.tear {
-    display: flex;
-    align-items: center;
-    margin: 0 -1px;
-}
-
-.tear-notch {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #111114;
-    flex-shrink: 0;
+    overflow: hidden;
     z-index: 2;
 }
 
-.tear-l {
-    border-left: none;
-    border-radius: 0 50% 50% 0;
-    margin-left: -1px;
+.petal {
+    position: absolute;
+    top: -10%;
+    background: rgba(255, 244, 220, .55);
+    border-radius: 150% 0 150% 0;
+    pointer-events: none;
 }
 
-.tear-r {
-    border-right: none;
-    border-radius: 50% 0 0 50%;
-    margin-right: -1px;
+@keyframes elPetalFall {
+    0% { top: -10%; }
+    100% { top: 110%; }
+}
+@keyframes elPetalSway {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    50% { transform: translateX(80px) rotate(180deg); }
 }
 
-.tear-line {
-    flex: 1;
-    border-top: 1.5px dashed rgba(44, 44, 46, 1);
+.el-hero-content {
+    z-index: 5;
+    position: relative;
+    padding: 0 20px;
+}
+@media (min-width: 768px) {
+    .el-hero-content { padding-left: 40px; padding-right: 40px; }
 }
 
-/* ── Attendee stub ─────────────────────────────────────────────────────────── */
-.stub {
-    padding: 20px 20px 22px;
+.el-hero-title {
+    font-family: 'Great Vibes', cursive;
+    font-weight: 400;
+    font-size: clamp(3.2rem, 9vw, 6.5rem);
+    line-height: 1.05;
+    text-shadow: 0 2px 8px rgba(0,0,0,.45), 0 8px 28px rgba(0,0,0,.35);
 }
 
-.stub-eyebrow {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1.4px;
-    text-transform: uppercase;
-    color: #C9963C;
-    margin-bottom: 16px;
+.el-hero-date {
+    font-family: 'Playfair Display', serif;
+    text-shadow: 0 1px 6px rgba(0,0,0,.5);
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    letter-spacing: 3px;
+    margin-top: 16px;
+    opacity: .92;
+}
+
+.el-scroll-cue {
+    position: absolute;
+    bottom: 36px;
+    z-index: 5;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 7px;
+    gap: 10px;
 }
-
-.stub-eyebrow::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: rgba(201, 150, 60, .22);
-}
-
-.stub-main {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 18px;
-}
-
-/* Avatar */
-.stub-avatar {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+.el-mouse {
+    width: 22px;
+    height: 36px;
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 20px;
     position: relative;
 }
-
-.stub-initial {
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -.5px;
-    line-height: 1;
-}
-
-.stub-avatar-ring {
+.el-mouse::after {
+    content: '';
+    width: 2px;
+    height: 6px;
+    background: #fff;
     position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    border: 1.5px solid;
+    left: 50%;
+    top: 6px;
+    transform: translateX(-50%);
+    animation: elScrollDot 2s infinite;
 }
-
-.stub-info {
-    min-width: 0;
+@keyframes elScrollDot {
+    0% { opacity: 0; transform: translate(-50%, 0); }
+    50% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, 15px); }
 }
-
-.stub-badge {
-    display: inline-flex;
-    padding: 3px 10px;
-    background: rgba(201, 150, 60, .15);
-    border: .7px solid rgba(201, 150, 60, .35);
-    border-radius: 99px;
+.el-scroll-cue span {
     font-size: 9px;
-    font-weight: 800;
-    letter-spacing: .8px;
+    letter-spacing: .3em;
     text-transform: uppercase;
-    color: #C9963C;
-    margin-bottom: 6px;
-}
-
-.stub-name {
-    font-size: 16px;
-    font-weight: 700;
-    color: #EEEEF0;
-    letter-spacing: -.2px;
-    line-height: 1.3;
-    word-break: break-word;
-    margin-bottom: 3px;
-}
-
-.stub-phone {
-    font-size: 12px;
-    color: rgba(238, 238, 240, .45);
-}
-
-/* View Card button */
-.view-card-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 100%;
-    padding: 9px 14px;
-    border-radius: 10px;
-    border: 1px solid rgba(90, 138, 219, .30);
-    background: rgba(90, 138, 219, .08);
-    color: #5A8ADB;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background .15s, opacity .15s;
-    margin-bottom: 8px;
-}
-
-.view-card-btn svg {
-    width: 15px;
-    height: 15px;
-    flex-shrink: 0;
-}
-
-.view-card-btn:active {
+    font-weight: 600;
     opacity: .7;
-}
-
-.view-card-btn:hover {
-    background: rgba(90, 138, 219, .15);
-}
-
-/* Status */
-.stub-status {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: opacity .15s;
-}
-
-.stub-status:active {
-    opacity: .75;
-}
-
-.status-in {
-    background: rgba(29, 171, 75, .07);
-    border: 1px solid rgba(29, 171, 75, .20);
-}
-
-.status-declined {
-    background: rgba(224, 90, 90, .07);
-    border: 1px solid rgba(224, 90, 90, .20);
-}
-
-.status-pending {
-    background: rgba(212, 130, 10, .09);
-    border: 1px solid rgba(212, 130, 10, .28);
-    animation: pendingPulse 2s ease infinite;
-}
-
-@keyframes pendingPulse {
-
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 rgba(212, 130, 10, .15);
-    }
-
-    50% {
-        box-shadow: 0 0 0 5px rgba(212, 130, 10, 0);
-    }
-}
-
-.status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.status-in .status-indicator {
-    color: #1DAB4B;
-}
-
-.status-declined .status-indicator {
-    color: #E05A5A;
-}
-
-.status-pending .status-indicator {
-    color: #D4820A;
-}
-
-.status-led {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.led-green {
-    background: #1DAB4B;
-    box-shadow: 0 0 7px rgba(29, 171, 75, .5);
-    animation: blink 2s ease infinite;
-}
-
-.led-amber {
-    background: #D4820A;
-    animation: blink 1.4s ease infinite;
-}
-
-.led-red {
-    background: #E05A5A;
-}
-
-@keyframes blink {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: .35;
-    }
-}
-
-.status-right {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.check-mark {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-}
-
-.status-change-lbl {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: .3px;
-    opacity: .45;
-    white-space: nowrap;
-}
-
-/* ── Tab bar ──────────────────────────────────────────────────────────────── */
-.tab-bar {
-    display: flex;
-    background: rgba(28, 28, 30, .98);
-    border: 1px solid rgba(44, 44, 46, .8);
-    border-radius: 16px;
-    padding: 4px;
-    gap: 4px;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, .35);
-    backdrop-filter: blur(16px);
-}
-
-.tab {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 0;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: .4px;
-    font-family: inherit;
-    background: transparent;
-    color: rgba(238, 238, 240, .38);
-    transition: background .18s, color .18s;
-}
-
-.tab svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-}
-
-.tab-active {
-    background: #C9963C;
     color: #fff;
-    box-shadow: 0 4px 16px rgba(201, 150, 60, .35);
 }
 
-/* ── Section cards ────────────────────────────────────────────────────────── */
-.section-card {
-    background: rgba(28, 28, 30, 1);
-    border: 1px solid rgba(44, 44, 46, .8);
-    border-radius: 20px;
-    padding: 18px;
-    margin-bottom: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, .3);
-    backdrop-filter: blur(20px);
+/* ── Scroll-reveal ────────────────────────────────────────────────────────── */
+.reveal {
+    opacity: 0;
+    transform: translateY(36px);
+    transition: opacity .9s cubic-bezier(.19,1,.22,1), transform .9s cubic-bezier(.19,1,.22,1);
+}
+.reveal-active {
+    opacity: 1;
+    transform: translateY(0);
 }
 
-.anim {
-    animation: fadeUp .5s cubic-bezier(.22, 1, .36, 1) both var(--d, 0s);
+/* ── Content wrapper — same shell width/padding as the landing page (/) ──── */
+.el-content {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 64px 20px 24px;
+    position: relative;
+    z-index: 1;
+}
+@media (min-width: 768px) {
+    .el-content { padding-left: 40px; padding-right: 40px; }
 }
 
-.s-hdr {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-}
-
-.s-bar {
-    width: 3px;
-    height: 13px;
-    background: #C9963C;
-    border-radius: 2px;
-    flex-shrink: 0;
-}
-
-.s-lbl {
+.el-eyebrow {
+    font-family: 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 1.3px;
+    letter-spacing: .3em;
     text-transform: uppercase;
-    color: rgba(238, 238, 240, .42);
+    color: var(--el-gold-dark);
+}
+.el-eyebrow-center { text-align: center; margin-bottom: 10px; }
+
+.el-section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    text-align: center;
+    margin-bottom: 40px;
+    color: var(--el-text-main);
+}
+
+.el-glass-card {
+    background: rgba(255, 255, 255, .74);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid rgba(201, 168, 76, .18);
+    border-radius: var(--el-radius);
+    box-shadow: 0 20px 50px rgba(90, 70, 30, .08);
+}
+
+/* ── Invitation ───────────────────────────────────────────────────────────── */
+.el-invite {
+    text-align: center;
+    padding: 12px 0 44px;
+}
+.el-invite-name {
+    position: relative;
+    display: inline-block;
+    font-family: 'Great Vibes', cursive;
+    font-weight: 400;
+    font-style: normal;
+    letter-spacing: .01em;
+    font-size: clamp(2.3rem, 6vw, 3.6rem);
+    line-height: 1.3;
+    color: var(--el-text-main);
+    padding-bottom: 18px;
+    margin: 8px 0 30px;
+}
+.el-invite-name::after {
+    content: '';
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    bottom: 0;
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent, var(--el-gold) 12%, var(--el-gold) 88%, transparent);
+}
+.el-invite-line {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: 1.3rem;
+    line-height: 1.55;
+    color: var(--el-text-main);
+    margin: 0 0 14px;
+}
+.el-invite-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: 1.25rem;
+    line-height: 1.85;
+    color: var(--el-text-main);
+    white-space: pre-line;
+}
+.el-divider {
+    width: 46px;
+    height: 1px;
+    background: var(--el-gold);
+    margin: 34px auto 0;
+}
+
+/* ── Countdown ────────────────────────────────────────────────────────────── */
+.el-countdown-wrap { padding-bottom: 44px; }
+.el-countdown-card {
+    text-align: center;
+    padding: 40px 24px;
+}
+.el-countdown {
+    display: flex;
+    justify-content: center;
+    gap: clamp(14px, 5vw, 44px);
+    margin-top: 8px;
+}
+.el-count-item span {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 7vw, 2.9rem);
+    color: var(--el-gold-dark);
+    line-height: 1;
+    margin-bottom: 8px;
+}
+.el-count-item label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--el-text-light);
+}
+
+/* ── Details / venue ──────────────────────────────────────────────────────── */
+.el-details { padding-bottom: 44px; }
+.el-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+@media (max-width: 640px) {
+    .el-details-grid { grid-template-columns: 1fr; }
+}
+.el-details-card {
+    display: flex;
+    flex-direction: column;
+    padding: 34px 26px;
+    text-align: left;
+}
+/* Grid rows stretch cards to equal height by default; pinning the footer to
+   the bottom of that shared height is what keeps the date badge and map
+   link lined up across cards, regardless of how many lines the address or
+   description above happens to take. */
+.el-details-card-footer {
+    margin-top: auto;
+    padding-top: 18px;
+}
+.el-venue-date {
+    margin: 0 0 20px;
+    padding: 12px 14px;
+    border: 1px solid rgba(201, 168, 76, .35);
+    border-radius: 10px;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--el-text-main);
+}
+.el-details-single { text-align: center; max-width: 480px; margin: 0 auto; }
+.el-card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.7rem;
+    line-height: 1.3;
+    /* Reserves 2 lines' worth of height so a short one-line address and a
+       longer two-line one still push the content below them down by the
+       same amount, keeping cards in a row aligned. */
+    min-height: 2.6em;
+    margin: 6px 0 18px;
+    color: var(--el-text-main);
+}
+.el-card-body {
+    font-size: 13.5px;
+    color: var(--el-text-light);
+    line-height: 1.7;
+}
+.el-card-body--clamped {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.el-card-readmore {
+    display: block;
+    margin-top: 8px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--el-gold-dark);
+}
+.el-card-readmore:hover { text-decoration: underline; }
+.el-map-link {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--el-gold-dark);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(201,168,76,.5);
+    padding-bottom: 2px;
+}
+.el-venues-map {
+    margin-top: 24px;
+    height: 340px;
+    border-radius: var(--el-radius);
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(90, 70, 30, .12);
+}
+
+/* ── Programme timeline ───────────────────────────────────────────────────── */
+.el-programme { padding-bottom: 44px; }
+.el-htimeline {
+    display: flex;
+    align-items: flex-start;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 6px 16px;
+    margin: 0 -6px;
+}
+.el-htimeline::-webkit-scrollbar { height: 5px; }
+.el-htimeline::-webkit-scrollbar-track { background: transparent; }
+.el-htimeline::-webkit-scrollbar-thumb { background: rgba(201, 168, 76, .35); border-radius: 3px; }
+.el-htimeline-item {
+    position: relative;
+    flex: 0 0 auto;
+    width: 190px;
+    padding: 0 18px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    scroll-snap-align: start;
+}
+.el-htimeline-dot-row {
+    position: relative;
+    width: 100%;
+    height: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+.el-htimeline-connector {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: rgba(201, 168, 76, .5);
+    transform: translateY(-50%);
+}
+.el-htimeline-item--first .el-htimeline-connector { left: 50%; }
+.el-htimeline-item--last .el-htimeline-connector { right: 50%; }
+.el-htimeline-dot {
+    position: relative;
+    z-index: 1;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--el-ivory);
+    border: 1.5px solid var(--el-gold-dark);
+    flex-shrink: 0;
+}
+.el-htimeline-time {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--el-gold-dark);
+    margin-bottom: 7px;
+}
+.el-htimeline-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    font-weight: 400;
+    color: var(--el-text-main);
+    margin-bottom: 5px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: calc(1.3em * 2);
+}
+.el-htimeline-desc {
+    font-size: 11.5px;
+    color: var(--el-text-light);
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: calc(1.55em * 2);
+}
+
+/* Below ~2 items fit comfortably per screen — flip to a vertical line instead
+   of a horizontal scroller that only ever shows a sliver of the next item. */
+@media (max-width: 640px) {
+    .el-htimeline {
+        flex-direction: column;
+        overflow: visible;
+        padding: 4px 4px 0 26px;
+        margin: 0;
+    }
+    .el-htimeline::-webkit-scrollbar { display: none; }
+    .el-htimeline-item {
+        width: auto;
+        padding: 0 0 32px;
+        align-items: flex-start;
+        text-align: left;
+        scroll-snap-align: none;
+    }
+    .el-htimeline-item:last-child { padding-bottom: 0; }
+    .el-htimeline-dot-row {
+        position: absolute;
+        left: -26px;
+        top: 4px;
+        width: 9px;
+        height: 9px;
+        margin-bottom: 0;
+    }
+    .el-htimeline-connector,
+    .el-htimeline-item--first .el-htimeline-connector,
+    .el-htimeline-item--last .el-htimeline-connector {
+        left: 4px;
+        right: auto;
+        top: 9px;
+        bottom: -41px;
+        width: 1px;
+        height: auto;
+        transform: none;
+    }
+    .el-htimeline-item:last-child .el-htimeline-connector { display: none; }
+    .el-htimeline-title,
+    .el-htimeline-desc { text-align: left; }
+
+    /* Collapsed by default — first 4 items only, rest revealed via el-prog-more */
+    .el-htimeline:not(.el-htimeline--expanded) .el-htimeline-item:nth-child(n+5) { display: none; }
+    .el-htimeline:not(.el-htimeline--expanded) .el-htimeline-item:nth-child(4) .el-htimeline-connector { display: none; }
+    .el-htimeline:not(.el-htimeline--expanded) .el-htimeline-item:nth-child(4) { padding-bottom: 0; }
+
+    .el-prog-more {
+        display: block;
+        margin: 4px auto 0;
+        padding: 10px 22px;
+        background: none;
+        border: 1px solid rgba(201, 168, 76, .4);
+        border-radius: 999px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--el-gold-dark);
+        cursor: pointer;
+    }
+}
+@media (min-width: 641px) {
+    .el-prog-more { display: none; }
+}
+
+/* ── Artwork sections (food & beverages, dress code) ─────────────────────── */
+.el-artwork-section { padding-bottom: 44px; }
+.el-artwork-frame {
+    position: relative;
+    border-radius: var(--el-radius);
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(90, 70, 30, .12);
+    cursor: pointer;
+}
+.el-artwork-img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* ── Master of Ceremonies ─────────────────────────────────────────────────── */
+.el-mc { padding-bottom: 44px; }
+.el-mc-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+}
+@media (max-width: 720px) {
+    .el-mc-split { grid-template-columns: 1fr; }
+}
+.el-mc-photo-frame {
+    aspect-ratio: 4 / 5;
+    max-height: 360px;
+    border-radius: var(--el-radius);
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(90, 70, 30, .12);
+    cursor: pointer;
+}
+.el-mc-photo {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+.el-mc-info { text-align: left; }
+.el-mc-badge {
+    display: inline-block;
+    padding: 7px 16px;
+    border-radius: 999px;
+    background: rgba(201, 168, 76, .12);
+    font-family: 'Inter', sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--el-gold-dark);
+    margin-bottom: 18px;
+}
+.el-mc-name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.2rem, 5vw, 3rem);
+    font-weight: 400;
+    color: var(--el-text-main);
+    margin-bottom: 20px;
+    line-height: 1.15;
+}
+.el-mc-rule {
+    width: 46px;
+    height: 1px;
+    background: var(--el-gold);
+    margin-bottom: 24px;
+}
+.el-mc-bio {
+    font-size: 14.5px;
+    line-height: 1.8;
+    color: var(--el-text-light);
+    max-width: 46ch;
+}
+@media (max-width: 720px) {
+    .el-mc-info { text-align: center; }
+    .el-mc-rule { margin-left: auto; margin-right: auto; }
+    .el-mc-bio { max-width: none; margin-left: auto; margin-right: auto; }
 }
 
 /* ── Gallery ──────────────────────────────────────────────────────────────── */
-.gallery-section {
-    margin-bottom: 18px;
-}
-
+.el-gallery-outer { padding-bottom: 8px; }
+.gallery-section { margin-bottom: 24px; }
 .gallery-section-hdr {
     display: flex;
     align-items: center;
     gap: 7px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     padding: 0 2px;
+    color: var(--el-gold-dark);
 }
-
-.gallery-section-hdr svg {
-    width: 15px;
-    height: 15px;
-    color: #C9963C;
-    flex-shrink: 0;
-}
-
+.gallery-section-hdr svg { width: 15px; height: 15px; flex-shrink: 0; }
 .gallery-section-hdr span:first-of-type {
     font-size: 12px;
     font-weight: 700;
     letter-spacing: .4px;
     text-transform: uppercase;
-    color: rgba(238, 238, 240, .7);
+    color: var(--el-text-main);
 }
-
 .gallery-section-count {
     font-size: 11px;
     font-weight: 600;
-    color: rgba(238, 238, 240, .4);
-    background: rgba(201, 150, 60, .12);
+    color: var(--el-gold-dark);
+    background: rgba(201, 168, 76, .14);
     padding: 2px 7px;
     border-radius: 99px;
 }
-
 .gallery-expand-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     width: 100%;
-    margin-top: 6px;
-    padding: 10px;
-    background: rgba(201, 150, 60, .06);
-    border: 1px solid rgba(201, 150, 60, .18);
+    margin-top: 8px;
+    padding: 11px;
+    background: rgba(201, 168, 76, .06);
+    border: 1px solid rgba(201, 168, 76, .25);
     border-radius: 12px;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: .3px;
-    color: #C9963C;
+    color: var(--el-gold-dark);
     font-family: inherit;
     cursor: pointer;
-    transition: background .15s, border-color .15s;
+    transition: background .15s;
 }
-
-.gallery-expand-btn svg {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-}
-
-.gallery-expand-btn:active {
-    background: rgba(201, 150, 60, .13);
-}
+.gallery-expand-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.gallery-expand-btn:active { background: rgba(201, 168, 76, .14); }
 
 .gallery-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-auto-rows: 130px;
-    gap: 6px;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 160px;
+    gap: 8px;
 }
-
 .gallery-cell {
-    border-radius: 10px;
+    border-radius: 14px;
     overflow: hidden;
     cursor: pointer;
     position: relative;
-    background: #F0EAE0;
+    background: var(--el-cream);
+    box-shadow: 0 8px 20px rgba(90,70,30,.08);
 }
-
-.gallery-cell.gallery-tall {
-    grid-row: span 2;
-}
-
+.gallery-cell.gallery-tall { grid-row: span 2; }
 .gallery-cell img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform .3s ease, opacity .3s;
+    transition: transform .35s ease, opacity .3s;
     display: block;
 }
+.gallery-cell:hover img { transform: scale(1.04); }
+.gallery-cell:active img { transform: scale(1.04); opacity: .85; }
 
-.gallery-cell:active img {
-    transform: scale(1.04);
-    opacity: .85;
-}
-
-/* ── Gallery cell comment button ─────────────────────────────────────────── */
-.gcc {
+.gcc, .glk {
     position: absolute;
-    bottom: 6px;
-    right: 6px;
+    bottom: 8px;
     display: flex;
     align-items: center;
     gap: 3px;
@@ -2800,142 +2736,29 @@ const toggleLike = async (item) => {
     pointer-events: none;
     z-index: 2;
 }
-
-.gcc svg {
-    width: 13px;
-    height: 13px;
-    flex-shrink: 0;
+.gcc { right: 8px; }
+.glk { left: 8px; color: rgba(255, 255, 255, .8); }
+.gcc svg, .glk svg { width: 13px; height: 13px; flex-shrink: 0; }
+.gcc-count, .glk-count { font-size: 11px; font-weight: 600; line-height: 1; }
+.glk-liked { color: #FF4B6E; }
+.gallery-cell:hover .gcc, .gallery-cell:focus-within .gcc,
+.gallery-cell:hover .glk, .gallery-cell:focus-within .glk {
+    opacity: 1; transform: translateY(0); pointer-events: auto;
 }
-
-.gcc-count {
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1;
-}
-
-.gallery-cell:hover .gcc,
-.gallery-cell:focus-within .gcc {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-/* always visible on touch devices */
 @media (hover: none) {
-    .gcc {
-        opacity: 1;
-        transform: none;
-        pointer-events: auto;
-    }
+    .gcc, .glk { opacity: 1; transform: none; pointer-events: auto; }
 }
+.gcc:active { background: rgba(90, 138, 219, .65); }
+.glk:active { background: rgba(255, 75, 110, .35); }
 
-.gcc:active {
-    background: rgba(90, 138, 219, .65);
-}
+.gallery-video-cell { background: #2a241a; }
+.gallery-video-thumb { width: 100%; height: 100%; position: relative; }
+.gallery-video-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; opacity: .8; }
+.gallery-play-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.gallery-play-overlay svg { width: 44px; height: 44px; color: #fff; filter: drop-shadow(0 2px 8px rgba(0,0,0,.4)); }
+.gallery-cell:active .gallery-play-overlay svg { opacity: .7; transform: scale(.9); }
 
-/* ── Gallery cell like button ────────────────────────────────────────────── */
-.glk {
-    position: absolute;
-    bottom: 6px;
-    left: 6px;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    padding: 4px 7px 4px 5px;
-    border-radius: 99px;
-    border: none;
-    background: rgba(0, 0, 0, .52);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    color: rgba(255, 255, 255, .75);
-    cursor: pointer;
-    opacity: 0;
-    transform: translateY(4px);
-    transition: opacity .18s ease, transform .18s ease, background .15s, color .15s;
-    pointer-events: none;
-    z-index: 2;
-}
-
-.glk svg {
-    width: 13px;
-    height: 13px;
-    flex-shrink: 0;
-}
-
-.glk-count {
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1;
-}
-
-.glk-liked {
-    color: #FF4B6E;
-}
-
-.gallery-cell:hover .glk,
-.gallery-cell:focus-within .glk {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-@media (hover: none) {
-    .glk {
-        opacity: 1;
-        transform: none;
-        pointer-events: auto;
-    }
-}
-
-.glk:active {
-    background: rgba(255, 75, 110, .35);
-}
-
-.gallery-video-cell {
-    background: #1A1A20;
-}
-
-.gallery-video-thumb {
-    width: 100%;
-    height: 100%;
-    position: relative;
-}
-
-.gallery-video-thumb video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    opacity: .75;
-}
-
-.gallery-play-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-}
-
-.gallery-play-overlay svg {
-    width: 44px;
-    height: 44px;
-    color: #fff;
-    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .4));
-}
-
-.gallery-cell:active .gallery-play-overlay svg {
-    opacity: .7;
-    transform: scale(.9);
-}
-
-.gallery-spinner {
-    display: flex;
-    justify-content: center;
-    padding: 48px 0;
-}
-
+.gallery-spinner { display: flex; justify-content: center; padding: 48px 0; }
 .gallery-empty {
     display: flex;
     flex-direction: column;
@@ -2943,868 +2766,158 @@ const toggleLike = async (item) => {
     gap: 12px;
     padding: 56px 32px;
 }
-
 .gallery-empty-icon {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: rgba(201, 150, 60, .08);
-    border: 1px solid rgba(201, 150, 60, .2);
+    background: rgba(201, 168, 76, .10);
+    border: 1px solid rgba(201, 168, 76, .3);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #C9963C;
+    color: var(--el-gold-dark);
 }
-
-.gallery-empty-icon svg {
-    width: 24px;
-    height: 24px;
-}
-
-.gallery-empty-txt {
-    font-size: 14px;
-    color: rgba(238, 238, 240, .38);
-    font-weight: 600;
-}
-
+.gallery-empty-icon svg { width: 24px; height: 24px; }
+.gallery-empty-txt { font-size: 14px; color: var(--el-text-light); font-weight: 600; }
 .gallery-more-btn {
     display: block;
     width: 100%;
     margin-top: 10px;
     padding: 13px;
-    background: rgba(28, 28, 30, .98);
-    border: 1px solid rgba(44, 44, 46, .8);
+    background: rgba(255,255,255,.7);
+    border: 1px solid rgba(201, 168, 76, .3);
     border-radius: 14px;
     font-size: 13px;
     font-weight: 600;
-    color: #C9963C;
+    color: var(--el-gold-dark);
     font-family: inherit;
     cursor: pointer;
     transition: background .18s, border-color .18s;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+}
+.gallery-more-btn:disabled { opacity: .4; cursor: default; }
+.gallery-more-btn:not(:disabled):active { background: rgba(201, 168, 76, .12); }
+
+/* ── Host ─────────────────────────────────────────────────────────────────── */
+.el-host { text-align: center; padding-bottom: 44px; }
+.el-host-body {
+    max-width: 480px;
+    margin: 0 auto;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--el-text-light);
 }
 
-.gallery-more-btn:disabled {
-    opacity: .4;
-    cursor: default;
+/* ── Section cards (Gift of Love / Comments) ─────────────────────────────── */
+.section-card {
+    background: rgba(255, 255, 255, .8);
+    border: 1px solid rgba(201, 168, 76, .2);
+    border-radius: 20px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 12px 30px rgba(90, 70, 30, .07);
+    backdrop-filter: blur(14px);
 }
-
-.gallery-more-btn:not(:disabled):active {
-    background: rgba(201, 150, 60, .06);
-    border-color: rgba(201, 150, 60, .3);
-}
-
-/* Lightbox */
-.lb-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: rgba(0, 0, 0, .88);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-}
-
-.lb-close {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .15);
-    border: none;
-    cursor: pointer;
+.s-hdr {
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: #fff;
+    gap: 8px;
+    margin-bottom: 16px;
 }
-
-.lb-close svg {
-    width: 16px;
-    height: 16px;
-}
-
-.lb-img {
-    max-width: 100%;
-    max-height: 75vh;
-    border-radius: 14px;
-    object-fit: contain;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
-    transform-origin: center center;
-    transition: transform .05s linear;
-    will-change: transform;
-    user-select: none;
-    -webkit-user-drag: none;
-}
-
-.lb-video {
-    max-width: 100%;
-    max-height: 75vh;
-    border-radius: 14px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
-    outline: none;
-    background: #000;
-}
-
-.lb-folder-badge {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+.s-bar { width: 3px; height: 13px; background: var(--el-gold); border-radius: 2px; flex-shrink: 0; }
+.s-lbl {
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: .5px;
+    letter-spacing: 1.3px;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, .75);
-    background: rgba(255, 255, 255, .12);
-    backdrop-filter: blur(10px);
-    padding: 4px 12px;
-    border-radius: 99px;
-    white-space: nowrap;
-    pointer-events: none;
+    color: var(--el-text-light);
 }
+.cmnt-count { color: var(--el-gold-dark); font-weight: 700; }
 
-.lb-fade-enter-active,
-.lb-fade-leave-active {
-    transition: opacity .2s;
+/* ── Contacts ─────────────────────────────────────────────────────────────── */
+.el-contacts { padding-bottom: 44px; }
+.el-contacts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
 }
-
-.lb-fade-enter-from,
-.lb-fade-leave-to {
-    opacity: 0;
+@media (max-width: 560px) {
+    .el-contacts-grid { grid-template-columns: 1fr; }
 }
-
-/* ── Lightbox like button ─────────────────────────────────────────────────── */
-.lb-like-btn {
-    position: absolute;
-    bottom: 24px;
-    left: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, .15);
-    backdrop-filter: blur(8px);
-    color: rgba(255, 255, 255, .8);
-    cursor: pointer;
-    transition: background .15s, color .15s;
-}
-
-.lb-like-btn svg {
-    width: 20px;
-    height: 20px;
-}
-
-.lb-like-btn-active {
-    background: rgba(255, 75, 110, .3);
-    color: #FF4B6E;
-}
-
-.lb-like-btn:active {
-    opacity: .7;
-}
-
-.lb-like-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: 99px;
-    background: #FF4B6E;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-}
-
-/* ── Lightbox comment button ──────────────────────────────────────────────── */
-.lb-comment-btn {
-    position: absolute;
-    bottom: 24px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, .15);
-    backdrop-filter: blur(8px);
-    color: #fff;
-    cursor: pointer;
-    transition: background .15s;
-}
-
-.lb-comment-btn svg {
-    width: 20px;
-    height: 20px;
-}
-
-.lb-comment-btn-active {
-    background: rgba(90, 138, 219, .45);
-}
-
-.lb-comment-btn:active {
-    opacity: .7;
-}
-
-.lb-comment-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: 99px;
-    background: #5A8ADB;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-}
-
-/* ── Media comments bottom sheet ─────────────────────────────────────────── */
-.mc-sheet {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    max-height: 62vh;
-    background: rgba(18, 18, 22, .92);
-    backdrop-filter: blur(20px);
-    border-radius: 20px 20px 0 0;
-    border-top: 1px solid rgba(255, 255, 255, .1);
+.el-contact-card {
+    padding: 32px 24px;
+    text-align: center;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    align-items: center;
 }
-
-.mc-handle {
+.el-contact-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin-bottom: 16px;
     flex-shrink: 0;
-    width: 36px;
-    height: 4px;
-    border-radius: 2px;
-    background: rgba(255, 255, 255, .25);
-    margin: 10px auto 0;
 }
-
-.mc-title {
-    flex-shrink: 0;
-    padding: 10px 16px 8px;
+.el-contact-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--el-text-main);
+    margin-bottom: 4px;
+}
+.el-contact-role {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--el-text-light);
+    margin-bottom: 6px;
+}
+.el-contact-phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 14px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(201, 168, 76, .35);
+    font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 600;
-    color: rgba(238, 238, 240, .9);
-    border-bottom: 1px solid rgba(255, 255, 255, .07);
+    color: var(--el-gold-dark);
+    text-decoration: none;
+    transition: background .15s, border-color .15s;
 }
+.el-contact-phone:hover { background: rgba(201, 168, 76, .08); border-color: var(--el-gold); }
+.el-contact-phone svg { width: 14px; height: 14px; }
 
-.mc-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px 0 4px;
-    -webkit-overflow-scrolling: touch;
-}
-
-.mc-list .cmnt-item {
-    padding: 8px 16px;
-}
-
-.mc-empty {
-    padding: 20px 16px;
-    text-align: center;
-    font-size: 13px;
-    color: rgba(238, 238, 240, .35);
-}
-
-.mc-compose {
-    flex-shrink: 0;
-    border-top: 1px solid rgba(255, 255, 255, .07);
-    padding: 10px 12px 14px;
-    background: rgba(18, 18, 22, .6);
-}
-
-/* ── mc-slide transition ──────────────────────────────────────────────────── */
-.mc-slide-enter-active,
-.mc-slide-leave-active {
-    transition: transform .28s cubic-bezier(.32, 0, .67, 0);
-}
-
-.mc-slide-enter-from,
-.mc-slide-leave-to {
-    transform: translateY(100%);
-}
-
-/* About */
-.about-text {
-    font-size: 14px;
-    color: rgba(238, 238, 240, .72);
-    line-height: 1.75;
-}
-
-.about-clamped {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.about-toggle {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 6px 0 0;
-    font-size: 12px;
-    font-weight: 600;
-    color: #C9963C;
-    font-family: inherit;
-    letter-spacing: .3px;
-}
-
-/* Support */
 .support-link {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     padding: 13px;
-    background: rgba(28, 28, 30, .98);
-    border: 1px solid rgba(44, 44, 46, .8);
+    background: rgba(255,255,255,.75);
+    border: 1px solid rgba(201, 168, 76, .25);
     border-radius: 16px;
     font-size: 13px;
     font-weight: 600;
-    color: rgba(238, 238, 240, .55);
+    color: var(--el-text-light);
     text-decoration: none;
     transition: color .2s, border-color .2s, background .2s;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
-    backdrop-filter: blur(12px);
+    margin-bottom: 20px;
 }
+.support-link svg { width: 15px; height: 15px; }
+.support-link:hover { color: var(--el-gold-dark); border-color: rgba(201, 168, 76, .45); }
 
-.support-link svg {
-    width: 15px;
-    height: 15px;
-}
-
-.support-link:hover {
-    color: #C9963C;
-    border-color: rgba(201, 150, 60, .3);
-    background: rgba(201, 150, 60, .05);
-}
-
-/* ── RSVP Overlay ─────────────────────────────────────────────────────────── */
-.rsvp-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    background: rgba(0, 0, 0, .78);
-    backdrop-filter: blur(12px);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 0 16px 32px;
-}
-
-@media (min-height: 600px) {
-    .rsvp-overlay {
-        align-items: center;
-        padding: 24px 16px;
-    }
-}
-
-.rsvp-card {
-    width: 100%;
-    max-width: 420px;
-    background: rgba(28, 28, 30, .97);
-    border: 1px solid rgba(44, 44, 46, 1);
-    border-radius: 28px;
-    padding: 32px 24px 28px;
-    box-shadow: 0 32px 80px rgba(0, 0, 0, .6), 0 0 0 1px rgba(201, 150, 60, .12);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-    animation: rsvpUp .45s cubic-bezier(.22, 1, .36, 1) both;
-    backdrop-filter: blur(30px);
-}
-
-@keyframes rsvpUp {
-    from {
-        opacity: 0;
-        transform: translateY(40px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.rsvp-icon {
-    width: 56px;
-    height: 56px;
-    background: rgba(201, 150, 60, .10);
-    border: 1px solid rgba(201, 150, 60, .25);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #C9963C;
-    margin-bottom: 18px;
-}
-
-.rsvp-icon svg {
-    width: 24px;
-    height: 24px;
-}
-
-.rsvp-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: #EEEEF0;
-    letter-spacing: -.4px;
-    margin-bottom: 6px;
-    text-align: center;
-}
-
-.rsvp-event {
-    font-size: 13px;
-    font-weight: 600;
-    color: #C9963C;
-    margin-bottom: 10px;
-    text-align: center;
-}
-
-.rsvp-sub {
-    font-size: 13px;
-    color: rgba(238, 238, 240, .48);
-    line-height: 1.6;
-    text-align: center;
-    margin-bottom: 28px;
-}
-
-.rsvp-actions {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.rsvp-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 9px;
-    padding: 15px;
-    border-radius: 16px;
-    border: none;
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 700;
-    font-family: inherit;
-    transition: opacity .15s, transform .1s;
-}
-
-.rsvp-btn:disabled {
-    opacity: .5;
-    cursor: not-allowed;
-}
-
-.rsvp-btn svg {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-}
-
-.rsvp-confirm {
-    background: rgba(29, 171, 75, .10);
-    border: 1px solid rgba(29, 171, 75, .30);
-    color: #1DAB4B;
-}
-
-.rsvp-confirm:not(:disabled):active {
-    opacity: .75;
-    transform: scale(.98);
-}
-
-.rsvp-decline {
-    background: rgba(40, 40, 44, .98);
-    border: 1px solid rgba(44, 44, 46, 1);
-    color: rgba(238, 238, 240, .5);
-}
-
-.rsvp-decline:not(:disabled):active {
-    opacity: .75;
-    transform: scale(.98);
-}
-
-.rsvp-fade-enter-active,
-.rsvp-fade-leave-active {
-    transition: opacity .3s;
-}
-
-.rsvp-fade-enter-from,
-.rsvp-fade-leave-to {
-    opacity: 0;
-}
-
-/* ── Comments ─────────────────────────────────────────────────────────────── */
-.cmnt-count {
-    color: #C9963C;
-    font-weight: 700;
-}
-
-.cmnt-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    margin-bottom: 16px;
-    max-height: 380px;
-    overflow-y: auto;
-    padding-right: 4px;
-}
-
-.cmnt-item {
-    display: flex;
-    gap: 10px;
-}
-
-.cmnt-avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.cmnt-avatar-sm {
-    width: 28px;
-    height: 28px;
-    font-size: 11px;
-}
-
-.cmnt-body {
-    flex: 1;
-    min-width: 0;
-}
-
-.cmnt-meta {
-    display: flex;
-    align-items: baseline;
-    gap: 7px;
-    margin-bottom: 3px;
-    min-width: 0;
-}
-
-.cmnt-name {
-    font-size: 11px;
-    font-weight: 600;
-    color: #EEEEF0;
-    flex: 1;
-    min-width: 0;
-    word-break: break-word;
-}
-
-.cmnt-time {
-    font-size: 10px;
-    color: rgba(238, 238, 240, .32);
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
-.cmnt-text {
-    font-size: 13px;
-    color: rgba(238, 238, 240, .65);
-    line-height: 1.5;
-}
-
-.cmnt-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 6px;
-}
-
-.cmnt-reply-btn,
-.cmnt-view-replies {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .4px;
-    text-transform: uppercase;
-    font-family: inherit;
-}
-
-.cmnt-reply-btn {
-    color: #C9963C;
-}
-
-.cmnt-view-replies {
-    color: rgba(238, 238, 240, .35);
-}
-
-.cmnt-replies {
-    margin-top: 10px;
-    padding-left: 10px;
-    border-left: 2px solid rgba(44, 44, 46, .8);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.cmnt-reply-form {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.cmnt-empty {
-    font-size: 13px;
-    color: rgba(238, 238, 240, .35);
-    text-align: center;
-    padding: 12px 0 16px;
-}
-
-.cmnt-compose {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(44, 44, 46, .8);
-}
-
-.cmnt-input {
-    flex: 1;
-    background: rgba(40, 40, 44, .98);
-    border: 1px solid rgba(44, 44, 46, .8);
-    border-radius: 20px;
-    padding: 9px 14px;
-    font-size: 13px;
-    color: #EEEEF0;
-    outline: none;
-    font-family: inherit;
-    transition: border-color .18s, background .18s;
-}
-
-.cmnt-input::placeholder {
-    color: rgba(238, 238, 240, .3);
-}
-
-.cmnt-input:focus {
-    border-color: rgba(201, 150, 60, .45);
-    background: rgba(201, 150, 60, .07);
-}
-
-.cmnt-send {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: #C9963C;
-    border: none;
-    cursor: pointer;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity .15s;
-}
-
-.cmnt-send:disabled {
-    opacity: .3;
-    cursor: default;
-}
-
-.cmnt-send svg {
-    width: 13px;
-    height: 13px;
-    color: #fff;
-}
-
-/* ── Gift card (section tile) ───────────────────────────────────────────────── */
-.gift-card {
-    cursor: pointer;
-    padding: 0;
-    overflow: hidden;
-    background: linear-gradient(135deg, rgba(30,20,10,.82) 0%, rgba(22,16,8,.9) 100%);
-    border: 1px solid rgba(201,150,60,.28);
-    transition: border-color .2s, box-shadow .2s;
-}
-.gift-card:hover {
-    border-color: rgba(201,150,60,.55);
-    box-shadow: 0 0 24px rgba(201,150,60,.12);
-}
-.gift-card-inner {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 18px 20px;
-}
-.gift-icon-wrap {
-    flex-shrink: 0;
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
-    background: rgba(201,150,60,.15);
-    border: 1px solid rgba(201,150,60,.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.gift-icon-wrap svg {
-    width: 22px;
-    height: 22px;
-    stroke: #C9963C;
-}
-.gift-card-text { flex: 1; min-width: 0; }
-.gift-card-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #e8d5a0;
-    margin: 0 0 3px;
-}
-.gift-card-sub {
-    font-size: 12px;
-    color: rgba(255,255,255,.45);
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.gift-card-chevron {
-    width: 18px;
-    height: 18px;
-    stroke: rgba(201,150,60,.6);
-    flex-shrink: 0;
-}
-
-/* ── Gift card bottom strip ─────────────────────────────────────────────────── */
-.gift-card-givers {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 20px 16px;
-    border-top: 1px solid rgba(201,150,60,.12);
-}
-.givers-avatars {
-    display: flex;
-    align-items: center;
-}
-.givers-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    font-size: 11px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #16100A;
-    margin-left: -7px;
-    flex-shrink: 0;
-}
-.givers-avatars .givers-avatar:first-child { margin-left: 0; }
-.givers-overflow {
-    background: rgba(255,255,255,.08);
-    color: rgba(255,255,255,.5);
-    font-size: 9px;
-}
-.gift-card-givers-lbl {
-    font-size: 12px;
-    color: rgba(255,255,255,.4);
-    flex: 1;
-}
-.gift-card-tap-lbl {
-    font-size: 11px;
-    color: rgba(201,150,60,.6);
-    white-space: nowrap;
-}
-
-/* ── Givers wall (inside sheet) ──────────────────────────────────────────────── */
-.givers-wall {
-    margin-bottom: 18px;
-}
-.givers-wall-scroll {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 6px;
-    scrollbar-width: none;
-}
-.givers-wall-scroll::-webkit-scrollbar { display: none; }
-.givers-wall-chip {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    width: 72px;
-}
-.givers-wall-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 15px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1.5px solid rgba(255,255,255,.08);
-}
-.givers-wall-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1px;
-}
-.givers-wall-name {
-    font-size: 11px;
-    color: rgba(255,255,255,.6);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 72px;
-    text-align: center;
-}
-.givers-wall-amt {
-    font-size: 10px;
-    color: rgba(201,150,60,.7);
-    white-space: nowrap;
-}
-.givers-wall-lbl {
-    font-size: 11px;
-    color: rgba(255,255,255,.3);
-    text-align: center;
-    margin: 8px 0 0;
-}
-
-/* ── Gift of Love section ───────────────────────────────────────────────────── */
+/* ── Zawadi / Gift of Love ────────────────────────────────────────────────── */
 .zawadi-section {
-    background: linear-gradient(135deg, rgba(30,20,10,.82) 0%, rgba(22,16,8,.9) 100%);
-    border: 1px solid rgba(201,150,60,.28);
-    padding: 18px;
+    background: linear-gradient(135deg, rgba(255,251,240,.92) 0%, rgba(250,240,215,.92) 100%);
+    border: 1px solid rgba(201,168,76,.35);
 }
 .zawadi-empty {
     display: flex;
@@ -3812,111 +2925,55 @@ const toggleLike = async (item) => {
     align-items: center;
     gap: 10px;
     padding: 28px 0 10px;
-    color: rgba(255,255,255,.25);
+    color: rgba(36,31,24,.35);
     font-size: 13px;
 }
-.zawadi-empty svg {
-    width: 36px;
-    height: 36px;
-    stroke: rgba(201,150,60,.3);
-}
+.zawadi-empty svg { width: 36px; height: 36px; stroke: rgba(201,168,76,.5); }
 .zawadi-list { display: flex; flex-direction: column; }
-.zawadi-item {
-    padding: 14px 0;
-    cursor: pointer;
-    transition: opacity .15s;
-}
+.zawadi-item { padding: 14px 0; cursor: pointer; transition: opacity .15s; }
 .zawadi-item:active { opacity: .7; }
-.zawadi-item-sep {
-    border-bottom: 1px solid rgba(201,150,60,.1);
-}
-.zawadi-item-top {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}
+.zawadi-item-sep { border-bottom: 1px solid rgba(201,168,76,.18); }
+.zawadi-item-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .zawadi-item-icon {
     flex-shrink: 0;
     width: 38px;
     height: 38px;
     border-radius: 11px;
-    background: rgba(201,150,60,.13);
-    border: 1px solid rgba(201,150,60,.25);
+    background: rgba(201,168,76,.16);
+    border: 1px solid rgba(201,168,76,.35);
     display: flex;
     align-items: center;
     justify-content: center;
 }
-.zawadi-item-icon svg { width: 18px; height: 18px; stroke: #C9963C; }
+.zawadi-item-icon svg { width: 18px; height: 18px; stroke: var(--el-gold-dark); }
 .zawadi-item-info { flex: 1; min-width: 0; }
-.zawadi-item-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #e8d5a0;
-    margin: 0 0 2px;
-    word-break: break-word;
-}
+.zawadi-item-title { font-size: 14px; font-weight: 600; color: var(--el-text-main); margin: 0 0 2px; word-break: break-word; }
 .zawadi-item-desc {
     font-size: 12px;
-    color: rgba(255,255,255,.38);
+    color: var(--el-text-light);
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-.zawadi-item-desc--expanded {
-    display: block;
-    overflow: visible;
-}
-.zawadi-read-more {
-    background: none;
-    border: none;
-    padding: 2px 0 0;
-    font-size: 11px;
-    color: #C9963C;
-    cursor: pointer;
-    line-height: 1;
-}
-.zawadi-item-chevron {
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    stroke: rgba(201,150,60,.5);
-}
+.zawadi-item-desc--expanded { display: block; overflow: visible; }
+.zawadi-read-more { background: none; border: none; padding: 2px 0 0; font-size: 11px; color: var(--el-gold-dark); cursor: pointer; line-height: 1; }
+.zawadi-item-chevron { flex-shrink: 0; width: 16px; height: 16px; stroke: rgba(201,168,76,.7); }
 .zawadi-progress-wrap { margin-bottom: 10px; }
-.zawadi-progress-bar {
-    height: 5px;
-    background: rgba(255,255,255,.07);
-    border-radius: 3px;
-    overflow: hidden;
-}
+.zawadi-progress-bar { height: 5px; background: rgba(36,31,24,.08); border-radius: 3px; overflow: hidden; }
 .zawadi-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, rgba(201,150,60,.6), #C9963C);
+    background: linear-gradient(90deg, rgba(201,168,76,.7), var(--el-gold-dark));
     border-radius: 3px;
     transition: width .4s ease;
     min-width: 3px;
 }
-.zawadi-item-foot {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+.zawadi-item-foot { display: flex; align-items: center; gap: 10px; }
 .zawadi-amounts { flex: 1; min-width: 0; }
-.zawadi-funded {
-    font-size: 13px;
-    font-weight: 700;
-    color: #C9963C;
-}
-.zawadi-target {
-    font-size: 12px;
-    color: rgba(255,255,255,.35);
-}
-.zawadi-avatars {
-    display: flex;
-    align-items: center;
-}
+.zawadi-funded { font-size: 13px; font-weight: 700; color: var(--el-gold-dark); }
+.zawadi-target { font-size: 12px; color: var(--el-text-light); }
+.zawadi-avatars { display: flex; align-items: center; }
 .zawadi-avatar {
     width: 24px;
     height: 24px;
@@ -3926,236 +2983,540 @@ const toggleLike = async (item) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1.5px solid rgba(22,16,8,.9);
+    border: 1.5px solid var(--el-ivory);
     margin-left: -6px;
     flex-shrink: 0;
 }
 .zawadi-avatars .zawadi-avatar:first-child { margin-left: 0; }
-.zawadi-avatar-more {
-    background: rgba(255,255,255,.08);
-    color: rgba(255,255,255,.45);
-    font-size: 8px;
+.zawadi-avatar-more { background: rgba(36,31,24,.08); color: var(--el-text-light); font-size: 8px; }
+.zawadi-no-gifts { font-size: 11px; color: rgba(201,168,76,.8); }
+
+/* ── Comments ─────────────────────────────────────────────────────────────── */
+.cmnt-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+.cmnt-item { display: flex; gap: 10px; }
+.cmnt-avatar { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+.cmnt-avatar-sm { width: 28px; height: 28px; font-size: 11px; }
+.cmnt-body { flex: 1; min-width: 0; }
+.cmnt-meta { display: flex; align-items: baseline; gap: 7px; margin-bottom: 3px; min-width: 0; }
+.cmnt-name { font-size: 11px; font-weight: 600; color: var(--el-text-main); flex: 1; min-width: 0; word-break: break-word; }
+.cmnt-time { font-size: 10px; color: var(--el-text-light); flex-shrink: 0; white-space: nowrap; }
+.cmnt-text { font-size: 13px; color: rgba(36,31,24,.78); line-height: 1.5; }
+.cmnt-actions { display: flex; gap: 12px; margin-top: 6px; }
+.cmnt-reply-btn, .cmnt-view-replies { background: none; border: none; cursor: pointer; padding: 0; font-size: 11px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; font-family: inherit; }
+.cmnt-reply-btn { color: var(--el-gold-dark); }
+.cmnt-view-replies { color: var(--el-text-light); }
+.cmnt-replies { margin-top: 10px; padding-left: 10px; border-left: 2px solid rgba(201,168,76,.25); display: flex; flex-direction: column; gap: 12px; }
+.cmnt-reply-form { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.cmnt-empty { font-size: 13px; color: var(--el-text-light); text-align: center; padding: 12px 0 16px; }
+.cmnt-compose { display: flex; align-items: center; gap: 8px; padding-top: 14px; border-top: 1px solid rgba(201,168,76,.2); }
+.cmnt-input {
+    flex: 1;
+    background: rgba(255,255,255,.8);
+    border: 1px solid rgba(201,168,76,.3);
+    border-radius: 20px;
+    padding: 9px 14px;
+    font-size: 13px;
+    color: var(--el-text-main);
+    outline: none;
+    font-family: inherit;
+    transition: border-color .18s, background .18s;
 }
-.zawadi-no-gifts {
-    font-size: 11px;
-    color: rgba(201,150,60,.5);
+.cmnt-input::placeholder { color: rgba(36,31,24,.35); }
+.cmnt-input:focus { border-color: var(--el-gold); background: #fff; }
+.cmnt-send {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--el-gold-dark);
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity .15s;
+}
+.cmnt-send:disabled { opacity: .3; cursor: default; }
+.cmnt-send svg { width: 13px; height: 13px; color: #fff; }
+
+/* ── Entry Pass ───────────────────────────────────────────────────────────── */
+.el-pass { padding-bottom: 12px; }
+.el-pass-card { padding: 28px 24px; max-width: 420px; margin: 0 auto; }
+
+.stub-main { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.stub-avatar { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; }
+.stub-initial { font-size: 26px; font-weight: 800; letter-spacing: -.5px; line-height: 1; }
+.stub-avatar-ring { position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid; }
+.stub-info { min-width: 0; }
+.stub-badge {
+    display: inline-flex;
+    padding: 3px 10px;
+    background: rgba(201, 168, 76, .18);
+    border: .7px solid rgba(201, 168, 76, .4);
+    border-radius: 99px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: var(--el-gold-dark);
+    margin-bottom: 6px;
+}
+.stub-name { font-size: 16px; font-weight: 700; color: var(--el-text-main); letter-spacing: -.2px; line-height: 1.3; word-break: break-word; margin-bottom: 3px; }
+.stub-phone { font-size: 12px; color: var(--el-text-light); }
+
+.el-pass-qr-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px;
+    margin-bottom: 16px;
+    background: var(--el-ivory);
+    border: 1px solid rgba(201, 168, 76, .25);
+    border-radius: 16px;
+}
+.el-pass-qr { width: 168px; height: 168px; border-radius: 8px; }
+.el-pass-qr-hint {
+    margin-top: 12px;
+    font-size: 11.5px;
+    font-style: italic;
+    color: var(--el-text-light);
+    text-align: center;
+}
+.el-pass-note { text-align: center; }
+.el-pass-note-text {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 13.5px;
+    line-height: 1.8;
+    color: var(--el-text-light);
+    max-width: 46ch;
+    margin: 0 auto;
+    white-space: pre-line;
 }
 
-/* ── Gift overlay + sheet ────────────────────────────────────────────────────── */
+.view-card-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 9px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(90, 138, 219, .35);
+    background: rgba(90, 138, 219, .08);
+    color: #4472B8;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+    margin-bottom: 8px;
+}
+.view-card-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.view-card-btn:active { opacity: .7; }
+.view-card-btn:hover { background: rgba(90, 138, 219, .15); }
+
+.stub-status { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 12px; cursor: pointer; transition: opacity .15s; }
+.stub-status:active { opacity: .75; }
+.status-in { background: rgba(29, 171, 75, .08); border: 1px solid rgba(29, 171, 75, .25); }
+.status-declined { background: rgba(224, 90, 90, .08); border: 1px solid rgba(224, 90, 90, .25); }
+.status-pending { background: rgba(212, 130, 10, .10); border: 1px solid rgba(212, 130, 10, .3); animation: elPendingPulse 2s ease infinite; }
+@keyframes elPendingPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212, 130, 10, .15); }
+    50% { box-shadow: 0 0 0 5px rgba(212, 130, 10, 0); }
+}
+.status-indicator { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.status-in .status-indicator { color: #1DAB4B; }
+.status-declined .status-indicator { color: #E05A5A; }
+.status-pending .status-indicator { color: #D4820A; }
+.status-led { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.led-green { background: #1DAB4B; box-shadow: 0 0 7px rgba(29, 171, 75, .5); animation: elBlink 2s ease infinite; }
+.led-amber { background: #D4820A; animation: elBlink 1.4s ease infinite; }
+.led-red { background: #E05A5A; }
+@keyframes elBlink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.status-right { display: flex; align-items: center; gap: 6px; }
+.check-mark { width: 18px; height: 18px; flex-shrink: 0; }
+.status-change-lbl { font-size: 10px; font-weight: 600; letter-spacing: .3px; color: var(--el-text-light); white-space: nowrap; }
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+.el-footer {
+    background: #fff;
+    text-align: center;
+    padding: 70px 20px;
+    position: relative;
+    z-index: 1;
+}
+.el-footer-title {
+    font-family: 'Great Vibes', cursive;
+    font-weight: 400;
+    font-size: 2.6rem;
+    color: var(--el-text-main);
+}
+.el-footer-date {
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 4px;
+    font-size: .9rem;
+    color: var(--el-text-light);
+    margin-top: 6px;
+}
+.el-footer-credit {
+    font-size: 9px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: rgba(36,31,24,.35);
+    margin-top: 36px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Below: full-screen overlays (RSVP prompt, gallery lightbox, gift payment
+   sheet, media-comments sheet, Pesapal return toast). These are independent
+   dark modals/toasts — kept as-is regardless of the page's light theme,
+   same as the rest of the app's overlay pattern.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── RSVP Overlay ─────────────────────────────────────────────────────────── */
+.rsvp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, .78);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+}
+
+@media (min-height: 600px) {
+    .rsvp-overlay {
+        align-items: center;
+        padding: 20px;
+    }
+}
+
+.rsvp-card {
+    width: 100%;
+    max-width: 420px;
+    background: #1C1C1E;
+    border: 1px solid rgba(201, 150, 60, .25);
+    border-radius: 28px 28px 0 0;
+    padding: 32px 24px 28px;
+    text-align: center;
+    animation: rsvpUp .4s cubic-bezier(.22, 1, .36, 1) both;
+    box-shadow: 0 -20px 60px rgba(0, 0, 0, .5);
+}
+
+@media (min-height: 600px) {
+    .rsvp-card { border-radius: 28px; }
+}
+
+@keyframes rsvpUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.rsvp-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(201, 150, 60, .12);
+    border: 1px solid rgba(201, 150, 60, .3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 18px;
+    color: #C9963C;
+}
+.rsvp-icon svg { width: 26px; height: 26px; }
+
+.rsvp-title { font-size: 19px; font-weight: 800; color: #EEEEF0; margin-bottom: 6px; }
+.rsvp-event { font-size: 13px; font-weight: 600; color: #C9963C; margin-bottom: 10px; }
+.rsvp-sub { font-size: 13px; color: rgba(238, 238, 240, .5); line-height: 1.6; margin-bottom: 26px; }
+.rsvp-actions { display: flex; flex-direction: column; gap: 10px; }
+
+.rsvp-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 15px;
+    border-radius: 14px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity .15s, transform .1s;
+}
+.rsvp-btn:disabled { opacity: .5; cursor: default; }
+.rsvp-btn svg { width: 18px; height: 18px; }
+.rsvp-confirm { background: #C9963C; color: #1A1A1A; }
+.rsvp-confirm:not(:disabled):active { transform: scale(.98); }
+.rsvp-decline { background: rgba(255, 255, 255, .06); color: rgba(238, 238, 240, .7); border: 1px solid rgba(255, 255, 255, .1); }
+.rsvp-decline:not(:disabled):active { transform: scale(.98); }
+
+.rsvp-fade-enter-active, .rsvp-fade-leave-active { transition: opacity .25s ease; }
+.rsvp-fade-enter-from, .rsvp-fade-leave-to { opacity: 0; }
+
+/* ── Lightbox ─────────────────────────────────────────────────────────────── */
+.lb-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(0, 0, 0, .96);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.lb-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 5;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .12);
+    border: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.lb-close svg { width: 18px; height: 18px; }
+
+.lb-img { max-width: 96vw; max-height: 88vh; object-fit: contain; touch-action: none; user-select: none; }
+.lb-video { max-width: 96vw; max-height: 88vh; }
+
+.lb-folder-badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 5;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    color: rgba(255, 255, 255, .8);
+    background: rgba(255, 255, 255, .1);
+    padding: 5px 12px;
+    border-radius: 99px;
+}
+
+.lb-fade-enter-active, .lb-fade-leave-active { transition: opacity .25s ease; }
+.lb-fade-enter-from, .lb-fade-leave-to { opacity: 0; }
+
+.lb-like-btn {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border-radius: 99px;
+    border: none;
+    background: rgba(255, 255, 255, .12);
+    color: rgba(255, 255, 255, .85);
+    cursor: pointer;
+}
+.lb-like-btn svg { width: 18px; height: 18px; }
+.lb-like-btn-active { color: #FF4B6E; background: rgba(255, 75, 110, .18); }
+.lb-like-btn:active { transform: scale(.94); }
+.lb-like-badge { font-size: 12px; font-weight: 700; }
+
+.lb-comment-btn {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border-radius: 99px;
+    border: none;
+    background: rgba(255, 255, 255, .12);
+    color: rgba(255, 255, 255, .85);
+    cursor: pointer;
+}
+.lb-comment-btn svg { width: 18px; height: 18px; }
+.lb-comment-btn-active { background: #C9963C; color: #1A1A1A; }
+.lb-comment-btn:active { transform: scale(.94); }
+.lb-comment-badge { font-size: 12px; font-weight: 700; }
+
+.mc-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    background: #1C1C1E;
+    border-radius: 24px 24px 0 0;
+    padding: 12px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -20px 50px rgba(0, 0, 0, .5);
+}
+.mc-handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .2); margin: 0 auto 14px; }
+.mc-title { font-size: 13px; font-weight: 700; color: #EEEEF0; letter-spacing: .3px; text-transform: uppercase; margin-bottom: 14px; }
+.mc-list { overflow-y: auto; flex: 1; margin-bottom: 12px; }
+.mc-list .cmnt-item { margin-bottom: 14px; }
+.mc-list .cmnt-name, .mc-list .cmnt-text { color: #EEEEF0; }
+.mc-list .cmnt-time { color: rgba(238,238,240,.4); }
+.mc-empty { padding: 24px 0; }
+.mc-compose { padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, .08); }
+.mc-compose .cmnt-input { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.12); color: #EEEEF0; }
+.mc-compose .cmnt-input::placeholder { color: rgba(238,238,240,.3); }
+
+.mc-slide-enter-active, .mc-slide-leave-active { transition: transform .3s cubic-bezier(.32,1,.4,1); }
+.mc-slide-enter-from, .mc-slide-leave-to { transform: translateY(100%); }
+
+/* ── Gift overlay + sheet (payment) ──────────────────────────────────────── */
 .gift-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,.54);
-    z-index: 1200;
+    z-index: 400;
+    background: rgba(0, 0, 0, .78);
+    backdrop-filter: blur(6px);
     display: flex;
     align-items: flex-end;
+    justify-content: center;
 }
 .gift-sheet {
     width: 100%;
-    max-width: 520px;
-    margin: 0 auto;
-    background: rgba(17,17,20,0.38);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    border-radius: 28px 28px 0 0;
-    border-top: 0.8px solid rgba(255,255,255,0.13);
-    border-left: 0.8px solid rgba(255,255,255,0.13);
-    border-right: 0.8px solid rgba(255,255,255,0.13);
-    padding: 0 24px 40px;
-    box-sizing: border-box;
-    position: relative;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #1C1C1E;
+    border-radius: 26px 26px 0 0;
+    padding: 14px 22px 30px;
+    box-shadow: 0 -20px 60px rgba(0, 0, 0, .5);
 }
-.gift-sheet-handle {
-    width: 36px;
-    height: 4px;
-    background: rgba(255,255,255,.18);
-    border-radius: 2px;
-    margin: 14px auto 0;
-}
+.gift-sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .2); margin: 0 auto 18px; }
 
-/* Header row: back · [icon] title · close */
-.gift-hdr-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 0 16px;
-    gap: 8px;
-}
-.gift-hdr-identity {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    flex: 1;
-}
+.gift-hdr-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.gift-hdr-identity { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
 .gift-hdr-icon {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 9px;
-    background: rgba(201,150,60,.15);
-    border: 1px solid rgba(201,150,60,.28);
+    background: rgba(201,150,60,.14);
+    border: 1px solid rgba(201,150,60,.3);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 }
 .gift-hdr-icon svg { width: 15px; height: 15px; stroke: #C9963C; }
-.gift-hdr-title {
-    font-size: 17px;
-    font-weight: 600;
-    color: #EEEEF0;
-    margin: 0;
-    flex: 1;
-    text-align: center;
-}
-.gift-hdr-identity .gift-hdr-title {
-    text-align: left;
-}
+.gift-hdr-title { font-size: 15px; font-weight: 700; color: #EEEEF0; flex: 1; min-width: 0; word-break: break-word; }
+.gift-hdr-identity .gift-hdr-title { flex: 1; }
 .gift-hdr-back {
     width: 32px;
     height: 32px;
-    background: none;
+    border-radius: 50%;
     border: none;
-    cursor: pointer;
-    color: #8E8E93;
+    background: rgba(255,255,255,.06);
+    color: rgba(238,238,240,.7);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
-    transition: color .15s;
+    cursor: pointer;
+    flex-shrink: 0;
 }
 .gift-hdr-back:hover { color: #EEEEF0; }
 .gift-hdr-back svg { width: 20px; height: 20px; }
 .gift-sheet-close {
     width: 32px;
     height: 32px;
-    background: none;
+    border-radius: 50%;
     border: none;
-    cursor: pointer;
-    color: #8E8E93;
+    background: rgba(255,255,255,.06);
+    color: rgba(238,238,240,.7);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
-    transition: color .15s;
+    cursor: pointer;
+    flex-shrink: 0;
 }
 .gift-sheet-close:hover { color: #EEEEF0; }
 .gift-sheet-close svg { width: 18px; height: 18px; }
-.gift-sheet-sub {
-    font-size: 12.5px;
-    color: #8E8E93;
-    margin: 0 0 16px;
-    text-align: center;
-}
 
-/* Preset buttons */
-.gift-presets {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 14px;
-}
+.gift-sheet-sub { font-size: 13px; color: rgba(238,238,240,.55); margin-bottom: 18px; line-height: 1.6; }
+
+.gift-presets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
 .gift-preset {
-    background: rgba(255,255,255,.05);
-    border: 1.5px solid rgba(255,255,255,.1);
+    padding: 14px 8px;
     border-radius: 12px;
-    padding: 13px 8px;
-    color: #e0c88a;
-    font-size: 15px;
-    font-weight: 600;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.04);
+    color: #EEEEF0;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
-    transition: border-color .18s, background .18s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
+    font-family: inherit;
+    transition: background .15s, border-color .15s;
 }
 .gift-preset:hover { background: rgba(201,150,60,.12); border-color: rgba(201,150,60,.4); }
 .gift-preset-active { border-color: #C9963C !important; background: rgba(201,150,60,.18) !important; }
 .gift-preset-cur { font-size: 10px; font-weight: 400; color: rgba(201,150,60,.7); }
 
-/* Custom amount input */
 .gift-custom-wrap {
     display: flex;
     align-items: center;
-    background: rgba(255,255,255,.05);
-    border: 1.5px solid rgba(255,255,255,.1);
+    gap: 8px;
+    padding: 12px 14px;
     border-radius: 12px;
-    padding: 0 14px;
-    margin-bottom: 6px;
-    transition: border-color .18s;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.04);
+    margin-bottom: 10px;
 }
 .gift-custom-wrap:focus-within { border-color: rgba(201,150,60,.5); }
-.gift-custom-prefix {
-    font-size: 12px;
-    color: rgba(201,150,60,.7);
-    margin-right: 8px;
-    white-space: nowrap;
-}
-.gift-custom-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #e8d5a0;
-    font-size: 15px;
-    padding: 13px 0;
-}
+.gift-custom-prefix { font-size: 13px; font-weight: 700; color: rgba(238,238,240,.4); }
+.gift-custom-input { flex: 1; background: none; border: none; color: #EEEEF0; font-size: 15px; font-family: inherit; outline: none; }
 .gift-custom-input::placeholder { color: rgba(255,255,255,.25); }
-.gift-custom-input::-webkit-outer-spin-button,
-.gift-custom-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.gift-custom-input::-webkit-outer-spin-button, .gift-custom-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 
 .gift-err { font-size: 11.5px; color: #e07070; margin: 0 0 10px; }
 
-/* Amount pill */
 .gift-amount-pill {
     display: inline-flex;
-    align-items: center;
-    background: rgba(201,150,60,.18);
-    border: 1px solid rgba(201,150,60,.35);
-    border-radius: 20px;
-    padding: 7px 18px;
-    font-size: 17px;
+    padding: 8px 18px;
+    border-radius: 99px;
+    background: rgba(201,150,60,.14);
+    border: 1px solid rgba(201,150,60,.3);
+    color: #e8d5a0;
+    font-size: 15px;
     font-weight: 700;
-    color: #e8c870;
-    margin: 14px auto 18px;
-    display: flex;
-    justify-content: center;
+    margin-bottom: 16px;
 }
-
-/* Note textarea */
 .gift-note-ta {
     width: 100%;
-    box-sizing: border-box;
-    background: rgba(255,255,255,.05);
-    border: 1.5px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.1);
     border-radius: 12px;
-    padding: 13px 14px;
-    color: #e8d5a0;
+    padding: 12px 14px;
+    color: #EEEEF0;
     font-size: 14px;
+    font-family: inherit;
     resize: none;
     outline: none;
-    font-family: inherit;
-    transition: border-color .18s;
 }
 .gift-note-ta:focus { border-color: rgba(201,150,60,.45); }
 .gift-note-ta::placeholder { color: rgba(255,255,255,.25); }
 .gift-char-count { font-size: 11px; color: rgba(255,255,255,.3); text-align: right; margin: 4px 0 14px; }
 
-/* Confirm card */
 .gift-confirm-card {
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(201,150,60,.2);
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.1);
     border-radius: 14px;
-    padding: 6px 0;
-    margin: 14px 0 10px;
+    padding: 16px;
+    margin-bottom: 14px;
 }
-.gift-confirm-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 10px 16px;
-    border-bottom: 1px solid rgba(255,255,255,.06);
-}
+.gift-confirm-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
 .gift-confirm-row:last-child { border-bottom: none; }
 .gift-confirm-note-row { flex-direction: column; gap: 5px; }
 .gift-confirm-lbl { font-size: 12px; color: rgba(255,255,255,.4); }
@@ -4164,104 +3525,104 @@ const toggleLike = async (item) => {
 .gift-confirm-note { font-size: 13px; text-align: left; max-width: 100%; color: rgba(255,255,255,.7); font-style: italic; }
 .gift-confirm-disclaimer { font-size: 11px; color: rgba(255,255,255,.3); text-align: center; margin: 0 0 16px; }
 
-/* CTA button */
 .gift-cta {
-    width: 100%;
-    margin-top: 16px;
-    padding: 15px;
-    border-radius: 14px;
-    background: rgba(201,150,60,.18);
-    border: 1.5px solid rgba(201,150,60,.4);
-    color: #e8c870;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: background .18s, border-color .18s, opacity .18s;
+    width: 100%;
+    padding: 15px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.06);
+    color: #EEEEF0;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .18s, border-color .18s;
 }
 .gift-cta:hover:not(:disabled) { background: rgba(201,150,60,.28); border-color: #C9963C; }
 .gift-cta:disabled { opacity: .45; cursor: not-allowed; }
 .gift-cta svg { width: 17px; height: 17px; }
 .gift-cta-gold { background: rgba(201,150,60,.28); border-color: #C9963C; }
 
-
-/* Spinner inside button */
 .gift-spinner {
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(232,200,112,.3);
-    border-top-color: #e8c870;
+    border: 2px solid rgba(255,255,255,.25);
+    border-top-color: #fff;
     border-radius: 50%;
-    animation: spin .7s linear infinite;
+    animation: elSpin .7s linear infinite;
 }
 
-/* Done state */
 .gift-done { text-align: center; padding: 20px 0 8px; }
 .gift-done-icon {
-    width: 68px;
-    height: 68px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    background: rgba(61,170,118,.15);
-    border: 1.5px solid rgba(61,170,118,.4);
+    background: rgba(61, 170, 118, .12);
+    border: 1px solid rgba(61, 170, 118, .35);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 16px;
+    margin: 0 auto 18px;
 }
 .gift-done-icon svg { width: 32px; height: 32px; stroke: #3DAA76; }
 .gift-done-title { font-size: 19px; font-weight: 700; color: #e8d5a0; margin: 0 0 8px; }
 .gift-done-sub { font-size: 13.5px; color: rgba(255,255,255,.5); margin: 0 0 24px; }
 
-/* Sheet transition */
-/* ── Gift return banner ──────────────────────────────────────────────────────── */
+.givers-wall { margin-bottom: 16px; }
+.givers-wall-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; }
+.givers-wall-scroll::-webkit-scrollbar { display: none; }
+.givers-wall-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 99px;
+    padding: 6px 14px 6px 6px;
+    flex-shrink: 0;
+}
+.givers-wall-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.givers-wall-info { display: flex; flex-direction: column; line-height: 1.2; }
+.givers-wall-name { font-size: 12px; font-weight: 600; color: #EEEEF0; }
+.givers-wall-amt { font-size: 11px; color: rgba(201,150,60,.85); font-weight: 600; }
+.givers-wall-lbl { font-size: 11px; color: rgba(255,255,255,.35); text-align: center; }
+
+/* ── Pesapal return toast ─────────────────────────────────────────────────── */
 .gift-return-banner {
     position: fixed;
-    bottom: 24px;
+    top: 16px;
     left: 50%;
     transform: translateX(-50%);
-    width: calc(100% - 32px);
-    max-width: 480px;
+    z-index: 500;
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px 16px;
-    background: rgba(17,17,20,0.92);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(201,150,60,.4);
+    max-width: 90vw;
+    padding: 14px 18px;
+    background: #1C1C1E;
+    border: 1px solid rgba(201,150,60,.3);
     border-radius: 16px;
-    z-index: 1300;
+    box-shadow: 0 20px 50px rgba(0,0,0,.5);
     cursor: pointer;
 }
-.gift-return-banner svg {
-    flex-shrink: 0;
-    width: 22px;
-    height: 22px;
-    stroke: #C9963C;
-}
-.gift-return-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #e8d5a0;
-    margin: 0 0 2px;
-}
-.gift-return-sub {
-    font-size: 11px;
-    color: rgba(255,255,255,.4);
-    margin: 0;
-}
-.gift-return-close {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: rgba(255,255,255,.3);
-    font-size: 13px;
-    cursor: pointer;
-    flex-shrink: 0;
-}
+.gift-return-banner svg { width: 22px; height: 22px; color: #C9963C; flex-shrink: 0; }
+.gift-return-title { font-size: 13px; font-weight: 700; color: #EEEEF0; }
+.gift-return-sub { font-size: 11.5px; color: rgba(238,238,240,.5); margin-top: 2px; }
+.gift-return-close { background: none; border: none; color: rgba(238,238,240,.4); font-size: 14px; cursor: pointer; flex-shrink: 0; }
 
 .gift-overlay-enter-active, .gift-overlay-leave-active { transition: opacity .25s; }
 .gift-overlay-enter-from, .gift-overlay-leave-to { opacity: 0; }

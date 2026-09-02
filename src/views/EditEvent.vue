@@ -6,8 +6,8 @@
       <div class="ce-nav-inner">
         <div class="ce-nav-left">
           <div class="ce-brand" @click="$router.push('/events')">
-            <span class="ce-brand-dot" />
-            <span class="ce-brand-name">Haflaway</span>
+            <img :src="brandLogoUrl" class="ce-brand-logo" />
+            <span class="ce-brand-name">{{ brandName }}</span>
           </div>
           <div class="ce-breadcrumb">
             <span class="ce-sep">/</span>
@@ -20,8 +20,8 @@
         </div>
         <div class="ce-nav-right">
           <div class="ce-avatar-pill">
-            <div class="ce-avatar-dot" />
-            <span class="ce-avatar-label">Admin</span>
+            <span class="ce-avatar-dot" />
+            <span class="ce-avatar-label">Admin &middot; {{ userDisplayName }}</span>
           </div>
         </div>
       </div>
@@ -116,9 +116,122 @@
           <div class="ce-fields">
 
             <div class="ce-field" :class="{ 'ce-field--error': errors.location }">
-              <label class="ce-label">Location <span class="ce-req">*</span></label>
-              <input v-model="form.location" type="text" class="ce-input" placeholder="e.g. Mlimani City Hall" @input="errors.location = ''" />
+              <label class="ce-label">Venue <span class="ce-req">*</span></label>
+              <div class="ce-search-wrap">
+                <svg class="ce-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  v-model="form.location"
+                  type="text"
+                  class="ce-input ce-input--search"
+                  placeholder="e.g. Mlimani City Hall"
+                  autocomplete="off"
+                  @input="form.locationLat = null; form.locationLng = null; form.locationAddress = ''; errors.location = ''; venuePlace.search(form.location)"
+                  @keydown.down.prevent="venuePlace.cursor.value = Math.min(venuePlace.cursor.value + 1, venuePlace.suggestions.value.length - 1)"
+                  @keydown.up.prevent="venuePlace.cursor.value = Math.max(venuePlace.cursor.value - 1, 0)"
+                  @keydown.enter.prevent="venuePlace.cursor.value >= 0 && pickVenue(venuePlace.suggestions.value[venuePlace.cursor.value])"
+                  @keydown.escape="venuePlace.clear()"
+                />
+                <svg v-if="venuePlace.loading.value" class="ce-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                <ul v-if="venuePlace.suggestions.value.length" class="ce-suggestions">
+                  <li
+                    v-for="(s, i) in venuePlace.suggestions.value"
+                    :key="s.place"
+                    class="ce-suggestion"
+                    :class="{ 'ce-suggestion--active': i === venuePlace.cursor.value }"
+                    @mousedown.prevent="pickVenue(s)"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <div class="ce-suggestion-text">
+                      <span class="ce-suggestion-main">{{ s.structuredFormat?.mainText?.text }}</span>
+                      <span class="ce-suggestion-sub">{{ s.structuredFormat?.secondaryText?.text }}</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <span v-if="form.locationLat" class="ce-map-hint">&#128205; Matched on map &middot; {{ Number(form.locationLat).toFixed(4) }}, {{ Number(form.locationLng).toFixed(4) }}</span>
               <span v-if="errors.location" class="ce-field-error">{{ errors.location }}</span>
+              <button type="button" class="ce-manual-toggle" @click="venuePlace.toggleManual()">Can't find it on the map?</button>
+              <div v-if="venuePlace.showManual.value" class="ce-manual-box">
+                <button type="button" class="ce-manual-btn" :disabled="venuePlace.manualBusy.value" @click="applyVenueLocation">
+                  &#128205; Use my current location
+                </button>
+                <div class="ce-manual-link-row">
+                  <input
+                    v-model="venuePlace.linkInput.value"
+                    type="text"
+                    class="ce-input ce-manual-link-input"
+                    placeholder="Paste a Google Maps link"
+                    @keydown.enter.prevent="applyVenueLink"
+                  />
+                  <button type="button" class="ce-manual-apply" :disabled="venuePlace.manualBusy.value" @click="applyVenueLink">Apply</button>
+                </div>
+                <span v-if="venuePlace.manualError.value" class="ce-field-error">{{ venuePlace.manualError.value }}</span>
+              </div>
+            </div>
+
+            <div class="ce-field">
+              <label class="ce-label">Place of Worship <span class="ce-optional">(optional)</span></label>
+              <div class="ce-search-wrap">
+                <svg class="ce-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  v-model="form.worshipLocation"
+                  type="text"
+                  class="ce-input ce-input--search"
+                  placeholder="e.g. church, mosque, or temple name"
+                  autocomplete="off"
+                  @input="form.worshipLocationLat = null; form.worshipLocationLng = null; form.worshipLocationAddress = ''; worshipPlace.search(form.worshipLocation)"
+                  @keydown.down.prevent="worshipPlace.cursor.value = Math.min(worshipPlace.cursor.value + 1, worshipPlace.suggestions.value.length - 1)"
+                  @keydown.up.prevent="worshipPlace.cursor.value = Math.max(worshipPlace.cursor.value - 1, 0)"
+                  @keydown.enter.prevent="worshipPlace.cursor.value >= 0 && pickWorship(worshipPlace.suggestions.value[worshipPlace.cursor.value])"
+                  @keydown.escape="worshipPlace.clear()"
+                />
+                <svg v-if="worshipPlace.loading.value" class="ce-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                <ul v-if="worshipPlace.suggestions.value.length" class="ce-suggestions">
+                  <li
+                    v-for="(s, i) in worshipPlace.suggestions.value"
+                    :key="s.place"
+                    class="ce-suggestion"
+                    :class="{ 'ce-suggestion--active': i === worshipPlace.cursor.value }"
+                    @mousedown.prevent="pickWorship(s)"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <div class="ce-suggestion-text">
+                      <span class="ce-suggestion-main">{{ s.structuredFormat?.mainText?.text }}</span>
+                      <span class="ce-suggestion-sub">{{ s.structuredFormat?.secondaryText?.text }}</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <span v-if="form.worshipLocationLat" class="ce-map-hint">&#128205; Matched on map &middot; {{ Number(form.worshipLocationLat).toFixed(4) }}, {{ Number(form.worshipLocationLng).toFixed(4) }}</span>
+              <button type="button" class="ce-manual-toggle" @click="worshipPlace.toggleManual()">Can't find it on the map?</button>
+              <div v-if="worshipPlace.showManual.value" class="ce-manual-box">
+                <button type="button" class="ce-manual-btn" :disabled="worshipPlace.manualBusy.value" @click="applyWorshipLocation">
+                  &#128205; Use my current location
+                </button>
+                <div class="ce-manual-link-row">
+                  <input
+                    v-model="worshipPlace.linkInput.value"
+                    type="text"
+                    class="ce-input ce-manual-link-input"
+                    placeholder="Paste a Google Maps link"
+                    @keydown.enter.prevent="applyWorshipLink"
+                  />
+                  <button type="button" class="ce-manual-apply" :disabled="worshipPlace.manualBusy.value" @click="applyWorshipLink">Apply</button>
+                </div>
+                <span v-if="worshipPlace.manualError.value" class="ce-field-error">{{ worshipPlace.manualError.value }}</span>
+              </div>
             </div>
 
             <div class="ce-field" :class="{ 'ce-field--error': errors.supportPhone }">
@@ -227,7 +340,59 @@ import { doc, getDoc, setDoc, getDocs, collection, query, orderBy } from 'fireba
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { toStoredEventDate, toDatetimeLocal } from '../utils/eventDates.js'
 import { useOrg } from '../composables/useOrg.js'
+import { usePlaceSearch } from '../composables/usePlaceSearch.js'
 import { visiblePlansFor } from '../utils/planVisibility.js'
+
+const venuePlace = usePlaceSearch()
+const worshipPlace = usePlaceSearch()
+
+async function pickVenue(suggestion) {
+  const r = await venuePlace.resolve(suggestion)
+  form.value.location = r.text
+  form.value.locationAddress = r.address
+  form.value.locationLat = r.lat
+  form.value.locationLng = r.lng
+  errors.value.location = ''
+}
+
+async function pickWorship(suggestion) {
+  const r = await worshipPlace.resolve(suggestion)
+  form.value.worshipLocation = r.text
+  form.value.worshipLocationAddress = r.address
+  form.value.worshipLocationLat = r.lat
+  form.value.worshipLocationLng = r.lng
+}
+
+// Manual fallbacks — venue name stays whatever the admin typed; only the
+// coordinates come from the device or the pasted link.
+async function applyVenueLocation() {
+  const r = await venuePlace.useMyLocation()
+  if (!r) return
+  form.value.locationLat = r.lat
+  form.value.locationLng = r.lng
+  form.value.locationAddress = ''
+}
+async function applyVenueLink() {
+  const r = await venuePlace.useLinkInput()
+  if (!r) return
+  form.value.locationLat = r.lat
+  form.value.locationLng = r.lng
+  form.value.locationAddress = ''
+}
+async function applyWorshipLocation() {
+  const r = await worshipPlace.useMyLocation()
+  if (!r) return
+  form.value.worshipLocationLat = r.lat
+  form.value.worshipLocationLng = r.lng
+  form.value.worshipLocationAddress = ''
+}
+async function applyWorshipLink() {
+  const r = await worshipPlace.useLinkInput()
+  if (!r) return
+  form.value.worshipLocationLat = r.lat
+  form.value.worshipLocationLng = r.lng
+  form.value.worshipLocationAddress = ''
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -243,7 +408,13 @@ const thumbFile = ref(null)
 const thumbPreview = ref('')
 const existingThumbUrl = ref('')
 
-const { activeOrg } = useOrg()
+const { activeOrg, brandName, brandLogoUrl } = useOrg()
+
+const userDisplayName = computed(() => {
+  const u = auth.currentUser
+  if (!u) return 'Admin'
+  return u.displayName || u.email?.split('@')[0] || 'Admin'
+})
 
 const categories = ref([])
 const plans = ref([])
@@ -268,6 +439,13 @@ const form = ref({
   startDate: '',
   endDate: '',
   location: '',
+  locationAddress: '',
+  locationLat: null,
+  locationLng: null,
+  worshipLocation: '',
+  worshipLocationAddress: '',
+  worshipLocationLat: null,
+  worshipLocationLng: null,
   supportPhone: '',
   eventPlanId: null,
   eventPlanName: '',
@@ -309,6 +487,13 @@ onMounted(async () => {
         startDate: toDatetimeLocal(e.startDate),
         endDate: toDatetimeLocal(e.endDate),
         location: e.location ?? '',
+        locationAddress: e.locationAddress ?? '',
+        locationLat: e.locationLat ?? null,
+        locationLng: e.locationLng ?? null,
+        worshipLocation: e.worshipLocation ?? '',
+        worshipLocationAddress: e.worshipLocationAddress ?? '',
+        worshipLocationLat: e.worshipLocationLat ?? null,
+        worshipLocationLng: e.worshipLocationLng ?? null,
         supportPhone: e.supportPhone ?? '',
         eventPlanId: e.eventPlanId ?? null,
         eventPlanName: plan?.name ?? '',
@@ -394,6 +579,13 @@ async function handleSubmit() {
       categoryLevel: form.value.categoryLevel,
       description: form.value.description.trim(),
       location: form.value.location.trim(),
+      locationAddress: form.value.locationAddress,
+      locationLat: form.value.locationLat,
+      locationLng: form.value.locationLng,
+      worshipLocation: form.value.worshipLocation.trim(),
+      worshipLocationAddress: form.value.worshipLocationAddress,
+      worshipLocationLat: form.value.worshipLocationLat,
+      worshipLocationLng: form.value.worshipLocationLng,
       eventThumbnail: thumbnailUrl,
       eventPlanId: form.value.eventPlanId ?? null,
       // Naive local wall-clock, matching the Flutter app's format — NOT
@@ -418,37 +610,51 @@ async function handleSubmit() {
 <style scoped>
 .ce-root {
   min-height: 100vh;
-  background: var(--org-page-bg, #0a0e1c);
+  /* flow-root establishes a BFC so the nav's 32px top margin is contained
+     here instead of collapsing through the root and exposing the page
+     background as a band at the very top edge. */
+  display: flow-root;
+  background: var(--org-page-bg, #070707);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 .ce-nav {
-  background: rgba(10,14,28,0.88);
-  backdrop-filter: blur(18px);
-  border-bottom: 1px solid #1e2d44;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
+  position: sticky;
+  top: 32px;
+  z-index: 100;
+  max-width: 860px;
+  margin: 32px auto 0;
+  padding: 0 36px;
+  box-sizing: border-box;
 }
 .ce-nav-inner {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 28px 36px;
+  padding: 18px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-radius: 14px;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.ce-nav-left { display: flex; align-items: center; gap: 10px; }
-.ce-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.ce-brand-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); }
-.ce-brand-name { font-size: 22px; font-weight: 800; color: #e2e8f0; letter-spacing: -0.5px; }
-.ce-breadcrumb { display: flex; align-items: center; gap: 8px; }
-.ce-sep { font-size: 16px; color: #2a3a52; font-weight: 300; }
-.ce-crumb { font-size: 15px; font-weight: 500; color: #8892a4; cursor: pointer; transition: color 130ms; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+.ce-nav-inner:hover {
+  border-color: #3a3a3a;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.ce-nav-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ce-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; min-width: 0; }
+.ce-brand-logo { width: 20px; height: 20px; border-radius: 6px; object-fit: cover; }
+.ce-brand-name { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; font-size: 20px; font-weight: 700; color: #f0f0ec; letter-spacing: -0.1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ce-breadcrumb { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ce-sep { font-size: 15px; color: #3a3a3a; font-weight: 300; }
+.ce-crumb { font-size: 14px; font-weight: 500; color: #888; cursor: pointer; transition: color 130ms; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
 .ce-crumb:hover { color: var(--gold); }
 .ce-crumb--event { max-width: 160px; }
-.ce-crumb--page { font-weight: 600; color: #e2e8f0; cursor: default; max-width: none; }
-.ce-crumb--page:hover { color: #e2e8f0; }
-.ce-avatar-pill { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; border: 0.8px solid #1e2d44; }
-.ce-avatar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
-.ce-avatar-label { font-size: 12px; font-weight: 500; color: #8892a4; }
+.ce-crumb--page { font-weight: 600; color: #f0f0ec; cursor: default; max-width: none; }
+.ce-crumb--page:hover { color: #f0f0ec; }
+.ce-avatar-pill { display: flex; align-items: center; gap: 7px; padding: 6px 12px 6px 14px; border-radius: 20px; border: 1px solid #2a2a2a; background: #070707; flex-shrink: 0; }
+.ce-avatar-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); flex-shrink: 0; }
+.ce-avatar-label { font-size: 12.5px; font-weight: 500; color: #d4cfc8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 
 .ce-body { max-width: 860px; margin: 0 auto; padding: 36px 36px 80px; }
 .ce-form { display: flex; flex-direction: column; gap: 24px; }
@@ -457,82 +663,121 @@ async function handleSubmit() {
 .ce-skeleton-section {
   height: 160px;
   border-radius: 16px;
-  background: linear-gradient(90deg, #111827 25%, #1a2236 50%, #111827 75%);
+  background: linear-gradient(90deg, #141414 25%, #1e1e1e 50%, #141414 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-.ce-section { background: #111827; border: 1px solid #1e2d44; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 16px; }
-.ce-section-label { font-size: 13px; font-weight: 700; color: #8892a4; letter-spacing: 0.2px; text-transform: uppercase; }
+.ce-section { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 16px; }
+.ce-section-label { font-size: 13px; font-weight: 700; color: #888; letter-spacing: 0.2px; text-transform: uppercase; }
 
 .ce-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .ce-field { display: flex; flex-direction: column; gap: 6px; }
 .ce-field--full { grid-column: 1 / -1; }
-.ce-label { font-size: 12px; font-weight: 600; color: #8892a4; }
+.ce-label { font-size: 12px; font-weight: 600; color: #888; }
 .ce-req { color: var(--gold); }
-.ce-optional { color: #4f617a; font-weight: 400; }
+.ce-optional { color: #555; font-weight: 400; }
 
 .ce-input, .ce-textarea {
-  padding: 10px 13px; border: 0.8px solid #1e2d44; border-radius: 10px; background: #111827;
-  font-size: 14px; color: #e2e8f0; outline: none; font-family: inherit;
+  padding: 10px 13px; border: 0.8px solid #2a2a2a; border-radius: 10px; background: #070707;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.5);
+  font-size: 14px; color: #f0f0ec; outline: none; font-family: inherit;
   transition: border-color 140ms, box-shadow 140ms; box-sizing: border-box; width: 100%;
 }
-.ce-input::placeholder, .ce-textarea::placeholder { color: #4f617a; }
-.ce-input:focus, .ce-textarea:focus { border-color: rgb(from var(--gold) r g b / 0.5); box-shadow: 0 0 0 3px rgb(from var(--gold) r g b / 0.10); background: #0d1326; }
+.ce-input::placeholder, .ce-textarea::placeholder { color: #555; }
+.ce-input:focus, .ce-textarea:focus { border-color: var(--gold); box-shadow: inset 0 1px 4px rgba(0,0,0,0.5), 0 0 0 3px rgb(from var(--gold) r g b / 0.12); }
 .ce-textarea { resize: vertical; min-height: 100px; }
 .ce-field--error .ce-input, .ce-field--error .ce-textarea { border-color: rgba(255,59,48,0.45); }
 .ce-field-error { font-size: 11px; color: #FF453A; font-weight: 500; }
 
+.ce-search-wrap { position: relative; }
+.ce-input--search { padding-left: 36px; }
+.ce-search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.ce-search-spin { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); animation: ce-rotate 0.8s linear infinite; }
+@keyframes ce-rotate { to { transform: translateY(-50%) rotate(360deg); } }
+.ce-suggestions {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 200;
+  background: #141414; border: 1px solid #2a2a2a; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4); list-style: none; margin: 0; padding: 4px;
+}
+.ce-suggestion { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background 120ms; }
+.ce-suggestion:hover, .ce-suggestion--active { background: rgba(255,255,255,0.06); }
+.ce-suggestion-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ce-suggestion-main { font-size: 13.5px; font-weight: 600; color: #f0f0ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ce-suggestion-sub { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ce-map-hint { font-size: 11px; color: var(--gold); font-weight: 500; display: flex; align-items: center; gap: 4px; }
+
+.ce-manual-toggle { align-self: flex-start; background: none; border: none; padding: 0; font-size: 11px; color: #555; text-decoration: underline; cursor: pointer; font-family: inherit; transition: color 130ms; }
+.ce-manual-toggle:hover { color: #888; }
+.ce-manual-box { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px dashed #2a2a2a; border-radius: 10px; }
+.ce-manual-btn {
+  padding: 8px 12px; border: 0.8px solid #2a2a2a; border-radius: 8px; background: #111111;
+  font-size: 12.5px; font-weight: 600; color: #f0f0ec; cursor: pointer; font-family: inherit;
+  transition: border-color 140ms; text-align: left; width: fit-content;
+}
+.ce-manual-btn:hover:not(:disabled) { border-color: rgb(from var(--gold) r g b / 0.45); }
+.ce-manual-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.ce-manual-link-row { display: flex; gap: 8px; }
+.ce-manual-link-input { flex: 1; padding: 8px 12px; font-size: 12.5px; }
+.ce-manual-apply {
+  padding: 8px 16px; border: none; border-radius: 8px; background: var(--gold); color: var(--gold-contrast);
+  font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 140ms; flex-shrink: 0;
+}
+.ce-manual-apply:hover:not(:disabled) { opacity: 0.88; }
+.ce-manual-apply:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .ce-select-btn {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 13px; border: 0.8px solid #1e2d44; border-radius: 10px; background: #111827;
-  font-size: 14px; color: #e2e8f0; cursor: pointer; font-family: inherit;
+  padding: 10px 13px; border: 0.8px solid #2a2a2a; border-radius: 10px; background: #070707;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.5);
+  font-size: 14px; color: #f0f0ec; cursor: pointer; font-family: inherit;
   transition: border-color 140ms; text-align: left; width: 100%;
 }
-.ce-select-btn--empty { color: #4f617a; }
+.ce-select-btn--empty { color: #555; }
 .ce-select-btn:hover { border-color: rgb(from var(--gold) r g b / 0.45); }
 
 .ce-radio-row { display: flex; gap: 8px; }
-.ce-radio-opt { flex: 1; text-align: center; padding: 9px 12px; border: 0.8px solid #1e2d44; border-radius: 10px; font-size: 13px; font-weight: 500; color: #8892a4; cursor: pointer; transition: all 130ms; background: #111827; }
-.ce-radio-opt--active { background: rgb(from var(--gold) r g b / 0.08); border-color: rgb(from var(--gold) r g b / 0.4); color: var(--gold); font-weight: 600; }
+.ce-radio-opt { flex: 1; text-align: center; padding: 9px 12px; border: 0.8px solid #2a2a2a; border-radius: 10px; font-size: 13px; font-weight: 500; color: #888; cursor: pointer; transition: all 130ms; background: #070707; box-shadow: inset 0 1px 4px rgba(0,0,0,0.5); }
+.ce-radio-opt--active { background: rgb(from var(--gold) r g b / 0.08); border-color: rgb(from var(--gold) r g b / 0.4); color: var(--gold); font-weight: 600; box-shadow: none; }
 
-.ce-thumb-drop { border: 1.5px dashed #1e2d44; border-radius: 14px; min-height: 180px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; transition: border-color 150ms; position: relative; background: #111827; }
+.ce-thumb-drop { border: 1.5px dashed #2a2a2a; border-radius: 14px; min-height: 180px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; transition: border-color 150ms; position: relative; background: #070707; box-shadow: inset 0 1px 4px rgba(0,0,0,0.5); }
 .ce-thumb-drop:hover { border-color: rgb(from var(--gold) r g b / 0.5); }
-.ce-thumb-drop--has { border-style: solid; border-color: #1e2d44; }
+.ce-thumb-drop--has { border-style: solid; border-color: #2a2a2a; }
 .ce-thumb-preview { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
 .ce-thumb-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; }
-.ce-thumb-hint { font-size: 14px; font-weight: 600; color: #8892a4; margin: 0; }
-.ce-thumb-sub { font-size: 12px; color: #4f617a; margin: 0; }
+.ce-thumb-hint { font-size: 14px; font-weight: 600; color: #888; margin: 0; }
+.ce-thumb-sub { font-size: 12px; color: #555; margin: 0; }
 .ce-hidden { display: none; }
 
 .ce-submit-error { display: flex; align-items: center; gap: 8px; background: rgba(255,59,48,0.07); border: 0.8px solid rgba(255,59,48,0.2); border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #FF453A; }
 
 .ce-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.ce-cancel-btn { padding: 11px 24px; border: 1px solid #2a3a52; border-radius: 10px; background: transparent; font-size: 14px; font-weight: 600; color: #8892a4; cursor: pointer; font-family: inherit; transition: background 130ms; }
-.ce-cancel-btn:hover { background: #1a2236; }
-.ce-submit-btn { padding: 11px 28px; border: none; border-radius: 10px; background: var(--gold); font-size: 14px; font-weight: 700; color: #FFFFFF; cursor: pointer; font-family: inherit; transition: opacity 140ms; display: flex; align-items: center; gap: 8px; min-width: 140px; justify-content: center; }
+.ce-cancel-btn { padding: 11px 24px; border: 1px solid #3a3a3a; border-radius: 10px; background: transparent; font-size: 14px; font-weight: 600; color: #888; cursor: pointer; font-family: inherit; transition: background 130ms; }
+.ce-cancel-btn:hover { background: #1e1e1e; }
+.ce-submit-btn { padding: 11px 28px; border: none; border-radius: 10px; background: var(--gold); font-size: 14px; font-weight: 700; color: var(--gold-contrast); cursor: pointer; font-family: inherit; transition: opacity 140ms; display: flex; align-items: center; gap: 8px; min-width: 140px; justify-content: center; }
 .ce-submit-btn:hover:not(:disabled) { opacity: 0.88; }
 .ce-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.ce-spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #FFFFFF; border-radius: 50%; animation: spin 0.7s linear infinite; }
+.ce-spinner { width: 15px; height: 15px; border: 2px solid rgb(from currentColor r g b / 0.35); border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .ce-modal-backdrop { position: fixed; inset: 0; background: var(--overlay-bg); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
-.ce-modal { background: #111827; border: 1px solid #1e2d44; border-radius: 18px; width: 100%; max-width: 400px; max-height: 70vh; display: flex; flex-direction: column; box-shadow: 4px 8px 0 rgba(0,0,0,0.4); overflow: hidden; }
-.ce-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 0.8px solid #1e2d44; flex-shrink: 0; }
-.ce-modal-title { font-size: 15px; font-weight: 700; color: #e2e8f0; }
-.ce-modal-close { background: none; border: none; cursor: pointer; color: #8892a4; display: flex; align-items: center; padding: 4px; }
+.ce-modal { background: #141414; border: 1px solid #2a2a2a; border-radius: 18px; width: 100%; max-width: 400px; max-height: 70vh; display: flex; flex-direction: column; box-shadow: 4px 8px 0 rgba(0,0,0,0.4); overflow: hidden; }
+.ce-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 0.8px solid #2a2a2a; flex-shrink: 0; }
+.ce-modal-title { font-size: 15px; font-weight: 700; color: #f0f0ec; }
+.ce-modal-close { background: none; border: none; cursor: pointer; color: #888; display: flex; align-items: center; padding: 4px; }
 .ce-modal-list { overflow-y: auto; padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 2px; }
-.ce-modal-loading { padding: 20px; text-align: center; color: #8892a4; font-size: 13px; }
-.ce-modal-item { display: flex; align-items: center; padding: 11px 12px; border-radius: 10px; border: none; background: none; font-size: 14px; font-weight: 500; color: #e2e8f0; cursor: pointer; text-align: left; font-family: inherit; transition: background 120ms; }
-.ce-modal-item:hover { background: #1a2236; }
+.ce-modal-loading { padding: 20px; text-align: center; color: #888; font-size: 13px; }
+.ce-modal-item { display: flex; align-items: center; padding: 11px 12px; border-radius: 10px; border: none; background: none; font-size: 14px; font-weight: 500; color: #f0f0ec; cursor: pointer; text-align: left; font-family: inherit; transition: background 120ms; }
+.ce-modal-item:hover { background: #1e1e1e; }
 .ce-modal-item--active { background: rgb(from var(--gold) r g b / 0.08); color: var(--gold); font-weight: 600; }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 180ms; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
 @media (max-width: 600px) {
-  .ce-nav-inner { padding: 20px 16px; }
+  .ce-nav { top: 16px; margin-top: 16px; padding: 0 14px; }
+  .ce-nav-inner { padding: 14px 16px; }
   .ce-brand-name { font-size: 18px; }
   .ce-crumb--event { display: none; }
   .ce-body { padding: 20px 16px 60px; }

@@ -57,19 +57,6 @@
           <span class="el-event-title">{{ event?.title ?? '…' }}</span>
         </div>
         <div class="el-topbar-right">
-          <!-- Theme toggle -->
-          <button class="theme-toggle-btn el-theme-toggle" @click="toggleTheme" :title="isDark ? 'Switch to light' : 'Switch to dark'">
-            <svg v-if="isDark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="5"/>
-              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-            </svg>
-            <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-          </button>
           <div class="el-balance-wrap" ref="balanceWrapRef" v-if="orgBalance !== null">
             <button class="el-balance-pill" @click="showTopUp = !showTopUp">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -152,11 +139,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../../firebase'
 import { doc, getDoc } from 'firebase/firestore'
-import { useTheme } from '../../composables/useTheme.js'
 import { useOrg } from '../../composables/useOrg.js'
 import { useTopUp } from '../../composables/useTopUp.js'
 
-const { isDark, toggleTheme } = useTheme()
 const { brandName, brandLogoUrl } = useOrg()
 const {
   orgBalance, formatBalance, topUpAmount, topUpPhone, topUpStatus, topUpError,

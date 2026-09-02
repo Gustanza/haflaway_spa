@@ -1,16 +1,17 @@
 import { ref, watchEffect } from 'vue'
 
-const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('haflaway-theme') : null
-const isDark = ref(stored !== 'light')
+// Dark is the only theme for now — the toggle UI is hidden everywhere, so this
+// no longer reads/writes a stored preference. isDark stays exported (rather
+// than inlined at call sites) so re-enabling the toggle later is a one-line change.
+const isDark = ref(true)
 
 watchEffect(() => {
-  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
-  localStorage.setItem('haflaway-theme', isDark.value ? 'dark' : 'light')
+  document.documentElement.setAttribute('data-theme', 'dark')
 })
 
 export function useTheme() {
   return {
     isDark,
-    toggleTheme() { isDark.value = !isDark.value },
+    toggleTheme() {},
   }
 }

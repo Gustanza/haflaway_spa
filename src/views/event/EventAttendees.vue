@@ -226,6 +226,16 @@
               </div>
             </div>
 
+            <!-- From Contact List (Guest List view only) -->
+            <button v-if="!isContactsView" class="ea-import-btn" @click="openContactPicker">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <polyline points="17 11 19 13 23 9"/>
+              </svg>
+              <span class="ea-btn-label">From Contact List</span>
+            </button>
+
             <!-- Import -->
             <button class="ea-import-btn" @click="openImport">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -527,7 +537,7 @@
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                       <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
-                    From Contacts
+                    From Phone
                   </button>
                   <!-- Back button when reviewing picked contacts -->
                   <button v-if="phonePickerMode" type="button" class="ea-phonebook-back-btn" @click="exitPhonePickerMode">
@@ -797,6 +807,211 @@
     </Teleport>
 
     <!-- ══════════════════════════════════════════════════════════════
+         FROM CONTACT LIST — Phase 1: Select contacts
+         ══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="ea-fade">
+        <div v-if="contactPickerPhase === 1" class="ea-overlay ea-overlay--center" @click.self="closeContactPicker">
+          <Transition name="ea-scale">
+            <div class="ea-modal ea-imp-modal ea-imp-modal--tall" v-if="contactPickerPhase === 1">
+              <div class="ea-modal-header">
+                <div class="ea-modal-header-left">
+                  <h3 class="ea-modal-title">From Contact List</h3>
+                  <span class="ea-modal-sub">{{ contactPickerSelected.size }} selected</span>
+                </div>
+                <button class="ea-modal-close" @click="closeContactPicker">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+
+              <div class="ea-imp-body ea-imp-body--scroll">
+                <div class="ea-cp-toolbar">
+                  <input v-model="contactPickerSearch" class="ea-input ea-cp-search" placeholder="Search contacts by name or phone…" />
+
+                  <!-- Groups filter -->
+                  <div class="ea-label-select" ref="contactPickerLabelSelectRef" v-if="localLabels.length">
+                    <button class="ea-type-trigger" :class="{ 'ea-type-trigger--active': contactPickerFilterLabelId }" @click="contactPickerLabelDropOpen = !contactPickerLabelDropOpen">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                        <line x1="7" y1="7" x2="7.01" y2="7"/>
+                      </svg>
+                      <template v-if="contactPickerFilterLabelId">
+                        <span class="ea-label-trigger-dot" :style="{ background: labelFg(localLabels.find(l => l.id === contactPickerFilterLabelId)) }"/>
+                        {{ localLabels.find(l => l.id === contactPickerFilterLabelId)?.name ?? 'Groups' }}
+                      </template>
+                      <template v-else>
+                        Groups
+                        <span class="ea-type-trigger-cnt">{{ localLabels.length }}</span>
+                      </template>
+                      <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': contactPickerLabelDropOpen }"
+                        width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5" stroke-linecap="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    <div v-if="contactPickerLabelDropOpen" class="ea-type-drop">
+                      <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !contactPickerFilterLabelId }"
+                        @click="contactPickerFilterLabelId = null; contactPickerLabelDropOpen = false">
+                        All
+                        <span class="ea-type-drop-cnt">{{ availableContacts.length }}</span>
+                      </button>
+                      <div class="ea-label-drop-sep"/>
+                      <button v-for="lbl in localLabels" :key="lbl.id"
+                        class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': contactPickerFilterLabelId === lbl.id }"
+                        @click="contactPickerFilterLabelId = contactPickerFilterLabelId === lbl.id ? null : lbl.id; contactPickerLabelDropOpen = false">
+                        <span style="display:flex;align-items:center;gap:7px;">
+                          <span class="ea-lf-dot" :style="{ background: labelFg(lbl) }"/>
+                          {{ lbl.name }}
+                        </span>
+                      </button>
+                      <div class="ea-label-drop-sep"/>
+                      <button class="ea-type-drop-item ea-label-drop-manage" @click="showLabelManager = true; contactPickerLabelDropOpen = false">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        Manage Groups
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="!availableContacts.length" class="ea-imp-empty">
+                  No contacts yet. Add people to your <strong>Contact List</strong> first.
+                </div>
+                <div v-else-if="!contactPickerFiltered.length" class="ea-imp-empty">
+                  No contacts match {{ contactPickerFilterLabelId ? 'this group' : `"${contactPickerSearch}"` }}.
+                </div>
+
+                <template v-else>
+                  <label class="ea-list-select-all" style="margin: 4px 0 8px;">
+                    <input type="checkbox" class="ea-cb" :checked="isAllContactsSelected" @change="toggleContactPickerAll" />
+                    <span>Select all {{ contactPickerFiltered.length }}</span>
+                  </label>
+
+                  <div class="ea-pb-list">
+                    <div v-for="c in contactPickerFiltered" :key="c.id"
+                      class="ea-pb-row" :class="{ 'ea-pb-row--excluded': !contactPickerSelected.has(c.id) }"
+                      @click="toggleContactPickerSelect(c.id)">
+                      <div class="ea-pb-avatar" :style="{ background: avatarBg(c.fullName), color: avatarColor(c.fullName) }">{{ initials(c.fullName) }}</div>
+                      <div class="ea-pb-info">
+                        <span class="ea-pb-name">{{ c.fullName }}</span>
+                        <span class="ea-pb-phone">{{ c.phone || 'No phone' }}</span>
+                      </div>
+                      <div class="ea-card-badges" v-if="attLabels(c).length" style="flex: 0 0 auto;">
+                        <span v-for="lbl in attLabels(c)" :key="lbl.id" class="ea-label-chip"
+                          :style="{ background: labelBg(lbl), color: labelFg(lbl) }">
+                          {{ lbl.name }}
+                        </span>
+                      </div>
+                      <button type="button" class="ea-pb-toggle"
+                        :class="{ 'ea-pb-toggle--off': !contactPickerSelected.has(c.id) }"
+                        @click.stop="toggleContactPickerSelect(c.id)">
+                        <svg v-if="contactPickerSelected.has(c.id)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <div class="ea-cp-footer">
+                <button type="button" class="ea-btn ea-btn--ghost" @click="closeContactPicker">Cancel</button>
+                <button type="button" class="ea-btn ea-btn--primary" :disabled="!contactPickerSelected.size" @click="contactPickerNext">
+                  Next — {{ contactPickerSelected.size }} selected
+                </button>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         FROM CONTACT LIST — Phase 2: Card + Groups, then convert
+         ══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="ea-fade">
+        <div v-if="contactPickerPhase === 2" class="ea-overlay ea-overlay--center" @click.self="closeContactPicker">
+          <Transition name="ea-sheet">
+            <div class="ea-modal" v-if="contactPickerPhase === 2">
+              <div class="ea-modal-header">
+                <div class="ea-modal-header-left">
+                  <h3 class="ea-modal-title">From Contact List</h3>
+                  <span class="ea-modal-sub">
+                    {{ contactPickerSelected.size }} contact{{ contactPickerSelected.size !== 1 ? 's' : '' }} selected
+                  </span>
+                </div>
+                <div class="ea-modal-header-right">
+                  <button type="button" class="ea-phonebook-back-btn" :disabled="contactPickerSubmitting" @click="contactPickerBack">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    Back
+                  </button>
+                  <button class="ea-modal-close" @click="closeContactPicker">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <form @submit.prevent="submitContactPicker" class="ea-form">
+                <div class="ea-field">
+                  <label class="ea-label">Card Template <span class="ea-required">*</span></label>
+                  <div v-if="fetchingTemplates" class="ea-tpl-state">
+                    <svg class="ea-tpl-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2.5" stroke-linecap="round">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                    Loading templates…
+                  </div>
+                  <div v-else-if="!cardTemplates.length" class="ea-tpl-empty">
+                    No invitation templates yet. Create one in <strong>Cards</strong> first.
+                  </div>
+                  <div v-else class="ea-tpl-grid">
+                    <button v-for="tpl in cardTemplates" :key="tpl.id" type="button"
+                      class="ea-tpl-opt" :class="{ 'ea-tpl-opt--active': contactPickerForm.templateCardId === tpl.id }"
+                      @click="contactPickerForm.templateCardId = tpl.id">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/>
+                      </svg>
+                      <span>{{ tpl.name }}</span>
+                      <svg v-if="contactPickerForm.templateCardId === tpl.id" class="ea-tpl-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <span v-if="contactPickerErr" class="ea-field-error">{{ contactPickerErr }}</span>
+                </div>
+
+                <div class="ea-field" v-if="eventLabels.length">
+                  <label class="ea-label">Groups</label>
+                  <div class="ea-label-row">
+                    <button v-for="lbl in eventLabels" :key="lbl.id" type="button"
+                      class="ea-label-toggle"
+                      :style="{
+                        borderColor: labelFg(lbl),
+                        color: contactPickerForm.labelIds.includes(lbl.id) ? labelFg(lbl) : '#888',
+                        background: contactPickerForm.labelIds.includes(lbl.id) ? labelBg(lbl) : 'transparent'
+                      }"
+                      @click="toggleContactPickerLabel(lbl.id)">
+                      {{ lbl.name }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="ea-form-actions">
+                  <button type="button" class="ea-btn ea-btn--ghost" @click="closeContactPicker">Cancel</button>
+                  <button type="submit" class="ea-btn ea-btn--primary" :disabled="contactPickerSubmitting">
+                    {{ contactPickerSubmitting ? 'Adding…' : `Add ${contactPickerSelected.size} Guest${contactPickerSelected.size !== 1 ? 's' : ''}` }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════
          IMPORT — Phase 1: Type + File pick
          ══════════════════════════════════════════════════════════════ -->
     <Teleport to="body">
@@ -930,7 +1145,7 @@
                 </div>
 
                 <!-- ── Step 2: Map columns ── -->
-                <div class="ea-imp-section">
+                <div class="ea-imp-section" ref="mapColumnsRef">
                   <p class="ea-imp-section-label">{{ eventLabels.length ? 'Step 2' : 'Step 1' }} — Map Excel Columns</p>
 
                   <!-- Name -->
@@ -939,11 +1154,14 @@
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     </div>
                     <span class="ea-map-label">Name <span class="ea-required">*</span></span>
-                    <div class="ea-map-select-wrap">
-                      <select class="ea-map-select" v-model="importMapping.name">
-                        <option :value="null" disabled>Select column…</option>
-                        <option v-for="h in importHeaders" :key="h.idx" :value="h.idx">{{ h.label }}</option>
-                      </select>
+                    <div class="ea-map-select-wrap ea-map-drop-wrap">
+                      <button type="button" class="ea-map-drop-trigger" @click="mapDropOpen = mapDropOpen === 'name' ? null : 'name'">
+                        <span :class="{ 'ea-map-drop-placeholder': importMapping.name === null }">{{ importMapping.name !== null ? headerLabel(importMapping.name) : 'Select column…' }}</span>
+                        <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': mapDropOpen === 'name' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                      <div v-if="mapDropOpen === 'name'" class="ea-type-drop ea-map-drop">
+                        <button v-for="h in importHeaders" :key="h.idx" type="button" class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': importMapping.name === h.idx }" @click="importMapping.name = h.idx; mapDropOpen = null">{{ h.label }}</button>
+                      </div>
                     </div>
                   </div>
 
@@ -953,11 +1171,14 @@
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.02z"/></svg>
                     </div>
                     <span class="ea-map-label">Phone <span class="ea-required">*</span></span>
-                    <div class="ea-map-select-wrap">
-                      <select class="ea-map-select" v-model="importMapping.phone">
-                        <option :value="null" disabled>Select column…</option>
-                        <option v-for="h in importHeaders" :key="h.idx" :value="h.idx">{{ h.label }}</option>
-                      </select>
+                    <div class="ea-map-select-wrap ea-map-drop-wrap">
+                      <button type="button" class="ea-map-drop-trigger" @click="mapDropOpen = mapDropOpen === 'phone' ? null : 'phone'">
+                        <span :class="{ 'ea-map-drop-placeholder': importMapping.phone === null }">{{ importMapping.phone !== null ? headerLabel(importMapping.phone) : 'Select column…' }}</span>
+                        <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': mapDropOpen === 'phone' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                      <div v-if="mapDropOpen === 'phone'" class="ea-type-drop ea-map-drop">
+                        <button v-for="h in importHeaders" :key="h.idx" type="button" class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': importMapping.phone === h.idx }" @click="importMapping.phone = h.idx; mapDropOpen = null">{{ h.label }}</button>
+                      </div>
                     </div>
                   </div>
 
@@ -972,11 +1193,14 @@
                         <input type="checkbox" v-model="importMapAhadi" />
                         <span class="ea-toggle-track"><span class="ea-toggle-thumb"/></span>
                       </label>
-                      <div class="ea-map-select-wrap" v-if="importMapAhadi">
-                        <select class="ea-map-select" v-model="importMapping.ahadi">
-                          <option :value="null" disabled>Select column…</option>
-                          <option v-for="h in importHeaders" :key="h.idx" :value="h.idx">{{ h.label }}</option>
-                        </select>
+                      <div class="ea-map-select-wrap ea-map-drop-wrap" v-if="importMapAhadi">
+                        <button type="button" class="ea-map-drop-trigger" @click="mapDropOpen = mapDropOpen === 'ahadi' ? null : 'ahadi'">
+                          <span :class="{ 'ea-map-drop-placeholder': importMapping.ahadi === null }">{{ importMapping.ahadi !== null ? headerLabel(importMapping.ahadi) : 'Select column…' }}</span>
+                          <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': mapDropOpen === 'ahadi' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div v-if="mapDropOpen === 'ahadi'" class="ea-type-drop ea-map-drop">
+                          <button v-for="h in importHeaders" :key="h.idx" type="button" class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': importMapping.ahadi === h.idx }" @click="importMapping.ahadi = h.idx; mapDropOpen = null">{{ h.label }}</button>
+                        </div>
                       </div>
                       <span v-else class="ea-map-skip">Skipped</span>
                     </div>
@@ -993,11 +1217,14 @@
                         <input type="checkbox" v-model="importMapMchango" />
                         <span class="ea-toggle-track"><span class="ea-toggle-thumb"/></span>
                       </label>
-                      <div class="ea-map-select-wrap" v-if="importMapMchango">
-                        <select class="ea-map-select" v-model="importMapping.mchango">
-                          <option :value="null" disabled>Select column…</option>
-                          <option v-for="h in importHeaders" :key="h.idx" :value="h.idx">{{ h.label }}</option>
-                        </select>
+                      <div class="ea-map-select-wrap ea-map-drop-wrap" v-if="importMapMchango">
+                        <button type="button" class="ea-map-drop-trigger" @click="mapDropOpen = mapDropOpen === 'mchango' ? null : 'mchango'">
+                          <span :class="{ 'ea-map-drop-placeholder': importMapping.mchango === null }">{{ importMapping.mchango !== null ? headerLabel(importMapping.mchango) : 'Select column…' }}</span>
+                          <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': mapDropOpen === 'mchango' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div v-if="mapDropOpen === 'mchango'" class="ea-type-drop ea-map-drop">
+                          <button v-for="h in importHeaders" :key="h.idx" type="button" class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': importMapping.mchango === h.idx }" @click="importMapping.mchango = h.idx; mapDropOpen = null">{{ h.label }}</button>
+                        </div>
                       </div>
                       <span v-else class="ea-map-skip">Skipped</span>
                     </div>
@@ -1009,7 +1236,7 @@
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                     </div>
                     <span class="ea-map-label">Card Template <span class="ea-required">*</span></span>
-                    <div class="ea-map-select-wrap">
+                    <div class="ea-map-select-wrap ea-map-drop-wrap">
                       <div v-if="fetchingTemplates" class="ea-map-loading">
                         <svg class="ea-tpl-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                         Loading…
@@ -1017,10 +1244,15 @@
                       <div v-else-if="!cardTemplates.length" class="ea-map-empty">
                         No {{ importKardType }} templates yet — create one in Cards first.
                       </div>
-                      <select v-else class="ea-map-select" v-model="importMapping.card">
-                        <option :value="null" disabled>Select template…</option>
-                        <option v-for="tpl in cardTemplates" :key="tpl.id" :value="tpl.id">{{ tpl.name }}</option>
-                      </select>
+                      <template v-else>
+                        <button type="button" class="ea-map-drop-trigger" @click="mapDropOpen = mapDropOpen === 'card' ? null : 'card'">
+                          <span :class="{ 'ea-map-drop-placeholder': importMapping.card === null }">{{ importMapping.card !== null ? cardTplLabel(importMapping.card) : 'Select template…' }}</span>
+                          <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': mapDropOpen === 'card' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div v-if="mapDropOpen === 'card'" class="ea-type-drop ea-map-drop">
+                          <button v-for="tpl in cardTemplates" :key="tpl.id" type="button" class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': importMapping.card === tpl.id }" @click="importMapping.card = tpl.id; mapDropOpen = null">{{ tpl.name }}</button>
+                        </div>
+                      </template>
                     </div>
                   </div>
                 </div>
@@ -1740,6 +1972,12 @@ const labelSelectRef = ref(null)
 const cardDropOpen   = ref(false)
 const cardDropRef    = ref(null)
 
+// ── Map Columns dropdowns (import) ──────────────────────────────────────────
+const mapDropOpen  = ref(null) // 'name' | 'phone' | 'ahadi' | 'mchango' | 'card' | null
+const mapColumnsRef = ref(null)
+function headerLabel(idx) { return importHeaders.value.find(h => h.idx === idx)?.label ?? 'Select column…' }
+function cardTplLabel(id) { return cardTemplates.value.find(t => t.id === id)?.name ?? 'Select template…' }
+
 const cardDropTemplates = computed(() => {
   if (activeType.value === 'contact') return []
   if (activeType.value === 'all') return allTemplatesList.value
@@ -1762,6 +2000,8 @@ watch(activeType, () => { filterCardId.value = null })
 function onClickOutsideDropdowns(e) {
   if (labelSelectRef.value && !labelSelectRef.value.contains(e.target)) labelDropOpen.value = false
   if (cardDropRef.value && !cardDropRef.value.contains(e.target)) cardDropOpen.value = false
+  if (mapColumnsRef.value && !mapColumnsRef.value.contains(e.target)) mapDropOpen.value = null
+  if (contactPickerLabelSelectRef.value && !contactPickerLabelSelectRef.value.contains(e.target)) contactPickerLabelDropOpen.value = false
 }
 onMounted(() => document.addEventListener('click', onClickOutsideDropdowns, true))
 onUnmounted(() => document.removeEventListener('click', onClickOutsideDropdowns, true))
@@ -2187,7 +2427,7 @@ async function submitPhonePicker() {
       checkinStatus:    [],
       createdAt:        new Date().toISOString(),
       email:            '',
-      fullName:         c.name.toUpperCase(),
+      fullName:         c.name,
       fullNameLower:    c.name.toLowerCase(),
       attendanceStatus: 'Not Confirmed',
       phone:            c.phone.replace(/^\+/, ''),
@@ -2310,7 +2550,7 @@ async function submitForm() {
       checkinStatus:    existingAtt?.checkinStatus ?? [],
       createdAt:        existingAtt?.createdAt ?? new Date().toISOString(),
       email:            existingAtt?.email ?? '',
-      fullName:         name.toUpperCase(),
+      fullName:         name,
       fullNameLower:    name.toLowerCase(),
       attendanceStatus: existingAtt?.attendanceStatus ?? 'Not Confirmed',
       phone,
@@ -2540,6 +2780,163 @@ function openImport() {
 
 function closeImport() { importPhase.value = 0 }
 
+// ── From Contact List picker (convert existing contacts into guests) ────────────
+// Reuses each contact's existing attendeeId — this is a conversion, not a copy,
+// so the same person never ends up with two records.
+const contactPickerPhase     = ref(0) // 0=closed 1=select 2=apply
+const contactPickerSearch    = ref('')
+const contactPickerSelected  = reactive(new Set())
+const contactPickerForm      = ref({ templateCardId: '', labelIds: [] })
+const contactPickerErr       = ref('')
+const contactPickerSubmitting = ref(false)
+const contactPickerFilterLabelId  = ref(null)
+const contactPickerLabelDropOpen  = ref(false)
+const contactPickerLabelSelectRef = ref(null)
+
+const availableContacts = computed(() => attendees.value.filter(a => getKardType(a) === 'contact'))
+const contactPickerFiltered = computed(() => {
+  let list = availableContacts.value
+  if (contactPickerFilterLabelId.value) {
+    list = list.filter(a => (a.labelIds ?? []).includes(contactPickerFilterLabelId.value))
+  }
+  const q = contactPickerSearch.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter(a =>
+      (a.fullNameLower ?? a.fullName?.toLowerCase() ?? '').includes(q) ||
+      (a.phone ?? '').includes(q))
+  }
+  return list
+})
+const isAllContactsSelected = computed(() =>
+  contactPickerFiltered.value.length > 0 &&
+  contactPickerFiltered.value.every(a => contactPickerSelected.has(a.id))
+)
+function toggleContactPickerAll() {
+  if (isAllContactsSelected.value) contactPickerFiltered.value.forEach(a => contactPickerSelected.delete(a.id))
+  else contactPickerFiltered.value.forEach(a => contactPickerSelected.add(a.id))
+}
+function toggleContactPickerSelect(id) {
+  if (contactPickerSelected.has(id)) contactPickerSelected.delete(id)
+  else contactPickerSelected.add(id)
+}
+function toggleContactPickerLabel(id) {
+  const idx = contactPickerForm.value.labelIds.indexOf(id)
+  if (idx === -1) contactPickerForm.value.labelIds.push(id)
+  else contactPickerForm.value.labelIds.splice(idx, 1)
+}
+
+function openContactPicker() {
+  contactPickerPhase.value = 1
+  contactPickerSearch.value = ''
+  contactPickerSelected.clear()
+  contactPickerForm.value = { templateCardId: '', labelIds: [] }
+  contactPickerErr.value = ''
+  contactPickerFilterLabelId.value = null
+  contactPickerLabelDropOpen.value = false
+}
+function closeContactPicker() {
+  // Guard against closing (via X, Cancel, or overlay click) while a submit is still
+  // in flight — the request keeps running either way, so hiding the modal would just
+  // make the in-progress conversion invisible instead of actually stopping it.
+  if (contactPickerSubmitting.value) return
+  contactPickerPhase.value = 0
+}
+function contactPickerNext() {
+  if (!contactPickerSelected.size) return
+  contactPickerPhase.value = 2
+  fetchTemplates('invitation')
+}
+function contactPickerBack() { contactPickerPhase.value = 1 }
+
+async function submitContactPicker() {
+  if (!contactPickerForm.value.templateCardId) {
+    contactPickerErr.value = 'Select a card template'
+    return
+  }
+  contactPickerErr.value = ''
+  const chosen = attendees.value.filter(a => contactPickerSelected.has(a.id))
+  if (!chosen.length) return
+  contactPickerSubmitting.value = true
+  const succeeded = []
+  const failed = []   // [{ name, reason }]
+  try {
+    const uid = auth.currentUser.uid
+    for (let i = 0; i < chosen.length; i += 2) {
+      const batch = chosen.slice(i, i + 2)
+      const payload = batch.map(c => ({
+        id:               c.id,
+        cards:            {},
+        checkinStatus:    c.checkinStatus ?? [],
+        createdAt:        c.createdAt ?? new Date().toISOString(),
+        email:            c.email ?? '',
+        fullName:         c.fullName,
+        fullNameLower:    c.fullNameLower ?? c.fullName?.toLowerCase() ?? '',
+        attendanceStatus: c.attendanceStatus ?? 'Not Confirmed',
+        phone:            c.phone,
+        messages:         c.messages ?? {},
+        messageIndexes:   c.messageIndexes ?? [],
+        labelIds:         contactPickerForm.value.labelIds,
+        idComment:        c.idComment ?? 'No Comment',
+      }))
+
+      // A whole-batch failure (network drop, 500, etc.) is recorded against just this
+      // batch's contacts — it must not stop the remaining batches in the queue.
+      try {
+        const res = await fetch(CREATE_ATTENDEES_URL, {
+          method:  'POST',
+          headers: { 'Authorization': `Bearer ${uid}` },
+          body:    JSON.stringify({
+            eventId:        eventId.value,
+            attendees:      payload,
+            templateCardId: contactPickerForm.value.templateCardId,
+            usepng:         props.event?.usepng ?? true,
+            kardType:       'invitation',
+          }),
+        })
+        if (!res.ok) throw new Error(`Server error (${res.status})`)
+        const json = await res.json()
+        if (!json.status) throw new Error(json.message ?? 'Server error')
+
+        // The function now reports one result per attendee (e.g. a single person hitting
+        // the max-edits limit no longer aborts the whole batch) — split them out here.
+        const okIds = []
+        for (const c of batch) {
+          const result = (json.data ?? []).find(r => r.attendeeId === c.id)
+          if (result?.status) { succeeded.push(c); okIds.push(c.id) }
+          else failed.push({ name: c.fullName, reason: result?.message ?? 'Unknown error' })
+        }
+
+        // Firestore merge keeps the old 'contact' key alongside the new 'invitation' one —
+        // delete it explicitly so the converted doc only carries one card type, same as
+        // the single-attendee type-switch path in submitForm(). Only for attendees that
+        // actually converted; a cleanup failure here is cosmetic, not a real failure.
+        try {
+          await Promise.all(okIds.map(id =>
+            updateDoc(doc(db, 'events', eventId.value, 'attendees', id), { 'cards.contact': deleteField() })
+          ))
+        } catch (cleanupErr) {
+          console.error('Failed to clear stale contact card key', cleanupErr)
+        }
+      } catch (batchErr) {
+        batch.forEach(c => failed.push({ name: c.fullName, reason: batchErr.message }))
+      }
+    }
+
+    await loadInitial()
+    closeContactPicker()
+
+    if (failed.length) {
+      alert(
+        `Added ${succeeded.length} guest${succeeded.length !== 1 ? 's' : ''}.\n` +
+        `${failed.length} failed:\n` +
+        failed.map(f => `• ${f.name} — ${f.reason}`).join('\n')
+      )
+    }
+  } finally {
+    contactPickerSubmitting.value = false
+  }
+}
+
 function clearImportFile() {
   importFileName.value = ''
   importHeaders.value = []
@@ -2714,7 +3111,7 @@ function buildPreviewList() {
 
       return {
         _id:           genAttendeeId(),
-        fullName:      rawName.toUpperCase(),
+        fullName:      rawName,
         fullNameLower: rawName.toLowerCase(),
         phone,
         pledgedAmount,
@@ -4391,6 +4788,14 @@ function setImportPayment(attendeeId, amount) {
   padding-bottom: 8px;
 }
 
+/* ── From Contact List toolbar (search + Groups filter) ── */
+.ea-cp-toolbar { display: flex; gap: 8px; align-items: center; }
+.ea-cp-search { flex: 1; min-width: 0; }
+.ea-cp-footer {
+  display: flex; gap: 8px; justify-content: flex-end;
+  padding: 14px 22px; border-top: 1px solid var(--c-border); flex-shrink: 0;
+}
+
 /* ── Type hint ── */
 .ea-imp-type-hint {
   font-size: 11px;
@@ -4603,8 +5008,13 @@ function setImportPayment(attendeeId, amount) {
   flex-shrink: 0;
 }
 .ea-map-select-wrap { flex: 1; }
-.ea-map-select {
+.ea-map-drop-wrap { position: relative; }
+.ea-map-drop-trigger {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 7px 10px;
   border: 1px solid #242424;
   border-radius: 8px;
@@ -4614,14 +5024,13 @@ function setImportPayment(attendeeId, amount) {
   outline: none;
   cursor: pointer;
   font-family: inherit;
+  text-align: left;
   transition: border-color 140ms;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23B5B0A8' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 9px center;
-  padding-right: 28px;
 }
-.ea-map-select:focus { border-color: var(--gold); }
+.ea-map-drop-trigger:hover,
+.ea-map-drop-trigger:focus { border-color: var(--gold); }
+.ea-map-drop-placeholder { color: var(--c-txt-3); }
+.ea-map-drop { left: 0; right: 0; min-width: auto; max-height: 220px; overflow-y: auto; }
 .ea-map-toggle-group {
   flex: 1;
   display: flex;
@@ -4652,20 +5061,20 @@ function setImportPayment(attendeeId, amount) {
 .ea-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
 .ea-toggle-track {
   width: 34px; height: 19px;
-  background: #D8D6D0;
+  background: var(--c-track, #2a2a2a);
   border-radius: 10px;
   position: relative;
   transition: background 200ms;
 }
-.ea-toggle input:checked + .ea-toggle-track { background: linear-gradient(180deg, #2A2A2D 0%, #0A0A0B 100%); }
+.ea-toggle input:checked + .ea-toggle-track { background: var(--gold); }
 .ea-toggle-thumb {
   position: absolute;
   top: 2px; left: 2px;
   width: 15px; height: 15px;
-  background: #161616;
+  background: #fff;
   border-radius: 50%;
   transition: transform 200ms;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 .ea-toggle input:checked + .ea-toggle-track .ea-toggle-thumb {
   transform: translateX(15px);

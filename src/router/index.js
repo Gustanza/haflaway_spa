@@ -1,36 +1,40 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { auth } from '../firebase'
-import Ahadi_Mchango from '../views/Ahadi_Mchango.vue'
-import Landing_Page from '../views/Landing_Page.vue'
-import Event_Landing from '../views/Event_Landing.vue'
-// import DashboardLayout from '../views/dashboard/DashboardLayout.vue'
-// import ManageEvents from '../views/dashboard/ManageEvents.vue'
-// import ManageUsers from '../views/dashboard/ManageUsers.vue'
-// import ManageCardTemplates from '../views/dashboard/ManageCardTemplates.vue'
-// import DashSettings from '../views/dashboard/DashSettings.vue'
-import CardTemplateGallery from '../views/CardTemplateGallery.vue'
-import Pricing from '../views/Pricing.vue'
-import Login from '../views/Login.vue'
-import Register from '../views/Register.vue'
-import SelectOrganization from '../views/SelectOrganization.vue'
-import OrganizationSettings from '../views/OrganizationSettings.vue'
-import CreateEvent from '../views/CreateEvent.vue'
-import MyEvents from '../views/MyEvents.vue'
-import EventLayout from '../views/event/EventLayout.vue'
-import EventOverview from '../views/event/EventOverview.vue'
-import EventAttendees from '../views/event/EventAttendees.vue'
-import EventMessages from '../views/event/EventMessages.vue'
-import EventTemplates from '../views/event/EventTemplates.vue'
-import EventCampaigns from '../views/event/EventCampaigns.vue'
-import EventCheckins from '../views/event/EventCheckins.vue'
-import EventCards from '../views/event/EventCards.vue'
-import EventGallery from '../views/event/EventGallery.vue'
-import EventZawadi from '../views/event/EventZawadi.vue'
-import EventSettings from '../views/event/EventSettings.vue'
-import EventTeam from '../views/event/EventTeam.vue'
-import EventPayments from '../views/event/EventPayments.vue'
-import EventBudget from '../views/event/EventBudget.vue'
-import EditEvent from '../views/EditEvent.vue'
+
+// Every route below is lazy-loaded (dynamic import) so Vite code-splits each
+// one into its own chunk. Public, guest-facing routes (Event_Landing chief
+// among them) used to be bundled statically alongside the entire admin app —
+// including heavy admin-only deps like exceljs pulled in by EventMessages —
+// forcing guests to download and parse the whole thing before the page could
+// even mount. Lazy routes mean a guest opening an invite link only fetches
+// the Event_Landing chunk.
+const Ahadi_Mchango = () => import('../views/Ahadi_Mchango.vue')
+const Landing_Page = () => import('../views/Landing_Page.vue')
+const Event_Landing = () => import('../views/Event_Landing.vue')
+const InvitationsReport = () => import('../views/InvitationsReport.vue')
+const CardTemplateGallery = () => import('../views/CardTemplateGallery.vue')
+const Pricing = () => import('../views/Pricing.vue')
+const Login = () => import('../views/Login.vue')
+const Register = () => import('../views/Register.vue')
+const SelectOrganization = () => import('../views/SelectOrganization.vue')
+const OrganizationSettings = () => import('../views/OrganizationSettings.vue')
+const CreateEvent = () => import('../views/CreateEvent.vue')
+const MyEvents = () => import('../views/MyEvents.vue')
+const EventLayout = () => import('../views/event/EventLayout.vue')
+const EventOverview = () => import('../views/event/EventOverview.vue')
+const EventAttendees = () => import('../views/event/EventAttendees.vue')
+const EventMessages = () => import('../views/event/EventMessages.vue')
+const EventTemplates = () => import('../views/event/EventTemplates.vue')
+const EventCampaigns = () => import('../views/event/EventCampaigns.vue')
+const EventCheckins = () => import('../views/event/EventCheckins.vue')
+const EventCards = () => import('../views/event/EventCards.vue')
+const EventGallery = () => import('../views/event/EventGallery.vue')
+const EventZawadi = () => import('../views/event/EventZawadi.vue')
+const EventSettings = () => import('../views/event/EventSettings.vue')
+const EventTeam = () => import('../views/event/EventTeam.vue')
+const EventPayments = () => import('../views/event/EventPayments.vue')
+const EventBudget = () => import('../views/event/EventBudget.vue')
+const EditEvent = () => import('../views/EditEvent.vue')
 
 // Resolves once Firebase has restored the persisted session (or confirmed no user)
 let authResolved = false
@@ -79,6 +83,11 @@ const routes = [
         path: '/events/:eventId/:userId',
         name: 'EventLanding',
         component: Event_Landing,
+    },
+    {
+        path: '/invitations-report/:eventId/:token',
+        name: 'InvitationsReport',
+        component: InvitationsReport,
     },
     {
         path: '/',
@@ -142,17 +151,13 @@ const routes = [
         ],
     },
     {
-        path: '/invitation-card-templates',
-        name: 'InvitationTemplates',
+        path: '/card-templates',
+        name: 'CardTemplates',
         component: CardTemplateGallery,
-        props: { type: 'invitation' },
     },
-    {
-        path: '/contribution-card-templates',
-        name: 'ContributionTemplates',
-        component: CardTemplateGallery,
-        props: { type: 'contribution' },
-    },
+    // Old split URLs now resolve into the merged gallery, preserving type via query.
+    { path: '/invitation-card-templates', redirect: () => ({ path: '/card-templates', query: { type: 'invitation' } }) },
+    { path: '/contribution-card-templates', redirect: () => ({ path: '/card-templates', query: { type: 'contribution' } }) },
 ]
 
 const router = createRouter({
@@ -161,11 +166,16 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-    // Wait for Firebase to restore the session on first navigation
-    const user = authResolved ? auth.currentUser : await waitForAuth
-
     const needsAuth = PROTECTED.some(prefix => to.path.startsWith(prefix)) || PROTECTED_EXACT.includes(to.path)
     const isGuestOnly = to.meta.guestOnly
+
+    // Fully public routes (e.g. the guest event page) don't consult `user` at
+    // all — skip waiting on Firebase Auth's session restore so they aren't
+    // blocked behind it on first load.
+    if (!needsAuth && !isGuestOnly) return
+
+    // Wait for Firebase to restore the session on first navigation
+    const user = authResolved ? auth.currentUser : await waitForAuth
 
     if (needsAuth && !user) {
         return { name: 'Login', query: { redirect: to.fullPath } }
