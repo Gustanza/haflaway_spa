@@ -190,6 +190,9 @@ watch(eventData, async (val) => {
         // long the video takes to actually buffer, so this doesn't false-flag
         // on a slow network the way a fixed timeout + `.paused` check would.
         v?.play().catch(() => { videoIntroTapHint.value = true; });
+    } else {
+        await nextTick();
+        startHeroMusic();
     }
     await nextTick();
     initRevealObserver();
@@ -338,7 +341,7 @@ const i18n = {
         dressCodeEyebrow: 'Mwongozo',
         dressCodeTitle: 'Mavazi',
         mcEyebrow: 'Leo Nasi',
-        mcSectionTitle: 'Mtangazaji',
+        mcSectionTitle: 'Mtangazaji (MC)',
         contactsEyebrow: 'Unahitaji Usaidizi?',
         contactsTitle: 'Mawasiliano',
         gallery: 'Picha',
@@ -890,6 +893,7 @@ const submitRsvp = async (status) => {
 const comments = ref([]);
 const commentText = ref('');
 const commentPosting = ref(false);
+const showCommentsSheet = ref(false);
 const replyingTo = ref(null);
 const replyTexts = ref({});
 const replyPosting = ref({});
@@ -1136,6 +1140,13 @@ const toggleLike = async (item) => {
             <!-- Back to top -->
             <button :class="['el-back-top', backToTopVisible ? 'el-back-top-visible' : '']" @click="scrollToTop" aria-label="Back to top">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
+
+            <!-- Comments FAB — always visible, bottom-right -->
+            <button class="el-comment-fab" @click="showCommentsSheet = true" :aria-label="t('comments')">
+                <span class="el-comment-fab-ring"></span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <span v-if="comments.length" class="el-comment-badge">{{ comments.length }}</span>
             </button>
 
             <!-- Background music -->
@@ -1876,6 +1887,56 @@ const toggleLike = async (item) => {
                     </div>
                 </Transition>
             </Teleport>
+
+            <!-- ── Comments bottom-sheet (quick access from hero) ── -->
+            <Teleport to="body">
+                <Transition name="gift-overlay">
+                    <div v-if="showCommentsSheet" class="gift-overlay" @click.self="showCommentsSheet = false">
+                        <Transition name="gift-sheet">
+                            <div v-if="showCommentsSheet" class="cs-sheet" @click.stop>
+                                <div class="cs-handle"></div>
+                                <div class="cs-hdr-row">
+                                    <p class="cs-title">{{ t('comments') }}<span v-if="comments.length" class="cmnt-count"> ({{ comments.length }})</span></p>
+                                    <button class="cs-close" @click="showCommentsSheet = false">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="cs-list">
+                                    <div v-for="c in comments" :key="c.id" class="cmnt-item">
+                                        <div class="cmnt-avatar cmnt-avatar-sm"
+                                            :style="{ background: c.userColor?.bg, color: c.userColor?.fg }">{{
+                                            c.userInitial }}
+                                        </div>
+                                        <div class="cmnt-body">
+                                            <div class="cmnt-meta">
+                                                <span class="cmnt-name">{{ c.userName }}</span>
+                                                <span class="cmnt-time">{{ fmtCommentTime(c.createdAt) }}</span>
+                                            </div>
+                                            <p class="cmnt-text">{{ c.text }}</p>
+                                        </div>
+                                    </div>
+                                    <p v-if="!comments.length" class="cmnt-empty">{{ t('noComments') }}</p>
+                                </div>
+                                <div class="cmnt-compose">
+                                    <div class="cmnt-avatar cmnt-avatar-sm" :style="{ background: ac?.bg, color: ac?.fg }">{{
+                                        attendeeInitial }}</div>
+                                    <input v-model="commentText" class="cmnt-input" :placeholder="t('commentPlaceholder')"
+                                        @keydown.enter.prevent="postComment" />
+                                    <button class="cmnt-send" :disabled="!commentText.trim() || commentPosting"
+                                        @click="postComment">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="22" y1="2" x2="11" y2="13" />
+                                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </Transition>
+                    </div>
+                </Transition>
+            </Teleport>
         </template>
     </div>
 </template>
@@ -1999,6 +2060,68 @@ const toggleLike = async (item) => {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
+}
+
+/* ── Comments FAB — always on, bottom-right, pulses to draw the eye since
+   the full comment thread lives far down the page ─────────────────────── */
+.el-comment-fab {
+    position: fixed;
+    bottom: 84px;
+    right: 22px;
+    z-index: 41;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    background: var(--el-gold-dark);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(36, 31, 24, .28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: el-comment-bounce 3.6s ease-in-out infinite;
+}
+.el-comment-fab svg { width: 21px; height: 21px; }
+.el-comment-fab-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    animation: el-comment-pulse 2.4s cubic-bezier(.4,0,.3,1) infinite;
+    pointer-events: none;
+}
+.el-comment-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: #fff;
+    color: var(--el-gold-dark);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+}
+@keyframes el-comment-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(201,150,60,.55); }
+    70% { box-shadow: 0 0 0 16px rgba(201,150,60,0); }
+    100% { box-shadow: 0 0 0 0 rgba(201,150,60,0); }
+}
+@keyframes el-comment-bounce {
+    0%, 75%, 100% { transform: translateY(0); }
+    82% { transform: translateY(-7px); }
+    89% { transform: translateY(0); }
+    93% { transform: translateY(-3px); }
+    97% { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .el-comment-fab, .el-comment-fab-ring { animation: none; }
 }
 
 /* ── Sound toggle (background music) — sits where the status pill used to,
@@ -2128,10 +2251,12 @@ const toggleLike = async (item) => {
 }
 
 .el-hero-title {
-    font-family: 'Great Vibes', cursive;
-    font-weight: 400;
-    font-size: clamp(3.2rem, 9vw, 6.5rem);
-    line-height: 1.05;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    line-height: 1.2;
+    letter-spacing: .3px;
     text-shadow: 0 2px 8px rgba(0,0,0,.45), 0 8px 28px rgba(0,0,0,.35);
 }
 
@@ -2220,6 +2345,9 @@ const toggleLike = async (item) => {
 
 .el-section-title {
     font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 600;
+    letter-spacing: .3px;
     font-size: clamp(1.8rem, 4vw, 2.6rem);
     text-align: center;
     margin-bottom: 40px;
@@ -2243,11 +2371,11 @@ const toggleLike = async (item) => {
 .el-invite-name {
     position: relative;
     display: inline-block;
-    font-family: 'Great Vibes', cursive;
-    font-weight: 400;
-    font-style: normal;
-    letter-spacing: .01em;
-    font-size: clamp(2.3rem, 6vw, 3.6rem);
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-style: italic;
+    letter-spacing: .3px;
+    font-size: clamp(1.8rem, 4.6vw, 2.8rem);
     line-height: 1.3;
     color: var(--el-text-main);
     padding-bottom: 18px;
@@ -2352,6 +2480,9 @@ const toggleLike = async (item) => {
 .el-details-single { text-align: center; max-width: 480px; margin: 0 auto; }
 .el-card-title {
     font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 600;
+    letter-spacing: .3px;
     font-size: 1.7rem;
     line-height: 1.3;
     /* Reserves 2 lines' worth of height so a short one-line address and a
@@ -2362,7 +2493,9 @@ const toggleLike = async (item) => {
     color: var(--el-text-main);
 }
 .el-card-body {
-    font-size: 13.5px;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: 15px;
     color: var(--el-text-light);
     line-height: 1.7;
 }
@@ -2586,6 +2719,7 @@ const toggleLike = async (item) => {
 }
 @media (max-width: 720px) {
     .el-mc-split { grid-template-columns: 1fr; }
+    .el-mc-photo-frame { width: 100%; max-height: none; }
 }
 .el-mc-photo-frame {
     aspect-ratio: 4 / 5;
@@ -2618,8 +2752,10 @@ const toggleLike = async (item) => {
 }
 .el-mc-name {
     font-family: 'Playfair Display', serif;
+    font-style: italic;
     font-size: clamp(2.2rem, 5vw, 3rem);
-    font-weight: 400;
+    font-weight: 600;
+    letter-spacing: .3px;
     color: var(--el-text-main);
     margin-bottom: 20px;
     line-height: 1.15;
@@ -2631,7 +2767,9 @@ const toggleLike = async (item) => {
     margin-bottom: 24px;
 }
 .el-mc-bio {
-    font-size: 14.5px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 16.5px;
     line-height: 1.8;
     color: var(--el-text-light);
     max-width: 46ch;
@@ -2802,7 +2940,9 @@ const toggleLike = async (item) => {
 .el-host-body {
     max-width: 480px;
     margin: 0 auto;
-    font-size: 14px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 16px;
     line-height: 1.8;
     color: var(--el-text-light);
 }
@@ -3146,9 +3286,11 @@ const toggleLike = async (item) => {
     z-index: 1;
 }
 .el-footer-title {
-    font-family: 'Great Vibes', cursive;
-    font-weight: 400;
-    font-size: 2.6rem;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 2rem;
+    letter-spacing: .3px;
     color: var(--el-text-main);
 }
 .el-footer-date {
@@ -3397,6 +3539,47 @@ const toggleLike = async (item) => {
     box-shadow: 0 -20px 60px rgba(0, 0, 0, .5);
 }
 .gift-sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .2); margin: 0 auto 18px; }
+.cs-sheet {
+    /* Teleported to <body>, so it sits outside .page's DOM subtree and can't
+       see the --el-* tokens defined there — redeclare them here so every
+       var(--el-*) used by the nested .cmnt-* elements resolves correctly
+       instead of falling through to the app's (dark) global theme. */
+    --el-ivory: #FAF6EF;
+    --el-gold: #C9A84C;
+    --el-gold-dark: #9C7F32;
+    --el-text-main: #241F18;
+    --el-text-light: #6b6255;
+    width: 100%;
+    max-width: 480px;
+    max-height: 74vh;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    background: var(--el-ivory);
+    border-radius: 26px 26px 0 0;
+    padding: 14px 22px 24px;
+    box-shadow: 0 -20px 60px rgba(36, 31, 24, .25);
+}
+.cs-handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(36, 31, 24, .15); margin: 0 auto 18px; }
+.cs-hdr-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.cs-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--el-gold-dark); flex: 1; min-width: 0; }
+.cs-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(201, 168, 76, .12);
+    color: var(--el-gold-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.cs-close svg { width: 16px; height: 16px; }
+.cs-close:hover { background: rgba(201, 168, 76, .22); }
+.cs-list { overflow-y: auto; flex: 1; margin-bottom: 12px; }
+.cs-list .cmnt-item { margin-bottom: 14px; }
 
 .gift-hdr-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 .gift-hdr-identity { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
