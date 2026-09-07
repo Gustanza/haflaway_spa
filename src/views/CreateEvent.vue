@@ -109,6 +109,75 @@
           <div class="ce-section-label">Additional Details</div>
           <div class="ce-fields">
 
+            <div class="ce-field">
+              <label class="ce-label">Place of Worship <span class="ce-optional">(optional)</span></label>
+              <div class="ce-search-wrap">
+                <svg class="ce-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  v-model="form.worshipLocation"
+                  type="text"
+                  class="ce-input ce-input--search"
+                  placeholder="e.g. church, mosque, or temple name"
+                  autocomplete="off"
+                  @input="form.worshipLocationLat = null; form.worshipLocationLng = null; form.worshipLocationAddress = ''; worshipPlace.search(form.worshipLocation)"
+                  @keydown.down.prevent="worshipPlace.cursor.value = Math.min(worshipPlace.cursor.value + 1, worshipPlace.suggestions.value.length - 1)"
+                  @keydown.up.prevent="worshipPlace.cursor.value = Math.max(worshipPlace.cursor.value - 1, 0)"
+                  @keydown.enter.prevent="worshipPlace.cursor.value >= 0 && pickWorship(worshipPlace.suggestions.value[worshipPlace.cursor.value])"
+                  @keydown.escape="worshipPlace.clear()"
+                />
+                <svg v-if="worshipPlace.loading.value" class="ce-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                <ul v-if="worshipPlace.suggestions.value.length" class="ce-suggestions">
+                  <li
+                    v-for="(s, i) in worshipPlace.suggestions.value"
+                    :key="s.place"
+                    class="ce-suggestion"
+                    :class="{ 'ce-suggestion--active': i === worshipPlace.cursor.value }"
+                    @mousedown.prevent="pickWorship(s)"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <div class="ce-suggestion-text">
+                      <span class="ce-suggestion-main">{{ s.structuredFormat?.mainText?.text }}</span>
+                      <span class="ce-suggestion-sub">{{ s.structuredFormat?.secondaryText?.text }}</span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <span v-if="form.worshipLocationLat" class="ce-map-hint">&#128205; Matched on map &middot; {{ Number(form.worshipLocationLat).toFixed(4) }}, {{ Number(form.worshipLocationLng).toFixed(4) }}</span>
+              <div class="ce-subrow">
+                <div class="ce-subfield">
+                  <label class="ce-sublabel">Start Time</label>
+                  <input v-model="form.worshipStartTime" type="time" class="ce-input" />
+                </div>
+                <div class="ce-subfield">
+                  <label class="ce-sublabel">End Time</label>
+                  <input v-model="form.worshipEndTime" type="time" class="ce-input" />
+                </div>
+              </div>
+              <button type="button" class="ce-manual-toggle" @click="worshipPlace.toggleManual()">Can't find it on the map?</button>
+              <div v-if="worshipPlace.showManual.value" class="ce-manual-box">
+                <button type="button" class="ce-manual-btn" :disabled="worshipPlace.manualBusy.value" @click="applyWorshipLocation">
+                  &#128205; Use my current location
+                </button>
+                <div class="ce-manual-link-row">
+                  <input
+                    v-model="worshipPlace.linkInput.value"
+                    type="text"
+                    class="ce-input ce-manual-link-input"
+                    placeholder="Paste a Google Maps link"
+                    @keydown.enter.prevent="applyWorshipLink"
+                  />
+                  <button type="button" class="ce-manual-apply" :disabled="worshipPlace.manualBusy.value" @click="applyWorshipLink">Apply</button>
+                </div>
+                <span v-if="worshipPlace.manualError.value" class="ce-field-error">{{ worshipPlace.manualError.value }}</span>
+              </div>
+            </div>
+
             <div class="ce-field" :class="{ 'ce-field--error': errors.location }">
               <label class="ce-label">Venue <span class="ce-req">*</span></label>
               <div class="ce-search-wrap">
@@ -150,6 +219,16 @@
               </div>
               <span v-if="form.locationLat" class="ce-map-hint">&#128205; Matched on map &middot; {{ Number(form.locationLat).toFixed(4) }}, {{ Number(form.locationLng).toFixed(4) }}</span>
               <span v-if="errors.location" class="ce-field-error">{{ errors.location }}</span>
+              <div class="ce-subrow">
+                <div class="ce-subfield">
+                  <label class="ce-sublabel">Start Time</label>
+                  <input v-model="form.venueStartTime" type="time" class="ce-input" />
+                </div>
+                <div class="ce-subfield">
+                  <label class="ce-sublabel">End Time</label>
+                  <input v-model="form.venueEndTime" type="time" class="ce-input" />
+                </div>
+              </div>
               <button type="button" class="ce-manual-toggle" @click="venuePlace.toggleManual()">Can't find it on the map?</button>
               <div v-if="venuePlace.showManual.value" class="ce-manual-box">
                 <button type="button" class="ce-manual-btn" :disabled="venuePlace.manualBusy.value" @click="applyVenueLocation">
@@ -166,65 +245,6 @@
                   <button type="button" class="ce-manual-apply" :disabled="venuePlace.manualBusy.value" @click="applyVenueLink">Apply</button>
                 </div>
                 <span v-if="venuePlace.manualError.value" class="ce-field-error">{{ venuePlace.manualError.value }}</span>
-              </div>
-            </div>
-
-            <div class="ce-field">
-              <label class="ce-label">Place of Worship <span class="ce-optional">(optional)</span></label>
-              <div class="ce-search-wrap">
-                <svg class="ce-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input
-                  v-model="form.worshipLocation"
-                  type="text"
-                  class="ce-input ce-input--search"
-                  placeholder="e.g. church, mosque, or temple name"
-                  autocomplete="off"
-                  @input="form.worshipLocationLat = null; form.worshipLocationLng = null; form.worshipLocationAddress = ''; worshipPlace.search(form.worshipLocation)"
-                  @keydown.down.prevent="worshipPlace.cursor.value = Math.min(worshipPlace.cursor.value + 1, worshipPlace.suggestions.value.length - 1)"
-                  @keydown.up.prevent="worshipPlace.cursor.value = Math.max(worshipPlace.cursor.value - 1, 0)"
-                  @keydown.enter.prevent="worshipPlace.cursor.value >= 0 && pickWorship(worshipPlace.suggestions.value[worshipPlace.cursor.value])"
-                  @keydown.escape="worshipPlace.clear()"
-                />
-                <svg v-if="worshipPlace.loading.value" class="ce-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                </svg>
-                <ul v-if="worshipPlace.suggestions.value.length" class="ce-suggestions">
-                  <li
-                    v-for="(s, i) in worshipPlace.suggestions.value"
-                    :key="s.place"
-                    class="ce-suggestion"
-                    :class="{ 'ce-suggestion--active': i === worshipPlace.cursor.value }"
-                    @mousedown.prevent="pickWorship(s)"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                    </svg>
-                    <div class="ce-suggestion-text">
-                      <span class="ce-suggestion-main">{{ s.structuredFormat?.mainText?.text }}</span>
-                      <span class="ce-suggestion-sub">{{ s.structuredFormat?.secondaryText?.text }}</span>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-              <span v-if="form.worshipLocationLat" class="ce-map-hint">&#128205; Matched on map &middot; {{ Number(form.worshipLocationLat).toFixed(4) }}, {{ Number(form.worshipLocationLng).toFixed(4) }}</span>
-              <button type="button" class="ce-manual-toggle" @click="worshipPlace.toggleManual()">Can't find it on the map?</button>
-              <div v-if="worshipPlace.showManual.value" class="ce-manual-box">
-                <button type="button" class="ce-manual-btn" :disabled="worshipPlace.manualBusy.value" @click="applyWorshipLocation">
-                  &#128205; Use my current location
-                </button>
-                <div class="ce-manual-link-row">
-                  <input
-                    v-model="worshipPlace.linkInput.value"
-                    type="text"
-                    class="ce-input ce-manual-link-input"
-                    placeholder="Paste a Google Maps link"
-                    @keydown.enter.prevent="applyWorshipLink"
-                  />
-                  <button type="button" class="ce-manual-apply" :disabled="worshipPlace.manualBusy.value" @click="applyWorshipLink">Apply</button>
-                </div>
-                <span v-if="worshipPlace.manualError.value" class="ce-field-error">{{ worshipPlace.manualError.value }}</span>
               </div>
             </div>
 
@@ -430,10 +450,14 @@ const form = ref({
   locationAddress: '',
   locationLat: null,
   locationLng: null,
+  venueStartTime: '',
+  venueEndTime: '',
   worshipLocation: '',
   worshipLocationAddress: '',
   worshipLocationLat: null,
   worshipLocationLng: null,
+  worshipStartTime: '',
+  worshipEndTime: '',
   supportPhone: '',
   eventPlanId: null,
   eventPlanName: '',
@@ -549,10 +573,14 @@ async function handleSubmit() {
       locationAddress: form.value.locationAddress,
       locationLat: form.value.locationLat,
       locationLng: form.value.locationLng,
+      venueStartTime: form.value.venueStartTime,
+      venueEndTime: form.value.venueEndTime,
       worshipLocation: form.value.worshipLocation.trim(),
       worshipLocationAddress: form.value.worshipLocationAddress,
       worshipLocationLat: form.value.worshipLocationLat,
       worshipLocationLng: form.value.worshipLocationLng,
+      worshipStartTime: form.value.worshipStartTime,
+      worshipEndTime: form.value.worshipEndTime,
       eventThumbnail: thumbnailUrl,
       eventPlanId: form.value.eventPlanId ?? null,
       // Naive local wall-clock, matching the Flutter app's format — NOT
@@ -798,6 +826,10 @@ onMounted(async () => {
 .ce-suggestion-main { font-size: 13.5px; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ce-suggestion-sub { font-size: 12px; color: #8892a4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ce-map-hint { font-size: 11px; color: var(--gold); font-weight: 500; display: flex; align-items: center; gap: 4px; }
+
+.ce-subrow { display: flex; gap: 8px; margin-top: 2px; }
+.ce-subfield { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.ce-sublabel { font-size: 11px; font-weight: 600; color: #4f617a; }
 
 .ce-manual-toggle { align-self: flex-start; background: none; border: none; padding: 0; font-size: 11px; color: #4f617a; text-decoration: underline; cursor: pointer; font-family: inherit; transition: color 130ms; }
 .ce-manual-toggle:hover { color: #8892a4; }
