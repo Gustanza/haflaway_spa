@@ -4,8 +4,14 @@
     <!-- ── Mobile backdrop ── -->
     <div v-if="showMobileNav" class="el-mobile-backdrop" @click="showMobileNav = false" />
 
-    <!-- ── Sidebar ── -->
-    <aside class="el-sidebar" :class="{ 'el-sidebar--open': showMobileNav }">
+    <!-- ── Sidebar ──
+         "Hub chrome" pages (Overview, Guest List, …) hide the static rail —
+         they're withjoy-style: collapsed by default, opened as an overlay via
+         their own hamburger button (shared state in useNavDrawer.js) rather
+         than taking up permanent width. Every other event screen still gets
+         the classic always-on desktop sidebar / mobile drawer. ── -->
+    <aside v-if="!isHubRoute || showMobileNav" class="el-sidebar"
+      :class="{ 'el-sidebar--open': showMobileNav, 'el-sidebar--drawer': isHubRoute }">
 
       <!-- Mobile close button -->
       <button class="el-sidebar-close" @click="showMobileNav = false">
@@ -46,10 +52,11 @@
     <!-- ── Main ── -->
     <div class="el-main">
 
-      <!-- Topbar -->
-      <header class="el-topbar">
+      <!-- Topbar — hidden on the hub page; EventOverview renders its own
+           hero head (back button, title, icon cluster) in its place. -->
+      <header v-if="!isHubRoute" class="el-topbar">
         <div class="el-topbar-left">
-          <button class="el-hamburger" @click="showMobileNav = true">
+          <button v-if="!isHubRoute" class="el-hamburger" @click="showMobileNav = true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
@@ -141,6 +148,7 @@ import { db } from '../../firebase'
 import { doc, getDoc } from 'firebase/firestore'
 import { useOrg } from '../../composables/useOrg.js'
 import { useTopUp } from '../../composables/useTopUp.js'
+import { useNavDrawer } from '../../composables/useNavDrawer.js'
 
 const { brandName, brandLogoUrl } = useOrg()
 const {
@@ -161,7 +169,10 @@ const route = useRoute()
 const router = useRouter()
 const eventId = computed(() => route.params.eventId)
 const event = ref(null)
-const showMobileNav = ref(false)
+// showMobileNav is shared (not a local ref) so hub-chrome pages — which hide
+// this component's own hamburger — can open the same drawer via their own button.
+const { isOpen: showMobileNav } = useNavDrawer()
+const isHubRoute = computed(() => ['EventOverview', 'EventAttendees'].includes(route.name))
 
 watch(() => route.path, () => { showMobileNav.value = false })
 
@@ -368,6 +379,24 @@ onMounted(async () => {
   z-index: 10;
   overflow-y: auto;
   box-shadow: 2px 0 20px rgba(0,0,0,0.4);
+}
+
+/* Hub-chrome pages: the rail is never in-flow — it's an overlay drawer at
+   every viewport width, opened via the page's own hamburger button. */
+.el-sidebar--drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  transform: translateX(-100%);
+  transition: transform 280ms cubic-bezier(.2, .7, .2, 1);
+  z-index: 200;
+}
+.el-sidebar--drawer.el-sidebar--open {
+  transform: translateX(0);
+}
+.el-sidebar--drawer .el-sidebar-close {
+  display: flex;
 }
 
 /* Brand — same vertical padding as topbar so the divider lines align */

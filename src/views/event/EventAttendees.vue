@@ -1,60 +1,11 @@
 ﻿<template>
   <div class="ea-root">
 
-    <!-- ── Stat cards ── -->
-    <div class="ea-stats" v-if="!loading || attendees.length">
-
-      <!-- Invitees view -->
-      <template v-if="!isContactsView">
-        <div class="ea-stat-card">
-          <div class="ea-stat-icon ea-stat-icon--purple">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </div>
-          <div class="ea-stat-body">
-            <span class="ea-stat-lbl">Guest List</span>
-            <span class="ea-stat-val">{{ typeCount.invitation ?? 0 }}</span>
-          </div>
-        </div>
-        <div class="ea-stat-card">
-          <div class="ea-stat-icon ea-stat-icon--teal">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-          <div class="ea-stat-body">
-            <span class="ea-stat-lbl">Checked In</span>
-            <span class="ea-stat-val">{{ attendees.filter(a => getKardType(a) === 'invitation' && a.checkedIn).length }}</span>
-          </div>
-        </div>
-        <div class="ea-stat-card">
-          <div class="ea-stat-icon ea-stat-icon--blue">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-          </div>
-          <div class="ea-stat-body">
-            <span class="ea-stat-lbl">Pending</span>
-            <span class="ea-stat-val">{{ (typeCount.invitation ?? 0) - attendees.filter(a => getKardType(a) === 'invitation' && a.checkedIn).length }}</span>
-          </div>
-        </div>
-        <div class="ea-stat-card">
-          <div class="ea-stat-icon ea-stat-icon--gold">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            </svg>
-          </div>
-          <div class="ea-stat-body">
-            <span class="ea-stat-lbl">Groups</span>
-            <span class="ea-stat-val">{{ props.event?.labels?.length ?? 0 }}</span>
-          </div>
-        </div>
-      </template>
+    <!-- ── Stat cards (Contacts view only — Guest List stays a clean table, withjoy-style) ── -->
+    <div class="ea-stats" v-if="isContactsView && (!loading || attendees.length)">
 
       <!-- Contacts view -->
-      <template v-else>
+      <template>
         <div class="ea-stat-card">
           <div class="ea-stat-icon ea-stat-icon--teal">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -107,216 +58,194 @@
 
     <div class="ea-panel">
 
-      <!-- ── Panel header ── -->
+      <!-- ── Sticky head: title bar + toolbar + column header all move together and stay
+           pinned while scrolling — only the row list scrolls underneath. ── -->
+      <div class="ea-sticky-head">
+
+      <!-- Panel header: hamburger + brand + title + wide inline search + primary CTA + settings —
+           withjoy's single consolidated top row. The sidebar is hidden on this page (see
+           EventLayout's isHubRoute), so this hamburger is the only way back into it. -->
       <div class="ea-panel-hd">
+        <button class="ea-hd-burger" title="Menu" @click="navDrawer.open()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+
+        <div class="ea-hd-brand" @click="$router.push('/events')">
+          <img :src="brandLogoUrl" :alt="brandName" class="ea-hd-brand-logo" />
+        </div>
+
+        <span class="ea-hd-sep" />
+
         <h2 class="ea-panel-title">{{ isContactsView ? 'Contact List' : 'Guest List' }}</h2>
 
-        <div class="ea-panel-acts">
-
-          <!-- Search: pill when closed, inline input when open -->
-          <template v-if="searchOpen">
-            <div class="ea-search-wrap ea-search-expanded">
-              <svg class="ea-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                stroke="#505050" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input ref="searchInputRef" v-model="searchQ" class="ea-search"
-                placeholder="Search by name or phone…"
-                @keydown.esc="closeSearch" />
-              <button v-if="searchQ" class="ea-search-clear" @click="searchQ = ''">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-            <button class="ea-search-cancel" @click="closeSearch">Cancel</button>
-          </template>
-
-          <template v-else>
-            <!-- Search pill -->
-            <button class="ea-type-trigger" :class="{ 'ea-type-trigger--active': searchQ }" @click="openSearch">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              {{ searchQ || 'Search' }}
-            </button>
-
-            <!-- Groups dropdown -->
-            <div class="ea-label-select" ref="labelSelectRef">
-              <button class="ea-type-trigger" :class="{ 'ea-type-trigger--active': filterLabelId }" @click="labelDropOpen = !labelDropOpen">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                  <line x1="7" y1="7" x2="7.01" y2="7"/>
-                </svg>
-                <template v-if="filterLabelId">
-                  <span class="ea-label-trigger-dot" :style="{ background: labelFg(localLabels.find(l => l.id === filterLabelId)) }"/>
-                  {{ localLabels.find(l => l.id === filterLabelId)?.name ?? 'Groups' }}
-                </template>
-                <template v-else>
-                  Groups
-                  <span v-if="localLabels.length" class="ea-type-trigger-cnt">{{ localLabels.length }}</span>
-                </template>
-                <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': labelDropOpen }"
-                  width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              <div v-if="labelDropOpen" class="ea-type-drop">
-                <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !filterLabelId }"
-                  @click="filterLabelId = null; labelDropOpen = false">
-                  All
-                  <span class="ea-type-drop-cnt">{{ attendees.length }}</span>
-                </button>
-                <template v-if="localLabels.length">
-                  <div class="ea-label-drop-sep"/>
-                  <button v-for="lbl in localLabels" :key="lbl.id"
-                    class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': filterLabelId === lbl.id }"
-                    @click="filterLabelId = filterLabelId === lbl.id ? null : lbl.id; labelDropOpen = false">
-                    <span style="display:flex;align-items:center;gap:7px;">
-                      <span class="ea-lf-dot" :style="{ background: labelFg(lbl) }"/>
-                      {{ lbl.name }}
-                    </span>
-                  </button>
-                </template>
-                <div class="ea-label-drop-sep"/>
-                <button class="ea-type-drop-item ea-label-drop-manage" @click="showLabelManager = true; labelDropOpen = false">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                  </svg>
-                  Manage Groups
-                </button>
-              </div>
-            </div>
-
-            <!-- Card filter dropdown -->
-            <div v-if="cardDropTemplates.length" class="ea-label-select" ref="cardDropRef">
-              <button class="ea-type-trigger" :class="{ 'ea-type-trigger--active': filterCardId }" @click="cardDropOpen = !cardDropOpen">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                  <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/>
-                </svg>
-                <template v-if="filterCardId">
-                  {{ allTemplatesMap[filterCardId] ?? 'Card' }}
-                </template>
-                <template v-else>
-                  Card
-                  <span class="ea-type-trigger-cnt">{{ cardDropTemplates.length }}</span>
-                </template>
-                <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': cardDropOpen }"
-                  width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              <div v-if="cardDropOpen" class="ea-type-drop">
-                <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !filterCardId }"
-                  @click="filterCardId = null; cardDropOpen = false">
-                  All cards
-                  <span class="ea-type-drop-cnt">{{ cardDropTemplates.length }}</span>
-                </button>
-                <div class="ea-label-drop-sep"/>
-                <button v-for="tpl in cardDropTemplates" :key="tpl.id"
-                  class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': filterCardId === tpl.id }"
-                  @click="filterCardId = filterCardId === tpl.id ? null : tpl.id; cardDropOpen = false">
-                  {{ tpl.name || '—' }}
-                  <span class="ea-type-drop-cnt">{{ cardAttendeeCount[tpl.id] ?? 0 }}</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- From Contact List (Guest List view only) -->
-            <button v-if="!isContactsView" class="ea-import-btn" @click="openContactPicker">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                <polyline points="17 11 19 13 23 9"/>
-              </svg>
-              <span class="ea-btn-label">From Contact List</span>
-            </button>
-
-            <!-- Import -->
-            <button class="ea-import-btn" @click="openImport">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              <span class="ea-btn-label">Import</span>
-            </button>
-
-            <!-- Refresh -->
-            <button class="ea-import-btn" @click="loadInitial" :disabled="loading" title="Refresh attendees">
-              <svg :class="{ 'ea-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-            </button>
-
-            <!-- Add -->
-            <button class="ea-add-btn" @click="openAdd">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              {{ addLabel }}
-            </button>
-          </template>
-
-        </div>
-      </div>
-
-      <!-- ── Type tabs (Contacts view only) ── -->
-      <div v-if="isContactsView" class="ea-tabs-row">
-        <div class="ea-tabs">
-          <button v-for="f in typeFilters" :key="f.val"
-            class="ea-tab" :class="{ 'ea-tab--active': activeType === f.val }"
-            @click="activeType = f.val">
-            {{ f.label }}
-            <span class="ea-tab-cnt">{{ f.val === 'all' ? attendees.length : (typeCount[f.val] ?? 0) }}</span>
-          </button>
-        </div>
-        <div class="ea-sort-controls">
-          <button class="ea-list-sort-btn" :class="{ 'ea-list-sort-btn--active': sortKey === 'name' }" @click="toggleSort('name')">
-            Name
-            <svg class="ea-sort-icon"
-              :class="{ 'ea-sort-icon--active': sortKey === 'name', 'ea-sort-icon--desc': sortKey === 'name' && sortDir === 'desc' }"
-              width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        <div class="ea-search-wrap ea-search-inline">
+          <svg class="ea-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+            stroke="#505050" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input v-model="searchQ" class="ea-search" placeholder="Search by name or phone…" />
+          <button v-if="searchQ" class="ea-search-clear" @click="searchQ = ''">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2.5" stroke-linecap="round">
-              <polyline points="18 15 12 9 6 15"/>
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
-          <button class="ea-list-sort-btn" :class="{ 'ea-list-sort-btn--active': sortKey === 'date' }" @click="toggleSort('date')">
-            Date added
-            <svg class="ea-sort-icon"
-              :class="{ 'ea-sort-icon--active': sortKey === 'date', 'ea-sort-icon--desc': sortKey === 'date' && sortDir === 'desc' }"
-              width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5" stroke-linecap="round">
-              <polyline points="18 15 12 9 6 15"/>
-            </svg>
-          </button>
-          <label class="ea-list-select-all" v-if="displayList.length">
-            <input type="checkbox" class="ea-cb" ref="headerCb"
-              :checked="isAllPageSelected"
-              @change="toggleSelectAll" />
-            <span>Select page</span>
-          </label>
         </div>
+
+        <button class="ea-send-btn" @click="showSendModal = true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          Send
+        </button>
+
+        <button class="ea-add-btn" @click="openAdd">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          {{ addLabel }}
+        </button>
+
+        <button class="ea-hd-gear" title="Settings" @click="$router.push(`/event/${eventId}/settings`)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       </div>
 
-    <!-- ── Selection bar ── -->
-    <Transition name="ea-fade">
-      <div v-if="selectedIds.size" class="ea-selection-bar">
-        <span class="ea-sel-count">{{ selectedIds.size }} selected</span>
-        <div class="ea-sel-actions">
-          <button class="ea-sel-btn ea-sel-btn--ghost" @click="clearSelection">Clear</button>
-          <div class="ea-sel-label-wrap" v-if="localLabels.length">
-            <button class="ea-sel-btn ea-sel-btn--label" @click="bulkLabelOpen = !bulkLabelOpen">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-              Group
+      <!-- ── Secondary toolbar: icon-over-label buttons, withjoy style — only real actions ── -->
+      <div class="ea-toolbar2">
+        <!-- Groups dropdown -->
+        <div class="ea-label-select" ref="labelSelectRef">
+          <button class="ea-tb2-btn" :class="{ 'ea-tb2-btn--active': filterLabelId }" @click="labelDropOpen = !labelDropOpen">
+            <span class="ea-tb2-ic">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                <line x1="7" y1="7" x2="7.01" y2="7"/>
+              </svg>
+            </span>
+            <span class="ea-tb2-lbl">
+              {{ filterLabelId ? (localLabels.find(l => l.id === filterLabelId)?.name ?? 'Groups') : 'Groups' }}
+              <span v-if="localLabels.length && !filterLabelId" class="ea-tb2-cnt">{{ localLabels.length }}</span>
+            </span>
+          </button>
+          <div v-if="labelDropOpen" class="ea-type-drop">
+            <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !filterLabelId }"
+              @click="filterLabelId = null; labelDropOpen = false">
+              All
+              <span class="ea-type-drop-cnt">{{ attendees.length }}</span>
+            </button>
+            <template v-if="localLabels.length">
+              <div class="ea-label-drop-sep"/>
+              <button v-for="lbl in localLabels" :key="lbl.id"
+                class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': filterLabelId === lbl.id }"
+                @click="filterLabelId = filterLabelId === lbl.id ? null : lbl.id; labelDropOpen = false">
+                <span style="display:flex;align-items:center;gap:7px;">
+                  <span class="ea-lf-dot" :style="{ background: labelFg(lbl) }"/>
+                  {{ lbl.name }}
+                </span>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Manage Groups — a separate always-visible action, not nested in the
+             filter dropdown (matches withjoy treating Assign Tags / Manage Tags
+             as two distinct toolbar icons rather than one combined menu). -->
+        <button class="ea-tb2-btn" @click="showLabelManager = true">
+          <span class="ea-tb2-ic">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </span>
+          <span class="ea-tb2-lbl">Manage Groups</span>
+        </button>
+
+        <!-- Card filter dropdown -->
+        <div v-if="cardDropTemplates.length" class="ea-label-select" ref="cardDropRef">
+          <button class="ea-tb2-btn" :class="{ 'ea-tb2-btn--active': filterCardId }" @click="cardDropOpen = !cardDropOpen">
+            <span class="ea-tb2-ic">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/>
+              </svg>
+            </span>
+            <span class="ea-tb2-lbl">
+              {{ filterCardId ? (allTemplatesMap[filterCardId] ?? 'Card') : 'Card' }}
+              <span v-if="!filterCardId" class="ea-tb2-cnt">{{ cardDropTemplates.length }}</span>
+            </span>
+          </button>
+          <div v-if="cardDropOpen" class="ea-type-drop">
+            <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !filterCardId }"
+              @click="filterCardId = null; cardDropOpen = false">
+              All cards
+              <span class="ea-type-drop-cnt">{{ cardDropTemplates.length }}</span>
+            </button>
+            <div class="ea-label-drop-sep"/>
+            <button v-for="tpl in cardDropTemplates" :key="tpl.id"
+              class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': filterCardId === tpl.id }"
+              @click="filterCardId = filterCardId === tpl.id ? null : tpl.id; cardDropOpen = false">
+              {{ tpl.name || '—' }}
+              <span class="ea-type-drop-cnt">{{ cardAttendeeCount[tpl.id] ?? 0 }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="ea-tb2-divider" />
+
+        <!-- From Contact List (Guest List view only) -->
+        <button v-if="!isContactsView" class="ea-tb2-btn" @click="openContactPicker">
+          <span class="ea-tb2-ic">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <polyline points="17 11 19 13 23 9"/>
+            </svg>
+          </span>
+          <span class="ea-tb2-lbl">From Contacts</span>
+        </button>
+
+        <!-- Import -->
+        <button class="ea-tb2-btn" @click="openImport">
+          <span class="ea-tb2-ic">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </span>
+          <span class="ea-tb2-lbl">Import</span>
+        </button>
+
+        <!-- Refresh -->
+        <button class="ea-tb2-btn" @click="loadInitial" :disabled="loading" title="Refresh attendees">
+          <span class="ea-tb2-ic">
+            <svg :class="{ 'ea-spin': loading }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </span>
+          <span class="ea-tb2-lbl">Refresh</span>
+        </button>
+
+        <!-- Selection actions — appear inline once rows are checked, instead of a
+             separate banner, matching withjoy's toolbar (icons stay in one place). -->
+        <template v-if="selectedIds.size">
+          <div class="ea-tb2-divider" />
+          <button class="ea-tb2-btn" @click="clearSelection">
+            <span class="ea-tb2-ic">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </span>
+            <span class="ea-tb2-lbl">Clear</span>
+          </button>
+          <div class="ea-label-select" v-if="localLabels.length">
+            <button class="ea-tb2-btn" @click="bulkLabelOpen = !bulkLabelOpen">
+              <span class="ea-tb2-ic">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              </span>
+              <span class="ea-tb2-lbl">Group</span>
             </button>
             <div v-if="bulkLabelOpen" class="ea-bulk-label-drop">
               <button v-for="lbl in localLabels" :key="lbl.id"
@@ -331,31 +260,77 @@
               </button>
             </div>
           </div>
-          <button class="ea-sel-btn ea-sel-btn--danger" :disabled="bulkDeleting" @click="bulkDelete">
-            {{ bulkDeleting ? 'Deleting…' : 'Delete' }}
+          <button class="ea-tb2-btn ea-tb2-btn--danger" :disabled="bulkDeleting" @click="bulkDelete">
+            <span class="ea-tb2-ic">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </span>
+            <span class="ea-tb2-lbl">{{ bulkDeleting ? 'Deleting…' : 'Delete' }}</span>
+          </button>
+          <span class="ea-tb2-sel-count">{{ selectedIds.size }} selected</span>
+        </template>
+      </div>
+
+      <!-- ── Type tabs (Contacts view only) ── -->
+      <div v-if="isContactsView" class="ea-tabs-row">
+        <div class="ea-tabs">
+          <button v-for="f in typeFilters" :key="f.val"
+            class="ea-tab" :class="{ 'ea-tab--active': activeType === f.val }"
+            @click="activeType = f.val">
+            {{ f.label }}
+            <span class="ea-tab-cnt">{{ f.val === 'all' ? attendees.length : (typeCount[f.val] ?? 0) }}</span>
           </button>
         </div>
       </div>
-    </Transition>
+
+      <!-- ── Column header row (both views) ── -->
+      <div class="ea-row-grid ea-col-head" v-if="displayList.length">
+        <label class="ea-col-cb" @click.stop>
+          <input type="checkbox" class="ea-cb" ref="headerCb" :checked="isAllPageSelected" @change="toggleSelectAll" />
+        </label>
+        <span class="ea-col-avatar" />
+        <button class="ea-col-btn" @click="toggleSort('name')">
+          Name
+          <svg class="ea-sort-icon"
+            :class="{ 'ea-sort-icon--active': sortKey === 'name', 'ea-sort-icon--desc': sortKey === 'name' && sortDir === 'desc' }"
+            width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
+        <span class="ea-col-lbl">Phone</span>
+        <span class="ea-col-lbl">{{ isContactsView ? 'Type' : 'Status' }}</span>
+        <span class="ea-col-lbl" v-if="!isContactsView">Checked In</span>
+        <span class="ea-col-lbl" v-else />
+        <span class="ea-col-lbl">Groups</span>
+        <button class="ea-col-btn ea-col-btn--right" @click="toggleSort('date')">
+          Added
+          <svg class="ea-sort-icon"
+            :class="{ 'ea-sort-icon--active': sortKey === 'date', 'ea-sort-icon--desc': sortKey === 'date' && sortDir === 'desc' }"
+            width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
+        <span class="ea-col-actions" />
+      </div>
+
+      </div> <!-- /.ea-sticky-head -->
 
     <!-- ── Card list ── -->
     <div class="ea-table-wrap">
 
       <!-- Skeleton cards on initial load -->
       <div v-if="loading && !attendees.length" class="ea-list">
-        <div v-for="n in 8" :key="`sk-${n}`" class="ea-card ea-card--sk">
+        <div v-for="n in 8" :key="`sk-${n}`" class="ea-row-grid ea-card ea-card--sk">
+          <span />
           <div class="ea-card-av-wrap">
             <div class="ea-sk-circle ea-sk-circle--card" />
           </div>
-          <div class="ea-card-info">
-            <div class="ea-sk-bar ea-sk-bar--lg" style="margin-bottom:6px" />
-            <div class="ea-sk-bar ea-sk-bar--md" />
-          </div>
-          <div class="ea-card-badges">
-            <div class="ea-sk-bar ea-sk-bar--sm" />
-            <div class="ea-sk-bar ea-sk-bar--sm" />
-          </div>
-          <div class="ea-sk-bar ea-sk-bar--sm ea-card-date" />
+          <div class="ea-sk-bar ea-sk-bar--lg" />
+          <div class="ea-sk-bar ea-sk-bar--md" />
+          <div class="ea-sk-bar ea-sk-bar--sm" />
+          <div class="ea-sk-bar ea-sk-bar--sm" />
+          <span />
+          <div class="ea-sk-bar ea-sk-bar--sm" />
+          <span />
         </div>
       </div>
 
@@ -398,15 +373,20 @@
         </template>
       </div>
 
-      <!-- Card list -->
+      <!-- Row list — real columns, aligned to .ea-col-head above -->
       <div v-else class="ea-list">
         <div v-for="att in displayList" :key="att.id"
-          class="ea-card"
+          class="ea-row-grid ea-card"
           :class="[
             `ea-card--${getKardType(att)}`,
             { 'ea-card--pending': isCardPending(att), 'ea-card--selected': selectedIds.has(att.id) }
           ]"
-          @click="selectedIds.size ? toggleSelect(att.id) : openDetail(att)">
+          @click="openDetail(att)">
+
+          <!-- Select checkbox -->
+          <label class="ea-col-cb" @click.stop>
+            <input type="checkbox" class="ea-cb" :checked="selectedIds.has(att.id)" @change="toggleSelect(att.id)" />
+          </label>
 
           <!-- Avatar with type dot -->
           <div class="ea-card-av-wrap">
@@ -417,24 +397,25 @@
             <span class="ea-card-type-dot" />
           </div>
 
-          <!-- Identity -->
-          <div class="ea-card-info">
-            <span class="ea-card-name">{{ att.fullName }}</span>
-            <span class="ea-card-meta">{{ att.phone || '—' }}</span>
-          </div>
+          <!-- Name -->
+          <span class="ea-card-name">{{ att.fullName }}</span>
 
-          <!-- Badges zone -->
-          <div class="ea-card-badges">
-            <!-- Type badge -->
-            <span class="ea-type-badge" :class="`ea-type-badge--${getKardType(att)}`">
-              {{ typeLabels[getKardType(att)] }}
-            </span>
-            <!-- Attendance status (invitation only) -->
-            <span v-if="getKardType(att) === 'invitation'" class="ea-card-status-badge">
-              <span class="ea-status-dot" :style="{ background: statusColor(att.attendanceStatus) }" />
-              {{ att.attendanceStatus || 'Not Confirmed' }}
-            </span>
-            <!-- Pending rendering pill -->
+          <!-- Phone -->
+          <span class="ea-card-meta">{{ att.phone || '—' }}</span>
+
+          <!-- Status / Type -->
+          <span class="ea-cell ea-cell--status">
+            <template v-if="isContactsView">
+              <span class="ea-type-badge" :class="`ea-type-badge--${getKardType(att)}`">
+                {{ typeLabels[getKardType(att)] }}
+              </span>
+            </template>
+            <template v-else>
+              <span class="ea-card-status-badge">
+                <span class="ea-status-dot" :style="{ background: statusColor(att.attendanceStatus) }" />
+                {{ att.attendanceStatus || 'Not Confirmed' }}
+              </span>
+            </template>
             <span v-if="isCardPending(att)" class="ea-pending-pill">
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2.5" stroke-linecap="round">
@@ -443,12 +424,22 @@
               </svg>
               Rendering
             </span>
-            <!-- Groups / label chips -->
+          </span>
+
+          <!-- Checked In (Guest List only) -->
+          <span class="ea-cell ea-cell--center ea-cell--checkin" v-if="!isContactsView">
+            <svg v-if="att.checkedIn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span v-else class="ea-checkin-dash">—</span>
+          </span>
+          <span class="ea-cell ea-cell--checkin" v-else />
+
+          <!-- Groups -->
+          <span class="ea-cell ea-cell--groups">
             <span v-for="lbl in attLabels(att)" :key="lbl.id" class="ea-label-chip"
               :style="{ background: labelBg(lbl), color: labelFg(lbl) }">
               {{ lbl.name }}
             </span>
-          </div>
+          </span>
 
           <!-- Date -->
           <span class="ea-card-date">{{ formatDate(att.createdAt) }}</span>
@@ -800,6 +791,106 @@
 
                 </template> <!-- end v-else single form -->
               </form>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- ── Send modal — "Card" is still just a visual placeholder; "Message"
+         leads into a real Campaigns list (same Firestore data/shape as the
+         full Bulk Messages page), with a bare-bones "New Campaign" create step.
+         Opening a campaign to actually send it is a later step. ── -->
+    <Teleport to="body">
+      <Transition name="ea-fade">
+        <div v-if="showSendModal" class="ea-overlay ea-overlay--center" @click.self="closeSendModal">
+          <Transition name="ea-sheet">
+            <div class="ea-modal ea-send-modal" v-if="showSendModal">
+              <div class="ea-modal-header">
+                <div class="ea-modal-header-left">
+                  <button v-if="sendStep !== 'root'" class="ea-send-back"
+                    @click="sendStep = sendStep === 'newCampaign' ? 'campaigns' : 'root'">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  </button>
+                  <h3 class="ea-modal-title">
+                    {{ sendStep === 'root' ? 'What would you like to send?' : sendStep === 'campaigns' ? 'Campaigns' : 'New Campaign' }}
+                  </h3>
+                </div>
+                <button class="ea-modal-close" @click="closeSendModal">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Step 1: Card / Message -->
+              <div class="ea-send-opts" v-if="sendStep === 'root'">
+                <div class="ea-send-opt">
+                  <div class="ea-send-opt-art">
+                    <div class="ea-send-opt-box ea-send-opt-box--card">
+                      <span class="ea-pcard ea-pcard--1" />
+                      <span class="ea-pcard ea-pcard--2" />
+                      <span class="ea-pcard ea-pcard--3" />
+                    </div>
+                  </div>
+                  <span class="ea-send-opt-title">Card</span>
+                  <span class="ea-send-opt-desc">Save the Dates, Invites, and more.</span>
+                </div>
+                <div class="ea-send-opt" @click="openMessageStep">
+                  <div class="ea-send-opt-art">
+                    <div class="ea-send-opt-box ea-send-opt-box--msg">
+                      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <span class="ea-send-opt-title">Message</span>
+                  <span class="ea-send-opt-desc">Reminders, texts, and emails.</span>
+                </div>
+              </div>
+
+              <!-- Step 2: Campaigns list -->
+              <div class="ea-send-camps" v-else-if="sendStep === 'campaigns'">
+                <button class="ea-send-new-camp-btn" @click="openNewCampaignStep">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  New Campaign
+                </button>
+
+                <div v-if="loadingSendCampaigns" class="ea-send-camps-loading">Loading campaigns…</div>
+                <div v-else-if="!sendCampaigns.length" class="ea-send-camps-empty">
+                  <p>No campaigns yet.</p>
+                  <p class="ea-send-camps-empty-sub">Create one to start sending targeted messages to specific guests.</p>
+                </div>
+                <div v-else class="ea-send-camps-list">
+                  <div v-for="camp in sendCampaigns" :key="camp.id" class="ea-send-camp-row">
+                    <span class="ea-send-camp-icon">
+                      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    </span>
+                    <span class="ea-send-camp-text">
+                      <span class="ea-send-camp-name">{{ camp.name }}</span>
+                      <span class="ea-send-camp-meta">{{ capitalize(camp.type) }} campaign · Created {{ formatDate(camp.createdAt) }}</span>
+                    </span>
+                    <svg class="ea-send-camp-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 3: New Campaign (bare minimum — name + type only) -->
+              <div class="ea-send-new-camp" v-else>
+                <label class="ea-send-fld-lbl">Campaign Name</label>
+                <input v-model="newCampName" class="ea-send-fld-input" placeholder="e.g. Thank You Messages"
+                  autofocus @keydown.enter="createSendCampaign" />
+                <label class="ea-send-fld-lbl" style="margin-top:14px">Type</label>
+                <div class="ea-send-type-row">
+                  <button class="ea-send-type-btn" :class="{ 'ea-send-type-btn--on': newCampType === 'invitation' }" @click="newCampType = 'invitation'">Invitation</button>
+                  <button class="ea-send-type-btn" :class="{ 'ea-send-type-btn--on': newCampType === 'contribution' }" @click="newCampType = 'contribution'">Contribution</button>
+                  <button class="ea-send-type-btn" :class="{ 'ea-send-type-btn--on': newCampType === 'contact' }" @click="newCampType = 'contact'">Contact</button>
+                </div>
+                <button class="ea-send-create-btn" :disabled="!newCampName.trim() || savingNewCamp" @click="createSendCampaign">
+                  {{ savingNewCamp ? 'Creating…' : 'Create Campaign' }}
+                </button>
+              </div>
             </div>
           </Transition>
         </div>
@@ -1752,6 +1843,8 @@ function genAttendeeId() {
 import * as XLSX from 'xlsx'
 import { VueTelInput } from 'vue-tel-input'
 import 'vue-tel-input/vue-tel-input.css'
+import { useOrg } from '../../composables/useOrg.js'
+import { useNavDrawer } from '../../composables/useNavDrawer.js'
 
 const CREATE_ATTENDEES_URL = 'https://createattendees-frbu33fema-uc.a.run.app'
 
@@ -1762,6 +1855,8 @@ const props = defineProps({
 
 const route = useRoute()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
+const { brandName, brandLogoUrl } = useOrg()
+const navDrawer = useNavDrawer()
 
 // Labels — local copy so we can mutate optimistically without prop mutation
 const localLabels = ref([])
@@ -2367,6 +2462,61 @@ async function fetchTemplates(type) {
 
 // ── Add / Edit modal ──────────────────────────────────────────────────────────
 const showModal = ref(false)
+const showSendModal = ref(false)
+// 'root' (Card/Message choice) → 'campaigns' (list, real Firestore data — same
+// collection as EventCampaigns.vue) → 'newCampaign' (bare-minimum create form).
+// Opening a campaign to actually send it is a later step, not built yet.
+const sendStep = ref('root')
+function closeSendModal() { showSendModal.value = false; sendStep.value = 'root' }
+
+const sendCampaigns = ref([])
+const loadingSendCampaigns = ref(false)
+let sendCampaignsLoaded = false
+async function loadSendCampaigns(force = false) {
+  if (sendCampaignsLoaded && !force) return
+  loadingSendCampaigns.value = true
+  try {
+    const snap = await getDocs(query(collection(db, 'events', eventId.value, 'campaigns'), orderBy('createdAt', 'desc')))
+    sendCampaigns.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    sendCampaignsLoaded = true
+  } catch (e) {
+    console.error('loadSendCampaigns:', e)
+  } finally {
+    loadingSendCampaigns.value = false
+  }
+}
+function openMessageStep() {
+  sendStep.value = 'campaigns'
+  loadSendCampaigns()
+}
+
+const newCampName = ref('')
+const newCampType = ref('invitation')
+const savingNewCamp = ref(false)
+function openNewCampaignStep() {
+  newCampName.value = ''
+  newCampType.value = 'invitation'
+  sendStep.value = 'newCampaign'
+}
+async function createSendCampaign() {
+  if (!newCampName.value.trim() || savingNewCamp.value) return
+  savingNewCamp.value = true
+  try {
+    await addDoc(collection(db, 'events', eventId.value, 'campaigns'), {
+      name: newCampName.value.trim(),
+      type: newCampType.value,
+      whatsappMessage: null,
+      smsMessage: null,
+      createdAt: new Date().toISOString(),
+    })
+    await loadSendCampaigns(true)
+    sendStep.value = 'campaigns'
+  } catch (e) {
+    console.error('createSendCampaign:', e)
+  } finally {
+    savingNewCamp.value = false
+  }
+}
 const editingAtt = ref(null)
 const submitting = ref(false)
 
@@ -3218,6 +3368,10 @@ function setImportPayment(attendeeId, amount) {
   --c-txt-3:  #555;
   --c-divide: #2a2a2a;
   --c-arrow:  #3a3a3a;
+  /* withjoy's dominant button blue — scoped to this page only, not the app's
+     --gold brand accent used everywhere else. */
+  --wj-blue: #4f46e5;
+  --wj-blue-hover: #4338ca;
   transition: background 300ms ease;
 }
 
@@ -3225,11 +3379,11 @@ function setImportPayment(attendeeId, amount) {
 .ea-panel {
   display: flex;
   flex-direction: column;
-  background: var(--c-bg);
-  border: 1px solid var(--c-border);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: background 300ms ease, border-color 300ms ease;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  transition: background 300ms ease;
 }
 
 .ea-panel-hd {
@@ -3240,13 +3394,39 @@ function setImportPayment(attendeeId, amount) {
   gap: 10px;
 }
 .ea-panel-title {
-  font-size: 19px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--c-txt);
   margin: 0;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
   white-space: nowrap;
 }
+
+/* ── Header hamburger / brand / gear — this page hides EventLayout's sidebar
+   + topbar, so it owns the whole consolidated bar (withjoy-style). ── */
+.ea-hd-gear {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  background: none; border: 1px solid var(--c-border);
+  color: var(--c-txt-2); cursor: pointer; font-family: inherit; padding: 0;
+  transition: color 130ms, background 130ms, border-color 130ms;
+}
+.ea-hd-gear:hover { color: var(--c-txt); background: var(--c-muted); }
+
+/* Bare, borderless lines — no circle chrome — matching withjoy's plain hamburger. */
+.ea-hd-burger {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex-shrink: 0;
+  background: none; border: none;
+  color: var(--c-txt); cursor: pointer; font-family: inherit; padding: 0;
+  transition: color 130ms, opacity 130ms;
+}
+.ea-hd-burger:hover { opacity: 0.65; }
+.ea-hd-brand {
+  display: flex; align-items: center; gap: 8px; cursor: pointer; flex-shrink: 0;
+}
+.ea-hd-brand-logo { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+.ea-hd-sep { width: 1px; height: 20px; background: var(--c-divide); flex-shrink: 0; }
 .ea-panel-acts {
   display: flex;
   align-items: center;
@@ -3317,18 +3497,16 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-search {
   width: 100%;
-  padding: 9px 34px 9px 34px;
+  padding: 11px 34px 11px 38px;
   background: var(--c-bg);
-  border: 1px solid var(--c-border);
-  border-radius: 10px;
-  font-size: 13px;
+  border: 1.3px solid var(--c-border);
+  border-radius: 999px;
+  font-size: 13.5px;
   color: var(--c-txt);
   outline: none;
-  transition: border-color 150ms;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: none;
   font-family: inherit;
 }
-.ea-search:focus { border-color: var(--gold); }
 .ea-search::placeholder { color: var(--c-txt-3); }
 .ea-search-clear {
   position: absolute;
@@ -3413,20 +3591,134 @@ function setImportPayment(attendeeId, amount) {
 .ea-add-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--gold);
-  color: var(--gold-contrast);
+  gap: 8px;
+  padding: 13px 24px;
+  background: var(--wj-blue);
+  color: #ffffff;
   border: none;
-  border-radius: 10px;
-  font-size: 13px;
+  border-radius: 999px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition: background 150ms;
   font-family: inherit;
   flex-shrink: 0;
 }
-.ea-add-btn:hover { background: #d4b560; }
+.ea-add-btn:hover { background: var(--wj-blue-hover); }
+.ea-panel-hd .ea-add-btn { margin-left: 0; }
+.ea-panel-hd .ea-search-inline { flex: 0 1 440px; margin: 0 auto; }
+
+.ea-send-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 24px;
+  background: var(--c-muted);
+  color: var(--c-txt);
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.ea-send-btn:hover { background: var(--c-track); }
+
+/* ── Secondary toolbar: icon-over-label buttons, withjoy style ── */
+.ea-toolbar2 {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--c-divide);
+  flex-wrap: wrap;
+}
+.ea-tb2-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 130ms, border-color 130ms;
+}
+.ea-tb2-btn:hover { background: var(--c-muted); }
+.ea-tb2-btn--active { background: rgb(from var(--wj-blue) r g b / 0.08); }
+.ea-tb2-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ea-tb2-ic {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1.3px solid var(--c-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--c-txt-2);
+  background: none;
+}
+.ea-tb2-btn--active .ea-tb2-ic { color: var(--wj-blue); border-color: rgb(from var(--wj-blue) r g b / 0.4); }
+.ea-tb2-btn--active .ea-tb2-lbl { color: var(--wj-blue); }
+.ea-tb2-lbl {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600; color: var(--c-txt);
+  white-space: nowrap;
+}
+.ea-tb2-cnt {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 14px; padding: 0 4px; border-radius: 6px;
+  background: var(--c-muted); font-size: 9.5px; font-weight: 700; color: var(--c-txt-3);
+}
+.ea-tb2-sel-count {
+  align-self: center; font-size: 12px; font-weight: 600; color: var(--c-txt-2); white-space: nowrap;
+  padding: 0 4px;
+  margin-left: auto;
+}
+.ea-tb2-btn--danger .ea-tb2-lbl { color: #FF453A; }
+.ea-tb2-btn--danger:hover { background: rgba(255,69,58,0.08); }
+.ea-tb2-divider { width: 1px; background: var(--c-divide); margin: 4px 6px; flex-shrink: 0; }
+
+/* ── Shared row grid — header + data rows align on this template ── */
+.ea-row-grid {
+  display: grid;
+  grid-template-columns: 34px 36px minmax(140px,1.3fr) 120px 150px 90px minmax(90px,1fr) 90px 60px;
+  align-items: center;
+  gap: 12px;
+}
+.ea-col-head {
+  padding: 22px 16px;
+  border-bottom: 1px solid var(--c-divide);
+  background: transparent;
+}
+
+/* ── Sticky head — the whole title/toolbar/column-header block moves together
+   and stays pinned while scrolling; only the row list scrolls beneath it. ── */
+.ea-sticky-head {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--el-content-bg, var(--c-bg-alt, #f0f0f8));
+}
+.ea-col-cb { display: flex; align-items: center; cursor: pointer; }
+.ea-col-avatar { width: 32px; }
+.ea-col-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
+  font-size: 11.5px; font-weight: 700; color: var(--c-txt-2);
+  text-transform: uppercase; letter-spacing: 0.5px; justify-self: start;
+}
+.ea-col-btn:hover { color: var(--c-txt); }
+.ea-col-btn--right { justify-self: start; }
+.ea-col-lbl {
+  font-size: 11.5px; font-weight: 700; color: var(--c-txt-2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.ea-col-actions { width: 100%; }
+.ea-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.ea-cell--center { justify-content: center; }
+.ea-cell--groups { flex-wrap: wrap; gap: 4px; }
+.ea-checkin-dash { color: var(--c-txt-3); font-size: 13px; }
 
 
 /* ── Selection bar ── */
@@ -3465,7 +3757,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-table-wrap {
   display: flex;
   flex-direction: column;
-  background: var(--c-bg);
+  background: transparent;
   border-top: 1px solid var(--c-border);
   overflow: hidden;
 }
@@ -4073,6 +4365,117 @@ function setImportPayment(attendeeId, amount) {
   transition: background 140ms, color 140ms;
 }
 .ea-modal-close:hover { background: var(--c-border); color: var(--c-txt); }
+
+/* ── Send modal ── */
+.ea-send-modal { max-width: 640px; }
+.ea-send-modal .ea-modal-header { justify-content: center; position: relative; padding: 22px; }
+.ea-send-modal .ea-modal-title { font-size: 19px; }
+.ea-send-modal .ea-modal-close { position: absolute; right: 22px; }
+.ea-send-opts {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  padding: 22px;
+}
+.ea-send-opt {
+  /* Teleported to <body>, outside .ea-root — var(--c-border) isn't inherited
+     here, so it was silently invalidating this whole border shorthand and
+     rendering no outline at all. Hardcoded to match the app's real border color. */
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
+  padding: 28px 20px; border: 1px solid #e8e8f4; border-radius: 14px;
+  cursor: pointer; transition: border-color 150ms, background 150ms;
+}
+.ea-send-opt:hover { border-color: #4f46e5; background: rgba(79,70,229,0.04); }
+.ea-send-opt-art {
+  width: 100%; height: 110px; display: flex; align-items: center; justify-content: center;
+}
+/* Both options share this exact box — same width/height, same centering
+   method — so "Card" and "Message" read as a matched pair, not two
+   differently-sized graphics that happen to sit near each other. */
+.ea-send-opt-box {
+  width: 92px; height: 92px; position: relative; flex-shrink: 0;
+}
+.ea-send-opt-box--msg {
+  /* Teleported to <body>, outside .ea-root, so the scoped --wj-blue custom
+     property isn't inherited here — hardcode the color instead. */
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
+  box-shadow: 0 10px 24px rgba(79,70,229,0.3);
+}
+.ea-send-opt-box--card .ea-pcard {
+  position: absolute; top: 50%; left: 50%; width: 58px; height: 78px; border-radius: 10px;
+  margin: -39px 0 0 -29px; /* half height/width — anchors the un-rotated card on the box's exact center */
+  box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+}
+.ea-send-opt-box--card .ea-pcard--1 { background: linear-gradient(160deg,#fde68a,#f59e0b); transform: rotate(-10deg) translateX(-20px); }
+.ea-send-opt-box--card .ea-pcard--2 { background: linear-gradient(160deg,#fecdd3,#f43f5e); transform: rotate(4deg); z-index: 1; }
+.ea-send-opt-box--card .ea-pcard--3 { background: linear-gradient(160deg,#a5b4fc,#6366f1); transform: rotate(15deg) translateX(20px); }
+.ea-send-opt-title { font-size: 16px; font-weight: 700; color: var(--c-txt); }
+.ea-send-opt-desc { font-size: 12.5px; color: var(--c-txt-2); line-height: 1.4; }
+@media (max-width: 560px) {
+  .ea-send-opts { grid-template-columns: 1fr; }
+}
+
+/* ── Send modal — Campaigns step + New Campaign step ──
+   All colors hardcoded (not var(--c-*)) — this modal is Teleported to
+   <body>, outside .ea-root, so those scoped tokens aren't reachable. ── */
+.ea-send-back {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: none; border: none; color: #6b7280; cursor: pointer; padding: 0;
+  transition: background 130ms, color 130ms;
+}
+.ea-send-back:hover { background: #f4f4fd; color: #1a1a2e; }
+
+.ea-send-camps { padding: 8px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+.ea-send-new-camp-btn {
+  align-self: flex-start; display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 999px;
+  font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: background 150ms;
+}
+.ea-send-new-camp-btn:hover { background: #4338ca; }
+.ea-send-camps-loading, .ea-send-camps-empty { padding: 24px 4px; text-align: center; color: #6b7280; font-size: 13px; }
+.ea-send-camps-empty p { margin: 0 0 4px; }
+.ea-send-camps-empty-sub { font-size: 12.5px; color: #9ca3af; }
+.ea-send-camps-list { display: flex; flex-direction: column; max-height: 400px; overflow-y: auto; margin: 0 -6px; }
+.ea-send-camp-row {
+  display: flex; align-items: center; gap: 16px; padding: 14px 6px;
+  border-bottom: 1px solid #f0f0f5; border-radius: 10px;
+  cursor: pointer; transition: background 130ms;
+}
+.ea-send-camp-row:hover { background: #f8f8fd; }
+.ea-send-camp-row:last-child { border-bottom: none; }
+.ea-send-camp-icon {
+  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  border: 1.3px solid #e8e8f4; color: #1a1a2e;
+  display: flex; align-items: center; justify-content: center;
+}
+.ea-send-camp-text { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.ea-send-camp-name { font-size: 15.5px; font-weight: 700; color: #1a1a2e; }
+.ea-send-camp-meta { font-size: 13px; color: #6b7280; text-transform: capitalize; }
+.ea-send-camp-chev { color: #b0b0c0; flex-shrink: 0; }
+
+.ea-send-new-camp { padding: 8px 22px 22px; display: flex; flex-direction: column; }
+.ea-send-fld-lbl { font-size: 12px; font-weight: 600; color: #6b7280; letter-spacing: 0.3px; margin-bottom: 6px; display: block; }
+.ea-send-fld-input {
+  width: 100%; padding: 10px 12px; border: 1px solid #e8e8f4; border-radius: 10px;
+  font-size: 13.5px; color: #1a1a2e; outline: none; font-family: inherit; box-sizing: border-box;
+}
+.ea-send-fld-input:focus { border-color: #4f46e5; }
+.ea-send-type-row { display: flex; gap: 8px; }
+.ea-send-type-btn {
+  flex: 1; padding: 9px 10px; border: 1px solid #e8e8f4; border-radius: 10px;
+  background: #fff; color: #6b7280; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  font-family: inherit; transition: background 130ms, border-color 130ms, color 130ms;
+}
+.ea-send-type-btn--on { background: #eeecfd; border-color: #4f46e5; color: #4338ca; }
+.ea-send-create-btn {
+  margin-top: 20px; padding: 12px 16px; background: #4f46e5; color: #fff; border: none;
+  border-radius: 10px; font-size: 13.5px; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: background 150ms;
+}
+.ea-send-create-btn:hover:not(:disabled) { background: #4338ca; }
+.ea-send-create-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .ea-form {
   padding: 20px 22px;
@@ -5542,27 +5945,24 @@ function setImportPayment(attendeeId, amount) {
 .ea-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 16px;
   background: var(--c-bg);
 }
 
-/* ── Individual card ── */
+/* ── Individual row ── */
 .ea-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 13px 16px;
+  padding: 11px 16px;
   background: var(--c-bg);
-  border: 1px solid var(--c-border);
-  border-radius: 12px;
-  transition: background 150ms, border-color 150ms, box-shadow 150ms;
+  border: none;
+  border-bottom: 1px solid var(--c-divide);
+  border-radius: 0;
+  transition: background 120ms;
   cursor: pointer;
   position: relative;
 }
-.ea-card:hover:not(.ea-card--sk) { background: var(--c-hover, var(--c-bg)); border-color: var(--c-border); box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+.ea-list .ea-card:first-child { border-top: 1px solid var(--c-divide); }
+.ea-card:hover:not(.ea-card--sk) { background: var(--c-hover, var(--c-bg)); }
 .ea-card--sk { pointer-events: none; }
-.ea-card--selected { background: rgb(from var(--gold) r g b / 0.06); border-color: rgb(from var(--gold) r g b / 0.25); }
+.ea-card--selected { background: rgb(from var(--gold) r g b / 0.06); }
 
 /* Left border stripe per type */
 .ea-card--invitation   { box-shadow: inset 3px 0 0 rgba(60,168,164,0.55); }
@@ -5605,7 +6005,7 @@ function setImportPayment(attendeeId, amount) {
   font-size: 13px; font-weight: 600; color: var(--c-txt);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.ea-card-meta { font-size: 11px; color: var(--c-txt-3); }
+.ea-card-meta { font-size: 13px; color: var(--c-txt-2); }
 
 /* Badges zone */
 .ea-card-badges {
@@ -5622,7 +6022,7 @@ function setImportPayment(attendeeId, amount) {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--c-txt-2);
   white-space: nowrap;
@@ -5630,7 +6030,7 @@ function setImportPayment(attendeeId, amount) {
 
 /* Date */
 .ea-card-date {
-  font-size: 11px; color: var(--c-muted);
+  font-size: 13px; color: var(--c-txt-2);
   white-space: nowrap; flex-shrink: 0; text-align: right;
 }
 
@@ -5648,22 +6048,30 @@ function setImportPayment(attendeeId, amount) {
 
 /* Mobile responsive — CSS Grid */
 @media (max-width: 640px) {
-  .ea-list { padding: 8px 10px; gap: 5px; }
+  .ea-col-head { display: none; }
+  .ea-list { padding: 8px 10px; gap: 6px; }
   .ea-card {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto auto;
+    grid-template-columns: auto auto 1fr auto;
     grid-template-areas:
-      "avatar info    date"
-      "avatar badges  badges";
+      "cb avatar name   date"
+      "cb avatar meta   meta"
+      "cb avatar status status"
+      "cb avatar groups groups";
     align-items: start;
-    gap: 3px 12px;
+    gap: 3px 10px;
     padding: 12px 14px;
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
   }
+  .ea-col-cb        { grid-area: cb; align-self: start; padding-top: 2px; }
   .ea-card-av-wrap  { grid-area: avatar; align-self: start; padding-top: 2px; }
-  .ea-card-info     { grid-area: info; flex: unset; }
+  .ea-card-name     { grid-area: name; }
+  .ea-card-meta     { grid-area: meta; }
+  .ea-cell--status  { grid-area: status; margin-top: 4px; }
+  .ea-cell--checkin { display: none; }
+  .ea-cell--groups  { grid-area: groups; margin-top: 4px; }
   .ea-card-date     { grid-area: date; align-self: start; padding-top: 2px; }
-  .ea-card-badges   { grid-area: badges; justify-content: flex-start; flex: unset; margin-top: 6px; }
   .ea-card-actions  { display: none; }
 }
 @media (max-width: 400px) {
@@ -5678,32 +6086,30 @@ function setImportPayment(attendeeId, amount) {
   .ea-root { padding: 12px 14px 20px; gap: 12px; }
   .ea-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; min-width: 0; }
 
-  /* Panel header: wrap so search doesn't crush title+actions */
+  /* Panel header: wrap so search doesn't crush title+add button */
   .ea-panel-hd { flex-wrap: wrap; padding: 10px 14px; gap: 8px; }
   .ea-panel-title { flex: 1; font-size: 17px; }
-  .ea-panel-acts { order: 2; }
-  .ea-hd-search { flex: 1 1 100%; order: 3; max-width: none; margin-left: 0; }
+  .ea-panel-hd .ea-search-inline { flex: 1 1 100%; order: 3; max-width: none; }
+  .ea-panel-hd .ea-add-btn { margin-left: 0; order: 2; }
+
+  /* Secondary toolbar: allow wrap, tighten a bit */
+  .ea-toolbar2 { gap: 2px; padding: 8px 10px; }
+  .ea-tb2-btn { padding: 5px 8px; }
 
   /* Stat cards: min-width:0 lets grid cells shrink; overflow:hidden clips long labels */
   .ea-stat-card { padding: 14px 14px 12px; gap: 12px; min-width: 0; overflow: hidden; }
   .ea-stat-icon { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
   .ea-stat-val { font-size: 24px; }
   .ea-stat-body { gap: 6px; min-width: 0; }
-
-  /* Toolbar stays horizontal at medium — just tighten it slightly */
-  .ea-toolbar { gap: 6px; }
-  .ea-add-btn { padding: 8px 14px; font-size: 13px; }
 }
 @media (max-width: 400px) {
-  /* Only stack toolbar on genuinely small screens */
-  .ea-toolbar-right { flex-direction: column; align-items: stretch; gap: 6px; }
-  .ea-tb-acts { width: 100%; gap: 6px; }
-  .ea-import-btn { flex: 1; justify-content: center; }
+  .ea-tb2-lbl { display: none; }
   .ea-add-btn { flex: 1; justify-content: center; padding: 10px 16px; font-size: 14px; }
-  .ea-btn-label { display: none; }
   .ea-stat-val { font-size: 20px; }
   .ea-stat-card { padding: 12px 12px 10px; gap: 10px; }
 }
+
+.ea-tabs-spacer { flex: 1; }
 
 /* ── Type tabs ── */
 .ea-tabs {
