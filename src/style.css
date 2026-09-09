@@ -19,6 +19,33 @@
   --overlay-bg: rgba(20,16,50,0.78);
 }
 
+/* ── Send-status palette ──
+   These are applied as INLINE styles (DRAWER_STATUS_COLORS in
+   EventCampaigns.vue), so no [data-theme] rule can restyle them — the object
+   reads these tokens instead. They live on :root rather than on .em-root
+   because the status dropdown's menu is teleported to <body>, outside every
+   page-level scope, and would otherwise resolve them to nothing.
+
+   The originals were authored for a near-black ground and were carried over
+   unchanged into light mode: on a white card `all` composited to white text on
+   a white fill inside a white border, and the rest sat around 2:1. ── */
+:root {
+  --st-unsent-bg: rgba(201,168,76,0.08);  --st-unsent-fg: #C9A84C;  --st-unsent-bd: rgba(201,168,76,0.30);
+  --st-sent-bg:   rgba(99,179,237,0.10);  --st-sent-fg:   #63b3ed;  --st-sent-bd:   rgba(99,179,237,0.30);
+  --st-deliv-bg:  rgba(52,211,153,0.10);  --st-deliv-fg:  #34d399;  --st-deliv-bd:  rgba(52,211,153,0.30);
+  --st-read-bg:   rgba(52,183,241,0.10);  --st-read-fg:   #34B7F1;  --st-read-bd:   rgba(52,183,241,0.30);
+  --st-failed-bg: rgba(255,69,58,0.10);   --st-failed-fg: #ff6b6b;  --st-failed-bd: rgba(255,69,58,0.25);
+  --st-all-bg:    rgba(255,255,255,0.05); --st-all-fg:    #d4cfc8;  --st-all-bd:    rgba(255,255,255,0.15);
+}
+[data-theme="light"] {
+  --st-unsent-bg: #fbf5e4;  --st-unsent-fg: #7a5f10;  --st-unsent-bd: #e6d49b;
+  --st-sent-bg:   #eaf3fc;  --st-sent-fg:   #1f5f96;  --st-sent-bd:   #b6d6f0;
+  --st-deliv-bg:  #e7f7f0;  --st-deliv-fg:  #0f6b4a;  --st-deliv-bd:  #a9e0c9;
+  --st-read-bg:   #e8f5fd;  --st-read-fg:   #0d5f86;  --st-read-bd:   #ace0f6;
+  --st-failed-bg: #fdecea;  --st-failed-fg: #9b1c14;  --st-failed-bd: #f5bdb8;
+  --st-all-bg:    #f1f1f5;  --st-all-fg:    #4a4a5e;  --st-all-bd:    #d7d7e3;
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
@@ -336,43 +363,57 @@ html[data-theme="light"] .os-root {
 
 /* ── Sidebar refinements in light ── */
 [data-theme="light"] .el-sidebar {
-  box-shadow: 2px 0 16px rgba(99,102,241,0.06), 1px 0 0 #e8e8f4 !important;
-  border-right-color: #e8e8f4 !important;
+  background: #ffffff !important;
+  border-right: 1px solid #eef0f3 !important;
+  box-shadow: 0 0 0 1px #eef0f3, 16px 0 48px -4px rgba(0,0,0,0.08), 4px 0 16px -2px rgba(0,0,0,0.03) !important;
 }
 [data-theme="light"] .el-brand {
-  border-bottom-color: #e8e8f4 !important;
+  border-bottom-color: #eef0f3 !important;
 }
 [data-theme="light"] .el-nav-item--active {
-  background: rgb(from var(--gold) r g b / 0.12) !important;
-  border-color: rgb(from var(--gold) r g b / 0.28) !important;
-  color: var(--org-sidebar-text, #7a5a0a) !important;
+  background: #f3f4f6 !important;
+  border: none !important;
+  color: #111827 !important;
+  font-weight: 600 !important;
 }
 [data-theme="light"] .el-nav-item--active .el-nav-icon {
-  opacity: 1;
-  color: var(--org-sidebar-text, #8b6a10) !important;
+  opacity: 1 !important;
+  color: #111827 !important;
+}
+[data-theme="light"] .el-nav-item:not(.el-nav-item--active) {
+  color: #6b7280 !important;
 }
 [data-theme="light"] .el-nav-item:not(.el-nav-item--active):hover {
-  background: #f4f4fd !important;
-  color: var(--org-sidebar-text, #1a1a2e) !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+[data-theme="light"] .el-nav-item:not(.el-nav-item--active):hover .el-nav-icon {
+  opacity: 0.95 !important;
+  color: #111827 !important;
+}
+[data-theme="light"] .el-back-btn {
+  color: #6b7280 !important;
 }
 [data-theme="light"] .el-back-btn:hover {
-  background: #f4f4fd !important;
-  color: var(--org-sidebar-text, #1a1a2e) !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
 }
 [data-theme="light"] .el-topbar {
-  box-shadow: 0 1px 0 #e8e8f4, 0 4px 16px rgba(0,0,0,0.04) !important;
-  border-bottom-color: #e8e8f4 !important;
+  box-shadow: 0 1px 0 #eef0f3, 0 4px 16px rgba(0,0,0,0.03) !important;
+  border-bottom-color: #eef0f3 !important;
 }
 [data-theme="light"] .el-content {
   background: var(--el-content-bg) !important;
 }
 [data-theme="light"] .el-mobile-backdrop {
-  background: rgba(30,26,60,0.4) !important;
+  background: rgba(15, 23, 42, 0.25) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
 }
 [data-theme="light"] .el-hamburger:hover,
 [data-theme="light"] .el-sidebar-close:hover {
-  background: #f4f4fd !important;
-  color: #1a1a2e !important;
+  background: #f3f4f6 !important;
+  color: #111827 !important;
 }
 [data-theme="light"] .el-balance-pill {
   background: rgb(from var(--gold) r g b / 0.10) !important;
@@ -790,6 +831,81 @@ html[data-theme="light"] .os-root {
   background: #f8f8fd !important;
   box-shadow: none !important;
 }
+[data-theme="light"] .ea-panel-hd {
+  background: #ffffff !important;
+  border-bottom-color: #eef0f3 !important;
+}
+[data-theme="light"] .ea-panel-title { color: #111827 !important; }
+[data-theme="light"] .ea-hd-burger { color: #374151 !important; }
+[data-theme="light"] .ea-hd-burger:hover { background: #f3f4f6 !important; }
+[data-theme="light"] .ea-hd-gear { color: #6b7280 !important; }
+[data-theme="light"] .ea-hd-gear:hover { background: #f3f4f6 !important; color: #111827 !important; }
+[data-theme="light"] .ea-hd-sep { background: #e5e7eb !important; }
+[data-theme="light"] .ea-add-btn {
+  background: #111827 !important;
+  color: #ffffff !important;
+}
+[data-theme="light"] .ea-add-btn:hover { background: #1f2937 !important; }
+[data-theme="light"] .ea-send-btn {
+  background: none !important;
+  color: #374151 !important;
+  border-color: #d1d5db !important;
+}
+[data-theme="light"] .ea-send-btn:hover {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  border-color: transparent !important;
+}
+/* Search refinements */
+[data-theme="light"] .ea-search {
+  background: #ffffff !important;
+  border: 1.5px solid #d1d5db !important;
+  box-shadow: none !important;
+  color: #111827 !important;
+}
+[data-theme="light"] .ea-search:focus {
+  border-color: rgba(79,70,229,0.4) !important;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.08) !important;
+}
+[data-theme="light"] .ea-search::placeholder { color: #9ca3af !important; }
+/* Toolbar — horizontal pills */
+[data-theme="light"] .ea-toolbar2 {
+  background: #ffffff !important;
+  border-bottom-color: #eef0f3 !important;
+}
+[data-theme="light"] .ea-tb2-btn .ea-tb2-lbl { color: #6b7280 !important; }
+[data-theme="light"] .ea-tb2-btn:hover { background: #f3f4f6 !important; }
+[data-theme="light"] .ea-tb2-btn:hover .ea-tb2-lbl { color: #111827 !important; }
+[data-theme="light"] .ea-tb2-btn--active { background: rgba(79,70,229,0.06) !important; }
+[data-theme="light"] .ea-tb2-btn--active .ea-tb2-ic { color: #4f46e5 !important; }
+[data-theme="light"] .ea-tb2-btn--active .ea-tb2-lbl { color: #4f46e5 !important; }
+[data-theme="light"] .ea-tb2-ic { color: #6b7280 !important; }
+[data-theme="light"] .ea-tb2-cnt { background: #f3f4f6 !important; color: #6b7280 !important; }
+[data-theme="light"] .ea-tb2-divider { background: #e5e7eb !important; }
+[data-theme="light"] .ea-tb2-sel-count { background: #f3f4f6 !important; color: #374151 !important; }
+/* Column headers */
+[data-theme="light"] .ea-col-head { border-bottom-color: #e5e7eb !important; }
+[data-theme="light"] .ea-col-btn { color: #9ca3af !important; }
+[data-theme="light"] .ea-col-btn:hover { color: #374151 !important; }
+[data-theme="light"] .ea-col-lbl { color: #9ca3af !important; }
+/* Pagination */
+[data-theme="light"] .ea-table-footer { border-top-color: #eef0f3 !important; }
+[data-theme="light"] .ea-page-btn {
+  background: none !important;
+  border-color: #e5e7eb !important;
+  color: #6b7280 !important;
+}
+[data-theme="light"] .ea-page-btn:hover:not(:disabled):not(.ea-page-btn--active) {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  border-color: transparent !important;
+}
+[data-theme="light"] .ea-page-btn--active {
+  background: #111827 !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+}
+[data-theme="light"] .ea-range-label { color: #9ca3af !important; }
 [data-theme="light"] .ea-type-trigger {
   background: #f4f4fd !important;
   border-color: #e8e8f4 !important;
@@ -823,32 +939,6 @@ html[data-theme="light"] .os-root {
   background: rgb(from var(--gold) r g b / 0.08) !important;
   color: #7a5a0a !important;
 }
-[data-theme="light"] .ea-page-btn {
-  background: #f4f4fd !important;
-  border-color: #e8e8f4 !important;
-  color: #6b7280 !important;
-}
-[data-theme="light"] .ea-page-btn:hover:not(:disabled):not(.ea-page-btn--active) {
-  background: #ffffff !important;
-  color: #1a1a2e !important;
-}
-[data-theme="light"] .ea-page-btn--active {
-  background: rgb(from var(--gold) r g b / 0.10) !important;
-  border-color: rgb(from var(--gold) r g b / 0.3) !important;
-  color: #7a5a0a !important;
-}
-[data-theme="light"] .ea-search {
-  background: #ffffff !important;
-  border: 1.3px solid #d8d8e4 !important;
-  box-shadow: none !important;
-  color: #1a1a2e !important;
-}
-[data-theme="light"] .ea-search:focus {
-  background: #ffffff !important;
-  border-color: #a8a8c0 !important;
-  box-shadow: none !important;
-}
-[data-theme="light"] .ea-search::placeholder { color: #9494a8 !important; }
 [data-theme="light"] .ea-cb { border-color: #b8b8cc !important; }
 [data-theme="light"] .ea-cb:hover { border-color: var(--gold) !important; }
 [data-theme="light"] .ea-import-btn {
@@ -1062,6 +1152,50 @@ html[data-theme="light"] .cs-root {
   opacity: 1 !important;
 }
 [data-theme="light"] .em-drawer-footer { background: #ffffff !important; }
+
+/* Full-screen composer redesign — same teleport problem as above, same fix:
+   these classes are new (added for the two-column Send Campaign screen) so
+   they never got literal dark colors that read as intentional; give them
+   real ones instead of falling back to (or literally being) near-black. */
+[data-theme="light"] .em-drawer-header  { border-color: #e8e8f4 !important; }
+[data-theme="light"] .em-drawer-section {
+  background: #f8f8fd !important;
+  border-color: #e8e8f4 !important;
+}
+[data-theme="light"] .em-drawer-section-label { color: #6b7280 !important; }
+[data-theme="light"] .em-send-ch-btn {
+  background: #ffffff !important;
+  color: #6b7280 !important;
+  border-color: #e8e8f4 !important;
+}
+[data-theme="light"] .em-send-ch-btn:hover { border-color: var(--gold) !important; color: var(--gold) !important; }
+/* Active state must also be !important — it's set via an inline style plus a
+   modifier class, neither of which carries !important, so without this the
+   base rule above (added for the same reason) would outrank both and the
+   "selected" channel would look identical to the unselected one. */
+[data-theme="light"] .em-send-ch-btn--wsp,
+[data-theme="light"] .em-send-ch-btn--sms {
+  background: rgb(from var(--gold) r g b / 0.14) !important;
+  border-color: rgb(from var(--gold) r g b / 0.5) !important;
+  color: var(--gold) !important;
+}
+
+/* Live message preview panel */
+[data-theme="light"] .em-preview-card {
+  background: #ffffff !important;
+  border-color: #e8e8f4 !important;
+  box-shadow: 0 4px 20px rgba(20,16,50,0.06) !important;
+}
+[data-theme="light"] .em-preview-eyebrow { color: #9ca3af !important; }
+[data-theme="light"] .em-preview-phone   { background: #eef0fb !important; }
+[data-theme="light"] .em-preview-notch   { background: rgba(20,16,50,0.14) !important; }
+[data-theme="light"] .em-preview-bubble--empty {
+  background: #ffffff !important;
+  border-color: #dcdcec !important;
+  color: #9ca3af !important;
+}
+[data-theme="light"] .em-preview-caption { color: #6b7280 !important; }
+[data-theme="light"] .em-preview-caption strong { color: #1a1a2e !important; }
 
 /* Template items */
 [data-theme="light"] .em-tpl-item--active {

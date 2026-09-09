@@ -1,6 +1,16 @@
 <template>
   <div class="em-root">
 
+    <!-- Deep-linked straight into the composer (?campaign=<id>&send=1, from the
+         Guest List send flow). The composer is a teleported, opaque, full-screen
+         overlay that is already open on the very first paint — so for as long as
+         it owns the screen this page renders none of its own content, not even a
+         spinner. The campaign detail view the user never asked to see therefore
+         never gets a single frame: not while the campaigns fetch is in flight,
+         not behind the drawer's enter transition, and not after a refresh (the
+         send/returnTo params are kept in the URL rather than stripped). -->
+    <template v-if="!composerOnly">
+
     <!-- ══════════════════════════════════════════════
          CAMPAIGN LIST (no campaign selected)
          ══════════════════════════════════════════════ -->
@@ -369,6 +379,7 @@
       </div>
 
     </template>
+    </template>
 
     <!-- ══════════════════════════════════════════════
          SEND DRAWER
@@ -377,39 +388,52 @@
       <Transition name="em-fade">
         <div v-if="sendDrawerOpen" class="em-overlay" @click.self="closeSendDrawer">
           <Transition name="em-slide-right">
-            <div v-if="sendDrawerOpen" class="em-drawer">
+            <div v-if="sendDrawerOpen" class="em-drawer em-drawer--composer">
 
               <div class="em-drawer-header">
                 <div class="em-drawer-header-left">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <button class="em-drawer-burger" title="Menu" @click="navDrawer.open()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                  </button>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color: var(--cx-muted); flex-shrink: 0;"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                   </svg>
                   <span class="em-drawer-title">Send {{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }} Campaign</span>
                 </div>
-                <button class="em-drawer-close" @click="closeSendDrawer">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <button class="em-drawer-close" @click="closeSendDrawer" title="Close">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
                 </button>
               </div>
 
-              <div v-if="sendResult" class="em-send-result"
-                :class="sendResult.ok ? 'em-send-result--ok' : 'em-send-result--err'">
-                <svg v-if="sendResult.ok" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <div>
-                  <p class="em-result-title">{{ sendResult.ok ? 'Messages sent!' : 'Something went wrong' }}</p>
-                  <p class="em-result-msg">{{ sendResult.message }}</p>
-                </div>
-                <button class="em-result-dismiss" @click="sendResult = null">Dismiss</button>
-              </div>
-
               <div class="em-drawer-body">
+                <!-- Deep-linked open before the campaigns fetch has landed — the
+                     form would otherwise render a nameless campaign and warn that
+                     no message is set, which is just the load not having finished. -->
+                <div v-if="!selectedCustomCamp" class="em-composer-loading">
+                  <svg class="em-spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                </div>
+                <div v-else class="em-drawer-grid">
+                <div class="em-send-form">
+                <div v-if="sendResult" class="em-send-result"
+                  :class="sendResult.ok ? 'em-send-result--ok' : 'em-send-result--err'">
+                  <svg v-if="sendResult.ok" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <div>
+                    <p class="em-result-title">{{ sendResult.ok ? 'Messages sent!' : 'Something went wrong' }}</p>
+                    <p class="em-result-msg">{{ sendResult.message }}</p>
+                  </div>
+                  <button class="em-result-dismiss" @click="sendResult = null">Dismiss</button>
+                </div>
+
                 <div class="em-drawer-section">
                   <p class="em-drawer-section-label">Campaign</p>
                   <div class="em-custom-camp-display">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color: var(--cx-muted); flex-shrink: 0;" stroke-width="1.8" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                     {{ selectedCustomCamp?.name }}
                     <span class="em-custom-camp-type">{{ selectedCustomCamp?.type }}</span>
                   </div>
@@ -557,20 +581,56 @@
                     </div>
                   </template>
                 </div>
+                </div>
+
+                <aside class="em-send-preview">
+                  <div class="em-preview-card">
+                    <div class="em-preview-head">
+                      <span class="em-preview-eyebrow">Preview</span>
+                      <span class="em-preview-channel" :class="sendChannel === 'whatsapp' ? 'em-preview-channel--wsp' : 'em-preview-channel--sms'">
+                        <svg v-if="sendChannel === 'whatsapp'" width="12" height="12" viewBox="0 0 448 512" fill="currentColor"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
+                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        {{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }}
+                      </span>
+                    </div>
+
+                    <div class="em-preview-phone">
+                      <div class="em-preview-notch" />
+                      <div class="em-preview-screen">
+                        <div class="em-preview-bubble" :class="{ 'em-preview-bubble--wsp': sendChannel === 'whatsapp' }" v-if="previewParts.length">
+                          <template v-for="(part, i) in previewParts" :key="i">
+                            <span v-if="isVarToken(part)" class="em-preview-token">{{ part }}</span>
+                            <template v-else>{{ part }}</template>
+                          </template>
+                        </div>
+                        <div class="em-preview-bubble em-preview-bubble--empty" v-else>
+                          {{ sendChannel === 'whatsapp' ? 'Pick a template to preview it here.' : 'Set an SMS message to preview it here.' }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p class="em-preview-caption">
+                      Going to <strong>{{ sendRecipCount }}</strong> recipient{{ sendRecipCount !== 1 ? 's' : '' }} for <strong>{{ selectedCustomCamp?.name }}</strong>
+                    </p>
+                  </div>
+                </aside>
+                </div>
               </div>
 
               <div class="em-drawer-footer">
-                <button class="em-drawer-cancel" @click="closeSendDrawer">Cancel</button>
-                <button class="em-drawer-send" :disabled="!canSend || sending" @click="executeSend">
-                  <template v-if="sending">
-                    <svg class="em-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                    Sending…
-                  </template>
-                  <template v-else>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                    Send to {{ sendRecipCount }}
-                  </template>
-                </button>
+                <div class="em-drawer-footer-inner">
+                  <button class="em-drawer-cancel" @click="closeSendDrawer">Cancel</button>
+                  <button class="em-drawer-send" :disabled="!canSend || sending" @click="executeSend">
+                    <template v-if="sending">
+                      <svg class="em-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                      Sending…
+                    </template>
+                    <template v-else>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                      Send to {{ sendRecipCount }}
+                    </template>
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -671,10 +731,12 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db, auth } from '../../firebase'
 import { collection, query, orderBy, where, getDocs, addDoc, setDoc, deleteDoc, doc } from 'firebase/firestore'
+import { useNavDrawer } from '../../composables/useNavDrawer.js'
 
 const props = defineProps({ event: Object, eventId: String })
 const route  = useRoute()
 const router = useRouter()
+const navDrawer = useNavDrawer()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
 
 const SMS_URL = 'https://sendsmsaction-frbu33fema-uc.a.run.app'
@@ -686,9 +748,10 @@ const GENERAL_CAMPAIGN_CATEGORY = 'haflaway-general-campaign'
 // org brand accent, set at runtime by useOrg.js) at low opacity, matching
 // the tinted-accent treatment used elsewhere (e.g. .em-dialog-type-btn--on).
 const ACTIVE_CH_STYLE = {
-  background: 'rgb(from var(--gold) r g b / 0.14)',
-  color: 'var(--gold)',
-  borderColor: 'rgb(from var(--gold) r g b / 0.5)',
+  background: 'var(--cx-seg-bg)',
+  color: 'var(--cx-seg-fg)',
+  borderColor: 'transparent',
+  boxShadow: 'var(--cx-seg-shadow)',
   fontWeight: 700,
 }
 
@@ -779,6 +842,20 @@ const campPageNumbers = computed(() => {
 function campGoPage(n) { if (n >= 1 && n <= campTotalPages.value) campPage.value = n }
 
 const selectedCustomCamp = ref(null)
+// Read once, synchronously at setup, before any Firestore round-trip: were we
+// deep-linked here to compose rather than to browse? Everything about that flow
+// hangs off this — the composer starts *already open* (see sendDrawerOpen) so it
+// paints on the first frame with no enter transition to see past, and this page
+// suppresses all of its own content (see composerOnly) so the campaign detail
+// view never shows through while the fetch is in flight.
+const deepLinkSend = route.query.send === '1' && !!route.query.campaign
+// The composer owns the whole screen. Stays true until it's closed or the deep
+// link turns out to be a dud, never flipped by the fetch merely finishing.
+const composerOnly = ref(deepLinkSend)
+// One-shot: only the *first* load resolves the deep link. Later reloads (e.g.
+// after editing the campaign's message from inside the composer) must not
+// re-run the open/abort logic underneath the user.
+let deepLinkPending = deepLinkSend
 const customStatus       = ref('unsent')
 const customStatusDropOpen = ref(false)
 const customLabelId      = ref(null)
@@ -838,13 +915,40 @@ async function loadCustomCampaigns() {
     // instead of always landing back on the list.
     if (route.query.campaign && !selectedCustomCamp.value) {
       const match = customCampaigns.value.find(c => c.id === route.query.campaign)
-      if (match) selectedCustomCamp.value = match
+      if (match) {
+        selectedCustomCamp.value = match
+        // Deep-linked here from the Guest List "Send" flow, which wants to jump
+        // straight into composing rather than landing on the campaign detail
+        // view. The drawer is already open — this just fills in the campaign it
+        // is composing for and loads its templates. `send`/`returnTo` stay in
+        // the URL on purpose: strip them and a refresh drops the user onto that
+        // same detail view, and Cancel loses its way back to the Guest List.
+        if (deepLinkPending) openCustomSend()
+      }
     }
   } catch (e) {
     console.error('Failed to load campaigns', e)
   } finally {
     loadingCustomCamps.value = false
+    if (deepLinkPending) {
+      deepLinkPending = false
+      // Campaign id was stale/invalid, or the fetch failed — there is nothing to
+      // compose. Don't strand the user in an empty composer; fall back to the
+      // normal page (which is now the honest thing to show).
+      if (!selectedCustomCamp.value) exitComposerOnly()
+    }
   }
+}
+
+// Hand the screen back to this page: close the composer and drop the deep-link
+// params so a refresh doesn't reopen it.
+function exitComposerOnly() {
+  deepLinkPending = false
+  composerOnly.value = false
+  sendDrawerOpen.value = false
+  deepLinkReturnTo.value = null
+  const { send, returnTo, ...rest } = route.query
+  router.replace({ query: rest })
 }
 
 function selectCustomCamp(camp) {
@@ -1141,7 +1245,10 @@ function drawerPickSelectAll() {
 }
 
 // ── Send drawer ────────────────────────────────────────────────────────────────
-const sendDrawerOpen   = ref(false)
+// Deep-linked in? Then this is open before the first paint. <Transition> does
+// not animate on initial render, so the composer simply *is* the screen from
+// frame one — no fade/slide window for the page behind it to show through.
+const sendDrawerOpen   = ref(deepLinkSend)
 const sendCampaign     = ref(null)
 const sendChannel      = ref('sms')
 const templates        = ref([])
@@ -1149,12 +1256,27 @@ const selectedTemplate = ref(null)
 const loadingTemplates = ref(false)
 const sending          = ref(false)
 const sendResult       = ref(null)
+// Set only when this drawer was deep-linked open from elsewhere (e.g. the
+// Guest List "Send" flow) — closing it should then hand the user back to
+// where they came from instead of stranding them on this campaign's detail
+// view, which they never asked to visit.
+const deepLinkReturnTo = ref(deepLinkSend ? (route.query.returnTo ?? null) : null)
 
 const canSend = computed(() => {
   if (sending.value || sendRecipCount.value === 0) return false
   if (sendChannel.value === 'whatsapp') return !!selectedTemplate.value && !!selectedCustomCamp.value?.whatsappMessage
   return !!selectedCustomCamp.value?.smsMessage
 })
+
+// Live preview — mirrors exactly what executeSend() actually transmits per
+// channel (see the `body` it builds), so what's shown here never drifts from
+// what gets sent.
+const previewMessage = computed(() => {
+  if (sendChannel.value === 'whatsapp') return selectedTemplate.value?.content ?? ''
+  return selectedCustomCamp.value?.smsMessage ?? ''
+})
+const previewParts = computed(() => previewMessage.value.split(/(\{\{[^}]+\}\})/g).filter(Boolean))
+function isVarToken(part) { return /^\{\{[^}]+\}\}$/.test(part) }
 
 function openCustomSend() {
   sendCampaign.value = selectedCustomCamp.value.id
@@ -1176,7 +1298,32 @@ function onChannelChange(ch) {
 }
 
 function closeSendDrawer() {
+  // The deep link is spent either way — otherwise an in-flight campaigns fetch
+  // that lands after this close would walk back in and re-open the composer.
+  deepLinkPending = false
+  const target = safeReturnTo(deepLinkReturnTo.value)
+  if (target) {
+    deepLinkReturnTo.value = null
+    // Deliberately leave composerOnly/sendDrawerOpen set: router.push is async
+    // (lazy route chunk + async guard), so clearing them here would commit this
+    // page's detail view to the DOM and leave it on screen for the whole
+    // navigation. Letting the unmount take the teleported drawer with it means
+    // nothing of this page ever paints.
+    router.push(target)
+    return
+  }
+  deepLinkReturnTo.value = null
   sendDrawerOpen.value = false
+  // Deep-linked without a usable returnTo (hand-typed URL): this campaign's
+  // detail view is the only sensible destination, so reveal it and clear params.
+  if (composerOnly.value) exitComposerOnly()
+}
+
+// `returnTo` is attacker-controllable (it's just a query param) and can arrive as
+// an array if the key is repeated, which would throw inside router.push. Only
+// same-origin app paths are worth honouring.
+function safeReturnTo(v) {
+  return typeof v === 'string' && v.startsWith('/') && !v.startsWith('//') ? v : null
 }
 
 async function loadSendTemplates() {
@@ -1247,6 +1394,11 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 </script>
 
 <style scoped>
+.em-composer-loading {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--c-txt-2);
+}
 .em-root {
   padding: 20px 24px 24px;
   display: flex;
@@ -1564,30 +1716,47 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-action-btn--sms { background: var(--gold); color: var(--gold-contrast); }
 .em-action-btn--sms:hover { background: #d4b560; opacity: 1; }
 
-/* ── Send Drawer ── */
+/* ── Send Drawer (full-screen, two-column composer) ── */
 .em-overlay { position: fixed; inset: 0; background: var(--overlay-bg); z-index: 1000; display: flex; align-items: stretch; justify-content: flex-end; }
 .em-overlay--center { align-items: center; justify-content: center; }
-.em-drawer  { width: 400px; max-width: 95vw; height: 100%; background: #0f0f0f; display: flex; flex-direction: column; box-shadow: -12px 0 40px rgba(0,0,0,0.6); }
-.em-drawer-header { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--c-divide); }
-.em-drawer-header-left { display: flex; align-items: center; gap: 8px; }
-.em-drawer-title { font-size: 16px; font-weight: 700; color: var(--c-txt); }
-.em-drawer-close { width: 28px; height: 28px; border-radius: 8px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; color: var(--c-txt-2); display: flex; align-items: center; justify-content: center; transition: background 130ms; }
+.em-drawer  { width: 100%; max-width: 100%; height: 100%; background: #0f0f0f; display: flex; flex-direction: column; box-shadow: none; }
+.em-drawer-header { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 26px 48px; border-bottom: 1px solid var(--c-divide); }
+.em-drawer-header-left { display: flex; align-items: center; gap: 12px; }
+/* Opens the same shared nav drawer as every other page's hamburger
+   (useNavDrawer.js) — it renders as an overlay on top of this composer
+   (EventLayout's drawer sits above the standard modal z-index layer, see
+   .el-sidebar--drawer / .el-mobile-backdrop) rather than requiring this
+   composer to close first. */
+.em-drawer-burger {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex-shrink: 0;
+  background: none; border: none; color: var(--c-txt); cursor: pointer; padding: 0;
+  transition: opacity 130ms;
+}
+.em-drawer-burger:hover { opacity: 0.65; }
+.em-drawer-title { font-size: 26px; font-weight: 800; letter-spacing: -0.3px; color: var(--c-txt); }
+.em-drawer-close { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; color: var(--c-txt-2); display: flex; align-items: center; justify-content: center; transition: background 130ms; }
 .em-drawer-close:hover { background: rgba(255,255,255,0.10); }
-.em-send-result { flex-shrink: 0; display: flex; align-items: flex-start; gap: 10px; padding: 12px 20px; font-size: 13px; }
-.em-send-result--ok  { background: rgba(52,211,153,0.08); color: #34d399; border-bottom: 1px solid rgba(52,211,153,0.2); }
-.em-send-result--err { background: rgba(255,69,58,0.08);  color: #fc8181; border-bottom: 1px solid rgba(255,69,58,0.2); }
+.em-drawer-body  { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 44px 48px 60px; }
+.em-drawer-grid { width: 100%; max-width: 1160px; display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 56px; align-items: start; }
+.em-send-form { min-width: 0; }
+.em-send-result { flex-shrink: 0; display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; margin-bottom: 18px; border-radius: 10px; font-size: 13px; }
+.em-send-result--ok  { background: rgba(52,211,153,0.08); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
+.em-send-result--err { background: rgba(255,69,58,0.08);  color: #fc8181; border: 1px solid rgba(255,69,58,0.2); }
 .em-result-title { font-weight: 700; margin: 0 0 2px; }
 .em-result-msg   { margin: 0; opacity: 0.8; }
 .em-result-dismiss { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 12px; opacity: 0.7; color: inherit; flex-shrink: 0; }
 .em-result-dismiss:hover { opacity: 1; }
-.em-drawer-body  { flex: 1; overflow-y: auto; padding: 0 20px 20px; }
-.em-drawer-section { padding: 18px 0; border-bottom: 1px solid var(--c-divide); }
-.em-drawer-section:last-child { border-bottom: none; }
-.em-drawer-section-label { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--c-txt-2); text-transform: uppercase; letter-spacing: 0.6px; margin: 0 0 12px; }
-.em-custom-camp-display { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgb(from var(--gold) r g b / 0.3); background: rgb(from var(--gold) r g b / 0.06); font-size: 14px; font-weight: 600; color: var(--c-txt); }
+.em-drawer-section {
+  padding: 24px; margin-bottom: 20px; border-radius: 18px;
+  background: rgba(255,255,255,0.025); border: 1px solid var(--c-divide);
+}
+.em-drawer-section:last-child { margin-bottom: 0; }
+.em-drawer-section-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: var(--c-txt-2); text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 16px; }
+.em-custom-camp-display { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-radius: 12px; border: 1px solid rgb(from var(--gold) r g b / 0.3); background: rgb(from var(--gold) r g b / 0.06); font-size: 15px; font-weight: 600; color: var(--c-txt); }
 .em-custom-camp-type { margin-left: auto; font-size: 11px; font-weight: 500; color: var(--c-txt-2); text-transform: capitalize; }
-.em-send-ch-toggle { display: flex; gap: 8px; }
-.em-send-ch-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; height: 40px; border-radius: 10px; border: 1px solid var(--c-border, #2a2a2a); background: var(--c-bg, #1c1c1f); font-size: 14px; font-weight: 500; color: var(--c-txt-2, #8a8a92); cursor: pointer; transition: all 130ms; }
+.em-send-ch-toggle { display: flex; gap: 10px; }
+.em-send-ch-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; border-radius: 12px; border: 1px solid var(--c-border, #2a2a2a); background: var(--c-bg, #1c1c1f); font-size: 15px; font-weight: 500; color: var(--c-txt-2, #8a8a92); cursor: pointer; transition: all 130ms; }
 .em-send-ch-btn:hover { border-color: #C9A84C; color: #C9A84C; }
 .em-send-ch-btn--wsp, .em-send-ch-btn--sms { background: rgb(from var(--gold) r g b / 0.14); color: var(--gold); border-color: rgb(from var(--gold) r g b / 0.5); font-weight: 700; }
 .em-selected-recip-display { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgb(from var(--gold) r g b / 0.3); background: rgb(from var(--gold) r g b / 0.06); font-size: 14px; color: var(--c-txt); }
@@ -1612,10 +1781,59 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-tpl-body    { flex: 1; min-width: 0; }
 .em-tpl-content { font-size: 13px; color: var(--c-txt); margin: 0 0 4px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 .em-tpl-meta    { font-size: 11px; color: var(--c-txt-3); margin: 0; }
-.em-drawer-footer { flex-shrink: 0; display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--c-divide); background: var(--c-bg); }
-.em-drawer-cancel { flex: 1; height: 40px; border-radius: 10px; border: 1px solid var(--c-border); background: rgba(255,255,255,0.05); font-size: 14px; font-weight: 500; color: var(--c-txt-2); cursor: pointer; transition: background 130ms; font-family: inherit; }
+
+/* ── Live message preview (right column) ── */
+.em-send-preview { position: sticky; top: 0; }
+.em-preview-card {
+  display: flex; flex-direction: column; gap: 20px;
+  padding: 28px; border-radius: 22px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--c-divide);
+}
+.em-preview-head { display: flex; align-items: center; justify-content: space-between; }
+.em-preview-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--c-txt-3); }
+.em-preview-channel {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px;
+  border-radius: 999px; font-size: 12px; font-weight: 700;
+}
+.em-preview-channel--wsp { color: #34d399; background: rgba(52,211,153,0.12); }
+.em-preview-channel--sms { color: #8b87ff; background: rgba(88,86,214,0.16); }
+.em-preview-phone {
+  border-radius: 24px; background: #060606; padding: 24px 18px;
+  min-height: 220px; display: flex; flex-direction: column; align-items: flex-start;
+}
+.em-preview-notch { width: 56px; height: 5px; border-radius: 999px; background: rgba(255,255,255,0.15); margin: 0 auto 22px; }
+.em-preview-screen { width: 100%; }
+.em-preview-bubble {
+  max-width: 92%; padding: 14px 16px; border-radius: 18px; border-bottom-left-radius: 4px;
+  font-size: 14px; line-height: 1.6; color: #fff; white-space: pre-wrap; word-break: break-word;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  background: linear-gradient(165deg, #6a67f0, #5856D6);
+}
+.em-preview-bubble--wsp { background: linear-gradient(165deg, #06614a, #005c4b); }
+.em-preview-bubble--empty {
+  background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.16);
+  color: var(--c-txt-3); font-style: italic; box-shadow: none;
+}
+.em-preview-token { display: inline-block; background: rgba(255,255,255,0.2); padding: 1px 7px; border-radius: 6px; font-weight: 700; }
+.em-preview-caption { margin: 0; font-size: 13px; color: var(--c-txt-2); text-align: center; }
+.em-preview-caption strong { color: var(--c-txt); font-weight: 700; }
+
+@media (max-width: 1040px) {
+  .em-drawer-grid { grid-template-columns: 1fr; gap: 32px; }
+  .em-send-preview { position: static; }
+}
+@media (max-width: 640px) {
+  .em-drawer-header { padding: 18px 20px; }
+  .em-drawer-title { font-size: 20px; }
+  .em-drawer-body { padding: 24px 16px 40px; }
+  .em-drawer-section { padding: 18px; }
+}
+
+.em-drawer-footer { flex-shrink: 0; display: flex; justify-content: center; padding: 20px 48px; border-top: 1px solid var(--c-divide); background: var(--c-bg); }
+.em-drawer-footer-inner { width: 100%; max-width: 1160px; display: flex; justify-content: flex-end; gap: 12px; }
+.em-drawer-cancel { flex: 0 0 140px; height: 48px; border-radius: 12px; border: 1px solid var(--c-border); background: rgba(255,255,255,0.05); font-size: 14px; font-weight: 500; color: var(--c-txt-2); cursor: pointer; transition: background 130ms; font-family: inherit; }
 .em-drawer-cancel:hover { background: rgba(255,255,255,0.09); }
-.em-drawer-send { flex: 2; height: 40px; border-radius: 10px; background: var(--gold); color: var(--gold-contrast); border: none; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: background 150ms; font-family: inherit; }
+.em-drawer-send { flex: 0 0 220px; height: 48px; border-radius: 12px; background: var(--gold); color: var(--gold-contrast); border: none; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: background 150ms; font-family: inherit; }
 .em-drawer-send:hover:not(:disabled) { background: #d4b560; }
 .em-drawer-send:disabled { opacity: 0.45; cursor: default; }
 
@@ -1778,4 +1996,751 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   text-transform: none; letter-spacing: 0; transition: opacity 130ms;
 }
 .em-browse-tpl-btn:hover { opacity: 0.75; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMPOSER — WithJoy-Inspired Split-Screen Architecture
+   ─────────────────────────────────────────────────────────────────────────
+   Transforms the composer into a calm, elevated, full-height split-screen
+   experience matching WithJoy.com:
+   - Left side: A clean, pure-white canvas where form controls sit naturally
+     with generous breathing room and sentence-case labels (no floating box!).
+   - Right side: A soft, warm-neutral canvas holding a single elevated
+     preview card that showcases the live SMS / WhatsApp message.
+   - Fixed header and footer rails that seamlessly frame the workspace.
+   ══════════════════════════════════════════════════════════════════════════ */
+.em-drawer--composer {
+  --cx-ground:     #111114;
+  --cx-card:       #18181c;
+  --cx-line:       #26262c;
+  --cx-shadow:     0 8px 30px rgba(0, 0, 0, 0.45);
+  --cx-label:      #f4f4f6;
+  --cx-muted:      #91919e;
+  --cx-faint:      #636370;
+  --cx-field:      #202025;
+  --cx-field-line: #2e2e36;
+  --cx-track:      #222228;
+  --cx-seg-bg:     #34343d;
+  --cx-seg-fg:     #ffffff;
+  --cx-seg-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  --cx-cta:        #ffffff;
+  --cx-cta-fg:     #111114;
+  --cx-cta-hover:  #e4e4e7;
+}
+
+[data-theme="light"] .em-drawer--composer {
+  --cx-ground:     #f7f8fa;
+  --cx-card:       #ffffff;
+  --cx-line:       #eef0f3;
+  --cx-shadow:     0 4px 24px -2px rgba(0, 0, 0, 0.06), 0 2px 8px -1px rgba(0, 0, 0, 0.03);
+  --cx-label:      #111827;
+  --cx-muted:      #6b7280;
+  --cx-faint:      #9ca3af;
+  --cx-field:      #ffffff;
+  --cx-field-line: #e5e7eb;
+  --cx-track:      #f3f4f6;
+  --cx-seg-bg:     #ffffff;
+  --cx-seg-fg:     #111827;
+  --cx-seg-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.04);
+  --cx-cta:        #111827;
+  --cx-cta-fg:     #ffffff;
+  --cx-cta-hover:  #1f2937;
+}
+
+/* ── Fullscreen Overlay and Drawer Container ── */
+.em-drawer.em-drawer--composer {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  background: var(--cx-card) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+}
+
+/* ── Header: clean, minimal WithJoy-style edge-to-edge top bar ── */
+.em-drawer.em-drawer--composer .em-drawer-header {
+  flex-shrink: 0 !important;
+  height: 64px !important;
+  padding: 0 32px !important;
+  background: var(--cx-card) !important;
+  border-bottom: 1px solid var(--cx-line) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-header-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-burger {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--cx-label) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: background 150ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-burger:hover {
+  background: var(--cx-track) !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-title {
+  font-size: 19px !important;
+  font-weight: 700 !important;
+  color: var(--cx-label) !important;
+  letter-spacing: -0.02em !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-close {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--cx-muted) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 150ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-close:hover {
+  background: var(--cx-track) !important;
+  color: var(--cx-label) !important;
+}
+
+/* ── Drawer Body: Houses the Split-Screen Architecture ── */
+.em-drawer.em-drawer--composer .em-drawer-body {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--cx-card) !important;
+}
+.em-drawer.em-drawer--composer .em-composer-loading {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--cx-muted) !important;
+  background: var(--cx-card) !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-grid {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  gap: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+}
+
+/* ── Left Pane (Form / Editor): Pure White Canvas, No Floating Card ── */
+.em-drawer.em-drawer--composer .em-send-form {
+  flex: 1 1 540px !important;
+  max-width: 600px !important;
+  min-width: 380px !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+  background: var(--cx-card) !important;
+  padding: 36px 48px 60px 48px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ── Form Sections & Typography ── */
+.em-drawer.em-drawer--composer .em-drawer-section {
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 0 28px !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-section:last-child {
+  margin-bottom: 0 !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-section-label {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--cx-label) !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+  margin: 0 0 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+/* ── Result Alert Banner ── */
+.em-drawer.em-drawer--composer .em-send-result {
+  border-radius: 12px !important;
+  padding: 13px 16px !important;
+  margin-bottom: 24px !important;
+  font-size: 13.5px !important;
+  line-height: 1.5 !important;
+}
+.em-drawer.em-drawer--composer .em-send-result--ok {
+  background: #ecfdf5 !important;
+  border: 1px solid #a7f3d0 !important;
+  color: #065f46 !important;
+}
+.em-drawer.em-drawer--composer .em-send-result--err {
+  background: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  color: #991b1b !important;
+}
+[data-theme="dark"] .em-drawer.em-drawer--composer .em-send-result--ok {
+  background: #064e3b !important;
+  border-color: #047857 !important;
+  color: #a7f3d0 !important;
+}
+[data-theme="dark"] .em-drawer.em-drawer--composer .em-send-result--err {
+  background: #450a0a !important;
+  border-color: #991b1b !important;
+  color: #fecaca !important;
+}
+
+/* ── Campaign Field (WithJoy-style sleek input) ── */
+.em-drawer.em-drawer--composer .em-custom-camp-display {
+  padding: 11px 15px !important;
+  border-radius: 10px !important;
+  background: var(--cx-field) !important;
+  border: 1px solid var(--cx-field-line) !important;
+  color: var(--cx-label) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.em-drawer.em-drawer--composer .em-custom-camp-type {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  background: var(--cx-track) !important;
+  color: var(--cx-muted) !important;
+  margin-left: auto !important;
+}
+
+/* ── Channel: Segmented Switch (matches WithJoy "Send Time") ── */
+.em-drawer.em-drawer--composer .em-send-ch-toggle {
+  background: var(--cx-track) !important;
+  border-radius: 10px !important;
+  padding: 3px !important;
+  display: flex !important;
+  gap: 2px !important;
+  border: none !important;
+}
+.em-drawer.em-drawer--composer .em-send-ch-btn {
+  flex: 1 1 0 !important;
+  height: 38px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: var(--cx-muted) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: all 160ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-send-ch-btn:hover {
+  color: var(--cx-label) !important;
+}
+.em-drawer.em-drawer--composer .em-send-ch-btn--wsp,
+.em-drawer.em-drawer--composer .em-send-ch-btn--sms {
+  background: var(--cx-seg-bg) !important;
+  color: var(--cx-seg-fg) !important;
+  font-weight: 600 !important;
+  box-shadow: var(--cx-seg-shadow) !important;
+}
+
+/* ── Recipients ── */
+.em-drawer.em-drawer--composer .em-drawer-list-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-bottom: 10px !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-list-lbl {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+  color: var(--cx-muted) !important;
+  min-width: 50px !important;
+}
+.em-drawer.em-drawer--composer .em-filter-select--drawer {
+  flex: 1 !important;
+  height: 42px !important;
+  padding: 0 12px !important;
+  border-radius: 10px !important;
+  font-size: 13.5px !important;
+  background: var(--cx-field) !important;
+  border: 1px solid var(--cx-field-line) !important;
+  color: var(--cx-label) !important;
+}
+.em-drawer.em-drawer--composer .em-stat-dd-trigger {
+  height: 44px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  background: var(--cx-field) !important;
+  border: 1px solid var(--cx-field-line) !important;
+  color: var(--cx-label) !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  cursor: pointer !important;
+  transition: border-color 150ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-stat-dd-trigger:hover {
+  border-color: var(--cx-muted) !important;
+}
+.em-drawer.em-drawer--composer .em-stat-dd-dot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  margin-right: 8px !important;
+  flex-shrink: 0 !important;
+}
+.em-drawer.em-drawer--composer .em-stat-dd-label {
+  color: var(--cx-label) !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+}
+.em-drawer.em-drawer--composer .em-stat-dd-n {
+  margin-left: auto !important;
+  margin-right: 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+  background: var(--cx-track) !important;
+  color: var(--cx-muted) !important;
+}
+.em-drawer.em-drawer--composer .em-stat-dd-chev {
+  color: var(--cx-muted) !important;
+  transition: transform 200ms ease !important;
+}
+
+/* ── "Pick specific attendees" Pill Button (Signature WithJoy look) ── */
+.em-drawer.em-drawer--composer .em-pick-toggle-btn {
+  margin-top: 10px !important;
+  height: 44px !important;
+  width: 100% !important;
+  border-radius: 999px !important;
+  border: 1.5px solid var(--cx-field-line) !important;
+  background: var(--cx-field) !important;
+  color: var(--cx-label) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 18px !important;
+  cursor: pointer !important;
+  transition: all 160ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-pick-toggle-btn:hover {
+  border-color: var(--cx-label) !important;
+}
+.em-drawer.em-drawer--composer .em-pick-toggle-btn--on {
+  border-color: var(--cx-label) !important;
+  background: var(--cx-track) !important;
+}
+.em-drawer.em-drawer--composer .em-pick-toggle-btn .em-chip-cnt {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+  background: var(--cx-label) !important;
+  color: var(--cx-card) !important;
+}
+.em-drawer.em-drawer--composer .em-recip-hint {
+  margin-top: 10px !important;
+  font-size: 12.5px !important;
+  color: var(--cx-muted) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.em-drawer.em-drawer--composer .em-pick-wrap {
+  margin-top: 10px !important;
+  border: 1px solid var(--cx-field-line) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  background: var(--cx-field) !important;
+}
+.em-drawer.em-drawer--composer .em-pick-toolbar {
+  padding: 10px 12px !important;
+  background: var(--cx-track) !important;
+  border-bottom: 1px solid var(--cx-field-line) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.em-drawer.em-drawer--composer .em-pick-search-wrap {
+  height: 36px !important;
+  border-radius: 8px !important;
+  background: var(--cx-card) !important;
+  border: 1px solid var(--cx-field-line) !important;
+  flex: 1 !important;
+}
+.em-drawer.em-drawer--composer .em-pick-list {
+  max-height: 240px !important;
+}
+
+/* ── Message / Template Section ── */
+.em-drawer.em-drawer--composer .em-browse-tpl-btn {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--cx-muted) !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  transition: color 150ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-browse-tpl-btn:hover {
+  color: var(--cx-label) !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-item {
+  padding: 14px 16px !important;
+  border-radius: 12px !important;
+  background: var(--cx-field) !important;
+  border: 1px solid var(--cx-field-line) !important;
+  margin-bottom: 8px !important;
+  transition: all 150ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-item:hover {
+  border-color: var(--cx-muted) !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-item--active {
+  border-color: var(--cx-label) !important;
+  box-shadow: 0 0 0 1px var(--cx-label) !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-content {
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  color: var(--cx-label) !important;
+}
+.em-drawer.em-drawer--composer .em-msg-missing-warn {
+  border: 1px solid var(--cx-field-line) !important;
+  background: var(--cx-track) !important;
+  color: var(--cx-muted) !important;
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  font-size: 13.5px !important;
+  line-height: 1.55 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+}
+.em-drawer.em-drawer--composer .em-msg-missing-warn svg {
+  color: var(--cx-muted) !important;
+  flex-shrink: 0 !important;
+  margin-top: 2px !important;
+}
+[data-theme="dark"] .em-drawer.em-drawer--composer .em-msg-missing-warn {
+  border-color: var(--cx-field-line) !important;
+  background: var(--cx-track) !important;
+  color: var(--cx-muted) !important;
+}
+.em-drawer.em-drawer--composer .em-msg-missing-warn-btn {
+  background: none !important;
+  border: none !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  color: var(--cx-label) !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  transition: opacity 150ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-msg-missing-warn-btn:hover {
+  opacity: 0.75 !important;
+}
+
+/* ── Right Pane (Preview Stage): Soft Neutral Canvas Holding ONE Floating Card ── */
+.em-drawer.em-drawer--composer .em-send-preview {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+  background: var(--cx-ground) !important;
+  border-left: 1px solid var(--cx-line) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding: 44px 36px 60px !important;
+  position: static !important;
+  top: 0 !important;
+}
+
+/* ── The Single Elevated Preview Card ── */
+.em-drawer.em-drawer--composer .em-preview-card {
+  width: 100% !important;
+  max-width: 440px !important;
+  background: var(--cx-card) !important;
+  border: 1px solid var(--cx-line) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--cx-shadow) !important;
+  padding: 24px 22px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+}
+.em-drawer.em-drawer--composer .em-preview-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding-bottom: 14px !important;
+  border-bottom: 1px solid var(--cx-line) !important;
+}
+.em-drawer.em-drawer--composer .em-preview-eyebrow {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--cx-muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+.em-drawer.em-drawer--composer .em-preview-channel {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 3px 10px !important;
+  border-radius: 999px !important;
+}
+.em-drawer.em-drawer--composer .em-preview-channel--sms {
+  background: #f3f0ff !important;
+  color: #6366f1 !important;
+}
+.em-drawer.em-drawer--composer .em-preview-channel--wsp {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+}
+[data-theme="dark"] .em-drawer.em-drawer--composer .em-preview-channel--sms {
+  background: #2e1065 !important;
+  color: #c4b5fd !important;
+}
+[data-theme="dark"] .em-drawer.em-drawer--composer .em-preview-channel--wsp {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+}
+
+/* ── Live Message Mockup Screen ── */
+.em-drawer.em-drawer--composer .em-preview-phone {
+  background: var(--cx-track) !important;
+  border: 1px solid var(--cx-line) !important;
+  border-radius: 16px !important;
+  padding: 18px 16px 20px !important;
+  min-height: 270px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  position: relative !important;
+}
+.em-drawer.em-drawer--composer .em-preview-notch {
+  width: 44px !important;
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: var(--cx-field-line) !important;
+  margin: 0 auto 20px auto !important;
+  flex-shrink: 0 !important;
+}
+.em-drawer.em-drawer--composer .em-preview-screen {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  flex: 1 !important;
+}
+.em-drawer.em-drawer--composer .em-preview-bubble {
+  background: #007aff !important;
+  color: #ffffff !important;
+  border-radius: 18px 18px 4px 18px !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  max-width: 88% !important;
+  margin-left: auto !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+  word-break: break-word !important;
+}
+.em-drawer.em-drawer--composer .em-preview-bubble--wsp {
+  background: #e7ffdb !important;
+  color: #111b21 !important;
+  border-radius: 12px 12px 2px 12px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06) !important;
+}
+[data-theme="dark"] .em-drawer.em-drawer--composer .em-preview-bubble--wsp {
+  background: #005c4b !important;
+  color: #e9edef !important;
+}
+.em-drawer.em-drawer--composer .em-preview-token {
+  background: rgba(255,255,255,0.24) !important;
+  color: #ffffff !important;
+  padding: 1px 6px !important;
+  border-radius: 4px !important;
+  font-weight: 600 !important;
+}
+.em-drawer.em-drawer--composer .em-preview-bubble--wsp .em-preview-token {
+  background: rgba(0,0,0,0.07) !important;
+  color: #075e54 !important;
+}
+[data-theme="dark"] .em-drawer.em-drawer--composer .em-preview-bubble--wsp .em-preview-token {
+  background: rgba(255,255,255,0.14) !important;
+  color: #25d366 !important;
+}
+.em-drawer.em-drawer--composer .em-preview-bubble--empty {
+  background: transparent !important;
+  border: none !important;
+  color: var(--cx-faint) !important;
+  text-align: center !important;
+  font-size: 13.5px !important;
+  line-height: 1.5 !important;
+  padding: 44px 16px !important;
+  font-style: normal !important;
+  box-shadow: none !important;
+  margin: auto !important;
+}
+.em-drawer.em-drawer--composer .em-preview-caption {
+  font-size: 13px !important;
+  color: var(--cx-muted) !important;
+  text-align: center !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
+}
+.em-drawer.em-drawer--composer .em-preview-caption strong {
+  color: var(--cx-label) !important;
+  font-weight: 600 !important;
+}
+
+/* ── Fixed Bottom Footer Rail: Clean WithJoy Actions ── */
+.em-drawer.em-drawer--composer .em-drawer-footer {
+  flex-shrink: 0 !important;
+  height: 72px !important;
+  padding: 0 40px !important;
+  background: var(--cx-card) !important;
+  border-top: 1px solid var(--cx-line) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-footer-inner {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-cancel {
+  flex: 0 0 auto !important;
+  height: 44px !important;
+  padding: 0 24px !important;
+  border-radius: 999px !important;
+  border: 1.5px solid var(--cx-field-line) !important;
+  background: transparent !important;
+  color: var(--cx-muted) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 150ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-cancel:hover {
+  border-color: var(--cx-muted) !important;
+  color: var(--cx-label) !important;
+  background: var(--cx-track) !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-send {
+  flex: 0 0 auto !important;
+  height: 44px !important;
+  padding: 0 32px !important;
+  border-radius: 999px !important;
+  border: none !important;
+  background: var(--cx-cta) !important;
+  color: var(--cx-cta-fg) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+  transition: all 160ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-send:hover:not(:disabled) {
+  background: var(--cx-cta-hover) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15) !important;
+}
+.em-drawer.em-drawer--composer .em-drawer-send:disabled {
+  background: var(--cx-track) !important;
+  color: var(--cx-faint) !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ── Responsive Behavior ── */
+@media (max-width: 960px) {
+  .em-drawer.em-drawer--composer .em-drawer-body {
+    overflow-y: auto !important;
+  }
+  .em-drawer.em-drawer--composer .em-drawer-grid {
+    flex-direction: column !important;
+    height: auto !important;
+  }
+  .em-drawer.em-drawer--composer .em-send-form {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    overflow-y: visible !important;
+    padding: 24px 20px 32px !important;
+  }
+  .em-drawer.em-drawer--composer .em-send-preview {
+    border-left: none !important;
+    border-top: 1px solid var(--cx-line) !important;
+    height: auto !important;
+    overflow-y: visible !important;
+    padding: 32px 20px 48px !important;
+  }
+  .em-drawer.em-drawer--composer .em-drawer-footer {
+    padding: 12px 20px !important;
+    height: 64px !important;
+  }
+  .em-drawer.em-drawer--composer .em-drawer-cancel {
+    flex: 1 1 0 !important;
+  }
+  .em-drawer.em-drawer--composer .em-drawer-send {
+    flex: 2 1 0 !important;
+  }
+}
 </style>

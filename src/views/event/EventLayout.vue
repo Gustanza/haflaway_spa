@@ -9,9 +9,14 @@
          they're withjoy-style: collapsed by default, opened as an overlay via
          their own hamburger button (shared state in useNavDrawer.js) rather
          than taking up permanent width. Every other event screen still gets
-         the classic always-on desktop sidebar / mobile drawer. ── -->
+         the classic always-on desktop sidebar / mobile drawer — but if ANY
+         page (e.g. a full-screen modal on a non-hub route) explicitly opens
+         the drawer via showMobileNav, it also gets drawer treatment for that
+         moment, regardless of isHubRoute — otherwise a route whose sidebar is
+         normally in-flow (not position:fixed) would have nothing making it
+         float as an overlay when something else asks it to open. ── -->
     <aside v-if="!isHubRoute || showMobileNav" class="el-sidebar"
-      :class="{ 'el-sidebar--open': showMobileNav, 'el-sidebar--drawer': isHubRoute }">
+      :class="{ 'el-sidebar--open': showMobileNav, 'el-sidebar--drawer': isHubRoute || showMobileNav }">
 
       <!-- Mobile close button -->
       <button class="el-sidebar-close" @click="showMobileNav = false">
@@ -369,7 +374,7 @@ onMounted(async () => {
 
 /* ── Sidebar ── */
 .el-sidebar {
-  width: 224px;
+  width: 252px;
   flex-shrink: 0;
   background: var(--el-sidebar-bg);
   border-right: 1px solid var(--line);
@@ -389,8 +394,8 @@ onMounted(async () => {
   left: 0;
   height: 100%;
   transform: translateX(-100%);
-  transition: transform 280ms cubic-bezier(.2, .7, .2, 1);
-  z-index: 200;
+  transition: transform 260ms cubic-bezier(.16, 1, .3, 1);
+  z-index: 1510; /* stays above .el-mobile-backdrop, see it for why */
 }
 .el-sidebar--drawer.el-sidebar--open {
   transform: translateX(0);
@@ -403,23 +408,24 @@ onMounted(async () => {
 .el-brand {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 28px 18px;
+  gap: 10px;
+  height: 64px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--line);
   cursor: pointer;
   flex-shrink: 0;
 }
 .el-brand-logo {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   object-fit: cover;
   flex-shrink: 0;
 }
 .el-brand-name {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 19px;
-  font-weight: 400;
+  font-size: 18px;
+  font-weight: 500;
   color: var(--org-sidebar-text, var(--ink));
   letter-spacing: -0.1px;
 }
@@ -428,16 +434,16 @@ onMounted(async () => {
 .el-back-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: none;
   border: none;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--org-sidebar-text, var(--ink-muted));
   cursor: pointer;
-  padding: 9px 8px;
-  border-radius: 10px;
-  margin: 8px 10px 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin: 10px 10px 4px;
   transition: color 130ms, background 130ms;
   font-family: inherit;
   white-space: nowrap;
@@ -449,14 +455,14 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 10px;
+  padding: 4px 10px 24px;
 }
 .el-nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 8px;
-  border-radius: 10px;
+  padding: 0 10px;
+  border-radius: 8px;
   text-decoration: none;
   color: var(--org-sidebar-text, var(--ink-muted));
   font-size: 13.5px;
@@ -469,12 +475,12 @@ onMounted(async () => {
   color: var(--org-sidebar-text, var(--ink));
 }
 .el-nav-item--active {
-  background: rgba(255,255,255,0.10);
-  border: 1px solid rgba(255,255,255,0.10);
-  color: var(--org-sidebar-text, #e2e8f0);
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: var(--org-sidebar-text, #ffffff);
   font-weight: 600;
 }
-.el-nav-item--active:hover { background: rgba(255,255,255,0.13); }
+.el-nav-item--active:hover { background: rgba(255,255,255,0.11); }
 
 /* smooth theme transitions across sidebar */
 .el-sidebar,
@@ -712,14 +718,17 @@ onMounted(async () => {
 .el-sidebar-close {
   display: none;
   position: absolute;
-  top: 14px;
+  top: 16px;
   right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   background: none;
   border: none;
   cursor: pointer;
   color: var(--ink-muted);
-  padding: 6px;
-  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
   transition: background 130ms, color 130ms;
 }
 .el-sidebar-close:hover { background: var(--paper-soft); color: var(--ink); }
@@ -727,10 +736,15 @@ onMounted(async () => {
 .el-mobile-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  z-index: 150;
+  background: rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  /* Above the app's standard full-screen-modal layer (z-index:1000, shared by
+     .ea-overlay/.em-overlay/etc. across every event page) so opening the nav
+     from inside one of those modals shows this drawer instead of hiding it
+     behind whatever's already open — still comfortably below the reserved
+     toast/alert layer (9999+). */
+  z-index: 1500;
 }
 
 @media (max-width: 767px) {
@@ -741,7 +755,11 @@ onMounted(async () => {
     height: 100%;
     transform: translateX(-100%);
     transition: transform 280ms cubic-bezier(.2, .7, .2, 1);
-    z-index: 200;
+    /* Matches .el-sidebar--drawer's z-index exactly (not just "high enough")
+       so there's no ambiguity from the two same-specificity rules landing on
+       the same element at this width — whichever the cascade picks, the
+       computed value is identical. */
+    z-index: 1510;
   }
   .el-sidebar--open {
     transform: translateX(0);

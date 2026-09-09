@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="ea-root">
 
     <!-- ── Stat cards (Contacts view only — Guest List stays a clean table, withjoy-style) ── -->
@@ -806,22 +806,29 @@
         <div v-if="showSendModal" class="ea-overlay ea-overlay--center" @click.self="closeSendModal">
           <Transition name="ea-sheet">
             <div class="ea-modal ea-send-modal" v-if="showSendModal">
-              <div class="ea-modal-header">
-                <div class="ea-modal-header-left">
+              <div class="ea-modal-header ea-send-modal-header" :class="{ 'ea-send-modal-header--nav': sendStep !== 'root' }">
+                <div class="ea-send-modal-header-side ea-send-modal-header-side--left">
                   <button v-if="sendStep !== 'root'" class="ea-send-back"
                     @click="sendStep = sendStep === 'newCampaign' ? 'campaigns' : 'root'">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                   </button>
-                  <h3 class="ea-modal-title">
-                    {{ sendStep === 'root' ? 'What would you like to send?' : sendStep === 'campaigns' ? 'Campaigns' : 'New Campaign' }}
-                  </h3>
                 </div>
-                <button class="ea-modal-close" @click="closeSendModal">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
+                <h3 class="ea-modal-title">
+                  {{ sendStep === 'root' ? 'What would you like to send?' : sendStep === 'campaigns' ? 'Campaigns' : 'New Campaign' }}
+                </h3>
+                <div class="ea-send-modal-header-side ea-send-modal-header-side--right">
+                  <button v-if="sendStep === 'campaigns'" class="ea-send-new-camp-btn ea-send-new-camp-btn--header"
+                    @click="openNewCampaignStep">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New Campaign
+                  </button>
+                  <button class="ea-modal-close" @click="closeSendModal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5" stroke-linecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               <!-- Step 1: Card / Message -->
@@ -852,18 +859,14 @@
 
               <!-- Step 2: Campaigns list -->
               <div class="ea-send-camps" v-else-if="sendStep === 'campaigns'">
-                <button class="ea-send-new-camp-btn" @click="openNewCampaignStep">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  New Campaign
-                </button>
-
                 <div v-if="loadingSendCampaigns" class="ea-send-camps-loading">Loading campaigns…</div>
                 <div v-else-if="!sendCampaigns.length" class="ea-send-camps-empty">
                   <p>No campaigns yet.</p>
                   <p class="ea-send-camps-empty-sub">Create one to start sending targeted messages to specific guests.</p>
                 </div>
                 <div v-else class="ea-send-camps-list">
-                  <div v-for="camp in sendCampaigns" :key="camp.id" class="ea-send-camp-row">
+                  <div v-for="camp in sendCampaigns" :key="camp.id" class="ea-send-camp-row"
+                    @click="$router.push(`/event/${eventId}/bulk-messages?campaign=${camp.id}&send=1&returnTo=${encodeURIComponent(`/event/${eventId}/attendees?reopenCampaigns=1`)}`)">
                     <span class="ea-send-camp-icon">
                       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                     </span>
@@ -1824,7 +1827,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { db, auth } from '../../firebase'
 import {
   collection, query, orderBy, where,
@@ -1854,6 +1857,7 @@ const props = defineProps({
 })
 
 const route = useRoute()
+const router = useRouter()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
 const { brandName, brandLogoUrl } = useOrg()
 const navDrawer = useNavDrawer()
@@ -2489,6 +2493,20 @@ function openMessageStep() {
   sendStep.value = 'campaigns'
   loadSendCampaigns()
 }
+
+// Round-trips back here after a campaign row sent the user off to the
+// full-screen composer on the Bulk Messages page (see the ea-send-camp-row
+// click handler) — that page's Cancel/close hands back to the returnTo URL
+// below, and this restores the Campaigns list instead of leaving them on
+// a bare Guest List with no memory of where they'd been.
+onMounted(() => {
+  if (route.query.reopenCampaigns === '1') {
+    showSendModal.value = true
+    openMessageStep()
+    const { reopenCampaigns, ...rest } = route.query
+    router.replace({ query: rest })
+  }
+})
 
 const newCampName = ref('')
 const newCampType = ref('invitation')
@@ -3389,16 +3407,18 @@ function setImportPayment(attendeeId, amount) {
 .ea-panel-hd {
   display: flex;
   align-items: center;
-  padding: 14px 20px;
+  height: 64px;
+  padding: 0 24px;
   border-bottom: 1px solid var(--c-border);
-  gap: 10px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 .ea-panel-title {
-  font-size: 30px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--c-txt);
   margin: 0;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.4px;
   white-space: nowrap;
 }
 
@@ -3406,27 +3426,28 @@ function setImportPayment(attendeeId, amount) {
    + topbar, so it owns the whole consolidated bar (withjoy-style). ── */
 .ea-hd-gear {
   display: flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
-  background: none; border: 1px solid var(--c-border);
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: none; border: none;
   color: var(--c-txt-2); cursor: pointer; font-family: inherit; padding: 0;
-  transition: color 130ms, background 130ms, border-color 130ms;
+  transition: color 130ms, background 130ms;
 }
 .ea-hd-gear:hover { color: var(--c-txt); background: var(--c-muted); }
 
 /* Bare, borderless lines — no circle chrome — matching withjoy's plain hamburger. */
 .ea-hd-burger {
   display: flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; flex-shrink: 0;
+  width: 32px; height: 32px; flex-shrink: 0;
   background: none; border: none;
   color: var(--c-txt); cursor: pointer; font-family: inherit; padding: 0;
-  transition: color 130ms, opacity 130ms;
+  border-radius: 8px;
+  transition: color 130ms, background 130ms;
 }
-.ea-hd-burger:hover { opacity: 0.65; }
+.ea-hd-burger:hover { background: var(--c-muted); }
 .ea-hd-brand {
   display: flex; align-items: center; gap: 8px; cursor: pointer; flex-shrink: 0;
 }
-.ea-hd-brand-logo { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
-.ea-hd-sep { width: 1px; height: 20px; background: var(--c-divide); flex-shrink: 0; }
+.ea-hd-brand-logo { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.ea-hd-sep { width: 1px; height: 18px; background: var(--c-divide); flex-shrink: 0; margin: 0 2px; }
 .ea-panel-acts {
   display: flex;
   align-items: center;
@@ -3497,16 +3518,18 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-search {
   width: 100%;
-  padding: 11px 34px 11px 38px;
-  background: var(--c-bg);
-  border: 1.3px solid var(--c-border);
+  padding: 10px 34px 10px 38px;
+  background: none;
+  border: 1.5px solid var(--c-border);
   border-radius: 999px;
   font-size: 13.5px;
   color: var(--c-txt);
   outline: none;
   box-shadow: none;
   font-family: inherit;
+  transition: border-color 150ms, box-shadow 150ms;
 }
+.ea-search:focus { border-color: rgba(79,70,229,0.4); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
 .ea-search::placeholder { color: var(--c-txt-3); }
 .ea-search-clear {
   position: absolute;
@@ -3591,103 +3614,110 @@ function setImportPayment(attendeeId, amount) {
 .ea-add-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 13px 24px;
-  background: var(--wj-blue);
+  gap: 7px;
+  padding: 0 20px;
+  height: 38px;
+  background: #111827;
   color: #ffffff;
   border: none;
   border-radius: 999px;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 150ms;
+  transition: background 150ms, box-shadow 150ms;
   font-family: inherit;
   flex-shrink: 0;
+  letter-spacing: -0.1px;
 }
-.ea-add-btn:hover { background: var(--wj-blue-hover); }
+.ea-add-btn:hover { background: #1f2937; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
 .ea-panel-hd .ea-add-btn { margin-left: 0; }
-.ea-panel-hd .ea-search-inline { flex: 0 1 440px; margin: 0 auto; }
+.ea-panel-hd .ea-search-inline { flex: 0 1 420px; margin: 0 auto; }
 
 .ea-send-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 13px 24px;
-  background: var(--c-muted);
-  color: var(--c-txt);
-  border: none;
+  gap: 7px;
+  padding: 0 20px;
+  height: 38px;
+  background: none;
+  color: var(--c-txt-2);
+  border: 1px solid var(--c-border);
   border-radius: 999px;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 150ms;
+  transition: background 150ms, color 150ms, border-color 150ms;
   font-family: inherit;
   flex-shrink: 0;
+  letter-spacing: -0.1px;
 }
-.ea-send-btn:hover { background: var(--c-track); }
+.ea-send-btn:hover { background: var(--c-muted); color: var(--c-txt); border-color: transparent; }
 
-/* ── Secondary toolbar: icon-over-label buttons, withjoy style ── */
+/* ── Secondary toolbar: horizontal action pills, withjoy style ── */
 .ea-toolbar2 {
   display: flex;
-  align-items: stretch;
-  gap: 2px;
-  padding: 8px 14px;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 20px;
   border-bottom: 1px solid var(--c-divide);
   flex-wrap: wrap;
+  min-height: 52px;
 }
 .ea-tb2-btn {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 6px 12px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 8px;
   background: none;
   cursor: pointer;
   font-family: inherit;
   transition: background 130ms, border-color 130ms;
 }
 .ea-tb2-btn:hover { background: var(--c-muted); }
-.ea-tb2-btn--active { background: rgb(from var(--wj-blue) r g b / 0.08); }
+.ea-tb2-btn--active { background: rgba(79,70,229,0.07); }
 .ea-tb2-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .ea-tb2-ic {
-  width: 32px; height: 32px; border-radius: 50%;
-  border: 1.3px solid var(--c-border);
+  width: 20px; height: 20px;
   display: flex; align-items: center; justify-content: center;
   color: var(--c-txt-2);
-  background: none;
+  flex-shrink: 0;
 }
-.ea-tb2-btn--active .ea-tb2-ic { color: var(--wj-blue); border-color: rgb(from var(--wj-blue) r g b / 0.4); }
+.ea-tb2-btn--active .ea-tb2-ic { color: var(--wj-blue); }
 .ea-tb2-btn--active .ea-tb2-lbl { color: var(--wj-blue); }
 .ea-tb2-lbl {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 12px; font-weight: 600; color: var(--c-txt);
+  display: flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 500; color: var(--c-txt-2);
   white-space: nowrap;
 }
+.ea-tb2-btn:hover .ea-tb2-lbl { color: var(--c-txt); }
 .ea-tb2-cnt {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 14px; padding: 0 4px; border-radius: 6px;
-  background: var(--c-muted); font-size: 9.5px; font-weight: 700; color: var(--c-txt-3);
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--c-muted); font-size: 10px; font-weight: 700; color: var(--c-txt-3);
 }
 .ea-tb2-sel-count {
-  align-self: center; font-size: 12px; font-weight: 600; color: var(--c-txt-2); white-space: nowrap;
-  padding: 0 4px;
+  align-self: center; font-size: 12.5px; font-weight: 600; color: var(--c-txt-2); white-space: nowrap;
+  padding: 4px 10px;
   margin-left: auto;
+  background: var(--c-muted);
+  border-radius: 999px;
 }
 .ea-tb2-btn--danger .ea-tb2-lbl { color: #FF453A; }
 .ea-tb2-btn--danger:hover { background: rgba(255,69,58,0.08); }
-.ea-tb2-divider { width: 1px; background: var(--c-divide); margin: 4px 6px; flex-shrink: 0; }
+.ea-tb2-divider { width: 1px; height: 20px; background: var(--c-divide); margin: 0 4px; flex-shrink: 0; }
 
 /* ── Shared row grid — header + data rows align on this template ── */
 .ea-row-grid {
   display: grid;
-  grid-template-columns: 34px 36px minmax(140px,1.3fr) 120px 150px 90px minmax(90px,1fr) 90px 60px;
+  grid-template-columns: 34px 40px minmax(140px,1.3fr) 120px 150px 90px minmax(90px,1fr) 90px 60px;
   align-items: center;
   gap: 12px;
 }
 .ea-col-head {
-  padding: 22px 16px;
+  padding: 10px 20px;
   border-bottom: 1px solid var(--c-divide);
   background: transparent;
 }
@@ -3701,18 +3731,19 @@ function setImportPayment(attendeeId, amount) {
   background: var(--el-content-bg, var(--c-bg-alt, #f0f0f8));
 }
 .ea-col-cb { display: flex; align-items: center; cursor: pointer; }
-.ea-col-avatar { width: 32px; }
+.ea-col-avatar { width: 40px; }
 .ea-col-btn {
   display: inline-flex; align-items: center; gap: 4px;
   background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
-  font-size: 11.5px; font-weight: 700; color: var(--c-txt-2);
-  text-transform: uppercase; letter-spacing: 0.5px; justify-self: start;
+  font-size: 11px; font-weight: 600; color: var(--c-txt-2);
+  text-transform: uppercase; letter-spacing: 0.06em; justify-self: start;
+  transition: color 120ms;
 }
 .ea-col-btn:hover { color: var(--c-txt); }
 .ea-col-btn--right { justify-self: start; }
 .ea-col-lbl {
-  font-size: 11.5px; font-weight: 700; color: var(--c-txt-2);
-  text-transform: uppercase; letter-spacing: 0.5px;
+  font-size: 11px; font-weight: 600; color: var(--c-txt-2);
+  text-transform: uppercase; letter-spacing: 0.06em;
 }
 .ea-col-actions { width: 100%; }
 .ea-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -4084,18 +4115,19 @@ function setImportPayment(attendeeId, amount) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 14px 20px;
   border-top: 1px solid var(--c-divide);
-  background: var(--c-bg);
+  background: transparent;
   gap: 12px;
   flex-wrap: wrap;
   flex-shrink: 0;
 }
 .ea-range-label {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--c-txt-2);
   font-weight: 500;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .ea-paginator {
   display: flex;
@@ -4106,10 +4138,10 @@ function setImportPayment(attendeeId, amount) {
 .ea-page-btn {
   min-width: 32px;
   height: 32px;
-  padding: 0 6px;
+  padding: 0 8px;
   border: 1px solid var(--c-border);
   border-radius: 8px;
-  background: var(--c-bg);
+  background: none;
   font-size: 13px;
   font-weight: 500;
   color: var(--c-txt-2);
@@ -4121,14 +4153,14 @@ function setImportPayment(attendeeId, amount) {
   font-family: inherit;
 }
 .ea-page-btn:hover:not(:disabled):not(.ea-page-btn--active) {
-  background: var(--c-badge-bg, var(--c-bg));
-  border-color: var(--c-border);
+  background: var(--c-muted);
   color: var(--c-txt);
+  border-color: transparent;
 }
 .ea-page-btn--active {
-  background: var(--c-bg);
-  border-color: var(--c-txt);
-  color: var(--c-txt);
+  background: var(--c-txt);
+  border-color: transparent;
+  color: var(--c-bg);
   font-weight: 600;
   cursor: default;
 }
@@ -4367,10 +4399,34 @@ function setImportPayment(attendeeId, amount) {
 .ea-modal-close:hover { background: var(--c-border); color: var(--c-txt); }
 
 /* ── Send modal ── */
-.ea-send-modal { max-width: 640px; }
-.ea-send-modal .ea-modal-header { justify-content: center; position: relative; padding: 22px; }
-.ea-send-modal .ea-modal-title { font-size: 19px; }
-.ea-send-modal .ea-modal-close { position: absolute; right: 22px; }
+.ea-send-modal { max-width: 480px; }
+/* Header is a 3-slot row: two equal-flex side rails (left/right) with the
+   title as a fixed-width item between them. Equal flex-grow on both rails
+   keeps the title visually centered no matter what lives in either rail —
+   unlike the old absolute-positioned side groups, this can't overlap the
+   title even if a rail's content grows (that's what broke when the "New
+   Campaign" pill got its label back). */
+.ea-send-modal .ea-modal-header { padding: 18px 20px; }
+.ea-send-modal .ea-modal-title { font-size: 19px; flex-shrink: 0; }
+.ea-send-modal-header-side { display: flex; align-items: center; flex: 1 1 0; min-width: 0; }
+.ea-send-modal-header-side--left { justify-content: flex-start; }
+.ea-send-modal-header-side--right { justify-content: flex-end; gap: 10px; }
+/* Equal-flex rails only stay collision-free when both sides are roughly the
+   same weight (true on 'root' and 'newCampaign'). On 'campaigns' the right
+   rail carries both the labeled pill and the close button while the left
+   rail is just a bare arrow — forcing them to equal widths was squeezing the
+   pill's text onto two lines. Whenever a back arrow is showing, drop true
+   centering for a standard "arrow + left-aligned title" nav pattern instead:
+   both rails size to their own content and the title fills whatever's left,
+   which can't overflow no matter how wide the right-side content gets. */
+.ea-send-modal-header--nav .ea-send-modal-header-side--left,
+.ea-send-modal-header--nav .ea-send-modal-header-side--right {
+  flex: 0 0 auto;
+}
+.ea-send-modal-header--nav .ea-modal-title {
+  flex: 1 1 auto; text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .ea-send-opts {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
   padding: 22px;
@@ -4426,7 +4482,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-send-back:hover { background: #f4f4fd; color: #1a1a2e; }
 
-.ea-send-camps { padding: 8px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+.ea-send-camps { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
 .ea-send-new-camp-btn {
   align-self: flex-start; display: flex; align-items: center; gap: 6px;
   padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 999px;
@@ -4434,6 +4490,19 @@ function setImportPayment(attendeeId, amount) {
   transition: background 150ms;
 }
 .ea-send-new-camp-btn:hover { background: #4338ca; }
+/* Header variant: keeps the "New Campaign" label (an icon alone didn't read
+   as an action to anyone unfamiliar with it), but trades the solid-fill CTA
+   for a soft tinted-ghost pill so it doesn't compete with the title — the
+   3-slot header layout above is what actually keeps it from colliding. */
+.ea-send-new-camp-btn--header {
+  padding: 6px 12px; font-size: 12px; flex-shrink: 0; align-self: center;
+  background: rgba(79,70,229,0.1); color: #4f46e5; border: 1px solid rgba(79,70,229,0.22);
+  transition: background 150ms, border-color 150ms, box-shadow 150ms, color 150ms;
+}
+.ea-send-new-camp-btn--header:hover {
+  background: rgba(79,70,229,0.18); border-color: rgba(79,70,229,0.4);
+  color: #4338ca; box-shadow: 0 0 0 4px rgba(79,70,229,0.1);
+}
 .ea-send-camps-loading, .ea-send-camps-empty { padding: 24px 4px; text-align: center; color: #6b7280; font-size: 13px; }
 .ea-send-camps-empty p { margin: 0 0 4px; }
 .ea-send-camps-empty-sub { font-size: 12.5px; color: #9ca3af; }
@@ -5950,7 +6019,7 @@ function setImportPayment(attendeeId, amount) {
 
 /* ── Individual row ── */
 .ea-card {
-  padding: 11px 16px;
+  padding: 13px 20px;
   background: var(--c-bg);
   border: none;
   border-bottom: 1px solid var(--c-divide);
@@ -5958,6 +6027,7 @@ function setImportPayment(attendeeId, amount) {
   transition: background 120ms;
   cursor: pointer;
   position: relative;
+  min-height: 60px;
 }
 .ea-list .ea-card:first-child { border-top: 1px solid var(--c-divide); }
 .ea-card:hover:not(.ea-card--sk) { background: var(--c-hover, var(--c-bg)); }
@@ -5979,14 +6049,15 @@ function setImportPayment(attendeeId, amount) {
 /* Avatar */
 .ea-card-av-wrap { position: relative; flex-shrink: 0; }
 .ea-card-avatar {
-  width: 40px; height: 40px; border-radius: 11px;
-  font-size: 13px; font-weight: 700;
+  width: 36px; height: 36px; border-radius: 50%;
+  font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
 .ea-card-type-dot {
-  position: absolute; bottom: -2px; right: -2px;
-  width: 11px; height: 11px; border-radius: 50%;
-  border: 2.5px solid var(--c-bg);
+  position: absolute; bottom: -1px; right: -1px;
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid var(--c-bg);
 }
 .ea-card--invitation   .ea-card-type-dot { background: rgba(60,168,164,0.85); }
 .ea-card--contribution .ea-card-type-dot { background: var(--gold); }
@@ -5994,7 +6065,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-card--pending      .ea-card-type-dot { background: #FF9F0A; }
 
 /* Skeleton avatar tweak */
-.ea-sk-circle--card { width: 40px; height: 40px; border-radius: 11px; }
+.ea-sk-circle--card { width: 36px; height: 36px; border-radius: 50%; }
 
 /* Identity */
 .ea-card-info {
@@ -6002,10 +6073,10 @@ function setImportPayment(attendeeId, amount) {
   flex: 0 0 200px; min-width: 0;
 }
 .ea-card-name {
-  font-size: 13px; font-weight: 600; color: var(--c-txt);
+  font-size: 13.5px; font-weight: 600; color: var(--c-txt);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.ea-card-meta { font-size: 13px; color: var(--c-txt-2); }
+.ea-card-meta { font-size: 13px; color: var(--c-txt-2); font-variant-numeric: tabular-nums; }
 
 /* Badges zone */
 .ea-card-badges {
@@ -6021,17 +6092,21 @@ function setImportPayment(attendeeId, amount) {
 .ea-card-status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 13px;
   font-weight: 500;
   color: var(--c-txt-2);
   white-space: nowrap;
+}
+.ea-status-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
 }
 
 /* Date */
 .ea-card-date {
   font-size: 13px; color: var(--c-txt-2);
   white-space: nowrap; flex-shrink: 0; text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Row action buttons: hidden until hover, always visible when pending */
