@@ -72,17 +72,22 @@
           </svg>
         </button>
 
-        <div class="ea-hd-brand" @click="$router.push('/events')">
-          <img :src="brandLogoUrl" :alt="brandName" class="ea-hd-brand-logo" />
+        <div class="ea-hd-icon-badge" @click="$router.push('/events')" title="All Events">
+          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="ea-hd-brand-logo" />
+          <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
         </div>
 
-        <span class="ea-hd-sep" />
-
-        <h2 class="ea-panel-title">{{ isContactsView ? 'Contact List' : 'Guest List' }}</h2>
+        <div class="ea-hd-title-group">
+          <h2 class="ea-panel-title">{{ isContactsView ? 'Contact List' : 'Guest List' }}</h2>
+          <span class="ea-title-count-badge" v-if="!loading">{{ attendees.length }}</span>
+        </div>
 
         <div class="ea-search-wrap ea-search-inline">
           <svg class="ea-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-            stroke="#505050" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input v-model="searchQ" class="ea-search" placeholder="Search by name or phone…" />
@@ -122,7 +127,7 @@
         <div class="ea-label-select" ref="labelSelectRef">
           <button class="ea-tb2-btn" :class="{ 'ea-tb2-btn--active': filterLabelId }" @click="labelDropOpen = !labelDropOpen">
             <span class="ea-tb2-ic">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
                 <line x1="7" y1="7" x2="7.01" y2="7"/>
               </svg>
@@ -131,6 +136,7 @@
               {{ filterLabelId ? (localLabels.find(l => l.id === filterLabelId)?.name ?? 'Groups') : 'Groups' }}
               <span v-if="localLabels.length && !filterLabelId" class="ea-tb2-cnt">{{ localLabels.length }}</span>
             </span>
+            <svg class="ea-tb2-chev" :class="{ 'ea-tb2-chev--open': labelDropOpen }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div v-if="labelDropOpen" class="ea-type-drop">
             <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !filterLabelId }"
@@ -157,7 +163,7 @@
              as two distinct toolbar icons rather than one combined menu). -->
         <button class="ea-tb2-btn" @click="showLabelManager = true">
           <span class="ea-tb2-ic">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
           </span>
@@ -168,7 +174,7 @@
         <div v-if="cardDropTemplates.length" class="ea-label-select" ref="cardDropRef">
           <button class="ea-tb2-btn" :class="{ 'ea-tb2-btn--active': filterCardId }" @click="cardDropOpen = !cardDropOpen">
             <span class="ea-tb2-ic">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
                 <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/>
               </svg>
             </span>
@@ -176,6 +182,7 @@
               {{ filterCardId ? (allTemplatesMap[filterCardId] ?? 'Card') : 'Card' }}
               <span v-if="!filterCardId" class="ea-tb2-cnt">{{ cardDropTemplates.length }}</span>
             </span>
+            <svg class="ea-tb2-chev" :class="{ 'ea-tb2-chev--open': cardDropOpen }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div v-if="cardDropOpen" class="ea-type-drop">
             <button class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': !filterCardId }"
@@ -388,20 +395,20 @@
             <input type="checkbox" class="ea-cb" :checked="selectedIds.has(att.id)" @change="toggleSelect(att.id)" />
           </label>
 
-          <!-- Avatar with type dot -->
+          <!-- Avatar with type dot (only on Contacts view) -->
           <div class="ea-card-av-wrap">
             <div class="ea-card-avatar"
               :style="{ background: avatarBg(att.fullName), color: avatarColor(att.fullName) }">
               {{ initials(att.fullName) }}
             </div>
-            <span class="ea-card-type-dot" />
+            <span class="ea-card-type-dot" v-if="isContactsView" />
           </div>
 
           <!-- Name -->
-          <span class="ea-card-name">{{ att.fullName }}</span>
+          <span class="ea-card-name" :title="att.fullName">{{ formatDisplayName(att.fullName) }}</span>
 
           <!-- Phone -->
-          <span class="ea-card-meta">{{ att.phone || '—' }}</span>
+          <span class="ea-card-meta">{{ formatPhoneDisplay(att.phone) }}</span>
 
           <!-- Status / Type -->
           <span class="ea-cell ea-cell--status">
@@ -411,7 +418,7 @@
               </span>
             </template>
             <template v-else>
-              <span class="ea-card-status-badge">
+              <span class="ea-status-pill" :class="`ea-status-pill--${statusSlug(att.attendanceStatus)}`">
                 <span class="ea-status-dot" :style="{ background: statusColor(att.attendanceStatus) }" />
                 {{ att.attendanceStatus || 'Not Confirmed' }}
               </span>
@@ -428,17 +435,22 @@
 
           <!-- Checked In (Guest List only) -->
           <span class="ea-cell ea-cell--center ea-cell--checkin" v-if="!isContactsView">
-            <svg v-if="att.checkedIn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span v-if="att.checkedIn" class="ea-checkin-badge" title="Checked in">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
             <span v-else class="ea-checkin-dash">—</span>
           </span>
           <span class="ea-cell ea-cell--checkin" v-else />
 
           <!-- Groups -->
           <span class="ea-cell ea-cell--groups">
-            <span v-for="lbl in attLabels(att)" :key="lbl.id" class="ea-label-chip"
-              :style="{ background: labelBg(lbl), color: labelFg(lbl) }">
-              {{ lbl.name }}
-            </span>
+            <template v-if="attLabels(att).length">
+              <span v-for="lbl in attLabels(att)" :key="lbl.id" class="ea-label-chip"
+                :style="{ background: labelBg(lbl), color: labelFg(lbl) }">
+                {{ lbl.name }}
+              </span>
+            </template>
+            <span v-else class="ea-groups-empty">—</span>
           </span>
 
           <!-- Date -->
@@ -2197,12 +2209,34 @@ function attLabels(att) {
 
 function statusColor(status) {
   return {
-    'Confirmed': '#30D158',
-    'Declined': '#FF453A',
-    'Called': '#64D2FF',
-    'Unreachable': '#FF9F0A',
-    'Not Confirmed': '#8E8E93',
-  }[status] ?? '#8E8E93'
+    'Confirmed': '#10B981',
+    'Declined': '#EF4444',
+    'Called': '#0EA5E9',
+    'Unreachable': '#F59E0B',
+    'Not Confirmed': '#9CA3AF',
+  }[status] ?? '#9CA3AF'
+}
+
+function statusSlug(status) {
+  return (status || 'not-confirmed').toLowerCase().replace(/\s+/g, '-')
+}
+
+function formatDisplayName(name) {
+  if (!name) return '—'
+  const trimmed = name.trim()
+  // If already mixed case (e.g. "Grace", "Falaji Mkoto", "Hasani na Lukia"), keep as is
+  if (/[a-z]/.test(trimmed) && /[A-Z]/.test(trimmed)) return trimmed
+  // Otherwise gracefully title-case all uppercase or all lowercase strings
+  return trimmed.toLowerCase().replace(/(?:^|\s|-|\/)\S/g, char => char.toUpperCase())
+}
+
+function formatPhoneDisplay(phone) {
+  if (!phone) return '—'
+  const p = String(phone).trim()
+  if (p.startsWith('255') && p.length === 12) {
+    return `+255 ${p.slice(3, 6)} ${p.slice(6, 9)} ${p.slice(9)}`
+  }
+  return p
 }
 
 function cardUrl(att) {
@@ -3397,11 +3431,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-panel {
   display: flex;
   flex-direction: column;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  overflow: visible;
-  transition: background 300ms ease;
+  background: var(--c-bg, #ffffff);
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: background 300ms ease, border-color 300ms ease;
 }
 
 .ea-panel-hd {
@@ -3413,30 +3448,67 @@ function setImportPayment(attendeeId, amount) {
   gap: 12px;
   flex-shrink: 0;
 }
+.ea-hd-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .ea-panel-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--c-txt);
   margin: 0;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
+.ea-title-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--c-muted);
+  color: var(--c-txt-2);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--c-border);
+}
 
-/* ── Header hamburger / brand / gear — this page hides EventLayout's sidebar
-   + topbar, so it owns the whole consolidated bar (withjoy-style). ── */
+.ea-hd-icon-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--c-muted);
+  border: 1px solid var(--c-border);
+  color: var(--wj-blue, #4f46e5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.ea-hd-icon-badge:hover {
+  background: var(--c-bg);
+  border-color: var(--wj-blue, #4f46e5);
+}
+
+/* ── Header hamburger / brand / gear ── */
 .ea-hd-gear {
   display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-  background: none; border: none;
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  background: var(--c-bg); border: 1px solid var(--c-border);
   color: var(--c-txt-2); cursor: pointer; font-family: inherit; padding: 0;
-  transition: color 130ms, background 130ms;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: color 130ms, background 130ms, border-color 130ms;
 }
-.ea-hd-gear:hover { color: var(--c-txt); background: var(--c-muted); }
+.ea-hd-gear:hover { color: var(--c-txt); background: var(--c-muted); border-color: var(--c-txt-3); }
 
 /* Bare, borderless lines — no circle chrome — matching withjoy's plain hamburger. */
 .ea-hd-burger {
   display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; flex-shrink: 0;
+  width: 36px; height: 36px; flex-shrink: 0;
   background: none; border: none;
   color: var(--c-txt); cursor: pointer; font-family: inherit; padding: 0;
   border-radius: 8px;
@@ -3446,7 +3518,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-hd-brand {
   display: flex; align-items: center; gap: 8px; cursor: pointer; flex-shrink: 0;
 }
-.ea-hd-brand-logo { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.ea-hd-brand-logo { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
 .ea-hd-sep { width: 1px; height: 18px; background: var(--c-divide); flex-shrink: 0; margin: 0 2px; }
 .ea-panel-acts {
   display: flex;
@@ -3712,14 +3784,14 @@ function setImportPayment(attendeeId, amount) {
 /* ── Shared row grid — header + data rows align on this template ── */
 .ea-row-grid {
   display: grid;
-  grid-template-columns: 34px 40px minmax(140px,1.3fr) 120px 150px 90px minmax(90px,1fr) 90px 60px;
+  grid-template-columns: 34px 40px minmax(140px,1.8fr) minmax(150px,1fr) minmax(140px,1fr) 100px minmax(80px,1fr) 110px 60px;
   align-items: center;
   gap: 12px;
 }
 .ea-col-head {
-  padding: 10px 20px;
+  padding: 10px 24px;
   border-bottom: 1px solid var(--c-divide);
-  background: transparent;
+  background: var(--ea-col-head-bg, rgba(255,255,255,0.02));
 }
 
 /* ── Sticky head — the whole title/toolbar/column-header block moves together
@@ -3728,7 +3800,7 @@ function setImportPayment(attendeeId, amount) {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--el-content-bg, var(--c-bg-alt, #f0f0f8));
+  background: var(--c-bg, #ffffff);
 }
 .ea-col-cb { display: flex; align-items: center; cursor: pointer; }
 .ea-col-avatar { width: 40px; }
@@ -6076,7 +6148,7 @@ function setImportPayment(attendeeId, amount) {
   font-size: 13.5px; font-weight: 600; color: var(--c-txt);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.ea-card-meta { font-size: 13px; color: var(--c-txt-2); font-variant-numeric: tabular-nums; }
+.ea-card-meta { font-size: 13px; color: var(--c-txt-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Badges zone */
 .ea-card-badges {
@@ -6088,18 +6160,65 @@ function setImportPayment(attendeeId, amount) {
   justify-content: flex-end;
 }
 
-/* Attendance status inline badge */
-.ea-card-status-badge {
+/* Attendance status inline pill badge */
+.ea-status-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--c-txt-2);
   white-space: nowrap;
+  background: var(--c-muted);
+  border: 1px solid var(--c-border);
+  letter-spacing: -0.01em;
+  transition: all 140ms ease;
 }
-.ea-status-dot {
-  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+.ea-status-pill .ea-status-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.ea-status-pill--confirmed {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #10B981;
+}
+.ea-status-pill--not-confirmed {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #9CA3AF;
+}
+.ea-status-pill--declined {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #EF4444;
+}
+.ea-status-pill--called {
+  background: rgba(14, 165, 233, 0.12);
+  border-color: rgba(14, 165, 233, 0.25);
+  color: #0EA5E9;
+}
+.ea-status-pill--unreachable {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: #F59E0B;
+}
+
+.ea-checkin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.ea-groups-empty {
+  color: var(--c-txt-3);
+  font-size: 13px;
 }
 
 /* Date */
@@ -6120,6 +6239,26 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-card:hover .ea-card-actions { opacity: 1; }
 .ea-card--pending .ea-card-actions { opacity: 1; }
+
+.ea-row-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
+  color: var(--c-txt-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: all 120ms ease;
+}
+.ea-row-btn:hover {
+  background: var(--c-muted);
+  color: var(--c-txt);
+  border-color: var(--c-txt-3);
+}
 
 /* Mobile responsive — CSS Grid */
 @media (max-width: 640px) {
