@@ -646,12 +646,10 @@ html[data-theme="light"] .os-root {
   box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 14px rgba(99,102,241,0.06) !important;
 }
 [data-theme="light"] .eo-launcher-tile {
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(99,102,241,0.06) !important;
+  box-shadow: none !important;
 }
 [data-theme="light"] .eo-launcher-tile:hover {
   background: #f8f8fd !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 6px 20px rgba(99,102,241,0.14) !important;
 }
 [data-theme="light"] .eo-preview {
   box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(99,102,241,0.06) !important;
@@ -858,13 +856,9 @@ html[data-theme="light"] .os-root {
 
 [data-theme="light"] .ea-panel-hd {
   background: #ffffff !important;
-  border-bottom: 1px solid #eef0f3 !important;
-  height: 64px !important;
-  padding: 0 32px !important;
 }
 [data-theme="light"] .ea-panel-title {
   color: #111827 !important;
-  font-size: 20px !important;
   font-weight: 700 !important;
   letter-spacing: -0.02em !important;
 }
@@ -882,8 +876,6 @@ html[data-theme="light"] .os-root {
   color: #111827 !important;
 }
 [data-theme="light"] .ea-hd-gear {
-  width: 38px !important;
-  height: 38px !important;
   border-radius: 50% !important;
   border: 1px solid #e5e7eb !important;
   background: #ffffff !important;
@@ -907,16 +899,16 @@ html[data-theme="light"] .os-root {
 
 /* ── Header Actions ── */
 [data-theme="light"] .ea-add-btn {
-  background: #111827 !important;
+  background: #4f46e5 !important;
   color: #ffffff !important;
   border-radius: 999px !important;
   font-weight: 600 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25) !important;
   border: 1px solid transparent !important;
 }
 [data-theme="light"] .ea-add-btn:hover {
-  background: #1f2937 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  background: #4338ca !important;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.32) !important;
 }
 [data-theme="light"] .ea-send-btn {
   background: #ffffff !important;
@@ -934,10 +926,10 @@ html[data-theme="light"] .os-root {
 
 /* ── Search Bar ── */
 [data-theme="light"] .ea-search-inline {
-  flex: 0 1 360px !important;
+  flex: 0 1 480px !important;
 }
 [data-theme="light"] .ea-search {
-  background: #f3f4f6 !important;
+  background: #ffffff !important;
   border: 1px solid #e5e7eb !important;
   border-radius: 999px !important;
   color: #111827 !important;
@@ -959,19 +951,15 @@ html[data-theme="light"] .os-root {
 [data-theme="light"] .ea-toolbar2 {
   background: #ffffff !important;
   border-bottom: 1px solid #eef0f3 !important;
-  padding: 12px 32px !important;
-  gap: 8px !important;
 }
 [data-theme="light"] .ea-tb2-btn {
   background: #f8fafc !important;
   border: 1px solid #e5e7eb !important;
   border-radius: 999px !important;
-  padding: 6px 13px !important;
   transition: all 140ms ease !important;
 }
 [data-theme="light"] .ea-tb2-btn .ea-tb2-lbl {
   color: #374151 !important;
-  font-size: 12.5px !important;
   font-weight: 500 !important;
 }
 [data-theme="light"] .ea-tb2-btn .ea-tb2-ic {
@@ -1019,15 +1007,13 @@ html[data-theme="light"] .os-root {
 [data-theme="light"] .ea-col-head {
   background: #ffffff !important;
   border-bottom: 1px solid #eef0f3 !important;
-  padding: 11px 32px !important;
 }
 [data-theme="light"] .ea-col-btn,
 [data-theme="light"] .ea-col-lbl {
-  color: #6b7280 !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.05em !important;
-  text-transform: uppercase !important;
+  color: #111827 !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
 }
 [data-theme="light"] .ea-col-btn:hover {
   color: #111827 !important;
@@ -1058,12 +1044,10 @@ html[data-theme="light"] .os-root {
 [data-theme="light"] .ea-card-name {
   color: #111827 !important;
   font-weight: 600 !important;
-  font-size: 13.5px !important;
   letter-spacing: -0.01em !important;
 }
 [data-theme="light"] .ea-card-meta {
   color: #6b7280 !important;
-  font-size: 13px !important;
   white-space: nowrap !important;
 }
 [data-theme="light"] .ea-card-date {

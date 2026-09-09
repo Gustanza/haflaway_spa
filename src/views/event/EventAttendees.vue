@@ -72,6 +72,8 @@
           </svg>
         </button>
 
+        <div class="ea-hd-sep"></div>
+
         <div class="ea-hd-icon-badge" @click="$router.push('/events')" title="All Events">
           <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="ea-hd-brand-logo" />
           <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -79,6 +81,8 @@
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
         </div>
+
+        <div class="ea-hd-sep"></div>
 
         <div class="ea-hd-title-group">
           <h2 class="ea-panel-title">{{ isContactsView ? 'Contact List' : 'Guest List' }}</h2>
@@ -97,6 +101,11 @@
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
+          <span v-else class="ea-search-filter" title="Filter">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+            </svg>
+          </span>
         </div>
 
         <button class="ea-send-btn" @click="showSendModal = true">
@@ -3407,7 +3416,7 @@ function setImportPayment(attendeeId, amount) {
 
 <style scoped>
 .ea-root {
-  padding: 20px 24px 24px;
+  padding: 28px 36px 36px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -3442,10 +3451,9 @@ function setImportPayment(attendeeId, amount) {
 .ea-panel-hd {
   display: flex;
   align-items: center;
-  height: 64px;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--c-border);
-  gap: 12px;
+  height: 92px;
+  padding: 0 32px;
+  gap: 14px;
   flex-shrink: 0;
 }
 .ea-hd-title-group {
@@ -3455,8 +3463,8 @@ function setImportPayment(attendeeId, amount) {
   flex-shrink: 0;
 }
 .ea-panel-title {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 27px;
+  font-weight: 800;
   color: var(--c-txt);
   margin: 0;
   letter-spacing: -0.02em;
@@ -3466,7 +3474,7 @@ function setImportPayment(attendeeId, amount) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
   background: var(--c-muted);
   color: var(--c-txt-2);
@@ -3476,8 +3484,8 @@ function setImportPayment(attendeeId, amount) {
 }
 
 .ea-hd-icon-badge {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   background: var(--c-muted);
   border: 1px solid var(--c-border);
@@ -3493,33 +3501,36 @@ function setImportPayment(attendeeId, amount) {
   background: var(--c-bg);
   border-color: var(--wj-blue, #4f46e5);
 }
+.ea-hd-icon-badge svg { width: 19px; height: 19px; }
 
 /* ── Header hamburger / brand / gear ── */
 .ea-hd-gear {
   display: flex; align-items: center; justify-content: center;
-  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
   background: var(--c-bg); border: 1px solid var(--c-border);
   color: var(--c-txt-2); cursor: pointer; font-family: inherit; padding: 0;
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   transition: color 130ms, background 130ms, border-color 130ms;
 }
 .ea-hd-gear:hover { color: var(--c-txt); background: var(--c-muted); border-color: var(--c-txt-3); }
+.ea-hd-gear svg { width: 20px; height: 20px; }
 
 /* Bare, borderless lines — no circle chrome — matching withjoy's plain hamburger. */
 .ea-hd-burger {
   display: flex; align-items: center; justify-content: center;
-  width: 36px; height: 36px; flex-shrink: 0;
+  width: 40px; height: 40px; flex-shrink: 0;
   background: none; border: none;
   color: var(--c-txt); cursor: pointer; font-family: inherit; padding: 0;
   border-radius: 8px;
   transition: color 130ms, background 130ms;
 }
 .ea-hd-burger:hover { background: var(--c-muted); }
+.ea-hd-burger svg { width: 21px; height: 21px; }
 .ea-hd-brand {
   display: flex; align-items: center; gap: 8px; cursor: pointer; flex-shrink: 0;
 }
-.ea-hd-brand-logo { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
-.ea-hd-sep { width: 1px; height: 18px; background: var(--c-divide); flex-shrink: 0; margin: 0 2px; }
+.ea-hd-brand-logo { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.ea-hd-sep { width: 1px; height: 24px; background: var(--c-divide); flex-shrink: 0; margin: 0 2px; }
 .ea-panel-acts {
   display: flex;
   align-items: center;
@@ -3585,16 +3596,19 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-search-icon {
   position: absolute;
-  left: 11px;
+  left: 18px;
   pointer-events: none;
+  width: 18px;
+  height: 18px;
 }
 .ea-search {
   width: 100%;
-  padding: 10px 34px 10px 38px;
+  height: 52px;
+  padding: 0 42px 0 48px;
   background: none;
   border: 1.5px solid var(--c-border);
   border-radius: 999px;
-  font-size: 13.5px;
+  font-size: 16px;
   color: var(--c-txt);
   outline: none;
   box-shadow: none;
@@ -3605,16 +3619,31 @@ function setImportPayment(attendeeId, amount) {
 .ea-search::placeholder { color: var(--c-txt-3); }
 .ea-search-clear {
   position: absolute;
-  right: 10px;
+  right: 14px;
   background: none;
   border: none;
   color: var(--c-txt-3);
   cursor: pointer;
   display: flex;
   align-items: center;
-  padding: 3px;
-  border-radius: 4px;
+  padding: 4px;
+  border-radius: 50%;
 }
+.ea-search-clear svg { width: 15px; height: 15px; }
+.ea-search-filter {
+  position: absolute;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  color: var(--c-txt-2);
+  flex-shrink: 0;
+}
+.ea-search-filter svg { width: 14px; height: 14px; }
 .ea-search-clear:hover { color: var(--c-txt-2); }
 
 .ea-toolbar-right {
@@ -3686,14 +3715,14 @@ function setImportPayment(attendeeId, amount) {
 .ea-add-btn {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 0 20px;
-  height: 38px;
-  background: #111827;
+  gap: 8px;
+  padding: 0 28px;
+  height: 52px;
+  background: var(--wj-blue, #4f46e5);
   color: #ffffff;
   border: none;
   border-radius: 999px;
-  font-size: 13.5px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: background 150ms, box-shadow 150ms;
@@ -3701,21 +3730,22 @@ function setImportPayment(attendeeId, amount) {
   flex-shrink: 0;
   letter-spacing: -0.1px;
 }
-.ea-add-btn:hover { background: #1f2937; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+.ea-add-btn:hover { background: #4338ca; box-shadow: 0 2px 8px rgba(79,70,229,0.28); }
+.ea-add-btn svg { width: 16px; height: 16px; }
 .ea-panel-hd .ea-add-btn { margin-left: 0; }
-.ea-panel-hd .ea-search-inline { flex: 0 1 420px; margin: 0 auto; }
+.ea-panel-hd .ea-search-inline { flex: 0 1 480px; margin: 0 auto; }
 
 .ea-send-btn {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 0 20px;
-  height: 38px;
+  gap: 8px;
+  padding: 0 26px;
+  height: 52px;
   background: none;
   color: var(--c-txt-2);
   border: 1px solid var(--c-border);
   border-radius: 999px;
-  font-size: 13.5px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: background 150ms, color 150ms, border-color 150ms;
@@ -3724,23 +3754,25 @@ function setImportPayment(attendeeId, amount) {
   letter-spacing: -0.1px;
 }
 .ea-send-btn:hover { background: var(--c-muted); color: var(--c-txt); border-color: transparent; }
+.ea-send-btn svg { width: 16px; height: 16px; }
 
 /* ── Secondary toolbar: horizontal action pills, withjoy style ── */
 .ea-toolbar2 {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 10px 20px;
+  gap: 13px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--c-divide);
   flex-wrap: wrap;
-  min-height: 52px;
+  min-height: 60px;
 }
 .ea-tb2-btn {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 16px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: none;
@@ -3761,7 +3793,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-tb2-btn--active .ea-tb2-lbl { color: var(--wj-blue); }
 .ea-tb2-lbl {
   display: flex; align-items: center; gap: 5px;
-  font-size: 13px; font-weight: 500; color: var(--c-txt-2);
+  font-size: 14px; font-weight: 500; color: var(--c-txt-2);
   white-space: nowrap;
 }
 .ea-tb2-btn:hover .ea-tb2-lbl { color: var(--c-txt); }
@@ -3779,17 +3811,17 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-tb2-btn--danger .ea-tb2-lbl { color: #FF453A; }
 .ea-tb2-btn--danger:hover { background: rgba(255,69,58,0.08); }
-.ea-tb2-divider { width: 1px; height: 20px; background: var(--c-divide); margin: 0 4px; flex-shrink: 0; }
+.ea-tb2-divider { width: 1px; height: 24px; background: var(--c-divide); margin: 0 6px; flex-shrink: 0; }
 
 /* ── Shared row grid — header + data rows align on this template ── */
 .ea-row-grid {
   display: grid;
-  grid-template-columns: 34px 40px minmax(140px,1.8fr) minmax(150px,1fr) minmax(140px,1fr) 100px minmax(80px,1fr) 110px 60px;
+  grid-template-columns: 34px 48px minmax(140px,1.8fr) minmax(150px,1fr) minmax(140px,1fr) 110px minmax(80px,1fr) 118px 64px;
   align-items: center;
-  gap: 12px;
+  gap: 20px;
 }
 .ea-col-head {
-  padding: 10px 24px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--c-divide);
   background: var(--ea-col-head-bg, rgba(255,255,255,0.02));
 }
@@ -3803,19 +3835,19 @@ function setImportPayment(attendeeId, amount) {
   background: var(--c-bg, #ffffff);
 }
 .ea-col-cb { display: flex; align-items: center; cursor: pointer; }
-.ea-col-avatar { width: 40px; }
+.ea-col-avatar { width: 48px; }
 .ea-col-btn {
   display: inline-flex; align-items: center; gap: 4px;
   background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
-  font-size: 11px; font-weight: 600; color: var(--c-txt-2);
-  text-transform: uppercase; letter-spacing: 0.06em; justify-self: start;
+  font-size: 15px; font-weight: 700; color: var(--c-txt);
+  text-transform: none; letter-spacing: -0.01em; justify-self: start;
   transition: color 120ms;
 }
 .ea-col-btn:hover { color: var(--c-txt); }
 .ea-col-btn--right { justify-self: start; }
 .ea-col-lbl {
-  font-size: 11px; font-weight: 600; color: var(--c-txt-2);
-  text-transform: uppercase; letter-spacing: 0.06em;
+  font-size: 15px; font-weight: 700; color: var(--c-txt);
+  text-transform: none; letter-spacing: -0.01em;
 }
 .ea-col-actions { width: 100%; }
 .ea-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -3882,9 +3914,9 @@ function setImportPayment(attendeeId, amount) {
 .ea-cb {
   appearance: none;
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 5px;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
   border: 1.5px solid var(--c-border);
   background: transparent;
   cursor: pointer;
@@ -3907,10 +3939,10 @@ function setImportPayment(attendeeId, amount) {
   content: '';
   display: block;
   position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 5px;
-  height: 9px;
+  left: 5px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
   border: 2px solid #0a0e1c;
   border-top: none;
   border-left: none;
@@ -6121,8 +6153,8 @@ function setImportPayment(attendeeId, amount) {
 /* Avatar */
 .ea-card-av-wrap { position: relative; flex-shrink: 0; }
 .ea-card-avatar {
-  width: 36px; height: 36px; border-radius: 50%;
-  font-size: 12px; font-weight: 700;
+  width: 44px; height: 44px; border-radius: 50%;
+  font-size: 15px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
@@ -6137,7 +6169,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-card--pending      .ea-card-type-dot { background: #FF9F0A; }
 
 /* Skeleton avatar tweak */
-.ea-sk-circle--card { width: 36px; height: 36px; border-radius: 50%; }
+.ea-sk-circle--card { width: 44px; height: 44px; border-radius: 50%; }
 
 /* Identity */
 .ea-card-info {
@@ -6145,10 +6177,10 @@ function setImportPayment(attendeeId, amount) {
   flex: 0 0 200px; min-width: 0;
 }
 .ea-card-name {
-  font-size: 13.5px; font-weight: 600; color: var(--c-txt);
+  font-size: 15px; font-weight: 600; color: var(--c-txt);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.ea-card-meta { font-size: 13px; color: var(--c-txt-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ea-card-meta { font-size: 14px; color: var(--c-txt-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Badges zone */
 .ea-card-badges {
@@ -6165,9 +6197,9 @@ function setImportPayment(attendeeId, amount) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
+  padding: 6px 14px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--c-txt-2);
   white-space: nowrap;
@@ -6300,14 +6332,23 @@ function setImportPayment(attendeeId, amount) {
   .ea-root { padding: 12px 14px 20px; gap: 12px; }
   .ea-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; min-width: 0; }
 
-  /* Panel header: wrap so search doesn't crush title+add button */
-  .ea-panel-hd { flex-wrap: wrap; padding: 10px 14px; gap: 8px; }
-  .ea-panel-title { flex: 1; font-size: 17px; }
-  .ea-panel-hd .ea-search-inline { flex: 1 1 100%; order: 3; max-width: none; }
-  .ea-panel-hd .ea-add-btn { margin-left: 0; order: 2; }
+  /* Panel header: stack into 3 predictable rows — nav / search / actions —
+     instead of letting everything wrap inside a fixed-height box (that fixed
+     height is what was clipping wrapped content and causing the Add Guest
+     button to float on top of the toolbar below it). */
+  .ea-panel-hd { flex-wrap: wrap; height: auto; padding: 12px 16px; gap: 10px; row-gap: 10px; }
+  .ea-hd-sep { display: none; }
+  .ea-hd-burger { order: 0; }
+  .ea-hd-icon-badge { order: 1; }
+  .ea-hd-title-group { order: 2; flex: 1 1 auto; min-width: 0; }
+  .ea-panel-title { font-size: 19px; }
+  .ea-hd-gear { order: 3; }
+  .ea-panel-hd .ea-search-inline { order: 4; flex: 1 1 100%; max-width: none; }
+  .ea-send-btn { order: 5; flex: 1 1 0; justify-content: center; height: 46px; padding: 0 16px; font-size: 14px; }
+  .ea-panel-hd .ea-add-btn { order: 6; flex: 1 1 0; justify-content: center; height: 46px; padding: 0 16px; font-size: 14px; margin-left: 0; }
 
   /* Secondary toolbar: allow wrap, tighten a bit */
-  .ea-toolbar2 { gap: 2px; padding: 8px 10px; }
+  .ea-toolbar2 { gap: 6px; padding: 8px 10px; }
   .ea-tb2-btn { padding: 5px 8px; }
 
   /* Stat cards: min-width:0 lets grid cells shrink; overflow:hidden clips long labels */

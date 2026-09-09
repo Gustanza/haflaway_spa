@@ -8,16 +8,18 @@
       </button>
       <h1 class="eo-hero-title">{{ event?.title ?? '…' }}</h1>
       <div class="eo-hub-icons">
-        <button class="eo-icon-circle" title="Search">
+        <button class="eo-icon-circle eo-icon-circle--bare" title="Search">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
-        <button class="eo-avatar-circle" :title="currentUser?.displayName || currentUser?.email || 'Account'" @click="$router.push('/organization')">
-          <img v-if="currentUser?.photoURL && !avatarBroken" :src="currentUser.photoURL" alt="" @error="avatarBroken = true" />
-          <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
-        </button>
-        <button class="eo-icon-circle" title="Settings" @click="$router.push(`/event/${id}/settings`)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
+        <div class="eo-account-group">
+          <button class="eo-avatar-circle" :title="currentUser?.displayName || currentUser?.email || 'Account'" @click="$router.push('/organization')">
+            <img v-if="currentUser?.photoURL && !avatarBroken" :src="currentUser.photoURL" alt="" @error="avatarBroken = true" />
+            <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
+          </button>
+          <button class="eo-icon-circle" title="Settings" @click="$router.push(`/event/${id}/settings`)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -198,7 +200,6 @@ const launcherItems = computed(() => [
   { label: 'Gifts of Love',  to: `/event/${id.value}/zawadi`,        bg: 'linear-gradient(135deg,#ec4899,#db2777)', icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5" rx="1"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>` },
   { label: 'Payments',       to: `/event/${id.value}/payments`,      bg: 'linear-gradient(135deg,#dcb862,#C9A84C)', icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>` },
   { label: 'Team',           to: `/event/${id.value}/team`,          bg: 'linear-gradient(135deg,#6366f1,#4f46e5)', icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>` },
-  { label: 'Settings',       to: `/event/${id.value}/settings`,      bg: 'linear-gradient(135deg,#64748b,#475569)', icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>` },
 ])
 
 // ── Data loading ──────────────────────────────────────────────────────────────
@@ -249,10 +250,17 @@ watch(() => props.event, loadStats)
   --c-arrow:  #3a3a3a;
 
   padding: 20px 24px 56px;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 18px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Covers the shared app-shell canvas (--el-content-bg, a lavender-tinted
+     off-white used behind every event sub-page) with a neutral near-white —
+     withjoy's own dashboard sits on rgb(255,255,255)/rgb(251,251,251), not a
+     tinted background; a scoped override here keeps every other screen that
+     still wants the shared tone untouched. */
+  background: var(--c-bg);
   transition: background 300ms ease;
 }
 
@@ -261,14 +269,14 @@ watch(() => props.event, loadStats)
 .eo-hero-title {
   margin: 0; flex: 1; min-width: 0;
   font-family: 'Playfair Display', Georgia, serif;
-  font-weight: 500;
-  font-size: 34px;
-  letter-spacing: -0.2px;
+  font-weight: 400;
+  font-size: 40px;
+  letter-spacing: -0.3px;
   color: var(--c-txt);
-  line-height: 1.15;
+  line-height: 1.25;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.eo-hub-icons { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.eo-hub-icons { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 
 .eo-back-circle, .eo-icon-circle, .eo-avatar-circle {
   width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
@@ -279,12 +287,30 @@ watch(() => props.event, loadStats)
 }
 .eo-back-circle:hover, .eo-icon-circle:hover { color: var(--c-txt); background: var(--c-hover, var(--c-bg)); }
 
+/* Search sits bare (no circle chrome) — matching withjoy, where only the
+   avatar+settings pair get a pill container, not every header icon. */
+.eo-icon-circle--bare { background: none; border: none; }
+.eo-icon-circle--bare:hover { background: var(--c-hover, var(--c-muted)); }
+
 .eo-avatar-circle {
   overflow: hidden;
   font-size: 12px; font-weight: 700; color: var(--c-txt-2);
   background: var(--c-track);
 }
 .eo-avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Account group: avatar + settings share one floating white capsule. */
+.eo-account-group {
+  display: flex; align-items: center; gap: 2px; flex-shrink: 0;
+  padding: 4px; border-radius: 999px;
+  background: var(--c-bg);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.06);
+}
+.eo-account-group .eo-avatar-circle,
+.eo-account-group .eo-icon-circle {
+  border: none;
+}
+.eo-account-group .eo-icon-circle { background: none; }
 
 /* ══ Pills row ══ */
 .eo-hero-pills { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px 2px 4px; }
@@ -301,27 +327,26 @@ watch(() => props.event, loadStats)
 .eo-hub-body { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: stretch; }
 
 .eo-launcher-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 20px;
   align-content: start;
 }
 .eo-launcher-tile {
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 20px 10px; background: var(--c-bg); border: 1px solid var(--c-border);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 14px 8px; background: none; border: none;
   border-radius: 16px; cursor: pointer; font-family: inherit;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  transition: box-shadow 150ms, transform 150ms, background 300ms ease, border-color 300ms ease;
+  box-shadow: none;
+  transition: background 150ms, transform 150ms;
 }
 .eo-launcher-tile:hover {
-  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
   transform: translateY(-2px);
-  background: var(--c-hover, var(--c-bg));
+  background: var(--c-hover, var(--c-muted));
 }
 .eo-launcher-ic {
-  width: 52px; height: 52px; border-radius: 50%;
+  width: 64px; height: 64px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
 }
-.eo-launcher-lbl { font-size: 13px; font-weight: 600; color: var(--c-txt); text-align: center; }
+.eo-launcher-lbl { font-size: 14px; font-weight: 500; color: var(--c-txt); text-align: center; }
 
 /* ══ Preview panel ══ */
 .eo-preview {
@@ -330,24 +355,34 @@ watch(() => props.event, loadStats)
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .eo-preview-tabs {
-  display: flex; gap: 3px; padding: 3px; border-radius: 14px;
+  display: flex; gap: 3px; padding: 4px; border-radius: 22px;
   background: var(--c-track);
 }
 .eo-preview-tab {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 8px 10px; border-radius: 11px; border: none; cursor: pointer;
+  padding: 8px 10px; border-radius: 18px; border: none; cursor: pointer;
   background: transparent; color: var(--c-txt-2); font-family: inherit;
   font-size: 12.5px; font-weight: 600; white-space: nowrap;
-  transition: background 130ms, color 130ms, box-shadow 130ms;
+  transition: background 130ms, color 130ms;
 }
 .eo-preview-tab--active {
   background: var(--c-bg); color: var(--c-txt);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  box-shadow: none;
 }
 .eo-preview-body { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; flex: 1; }
-.eo-preview-cards { position: relative; width: 100%; height: 108px; margin-bottom: 6px; }
+.eo-preview-cards {
+  position: relative; width: 100%; height: 140px; margin-bottom: 6px;
+  background: var(--c-track, #f7f7f7); border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.10);
+}
+.eo-preview-cards::before {
+  content: ''; position: absolute; top: 12px; left: 14px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(0,0,0,0.14);
+  box-shadow: 14px 0 0 0 rgba(0,0,0,0.14), 28px 0 0 0 rgba(0,0,0,0.14);
+}
 .eo-pcard {
-  position: absolute; top: 6px; left: 50%; width: 92px; height: 100px; border-radius: 12px;
+  position: absolute; top: 34px; left: 50%; width: 92px; height: 100px; border-radius: 12px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.18);
 }
 .eo-pcard--1 { background: linear-gradient(160deg,#fde68a,#f59e0b); transform: translateX(-50%) rotate(-10deg) translateX(-34px); }

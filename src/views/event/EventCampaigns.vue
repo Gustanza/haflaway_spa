@@ -2147,8 +2147,8 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 
 /* ── Left Pane (Form / Editor): Pure White Canvas, No Floating Card ── */
 .em-drawer.em-drawer--composer .em-send-form {
-  flex: 1 1 540px !important;
-  max-width: 600px !important;
+  flex: 0 0 55% !important;
+  max-width: 55% !important;
   min-width: 380px !important;
   height: 100% !important;
   overflow-y: auto !important;
@@ -2485,7 +2485,8 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 
 /* ── Right Pane (Preview Stage): Soft Neutral Canvas Holding ONE Floating Card ── */
 .em-drawer.em-drawer--composer .em-send-preview {
-  flex: 1 1 0 !important;
+  flex: 0 0 45% !important;
+  max-width: 45% !important;
   min-width: 0 !important;
   height: 100% !important;
   overflow-y: auto !important;
@@ -2719,6 +2720,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
     height: auto !important;
   }
   .em-drawer.em-drawer--composer .em-send-form {
+    flex: 1 1 auto !important;
     max-width: 100% !important;
     min-width: 0 !important;
     height: auto !important;
@@ -2726,6 +2728,8 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
     padding: 24px 20px 32px !important;
   }
   .em-drawer.em-drawer--composer .em-send-preview {
+    flex: 1 1 auto !important;
+    max-width: 100% !important;
     border-left: none !important;
     border-top: 1px solid var(--cx-line) !important;
     height: auto !important;
