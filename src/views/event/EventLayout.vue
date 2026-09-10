@@ -177,7 +177,7 @@ const event = ref(null)
 // showMobileNav is shared (not a local ref) so hub-chrome pages — which hide
 // this component's own hamburger — can open the same drawer via their own button.
 const { isOpen: showMobileNav } = useNavDrawer()
-const isHubRoute = computed(() => ['EventOverview', 'EventAttendees'].includes(route.name))
+const isHubRoute = computed(() => ['EventOverview', 'EventAttendees', 'EventCampaigns'].includes(route.name))
 
 watch(() => route.path, () => { showMobileNav.value = false })
 

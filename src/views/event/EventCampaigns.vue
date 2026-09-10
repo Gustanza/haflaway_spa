@@ -11,16 +11,55 @@
          send/returnTo params are kept in the URL rather than stripped). -->
     <template v-if="!composerOnly">
 
+    <!-- ── Hub header: hamburger + brand badge + title — the sidebar/topbar
+         are hidden on this page (see EventLayout's isHubRoute), so this
+         hamburger is the only way back into them. Sticky so it stays put
+         while the dashboard/campaign panels below it scroll, matching the
+         withjoy-style treatment already used on Guest List. ── -->
+    <div class="em-hub-hd">
+      <button class="em-hd-burger" title="Menu" @click="navDrawer.open()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <div class="em-hd-sep"></div>
+      <div class="em-hd-icon-badge" @click="$router.push('/events')" title="All Events">
+        <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="em-hd-brand-logo" />
+        <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div class="em-hd-sep"></div>
+      <h2 class="em-hub-title">Bulk Messages</h2>
+    </div>
+
     <!-- ══════════════════════════════════════════════
          CAMPAIGN LIST (no campaign selected)
          ══════════════════════════════════════════════ -->
     <template v-if="!selectedCustomCamp">
 
-      <!-- WithJoy-inspired messaging dashboard: presets to start a new
-           message, what's scheduled (placeholder — no logic behind it yet),
-           and what's already gone out, regardless of individual delivery
-           status. -->
+      <!-- withjoy-style tab strip — Create / Drafts / Scheduled / Sent are
+           mutually exclusive views, matching the tabs on withjoy's own
+           Messaging page rather than stacking every section at once. -->
+      <div class="em-msg-tabs">
+        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'create' }" @click="msgTab = 'create'">Create</button>
+        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'drafts' }" @click="msgTab = 'drafts'">
+          Drafts
+          <span v-if="draftCampaigns.length" class="em-msg-tab-count">{{ draftCampaigns.length }}</span>
+        </button>
+        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'scheduled' }" @click="msgTab = 'scheduled'">Scheduled</button>
+        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'sent' }" @click="msgTab = 'sent'">
+          Sent
+          <span v-if="sentCampaigns.length" class="em-msg-tab-count">{{ sentCampaigns.length }}</span>
+        </button>
+      </div>
+
       <div class="em-msg-dash">
+
+        <!-- Create — tile grid plus, like withjoy's own Create tab, quick
+             previews of what's Scheduled and what's already Sent. -->
+        <template v-if="msgTab === 'create'">
         <div class="em-msg-panel">
           <h2 class="em-msg-panel-title">Messages</h2>
           <div class="em-msg-tiles">
@@ -52,6 +91,8 @@
         </div>
 
         <div class="em-msg-row">
+          <!-- Scheduled preview — no logic behind it yet, matches the full
+               Scheduled tab's placeholder. -->
           <div class="em-msg-panel em-msg-panel--half">
             <h2 class="em-msg-panel-title">Scheduled</h2>
             <div class="em-msg-empty">
@@ -60,10 +101,13 @@
             </div>
           </div>
 
+          <!-- Sent preview — the 6 most recent dispatched campaigns; "View All"
+               jumps to the full Sent tab. -->
           <div class="em-msg-panel em-msg-panel--half">
             <div class="em-msg-panel-hd">
               <h2 class="em-msg-panel-title">Sent</h2>
               <span v-if="sentCampaigns.length" class="em-msg-count">{{ sentCampaigns.length }}</span>
+              <button v-if="sentCampaigns.length > 4" class="em-msg-view-all" @click="msgTab = 'sent'">View All</button>
             </div>
             <div v-if="loadingCustomCamps" class="em-msg-empty"><p>Loading…</p></div>
             <div v-else-if="!sentCampaigns.length" class="em-msg-empty">
@@ -71,7 +115,7 @@
               <p>No messages sent yet</p>
             </div>
             <div v-else class="em-msg-sent-list">
-              <div v-for="camp in sentCampaigns.slice(0, 6)" :key="camp.id" class="em-msg-sent-row" @click="selectCustomCamp(camp)">
+              <div v-for="camp in sentCampaigns.slice(0, 4)" :key="camp.id" class="em-msg-sent-row" @click="selectCustomCamp(camp)">
                 <div class="em-msg-sent-icon">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </div>
@@ -81,131 +125,72 @@
             </div>
           </div>
         </div>
-      </div>
+        </template>
 
-      <!-- Stat cards -->
-      <div class="em-stats" v-if="!loadingCustomCamps || customCampaigns.length">
-        <div class="em-stat-card">
-          <div class="em-stat-icon em-stat-icon--purple">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
+        <!-- Drafts -->
+        <div class="em-msg-panel" v-if="msgTab === 'drafts'">
+          <div class="em-msg-panel-hd">
+            <h2 class="em-msg-panel-title">Drafts</h2>
+            <span v-if="draftCampaigns.length" class="em-msg-count">{{ draftCampaigns.length }}</span>
           </div>
-          <div class="em-stat-body">
-            <span class="em-stat-lbl">Total Campaigns</span>
-            <span class="em-stat-val">{{ customCampaigns.length }}</span>
+          <div v-if="loadingCustomCamps" class="em-msg-empty"><p>Loading…</p></div>
+          <div v-else-if="!draftCampaigns.length" class="em-msg-empty">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <p>No drafts yet</p>
           </div>
-        </div>
-        <div class="em-stat-card">
-          <div class="em-stat-icon em-stat-icon--blue">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-            </svg>
-          </div>
-          <div class="em-stat-body">
-            <span class="em-stat-lbl">Invitation</span>
-            <span class="em-stat-val">{{ customCampaigns.filter(c => c.type === 'invitation').length }}</span>
-          </div>
-        </div>
-        <div class="em-stat-card">
-          <div class="em-stat-icon em-stat-icon--gold">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-          </div>
-          <div class="em-stat-body">
-            <span class="em-stat-lbl">Contribution</span>
-            <span class="em-stat-val">{{ customCampaigns.filter(c => c.type === 'contribution').length }}</span>
-          </div>
-        </div>
-        <div class="em-stat-card">
-          <div class="em-stat-icon em-stat-icon--teal">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-          </div>
-          <div class="em-stat-body">
-            <span class="em-stat-lbl">Contact</span>
-            <span class="em-stat-val">{{ customCampaigns.filter(c => c.type === 'contact').length }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Panel -->
-      <div class="em-panel">
-        <div class="em-panel-hd">
-          <h2 class="em-panel-title">Notifications</h2>
-        </div>
-
-        <div class="em-table-area">
-          <div v-if="loadingCustomCamps" class="em-loading-state">
-            <svg class="em-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-            <span>Loading campaigns…</span>
-          </div>
-
-          <div v-else-if="!customCampaigns.length" class="em-empty-state">
-            <div class="em-empty-icon">
-              <svg width="52" height="52" viewBox="0 0 64 64" fill="none">
-                <circle cx="32" cy="32" r="32" fill="#1e1e1e"/>
-                <path d="M42 22H22a2 2 0 0 0-2 2v16l6-4h16a2 2 0 0 0 2-2V24a2 2 0 0 0-2-2z" fill="#3a3a3a"/>
-                <circle cx="44" cy="40" r="5" fill="#B8924D" fill-opacity="0.2" stroke="#B8924D" stroke-width="1.5"/>
-                <line x1="44" y1="37.5" x2="44" y2="42.5" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round"/>
-                <line x1="41.5" y1="40" x2="46.5" y2="40" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <p class="em-empty-title">No past campaigns</p>
-            <p class="em-empty-sub">Pick what you'd like to send above to get started.</p>
-          </div>
-
-          <div v-else class="eca-list">
-            <div v-for="camp in pagedCampaigns" :key="camp.id"
-              class="eca-card" @click="selectCustomCamp(camp)">
-              <div class="eca-card-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
+          <div v-else class="em-msg-sent-list">
+            <div v-for="camp in draftCampaigns" :key="camp.id" class="em-msg-sent-row" @click="selectCustomCamp(camp)">
+              <div class="em-msg-sent-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </div>
-              <div class="eca-card-info">
-                <span class="eca-card-name">{{ camp.name }}</span>
-                <span class="eca-card-meta">Created {{ formatDate(camp.createdAt) }}</span>
-              </div>
-              <div class="eca-card-badges">
-                <span class="eca-badge eca-badge--draft" style="text-transform:capitalize">{{ camp.type }}</span>
-              </div>
-              <div class="eca-camp-actions" @click.stop>
+              <span class="em-msg-sent-name">{{ camp.name }}</span>
+              <span class="em-msg-sent-date">{{ formatDate(camp.createdAt) }}</span>
+              <div class="em-msg-sent-acts" @click.stop>
                 <button class="em-camp-item-btn" @click="openCampDialog(camp)" title="Edit">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
                 <button class="em-camp-item-btn em-camp-item-btn--del" @click="deleteCustomCampaign(camp)" title="Delete">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                 </button>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B5B5BB" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
               </div>
             </div>
           </div>
         </div>
 
-        <div v-if="!loadingCustomCamps && customCampaigns.length" class="em-table-footer" :class="{ 'em-footer--disabled': campTotalPages === 1 }">
-          <span class="em-range-lbl">
-            {{ (campPage - 1) * CAMP_PAGE_SIZE + 1 }}–{{ Math.min(campPage * CAMP_PAGE_SIZE, customCampaigns.length) }}
-            of {{ customCampaigns.length }}
-          </span>
-          <div class="em-paginator">
-            <button class="em-page-btn em-page-btn--nav" :disabled="campPage === 1" @click="campGoPage(campPage - 1)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            <template v-for="p in campPageNumbers" :key="String(p)">
-              <span v-if="p === '…'" class="em-page-ellipsis">…</span>
-              <button v-else class="em-page-btn" :class="{ 'em-page-btn--active': campPage === p }" @click="campGoPage(p)">{{ p }}</button>
-            </template>
-            <button class="em-page-btn em-page-btn--nav" :disabled="campPage === campTotalPages" @click="campGoPage(campPage + 1)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
+        <!-- Scheduled — placeholder, no logic behind it yet -->
+        <div class="em-msg-panel" v-if="msgTab === 'scheduled'">
+          <h2 class="em-msg-panel-title">Scheduled</h2>
+          <div class="em-msg-empty">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <p>Coming soon</p>
           </div>
         </div>
+
+        <!-- Sent — dispatched at least once, regardless of individual
+             recipients' delivery status (sent/delivered/failed). -->
+        <div class="em-msg-panel" v-if="msgTab === 'sent'">
+          <div class="em-msg-panel-hd">
+            <h2 class="em-msg-panel-title">Sent</h2>
+            <span v-if="sentCampaigns.length" class="em-msg-count">{{ sentCampaigns.length }}</span>
+          </div>
+          <div v-if="loadingCustomCamps" class="em-msg-empty"><p>Loading…</p></div>
+          <div v-else-if="!sentCampaigns.length" class="em-msg-empty">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <p>No messages sent yet</p>
+          </div>
+          <div v-else class="em-msg-sent-list">
+            <div v-for="camp in sentCampaigns" :key="camp.id" class="em-msg-sent-row" @click="selectCustomCamp(camp)">
+              <div class="em-msg-sent-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <span class="em-msg-sent-name">{{ camp.name }}</span>
+              <span class="em-msg-sent-date">{{ formatDate(camp.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+
       </div>
+
     </template>
 
     <!-- ══════════════════════════════════════════════
@@ -807,11 +792,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { db, auth } from '../../firebase'
 import { collection, query, orderBy, where, getDocs, addDoc, setDoc, deleteDoc, doc } from 'firebase/firestore'
 import { useNavDrawer } from '../../composables/useNavDrawer.js'
+import { useOrg } from '../../composables/useOrg.js'
 
 const props = defineProps({ event: Object, eventId: String })
 const route  = useRoute()
 const router = useRouter()
 const navDrawer = useNavDrawer()
+const { brandName, brandLogoUrl } = useOrg()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
 
 const SMS_URL = 'https://sendsmsaction-frbu33fema-uc.a.run.app'
@@ -894,33 +881,39 @@ async function load() {
 // ── Custom campaigns ───────────────────────────────────────────────────────────
 const customCampaigns     = ref([])
 const loadingCustomCamps  = ref(false)
-const campPage            = ref(1)
-const CAMP_PAGE_SIZE      = 10
+
+// withjoy-style tab strip above the dashboard — Create/Drafts/Scheduled/Sent
+// are mutually exclusive views, not stacked panels.
+const msgTab = ref('create')
+
+// A campaign's own `status` field is only flipped to 'sent' by the send-drawer's
+// success handler (see below) — it's absent on campaigns dispatched before that
+// existed, or if that write ever failed, so it under-reports. The reliable
+// signal is the attendees' own messageIndexes (`${channel}_${campaignId}_${status}`,
+// Twilio-webhook driven — same format InvitationsReport.vue parses), which
+// records an entry the moment a send is attempted, before any webhook lands.
+const dispatchedCampaignIds = computed(() => {
+  const ids = new Set()
+  for (const att of attendees.value) {
+    for (const idx of att.messageIndexes ?? []) {
+      const firstU = idx.indexOf('_'), lastU = idx.lastIndexOf('_')
+      if (firstU === -1 || firstU === lastU) continue
+      ids.add(idx.slice(firstU + 1, lastU))
+    }
+  }
+  return ids
+})
 
 // Dispatched at least once — regardless of individual recipients' delivery
 // state (sent/delivered/failed) — as opposed to still-draft campaigns.
 const sentCampaigns = computed(() =>
-  customCampaigns.value.filter(c => c.status === 'sent').sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0))
+  customCampaigns.value.filter(c => c.status === 'sent' || dispatchedCampaignIds.value.has(c.id))
+    .sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0))
 )
-
-const campTotalPages = computed(() => Math.max(1, Math.ceil(customCampaigns.value.length / CAMP_PAGE_SIZE)))
-const pagedCampaigns = computed(() => {
-  const start = (campPage.value - 1) * CAMP_PAGE_SIZE
-  return customCampaigns.value.slice(start, start + CAMP_PAGE_SIZE)
-})
-const campPageNumbers = computed(() => {
-  const total = campTotalPages.value, cur = campPage.value
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-  const pages = [1]
-  if (cur > 3) pages.push('…')
-  const start = Math.max(2, cur - 1)
-  const end   = Math.min(total - 1, cur + 1)
-  for (let i = start; i <= end; i++) pages.push(i)
-  if (cur < total - 2) pages.push('…')
-  if (total > 1) pages.push(total)
-  return pages
-})
-function campGoPage(n) { if (n >= 1 && n <= campTotalPages.value) campPage.value = n }
+const draftCampaigns = computed(() =>
+  customCampaigns.value.filter(c => c.status !== 'sent' && !dispatchedCampaignIds.value.has(c.id))
+    .sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0))
+)
 
 const selectedCustomCamp = ref(null)
 // Read once, synchronously at setup, before any Firestore round-trip: were we
@@ -1545,6 +1538,44 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   transition: background 300ms ease;
 }
 
+/* ── Hub header (hamburger / brand badge / title) — the page's only nav
+   chrome now that the sidebar/topbar are hidden. Sticky at the top of
+   .em-root so it stays visible while everything below it scrolls. ── */
+.em-hub-hd {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 64px;
+  flex-shrink: 0;
+  background: var(--el-content-bg, #070707);
+}
+.em-hd-burger {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; flex-shrink: 0;
+  background: none; border: none;
+  color: var(--c-txt); cursor: pointer; font-family: inherit; padding: 0;
+  border-radius: 8px;
+  transition: color 130ms, background 130ms;
+}
+.em-hd-burger:hover { background: var(--c-muted); }
+.em-hd-sep { width: 1px; height: 24px; background: var(--c-divide); flex-shrink: 0; }
+.em-hd-icon-badge {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--c-muted); border: 1px solid var(--c-border);
+  color: var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer; transition: all 150ms ease;
+}
+.em-hd-icon-badge:hover { background: var(--c-bg); border-color: var(--gold); }
+.em-hd-brand-logo { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
+.em-hub-title {
+  font-size: 22px; font-weight: 800; color: var(--c-txt); margin: 0;
+  letter-spacing: -0.02em; white-space: nowrap;
+}
+
 /* ── Stat cards ── */
 .em-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .em-stat-card {
@@ -1593,6 +1624,27 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 /* ── Table area ── */
 .em-table-area { overflow-x: auto; }
 
+/* ── withjoy-style tab strip: Create / Drafts / Scheduled / Sent ── */
+.em-msg-tabs {
+  display: flex; align-items: center; gap: 4px;
+  border-bottom: 1px solid var(--c-divide);
+  margin-bottom: 4px;
+}
+.em-msg-tab {
+  display: flex; align-items: center; gap: 6px;
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  font-size: 14px; font-weight: 600; color: var(--c-txt-2);
+  padding: 10px 4px; margin-right: 20px;
+  border-bottom: 2px solid transparent;
+  transition: color 130ms, border-color 130ms;
+}
+.em-msg-tab:hover { color: var(--c-txt); }
+.em-msg-tab--active { color: var(--c-txt); border-bottom-color: var(--gold); }
+.em-msg-tab-count {
+  font-size: 11px; font-weight: 700; color: var(--c-txt-2); background: var(--c-track);
+  border-radius: 999px; padding: 1px 7px;
+}
+
 /* ── Messaging dashboard (WithJoy-inspired) — presets to start a new
    message, a Scheduled placeholder, and what's already been sent ── */
 .em-msg-dash { display: flex; flex-direction: column; gap: 16px; }
@@ -1607,6 +1659,13 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   font-size: 11px; font-weight: 700; color: var(--c-txt-2); background: var(--c-track);
   border-radius: 999px; padding: 2px 8px;
 }
+.em-msg-view-all {
+  margin-left: auto; background: none; border: none; cursor: pointer; font-family: inherit;
+  font-size: 12.5px; font-weight: 600; color: var(--gold); padding: 0;
+}
+.em-msg-view-all:hover { text-decoration: underline; }
+.em-msg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.em-msg-panel--half { display: flex; flex-direction: column; min-height: 200px; }
 .em-msg-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .em-msg-tile {
   display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
@@ -1616,8 +1675,6 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-msg-tile:hover:not(:disabled) { border-color: var(--gold); background: rgb(from var(--gold) r g b / 0.06); }
 .em-msg-tile:disabled { opacity: 0.5; cursor: not-allowed; }
 .em-msg-tile-label { font-size: 13.5px; font-weight: 600; color: var(--c-txt); }
-.em-msg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.em-msg-panel--half { display: flex; flex-direction: column; min-height: 200px; }
 .em-msg-empty {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 10px; color: var(--c-txt-3); font-size: 13px; text-align: center; padding: 20px 0;
@@ -1628,6 +1685,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   cursor: pointer; transition: background 130ms;
 }
 .em-msg-sent-row:hover { background: var(--c-track); }
+.em-msg-sent-row:hover .em-msg-sent-acts { opacity: 1; }
 .em-msg-sent-icon {
   width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; color: var(--gold);
   background: rgb(from var(--gold) r g b / 0.1);
@@ -1635,9 +1693,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 }
 .em-msg-sent-name { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--c-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .em-msg-sent-date { font-size: 12px; color: var(--c-txt-2); flex-shrink: 0; }
-@media (max-width: 720px) {
-  .em-msg-row { grid-template-columns: 1fr; }
-}
+.em-msg-sent-acts { display: flex; align-items: center; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity 130ms; }
 
 /* ── Filter bar (inside detail panel) ── */
 .em-panel-filter-bar {
@@ -2051,8 +2107,14 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   .em-stat-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 
+@media (max-width: 720px) {
+  .em-msg-row { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 700px) {
   .em-root  { padding: 12px 14px 20px; gap: 12px; }
+  .em-hub-hd { height: 52px; gap: 10px; }
+  .em-hub-title { font-size: 18px; }
   /* Column layout so labels get full card width */
   .em-stat-card { padding: 12px; gap: 6px; flex-direction: column; align-items: flex-start; }
   .em-stat-icon { width: 32px; height: 32px; flex-shrink: 0; }
