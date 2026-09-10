@@ -313,9 +313,6 @@
           </svg>
         </button>
         <span class="ea-col-lbl">Phone</span>
-        <span class="ea-col-lbl">{{ isContactsView ? 'Type' : 'Status' }}</span>
-        <span class="ea-col-lbl" v-if="!isContactsView">Checked In</span>
-        <span class="ea-col-lbl" v-else />
         <span class="ea-col-lbl">Groups</span>
         <button class="ea-col-btn ea-col-btn--right" @click="toggleSort('date')">
           Added
@@ -343,8 +340,6 @@
           <div class="ea-sk-bar ea-sk-bar--lg" />
           <div class="ea-sk-bar ea-sk-bar--md" />
           <div class="ea-sk-bar ea-sk-bar--sm" />
-          <div class="ea-sk-bar ea-sk-bar--sm" />
-          <span />
           <div class="ea-sk-bar ea-sk-bar--sm" />
           <span />
         </div>
@@ -414,24 +409,8 @@
           </div>
 
           <!-- Name -->
-          <span class="ea-card-name" :title="att.fullName">{{ formatDisplayName(att.fullName) }}</span>
-
-          <!-- Phone -->
-          <span class="ea-card-meta">{{ formatPhoneDisplay(att.phone) }}</span>
-
-          <!-- Status / Type -->
-          <span class="ea-cell ea-cell--status">
-            <template v-if="isContactsView">
-              <span class="ea-type-badge" :class="`ea-type-badge--${getKardType(att)}`">
-                {{ typeLabels[getKardType(att)] }}
-              </span>
-            </template>
-            <template v-else>
-              <span class="ea-status-pill" :class="`ea-status-pill--${statusSlug(att.attendanceStatus)}`">
-                <span class="ea-status-dot" :style="{ background: statusColor(att.attendanceStatus) }" />
-                {{ att.attendanceStatus || 'Not Confirmed' }}
-              </span>
-            </template>
+          <span class="ea-card-name" :title="att.fullName">
+            <span class="ea-card-name-txt">{{ formatDisplayName(att.fullName) }}</span>
             <span v-if="isCardPending(att)" class="ea-pending-pill">
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2.5" stroke-linecap="round">
@@ -442,14 +421,8 @@
             </span>
           </span>
 
-          <!-- Checked In (Guest List only) -->
-          <span class="ea-cell ea-cell--center ea-cell--checkin" v-if="!isContactsView">
-            <span v-if="att.checkedIn" class="ea-checkin-badge" title="Checked in">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </span>
-            <span v-else class="ea-checkin-dash">—</span>
-          </span>
-          <span class="ea-cell ea-cell--checkin" v-else />
+          <!-- Phone -->
+          <span class="ea-card-meta">{{ formatPhoneDisplay(att.phone) }}</span>
 
           <!-- Groups -->
           <span class="ea-cell ea-cell--groups">
@@ -3816,7 +3789,7 @@ function setImportPayment(attendeeId, amount) {
 /* ── Shared row grid — header + data rows align on this template ── */
 .ea-row-grid {
   display: grid;
-  grid-template-columns: 34px 48px minmax(140px,1.8fr) minmax(150px,1fr) minmax(140px,1fr) 110px minmax(80px,1fr) 118px 64px;
+  grid-template-columns: 34px 48px minmax(180px, 2fr) minmax(160px, 1.3fr) minmax(120px, 1fr) 118px 48px;
   align-items: center;
   gap: 20px;
 }

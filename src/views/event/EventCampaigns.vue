@@ -397,11 +397,13 @@
                       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                   </button>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color: var(--cx-muted); flex-shrink: 0;"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                  </svg>
-                  <span class="em-drawer-title">Send {{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }} Campaign</span>
+                  <span class="em-drawer-icon-badge">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                  </span>
+                  <h2 class="em-drawer-title">Send {{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }} Campaign</h2>
                 </div>
                 <button class="em-drawer-close" @click="closeSendDrawer" title="Close">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -596,6 +598,10 @@
 
                     <div class="em-preview-phone">
                       <div class="em-preview-notch" />
+                      <div class="em-phone-statusbar">
+                        <span class="em-phone-carrier">{{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'Haflaway SMS' }}</span>
+                        <span class="em-phone-time">Today 10:42 AM</span>
+                      </div>
                       <div class="em-preview-screen">
                         <div class="em-preview-bubble" :class="{ 'em-preview-bubble--wsp': sendChannel === 'whatsapp' }" v-if="previewParts.length">
                           <template v-for="(part, i) in previewParts" :key="i">
@@ -603,15 +609,26 @@
                             <template v-else>{{ part }}</template>
                           </template>
                         </div>
-                        <div class="em-preview-bubble em-preview-bubble--empty" v-else>
-                          {{ sendChannel === 'whatsapp' ? 'Pick a template to preview it here.' : 'Set an SMS message to preview it here.' }}
+                        <div class="em-preview-empty-state" v-else>
+                          <div class="em-preview-empty-glyph">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                              <line x1="9" y1="10" x2="15" y2="10"/>
+                            </svg>
+                          </div>
+                          <p class="em-preview-empty-msg">
+                            {{ sendChannel === 'whatsapp' ? 'Pick a template to preview it here.' : 'Set an SMS message to preview it here.' }}
+                          </p>
+                          <p class="em-preview-empty-hint">Real-time mobile delivery simulation</p>
                         </div>
                       </div>
                     </div>
 
-                    <p class="em-preview-caption">
-                      Going to <strong>{{ sendRecipCount }}</strong> recipient{{ sendRecipCount !== 1 ? 's' : '' }} for <strong>{{ selectedCustomCamp?.name }}</strong>
-                    </p>
+                    <div class="em-preview-summary">
+                      <p class="em-preview-caption">
+                        Going to <strong>{{ sendRecipCount }}</strong> recipient{{ sendRecipCount !== 1 ? 's' : '' }} for <strong>{{ selectedCustomCamp?.name }}</strong>
+                      </p>
+                    </div>
                   </div>
                 </aside>
                 </div>
