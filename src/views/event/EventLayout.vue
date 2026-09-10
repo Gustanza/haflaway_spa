@@ -18,40 +18,84 @@
     <aside v-if="!isHubRoute || showMobileNav" class="el-sidebar"
       :class="{ 'el-sidebar--open': showMobileNav, 'el-sidebar--drawer': isHubRoute || showMobileNav }">
 
-      <!-- Mobile close button -->
-      <button class="el-sidebar-close" @click="showMobileNav = false">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-
-      <!-- Brand -->
-      <div class="el-brand" @click="$router.push('/events')">
-        <img :src="brandLogoUrl" class="el-brand-logo" />
-        <span class="el-brand-name">{{ brandName }}</span>
+      <!-- WithJoy Sidebar Header -->
+      <div class="el-sidebar-head">
+        <div class="el-sidebar-brand-cluster">
+          <div class="el-brand" @click="$router.push('/events')">
+            <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" class="el-brand-logo" />
+            <span v-else class="el-brand-script">.joy</span>
+          </div>
+          <button class="el-sidebar-search-btn" title="Search navigation" @click="toggleNavSearch">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+        </div>
+        <button class="el-sidebar-close" @click="showMobileNav = false" title="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
 
-      <!-- Back link -->
-      <button class="el-back-btn" @click="goAllEvents">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        All Events
-      </button>
+      <!-- Quick Search Bar (when active) -->
+      <div v-if="showNavSearch" class="el-sidebar-search-bar">
+        <input v-model="navSearchQ" ref="navSearchInputRef" placeholder="Search menu…" class="el-sidebar-search-input" />
+        <button v-if="navSearchQ" class="el-sidebar-search-clear" @click="navSearchQ = ''">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
 
-      <!-- Nav -->
-      <nav class="el-nav">
+      <!-- Scrollable Navigation -->
+      <div class="el-sidebar-scroll">
+        <!-- Event Dashboard (Home) -->
         <RouterLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="resolvedTo(item.to)"
-          class="el-nav-item"
+          v-if="showDashboardInFilter"
+          :to="resolvedTo(navDashboardItem.to)"
+          class="el-nav-item el-nav-item--dashboard"
           active-class="el-nav-item--active"
+          @click="showMobileNav = false"
         >
-          <span class="el-nav-icon" v-html="item.icon" />
-          <span class="el-nav-label">{{ item.label }}</span>
+          <span class="el-nav-icon" v-html="navDashboardItem.icon" />
+          <span class="el-nav-label el-nav-label--dash">{{ navDashboardItem.label }}</span>
         </RouterLink>
-      </nav>
+
+        <!-- WithJoy Category Sections -->
+        <div v-for="sec in filteredNavSections" :key="sec.title" class="el-nav-section">
+          <h3 class="el-section-title">{{ sec.title }}</h3>
+          <nav class="el-nav">
+            <RouterLink
+              v-for="item in sec.items"
+              :key="item.to"
+              :to="resolvedTo(item.to)"
+              class="el-nav-item"
+              active-class="el-nav-item--active"
+              @click="showMobileNav = false"
+            >
+              <span class="el-nav-icon" v-html="item.icon" />
+              <span class="el-nav-label">{{ item.label }}</span>
+            </RouterLink>
+          </nav>
+        </div>
+      </div>
+
+      <!-- WithJoy Bottom Event Switcher Card -->
+      <div class="el-sidebar-bottom">
+        <button class="el-event-card-btn" @click="goAllEvents" title="All Events / Switch">
+          <img v-if="eventCoverImage" :src="eventCoverImage" class="el-event-avatar" />
+          <div v-else class="el-event-avatar el-event-avatar--init">
+            {{ eventInitials }}
+          </div>
+          <div class="el-event-meta">
+            <span class="el-event-name" :title="event?.title">{{ event?.title || 'Event' }}</span>
+            <span class="el-event-date" v-if="sidebarDate">{{ sidebarDate }}</span>
+          </div>
+          <svg class="el-event-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
+      </div>
+
     </aside>
 
     <!-- ── Main ── -->
@@ -195,109 +239,176 @@ function onClickOutsideBalance(e) {
 onMounted(() => document.addEventListener('click', onClickOutsideBalance))
 onUnmounted(() => document.removeEventListener('click', onClickOutsideBalance))
 
-const navItems = [
+const showNavSearch = ref(false)
+const navSearchQ = ref('')
+const navSearchInputRef = ref(null)
+
+function toggleNavSearch() {
+  showNavSearch.value = !showNavSearch.value
+  if (showNavSearch.value) {
+    setTimeout(() => navSearchInputRef.value?.focus(), 60)
+  } else {
+    navSearchQ.value = ''
+  }
+}
+
+const eventCoverImage = computed(() => {
+  return event.value?.coverUrl || event.value?.coverImage || event.value?.imageUrl || event.value?.photoUrl || null
+})
+
+function initialsOf(str) {
+  if (!str) return 'EV'
+  const p = str.trim().split(/\s+/).filter(Boolean)
+  return p.length === 1 ? (p[0][0] ?? 'E').toUpperCase() : (p[0][0] + p[p.length - 1][0]).toUpperCase()
+}
+
+const eventInitials = computed(() => initialsOf(event.value?.title))
+
+const sidebarDate = computed(() => {
+  const d = event.value?.eventDate
+  if (!d) return ''
+  try {
+    const dateObj = d.toDate ? d.toDate() : new Date(d)
+    return dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+  } catch {
+    return ''
+  }
+})
+
+const navDashboardItem = {
+  label: 'Event Dashboard',
+  to: 'overview',
+  icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>`,
+}
+
+const navSections = [
   {
-    label: 'Overview',
-    to: 'overview',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
-      <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
-    </svg>`,
+    title: 'Guests & Messaging',
+    items: [
+      {
+        label: 'Guest List',
+        to: 'attendees',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>`,
+      },
+      {
+        label: 'Contact List',
+        to: 'contacts',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>`,
+      },
+      {
+        label: 'Invitations',
+        to: 'invitations',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>`,
+      },
+      {
+        label: 'Bulk Messages',
+        to: 'bulk-messages',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>`,
+      },
+      {
+        label: 'Check-ins',
+        to: 'checkins',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>`,
+      },
+      {
+        label: 'Cards',
+        to: 'cards',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/>
+        </svg>`,
+      },
+    ],
   },
   {
-    label: 'Budget',
-    to: 'budget',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-      <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
-    </svg>`,
+    title: 'Planning & Finance',
+    items: [
+      {
+        label: 'Budget',
+        to: 'budget',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+        </svg>`,
+      },
+      {
+        label: 'Payments',
+        to: 'payments',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>`,
+      },
+      {
+        label: 'Gifts of Love',
+        to: 'zawadi',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5" rx="1"/>
+          <line x1="12" y1="22" x2="12" y2="7"/>
+          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+        </svg>`,
+      },
+    ],
   },
   {
-    label: 'Guest List',
-    to: 'attendees',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>`,
-  },
-  {
-    label: 'Contact List',
-    to: 'contacts',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-    </svg>`,
-  },
-  {
-    label: 'Check-ins',
-    to: 'checkins',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>`,
-  },
-  {
-    label: 'Cards',
-    to: 'cards',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/>
-    </svg>`,
-  },
-  {
-    label: 'Invitations',
-    to: 'invitations',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>`,
-  },
-  {
-    label: 'Bulk Messages',
-    to: 'bulk-messages',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-    </svg>`,
-  },
-  {
-    label: 'Gallery',
-    to: 'gallery',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="3"/>
-      <circle cx="8.5" cy="8.5" r="1.5"/>
-      <polyline points="21 15 16 10 5 21"/>
-    </svg>`,
-  },
-  {
-    label: 'Gifts of Love',
-    to: 'zawadi',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5" rx="1"/>
-      <line x1="12" y1="22" x2="12" y2="7"/>
-      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-    </svg>`,
-  },
-  {
-    label: 'Payments',
-    to: 'payments',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-    </svg>`,
-  },
-  {
-    label: 'Team',
-    to: 'team',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
-      <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-    </svg>`,
-  },
-  {
-    label: 'Settings',
-    to: 'settings',
-    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>`,
+    title: 'Event Details',
+    items: [
+      {
+        label: 'Gallery',
+        to: 'gallery',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="3"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>`,
+      },
+      {
+        label: 'Team',
+        to: 'team',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+          <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+        </svg>`,
+      },
+      {
+        label: 'Settings',
+        to: 'settings',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>`,
+      },
+    ],
   },
 ]
+
+const filteredNavSections = computed(() => {
+  const q = navSearchQ.value.trim().toLowerCase()
+  if (!q) return navSections
+  return navSections.map(sec => ({
+    ...sec,
+    items: sec.items.filter(it => it.label.toLowerCase().includes(q))
+  })).filter(sec => sec.items.length > 0)
+})
+
+const showDashboardInFilter = computed(() => {
+  const q = navSearchQ.value.trim().toLowerCase()
+  if (!q) return true
+  return navDashboardItem.label.toLowerCase().includes(q)
+})
 
 function resolvedTo(segment) {
   return `/event/${eventId.value}/${segment}`
@@ -372,18 +483,19 @@ onMounted(async () => {
   color: var(--ink);
 }
 
-/* ── Sidebar ── */
+/* ── Withjoy-Style Luxury Sidebar Drawer ── */
 .el-sidebar {
-  width: 252px;
+  width: 272px;
   flex-shrink: 0;
-  background: var(--el-sidebar-bg);
-  border-right: 1px solid var(--line);
+  background: #ffffff !important;
+  border-right: 1px solid #f0f1f3;
   display: flex;
   flex-direction: column;
   padding: 0;
-  z-index: 10;
-  overflow-y: auto;
-  box-shadow: 2px 0 20px rgba(0,0,0,0.4);
+  z-index: 1510;
+  overflow: hidden;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Hub-chrome pages: the rail is never in-flow — it's an overlay drawer at
@@ -395,110 +507,294 @@ onMounted(async () => {
   height: 100%;
   transform: translateX(-100%);
   transition: transform 260ms cubic-bezier(.16, 1, .3, 1);
-  z-index: 1510; /* stays above .el-mobile-backdrop, see it for why */
+  z-index: 1510; /* stays above .el-mobile-backdrop */
+  box-shadow: 8px 0 36px rgba(0, 0, 0, 0.12);
 }
 .el-sidebar--drawer.el-sidebar--open {
   transform: translateX(0);
 }
-.el-sidebar--drawer .el-sidebar-close {
-  display: flex;
-}
 
-/* Brand — same vertical padding as topbar so the divider lines align */
+/* Top Header */
+.el-sidebar-head {
+  height: 62px;
+  padding: 0 18px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #f4f5f7;
+}
+.el-sidebar-brand-cluster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .el-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 64px;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--line);
+  gap: 8px;
   cursor: pointer;
-  flex-shrink: 0;
 }
 .el-brand-logo {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 6px;
   object-fit: cover;
   flex-shrink: 0;
 }
-.el-brand-name {
+.el-brand-script {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--org-sidebar-text, var(--ink));
-  letter-spacing: -0.1px;
+  font-size: 24px;
+  font-weight: 700;
+  font-style: italic;
+  color: #18181b;
+  letter-spacing: -0.02em;
+}
+.el-sidebar-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #71717a;
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.el-sidebar-search-btn:hover {
+  background: #f4f5f7;
+  color: #18181b;
+}
+.el-sidebar-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #4b5563;
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.el-sidebar-close:hover {
+  background: #f4f5f7;
+  color: #18181b;
+}
+@media (min-width: 768px) {
+  .el-sidebar:not(.el-sidebar--drawer) .el-sidebar-close {
+    display: none;
+  }
 }
 
-/* Back button */
-.el-back-btn {
+/* Search bar inside drawer (when opened) */
+.el-sidebar-search-bar {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f1f3;
+  flex-shrink: 0;
+}
+.el-sidebar-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  padding: 0 14px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #18181b;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 130ms, background 130ms;
+}
+.el-sidebar-search-input:focus {
+  border-color: #18181b;
+  background: #ffffff;
+}
+.el-sidebar-search-clear {
   background: none;
   border: none;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--org-sidebar-text, var(--ink-muted));
+  color: #9ca3af;
   cursor: pointer;
-  padding: 8px 10px;
-  border-radius: 8px;
-  margin: 10px 10px 4px;
-  transition: color 130ms, background 130ms;
-  font-family: inherit;
-  white-space: nowrap;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.el-back-btn:hover { color: var(--org-sidebar-text, var(--ink)); background: var(--paper-soft); }
+.el-sidebar-search-clear:hover { color: #18181b; }
 
-/* Nav */
+/* Scroll Area */
+.el-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 12px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+.el-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.el-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
+}
+.el-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Primary Dashboard Item */
+.el-nav-item--dashboard {
+  padding: 10px 14px !important;
+  margin-bottom: 6px;
+}
+.el-nav-label--dash {
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  color: #18181b !important;
+  letter-spacing: -0.01em;
+}
+
+/* Sections */
+.el-nav-section {
+  display: flex;
+  flex-direction: column;
+}
+.el-section-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #18181b;
+  margin: 18px 0 6px 14px;
+  letter-spacing: -0.01em;
+}
 .el-nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 4px 10px 24px;
+  padding: 0;
 }
 .el-nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 10px;
+  gap: 12px;
+  padding: 9px 14px;
   border-radius: 8px;
   text-decoration: none;
-  color: var(--org-sidebar-text, var(--ink-muted));
+  color: #374151;
   font-size: 13.5px;
   font-weight: 500;
   min-height: 38px;
-  transition: background 130ms, color 130ms;
+  transition: background 120ms ease, color 120ms ease;
 }
 .el-nav-item:hover {
-  background: var(--paper-soft);
-  color: var(--org-sidebar-text, var(--ink));
+  background: #f8fafc;
+  color: #18181b;
 }
 .el-nav-item--active {
-  background: rgba(255,255,255,0.08);
-  border: none;
-  color: var(--org-sidebar-text, #ffffff);
-  font-weight: 600;
-}
-.el-nav-item--active:hover { background: rgba(255,255,255,0.11); }
-
-/* smooth theme transitions across sidebar */
-.el-sidebar,
-.el-brand,
-.el-nav-item,
-.el-back-btn {
-  transition: background 300ms ease, color 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+  background: #f4f5f7 !important;
+  color: #18181b !important;
+  font-weight: 600 !important;
 }
 .el-nav-icon {
-  width: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  opacity: 0.7;
+  color: #4b5563;
+  opacity: 1;
 }
-.el-nav-item--active .el-nav-icon { opacity: 1; }
-.el-nav-label { flex: 1; }
+.el-nav-item--active .el-nav-icon {
+  color: #18181b;
+}
+.el-nav-label {
+  flex: 1;
+  line-height: 1.3;
+}
+
+/* Bottom Event Switcher Card */
+.el-sidebar-bottom {
+  padding: 12px 14px;
+  border-top: 1px solid #f0f1f3;
+  background: #ffffff;
+  flex-shrink: 0;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.02);
+}
+.el-event-card-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: all 130ms ease;
+  font-family: inherit;
+}
+.el-event-card-btn:hover {
+  background: #f8fafc;
+  border-color: #e5e7eb;
+}
+.el-event-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.el-event-avatar--init {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: #d1fae5;
+  color: #065f46;
+}
+.el-event-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.el-event-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #18181b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+.el-event-date {
+  font-size: 11.5px;
+  color: #71717a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.el-event-chev {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
 
 /* ── Main ── */
 .el-main {

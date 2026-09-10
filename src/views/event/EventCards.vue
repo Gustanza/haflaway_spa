@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="evc-root">
 
     <!-- ══ Stat Cards ══ -->
@@ -388,6 +388,8 @@ const PURPOSE_FILTERS = [
   { val: 'invitation',   label: 'Invitation'   },
   { val: 'contribution', label: 'Contribution' },
   { val: 'save_the_date',label: 'Save the Date'},
+  { val: 'thank_you',    label: 'Thank You'    },
+  { val: 'enclosure',    label: 'Enclosure'    },
 ]
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -401,7 +403,7 @@ const searchOpen    = ref(false)
 const searchInputRef = ref(null)
 function openSearch() { searchOpen.value = true; nextTick(() => searchInputRef.value?.focus()) }
 function closeSearch() { searchOpen.value = false; searchQ.value = '' }
-const purposeFilter = ref('all')
+const purposeFilter = ref(route.query.filter || 'all')
 const selectedCard  = ref(null)
 const confirmDeleteId = ref(null)
 const deletingId    = ref(null)

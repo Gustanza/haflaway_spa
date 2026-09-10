@@ -17,21 +17,46 @@
          while the dashboard/campaign panels below it scroll, matching the
          withjoy-style treatment already used on Guest List. ── -->
     <div class="em-hub-hd">
-      <button class="em-hd-burger" title="Menu" @click="navDrawer.open()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
-      <div class="em-hd-sep"></div>
-      <div class="em-hd-icon-badge" @click="$router.push('/events')" title="All Events">
-        <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="em-hd-brand-logo" />
-        <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
+      <div class="em-hd-main">
+        <button class="em-hd-burger" title="Menu" @click="navDrawer.open()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+
+        <div class="em-hd-brand" @click="$router.push('/events')" title="All Events">
+          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="em-hd-brand-logo" />
+          <span v-else class="em-hd-brand-script">.joy</span>
+        </div>
+
+        <div class="em-hd-title-group">
+          <h1 class="em-hub-title">Messaging</h1>
+          <span class="em-hub-badge">MESSAGING+</span>
+        </div>
       </div>
-      <div class="em-hd-sep"></div>
-      <h2 class="em-hub-title">Bulk Messages</h2>
+
+      <!-- withjoy tabs directly in header — stay visible (and correctly
+           highlighted) on the campaign detail page too, since that page is
+           always reached from within one of these tabs; the breadcrumb +
+           title for "which campaign" lives in the page body instead. -->
+      <nav class="em-msg-tabs">
+        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'create' }" @click="goToTab('create')">
+          Create
+        </button>
+        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'drafts' }" @click="goToTab('drafts')">
+          Drafts
+          <span v-if="draftCampaigns.length" class="em-msg-tab-count">{{ draftCampaigns.length }}</span>
+        </button>
+        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'scheduled' }" @click="goToTab('scheduled')">
+          Scheduled
+        </button>
+        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'sent' }" @click="goToTab('sent')">
+          Sent
+          <span v-if="sentCampaigns.length" class="em-msg-tab-count">{{ sentCampaigns.length }}</span>
+        </button>
+      </nav>
     </div>
 
     <!-- ══════════════════════════════════════════════
@@ -39,158 +64,288 @@
          ══════════════════════════════════════════════ -->
     <template v-if="!selectedCustomCamp">
 
-      <!-- withjoy-style tab strip — Create / Drafts / Scheduled / Sent are
-           mutually exclusive views, matching the tabs on withjoy's own
-           Messaging page rather than stacking every section at once. -->
-      <div class="em-msg-tabs">
-        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'create' }" @click="msgTab = 'create'">Create</button>
-        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'drafts' }" @click="msgTab = 'drafts'">
-          Drafts
-          <span v-if="draftCampaigns.length" class="em-msg-tab-count">{{ draftCampaigns.length }}</span>
-        </button>
-        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'scheduled' }" @click="msgTab = 'scheduled'">Scheduled</button>
-        <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'sent' }" @click="msgTab = 'sent'">
-          Sent
-          <span v-if="sentCampaigns.length" class="em-msg-tab-count">{{ sentCampaigns.length }}</span>
-        </button>
-      </div>
-
       <div class="em-msg-dash">
 
-        <!-- Create — tile grid plus, like withjoy's own Create tab, quick
-             previews of what's Scheduled and what's already Sent. -->
+        <!-- Create Tab: Withjoy 4 hero tiles + Scheduled preview + Sent preview -->
         <template v-if="msgTab === 'create'">
-        <div class="em-msg-panel">
-          <h2 class="em-msg-panel-title">Messages</h2>
-          <div class="em-msg-tiles">
-            <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('General Message')">
-              <div class="em-stat-icon em-stat-icon--blue2">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              </div>
-              <span class="em-msg-tile-label">General Message</span>
-            </button>
-            <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('RSVP Reminder')">
-              <div class="em-stat-icon em-stat-icon--purple">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              </div>
-              <span class="em-msg-tile-label">RSVP Reminder</span>
-            </button>
-            <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('Pledge Reminder')">
-              <div class="em-stat-icon em-stat-icon--gold">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              </div>
-              <span class="em-msg-tile-label">Pledge Reminder</span>
-            </button>
-            <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('Meeting Reminder')">
-              <div class="em-stat-icon em-stat-icon--teal">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <span class="em-msg-tile-label">Meeting Reminder</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="em-msg-row">
-          <!-- Scheduled preview — no logic behind it yet, matches the full
-               Scheduled tab's placeholder. -->
-          <div class="em-msg-panel em-msg-panel--half">
-            <h2 class="em-msg-panel-title">Scheduled</h2>
-            <div class="em-msg-empty">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <p>Coming soon</p>
-            </div>
-          </div>
-
-          <!-- Sent preview — the 6 most recent dispatched campaigns; "View All"
-               jumps to the full Sent tab. -->
-          <div class="em-msg-panel em-msg-panel--half">
-            <div class="em-msg-panel-hd">
-              <h2 class="em-msg-panel-title">Sent</h2>
-              <span v-if="sentCampaigns.length" class="em-msg-count">{{ sentCampaigns.length }}</span>
-              <button v-if="sentCampaigns.length > 4" class="em-msg-view-all" @click="msgTab = 'sent'">View All</button>
-            </div>
-            <div v-if="loadingCustomCamps" class="em-msg-empty"><p>Loading…</p></div>
-            <div v-else-if="!sentCampaigns.length" class="em-msg-empty">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <p>No messages sent yet</p>
-            </div>
-            <div v-else class="em-msg-sent-list">
-              <div v-for="camp in sentCampaigns.slice(0, 4)" :key="camp.id" class="em-msg-sent-row" @click="selectCustomCamp(camp)">
-                <div class="em-msg-sent-icon">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <div class="em-msg-section">
+            <h2 class="em-sec-title">Messages</h2>
+            <div class="em-msg-tiles">
+              <!-- Tile 1: General Message (Email message) -->
+              <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('General Message')">
+                <div class="em-msg-tile-box">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2.5"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                  </svg>
                 </div>
-                <span class="em-msg-sent-name">{{ camp.name }}</span>
-                <span class="em-msg-sent-date">{{ formatDate(camp.createdAt) }}</span>
+                <span class="em-msg-tile-label">General Message</span>
+              </button>
+
+              <!-- Tile 2: RSVP Reminder (RSVP message) -->
+              <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('RSVP Reminder')">
+                <div class="em-msg-tile-box">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 13V6a2.5 2.5 0 0 0-2.5-2.5H4.5A2.5 2.5 0 0 0 2 6v12a2.5 2.5 0 0 0 2.5 2.5h8"/>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                    <path d="m16 19 2 2 4-4"/>
+                  </svg>
+                </div>
+                <span class="em-msg-tile-label">RSVP Reminder</span>
+              </button>
+
+              <!-- Tile 3: Pledge Reminder (Collect contacts / pledge) -->
+              <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('Pledge Reminder')">
+                <div class="em-msg-tile-box">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="2" width="16" height="20" rx="3"/>
+                    <circle cx="12" cy="10" r="3.5"/>
+                    <path d="M7 18c0-2.8 2.2-5 5-5s5 2.2 5 5"/>
+                    <line x1="2" y1="6" x2="4" y2="6" stroke-linecap="round"/>
+                    <line x1="2" y1="12" x2="4" y2="12" stroke-linecap="round"/>
+                    <line x1="2" y1="18" x2="4" y2="18" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <span class="em-msg-tile-label">Pledge Reminder</span>
+              </button>
+
+              <!-- Tile 4: Meeting Reminder (Schedule / hotel) -->
+              <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('Meeting Reminder')">
+                <div class="em-msg-tile-box">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="3"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                    <circle cx="12" cy="15" r="3"/>
+                    <polyline points="12 13.5 12 15 13.5 15"/>
+                  </svg>
+                </div>
+                <span class="em-msg-tile-label">Meeting Reminder</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom 2 columns: Scheduled & Sent -->
+          <div class="em-msg-row">
+            <!-- Scheduled column -->
+            <div class="em-sub-col">
+              <div class="em-sub-card">
+                <div class="em-sub-card-hd">
+                  <h3 class="em-sub-title">Scheduled</h3>
+                </div>
+                <div class="em-sub-card-body em-sub-card-body--center">
+                  <div class="em-empty-cal-icon">
+                    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="3"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                      <circle cx="12" cy="15" r="2.5"/>
+                      <polyline points="12 13.5 12 15 13 15"/>
+                    </svg>
+                  </div>
+                  <p class="em-empty-text">No scheduled messages</p>
+                  <button class="em-new-pill-btn" @click="createPresetCampaign('General Message')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>New</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sent column -->
+            <div class="em-sub-col">
+              <div class="em-sub-card">
+                <div class="em-sub-card-hd">
+                  <div class="em-sub-hd-title-group">
+                    <h3 class="em-sub-title">Sent</h3>
+                    <span v-if="sentCampaigns.length" class="em-pill-count">{{ sentCampaigns.length }}</span>
+                  </div>
+                  <button v-if="sentCampaigns.length > 4" class="em-view-all-btn" @click="msgTab = 'sent'">View All</button>
+                </div>
+                <div class="em-sub-card-body">
+                  <div v-if="loadingCustomCamps" class="em-msg-loading"><p>Loading…</p></div>
+                  <div v-else-if="!sentCampaigns.length" class="em-sub-card-body--center" style="min-height: 180px;">
+                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="4" width="20" height="16" rx="2.5"/>
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                    </svg>
+                    <p class="em-empty-text">No messages sent yet</p>
+                  </div>
+                  <div v-else class="em-sent-list">
+                    <div v-for="camp in sentCampaigns.slice(0, 4)" :key="camp.id" class="em-sent-item" @click="selectCustomCamp(camp)">
+                      <div class="em-sent-mail-icon">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="2" y="4" width="20" height="16" rx="2.5"/>
+                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                        </svg>
+                      </div>
+                      <span class="em-sent-item-title">{{ camp.name }}</span>
+                      <span class="em-sent-item-avatar" :style="{ background: avatarBg(camp.name), color: avatarFg(camp.name) }">
+                        {{ initials(camp.name) }}
+                      </span>
+                      <span class="em-sent-item-date">{{ formatDate(camp.createdAt) }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
         </template>
 
-        <!-- Drafts -->
-        <div class="em-msg-panel" v-if="msgTab === 'drafts'">
-          <div class="em-msg-panel-hd">
-            <h2 class="em-msg-panel-title">Drafts</h2>
-            <span v-if="draftCampaigns.length" class="em-msg-count">{{ draftCampaigns.length }}</span>
-          </div>
-          <div v-if="loadingCustomCamps" class="em-msg-empty"><p>Loading…</p></div>
-          <div v-else-if="!draftCampaigns.length" class="em-msg-empty">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            <p>No drafts yet</p>
-          </div>
-          <div v-else class="em-msg-sent-list">
-            <div v-for="camp in draftCampaigns" :key="camp.id" class="em-msg-sent-row" @click="selectCustomCamp(camp)">
-              <div class="em-msg-sent-icon">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <!-- Drafts Tab -->
+        <div class="em-sub-col" v-if="msgTab === 'drafts'">
+          <div class="em-sub-card">
+            <div class="em-sub-card-hd">
+              <div class="em-sub-hd-title-group">
+                <h3 class="em-sub-title">Drafts</h3>
+                <span v-if="draftCampaigns.length" class="em-pill-count">{{ draftCampaigns.length }}</span>
               </div>
-              <span class="em-msg-sent-name">{{ camp.name }}</span>
-              <span class="em-msg-sent-date">{{ formatDate(camp.createdAt) }}</span>
-              <div class="em-msg-sent-acts" @click.stop>
-                <button class="em-camp-item-btn" @click="openCampDialog(camp)" title="Edit">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button class="em-camp-item-btn em-camp-item-btn--del" @click="deleteCustomCampaign(camp)" title="Delete">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                </button>
+            </div>
+            <div class="em-sub-card-body">
+              <div v-if="loadingCustomCamps" class="em-msg-loading"><p>Loading…</p></div>
+              <div v-else-if="!draftCampaigns.length" class="em-sub-card-body--center" style="min-height: 200px;">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                <p class="em-empty-text">No drafts yet</p>
+              </div>
+              <div v-else class="em-sent-list">
+                <div v-for="camp in draftCampaigns" :key="camp.id" class="em-sent-item" @click="selectCustomCamp(camp)">
+                  <div class="em-sent-mail-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </div>
+                  <span class="em-sent-item-title">{{ camp.name }}</span>
+                  <span class="em-sent-item-avatar" :style="{ background: avatarBg(camp.name), color: avatarFg(camp.name) }">
+                    {{ initials(camp.name) }}
+                  </span>
+                  <span class="em-sent-item-date">{{ formatDate(camp.createdAt) }}</span>
+                  <div class="em-msg-sent-acts" @click.stop>
+                    <button class="em-camp-item-btn" @click="openCampDialog(camp)" title="Edit">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="em-camp-item-btn em-camp-item-btn--del" @click="deleteCustomCampaign(camp)" title="Delete">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Scheduled — placeholder, no logic behind it yet -->
-        <div class="em-msg-panel" v-if="msgTab === 'scheduled'">
-          <h2 class="em-msg-panel-title">Scheduled</h2>
-          <div class="em-msg-empty">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <p>Coming soon</p>
+        <!-- Scheduled Tab -->
+        <div class="em-sub-col" v-if="msgTab === 'scheduled'">
+          <div class="em-sub-card">
+            <div class="em-sub-card-hd">
+              <div class="em-sub-hd-title-group">
+                <h3 class="em-sub-title">Scheduled</h3>
+              </div>
+            </div>
+            <div class="em-sub-card-body em-sub-card-body--center" style="min-height: 240px;">
+              <div class="em-empty-cal-icon">
+                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="3"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                  <circle cx="12" cy="15" r="2.5"/>
+                  <polyline points="12 13.5 12 15 13 15"/>
+                </svg>
+              </div>
+              <p class="em-empty-text">No scheduled messages</p>
+              <button class="em-new-pill-btn" @click="createPresetCampaign('General Message')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>New</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Sent — dispatched at least once, regardless of individual
-             recipients' delivery status (sent/delivered/failed). -->
-        <div class="em-msg-panel" v-if="msgTab === 'sent'">
-          <div class="em-msg-panel-hd">
-            <h2 class="em-msg-panel-title">Sent</h2>
-            <span v-if="sentCampaigns.length" class="em-msg-count">{{ sentCampaigns.length }}</span>
-          </div>
-          <div v-if="loadingCustomCamps" class="em-msg-empty"><p>Loading…</p></div>
-          <div v-else-if="!sentCampaigns.length" class="em-msg-empty">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <p>No messages sent yet</p>
-          </div>
-          <div v-else class="em-msg-sent-list">
-            <div v-for="camp in sentCampaigns" :key="camp.id" class="em-msg-sent-row" @click="selectCustomCamp(camp)">
-              <div class="em-msg-sent-icon">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              </div>
-              <span class="em-msg-sent-name">{{ camp.name }}</span>
-              <span class="em-msg-sent-date">{{ formatDate(camp.createdAt) }}</span>
+        <!-- Sent Tab (withjoy-style full table: subject, type, recipients, date, sent/failed counts) -->
+        <div class="em-sent-page" v-if="msgTab === 'sent'">
+          <div class="em-sent-toolbar">
+            <div class="em-sent-search-wrap">
+              <input v-model="sentSearchQ" class="em-sent-search" placeholder="Search messages…" />
+              <button v-if="sentSearchQ" class="em-sent-search-clear" @click="sentSearchQ = ''">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+              <svg class="em-sent-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </div>
+            <div class="em-sent-type-dd">
+              <button ref="sentTypeDdTriggerRef" class="em-sent-type-trigger" :class="{ 'em-sent-type-trigger--on': sentTypeFilter }" @click="sentTypeDropOpen = !sentTypeDropOpen">
+                <svg class="em-sent-tune-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9"/>
+                  <line x1="7" y1="9.5" x2="17" y2="9.5"/>
+                  <line x1="7" y1="14.5" x2="17" y2="14.5"/>
+                  <circle cx="10" cy="9.5" r="1.5" fill="currentColor"/>
+                  <circle cx="14" cy="14.5" r="1.5" fill="currentColor"/>
+                </svg>
+                <span>{{ sentTypeFilter ?? 'Type' }}</span>
+              </button>
+              <div v-if="sentTypeDropOpen" ref="sentTypeDdMenuRef" class="em-sent-type-menu">
+                <button class="em-sent-type-item" :class="{ 'em-sent-type-item--on': !sentTypeFilter }" @click="sentTypeFilter = null; sentTypeDropOpen = false">All types</button>
+                <button v-for="opt in SENT_TYPE_OPTIONS" :key="opt" class="em-sent-type-item" :class="{ 'em-sent-type-item--on': sentTypeFilter === opt }" @click="sentTypeFilter = opt; sentTypeDropOpen = false">{{ opt }}</button>
+              </div>
+            </div>
+            <button class="em-sent-new-btn" @click="msgTab = 'create'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              <span>New…</span>
+            </button>
+          </div>
+
+          <div v-if="loadingCustomCamps" class="em-msg-loading"><p>Loading…</p></div>
+          <div v-else-if="!sentCampaigns.length" class="em-sub-card-body--center em-sent-empty">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2.5"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+            <p class="em-empty-text">No messages sent yet</p>
+          </div>
+          <div v-else-if="!sentTableRows.length" class="em-sub-card-body--center em-sent-empty">
+            <p class="em-empty-text">No messages match your search or filter.</p>
+          </div>
+          <div v-else class="em-sent-table">
+            <div class="em-sent-tbl-hd">
+              <span class="em-sent-col em-sent-col--subject">Subject</span>
+              <span class="em-sent-col em-sent-col--type">Message Type</span>
+              <span class="em-sent-col em-sent-col--recip">Recipients</span>
+              <span class="em-sent-col em-sent-col--date">Date Sent</span>
+              <span class="em-sent-col em-sent-col--sent">Sent</span>
+              <span class="em-sent-col em-sent-col--failed">Failed</span>
+              <span class="em-sent-col em-sent-col--chev"></span>
+            </div>
+            <button v-for="camp in sentTableRows" :key="camp.id" class="em-sent-tbl-row" @click="selectCustomCamp(camp)">
+              <span class="em-sent-col em-sent-col--subject em-sent-subject" :title="camp.name">{{ camp.name }}</span>
+              <span class="em-sent-col em-sent-col--type" data-label="Message Type">
+                <span class="em-sent-type-badge">
+                  <span class="em-sent-type-icon" v-html="messageTypeMeta(camp).icon"/>
+                  <span class="em-sent-type-label">{{ messageTypeMeta(camp).label }}</span>
+                </span>
+              </span>
+              <span class="em-sent-col em-sent-col--recip" data-label="Recipients">
+                <span v-if="campaignStatsMap[camp.id]?.recipients.length" class="em-recip-stack">
+                  <span v-for="att in campaignStatsMap[camp.id].recipients.slice(0, 3)" :key="att.id"
+                    class="em-recip-avatar" :style="{ background: avatarBg(att.fullName), color: avatarFg(att.fullName) }"
+                    :title="att.fullName">{{ initials(att.fullName) }}</span>
+                  <span v-if="campaignStatsMap[camp.id].recipients.length > 3" class="em-recip-more">+{{ campaignStatsMap[camp.id].recipients.length - 3 }}</span>
+                </span>
+                <span v-else class="em-recip-none">—</span>
+              </span>
+              <span class="em-sent-col em-sent-col--date" data-label="Date Sent">{{ formatDate(camp.createdAt) }}</span>
+              <span class="em-sent-col em-sent-col--sent em-sent-num--ok" data-label="Sent">{{ campaignStatsMap[camp.id]?.sent ?? 0 }}</span>
+              <span class="em-sent-col em-sent-col--failed" data-label="Failed" :class="{ 'em-sent-num--bad': (campaignStatsMap[camp.id]?.failed ?? 0) > 0 }">{{ campaignStatsMap[camp.id]?.failed ?? 0 }}</span>
+              <span class="em-sent-col em-sent-col--chev">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </span>
+            </button>
           </div>
         </div>
 
       </div>
-
     </template>
 
     <!-- ══════════════════════════════════════════════
@@ -198,79 +353,25 @@
          ══════════════════════════════════════════════ -->
     <template v-else>
 
-      <!-- Stat cards for detail view -->
-      <div class="em-stats">
-        <div class="em-stat-card">
-          <div class="em-stat-icon em-stat-icon--purple">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </div>
-          <div class="em-stat-body">
-            <span class="em-stat-lbl">Total Attendees</span>
-            <span class="em-stat-val">{{ customStatusCounts.all }}</span>
-          </div>
-        </div>
-        <div class="em-stat-card">
-          <div class="em-stat-icon em-stat-icon--blue">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </div>
-          <div class="em-stat-body">
-            <span class="em-stat-lbl">Sent</span>
-            <span class="em-stat-val">{{ customStatusCounts.sent }}</span>
-          </div>
-        </div>
-        <div class="em-stat-card">
-          <div class="em-stat-icon em-stat-icon--teal">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-          <div class="em-stat-body">
-            <span class="em-stat-lbl">Delivered</span>
-            <span class="em-stat-val">{{ customStatusCounts.delivered }}</span>
-          </div>
-        </div>
-        <div v-if="detailChannel === 'whatsapp'" class="em-stat-card">
-          <div class="em-stat-icon em-stat-icon--blue2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="18 6 7 17 2 12"/><polyline points="23 6 12 17 10.5 15.5"/>
-            </svg>
-          </div>
-          <div class="em-stat-body">
-            <span class="em-stat-lbl">Read</span>
-            <span class="em-stat-val">{{ customStatusCounts.read }}</span>
-          </div>
-        </div>
-        <div class="em-stat-card">
-          <div class="em-stat-icon em-stat-icon--red">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-          </div>
-          <div class="em-stat-body">
-            <span class="em-stat-lbl">Failed</span>
-            <span class="em-stat-val">{{ customStatusCounts.failed }}</span>
-          </div>
-        </div>
-      </div>
+      <div class="em-detail-page">
 
-      <!-- Panel -->
-      <div class="em-panel">
+        <!-- Breadcrumb -->
+        <div class="em-detail-crumbs">
+          <button class="em-crumb-link" @click="backToCampaignList">Messaging</button>
+          <span class="em-crumb-sep">/</span>
+          <span class="em-crumb-current">{{ MSG_TAB_LABELS[msgTab] ?? 'Sent' }}</span>
+        </div>
 
-        <!-- Panel header -->
-        <div class="em-panel-hd">
-          <button class="em-detail-back" @click="backToCampaignList">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Notifications
-          </button>
-          <h2 class="em-panel-title">{{ selectedCustomCamp.name }}</h2>
-          <span class="em-detail-type">{{ selectedCustomCamp.type }}</span>
-          <span class="em-detail-count">{{ customFilteredAttendees.length }} attendee{{ customFilteredAttendees.length !== 1 ? 's' : '' }}</span>
-          <div class="em-panel-acts">
+        <!-- Heading -->
+        <div class="em-detail-heading">
+          <div class="em-detail-heading-main">
+            <span class="em-detail-type-badge" :style="{ color: messageTypeMeta(selectedCustomCamp).color }">
+              <span class="em-detail-type-icon" v-html="messageTypeMeta(selectedCustomCamp).icon"/>
+              {{ messageTypeMeta(selectedCustomCamp).label }}
+            </span>
+            <h1 class="em-detail-title">{{ selectedCustomCamp.name }}</h1>
+          </div>
+          <div class="em-detail-heading-acts">
             <button class="em-edit-camp-btn" title="Edit campaign" @click="openCampDialog(selectedCustomCamp)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Templates
@@ -284,137 +385,153 @@
           </div>
         </div>
 
-        <!-- Filter bar -->
-        <div class="em-panel-filter-bar">
-          <div class="em-filter-group">
-            <span class="em-filter-lbl">Channel</span>
-            <div class="em-filter-pills">
-              <button class="em-filter-pill em-filter-pill--ch" :class="{ 'em-filter-pill--on': detailChannel === 'whatsapp' }" @click="detailChannel = 'whatsapp'">WhatsApp</button>
-              <button class="em-filter-pill em-filter-pill--ch" :class="{ 'em-filter-pill--on': detailChannel === 'sms' }" @click="detailChannel = 'sms'">SMS</button>
+        <!-- Stat cards -->
+        <div class="em-detail-stats">
+          <div class="em-detail-stat-card">
+            <div class="em-detail-stat-top">
+              <span class="em-detail-stat-val">{{ detailDispatchedCount }}</span>
+              <span class="em-detail-stat-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </span>
             </div>
+            <span class="em-detail-stat-lbl">Sent</span>
           </div>
-          <div class="em-filter-group-cluster">
-          <div class="em-filter-group">
-            <span class="em-filter-lbl">Status</span>
-            <div class="em-stat-dd em-status-filter-dd">
-              <button ref="statusDdTriggerRef" class="em-stat-dd-trigger"
-                :style="DRAWER_STATUS_COLORS[customStatus] ? { background: DRAWER_STATUS_COLORS[customStatus].bg, color: DRAWER_STATUS_COLORS[customStatus].fg, borderColor: DRAWER_STATUS_COLORS[customStatus].border } : {}"
-                @click="toggleStatusDd">
-                <span class="em-stat-dd-dot" :style="{ background: DRAWER_STATUS_COLORS[customStatus]?.fg ?? '#555' }"/>
-                <span class="em-stat-dd-label">{{ STATUS_OPTIONS.find(o => o.v === customStatus)?.l ?? 'All' }}</span>
-                <span class="em-stat-dd-n">{{ customStatusCounts[customStatus] ?? 0 }}</span>
-                <svg class="em-stat-dd-chev" :class="{ 'em-stat-dd-chev--open': customStatusDropOpen }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <Teleport to="body">
-                <div v-if="customStatusDropOpen" ref="statusDdMenuRef" class="em-stat-dd-menu em-stat-dd-menu--float"
-                  :style="{ top: statusDdPos.top + 'px', left: statusDdPos.left + 'px', width: statusDdPos.width + 'px' }">
-                  <button v-for="opt in STATUS_OPTIONS" :key="opt.v"
-                    class="em-stat-dd-item" :class="{ 'em-stat-dd-item--on': customStatus === opt.v }"
-                    :style="{ color: DRAWER_STATUS_COLORS[opt.v]?.fg }"
-                    @click="customStatus = opt.v; customStatusDropOpen = false">
-                    <span class="em-stat-dd-dot" :style="{ background: DRAWER_STATUS_COLORS[opt.v]?.fg ?? '#555' }"/>
-                    <span class="em-stat-dd-n">{{ customStatusCounts[opt.v] ?? 0 }}</span>
-                    {{ opt.l }}
-                  </button>
-                </div>
-              </Teleport>
+          <div class="em-detail-stat-card em-detail-stat-card--ok">
+            <div class="em-detail-stat-top">
+              <span class="em-detail-stat-val">{{ customStatusCounts.delivered }}</span>
+              <span class="em-detail-stat-icon em-detail-stat-icon--ok">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
             </div>
+            <span class="em-detail-stat-lbl">Delivered</span>
           </div>
-          <div class="em-filter-group" v-if="props.event?.labels?.length">
-            <span class="em-filter-lbl">List</span>
-            <div class="em-stat-dd em-status-filter-dd">
-              <button ref="listDdTriggerRef" class="em-stat-dd-trigger" @click="toggleListDd">
-                <span class="em-stat-dd-label">{{ props.event.labels.find(l => l.id === customLabelId)?.name ?? 'All Lists' }}</span>
-                <svg class="em-stat-dd-chev" :class="{ 'em-stat-dd-chev--open': customLabelDropOpen }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <Teleport to="body">
-                <div v-if="customLabelDropOpen" ref="listDdMenuRef" class="em-stat-dd-menu em-stat-dd-menu--float"
-                  :style="{ top: listDdPos.top + 'px', left: listDdPos.left + 'px', width: listDdPos.width + 'px' }">
-                  <button class="em-stat-dd-item" :class="{ 'em-stat-dd-item--on': customLabelId === null }"
-                    @click="customLabelId = null; customLabelDropOpen = false">
-                    All Lists
-                  </button>
-                  <button v-for="lbl in props.event.labels" :key="lbl.id"
-                    class="em-stat-dd-item" :class="{ 'em-stat-dd-item--on': customLabelId === lbl.id }"
-                    @click="customLabelId = lbl.id; customLabelDropOpen = false">
-                    {{ lbl.name }}
-                  </button>
-                </div>
-              </Teleport>
+          <div v-if="detailChannel === 'whatsapp'" class="em-detail-stat-card">
+            <div class="em-detail-stat-top">
+              <span class="em-detail-stat-val">{{ customStatusCounts.read }}</span>
+              <span class="em-detail-stat-icon em-detail-stat-icon--read">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"/><polyline points="23 6 12 17 10.5 15.5"/></svg>
+              </span>
             </div>
+            <span class="em-detail-stat-lbl">Read</span>
           </div>
+          <div class="em-detail-stat-card">
+            <div class="em-detail-stat-top">
+              <span class="em-detail-stat-val">{{ customStatusCounts.failed }}</span>
+              <span class="em-detail-stat-icon em-detail-stat-icon--bad">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </span>
+            </div>
+            <span class="em-detail-stat-lbl">Failed</span>
           </div>
         </div>
 
-        <!-- Detail card list -->
-        <div class="em-table-area">
+        <!-- Toolbar: search + filter -->
+        <div class="em-detail-toolbar">
+          <div class="em-detail-search-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input v-model="detailSearchQ" class="em-detail-search" placeholder="Search recipients…" />
+            <button v-if="detailSearchQ" class="em-sent-search-clear" @click="detailSearchQ = ''">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="em-detail-filter-dd">
+            <button ref="detailFilterTriggerRef" class="em-detail-filter-trigger" :class="{ 'em-detail-filter-trigger--on': detailActiveFilterCount > 0 }" @click="detailFilterPopoverOpen = !detailFilterPopoverOpen">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              Filter
+              <span v-if="detailActiveFilterCount" class="em-detail-filter-count">{{ detailActiveFilterCount }}</span>
+            </button>
+            <div v-if="detailFilterPopoverOpen" ref="detailFilterMenuRef" class="em-detail-filter-menu">
+              <div class="em-detail-filter-menu-group">
+                <span class="em-detail-filter-menu-lbl">Channel</span>
+                <div class="em-detail-ch-toggle">
+                  <button class="em-detail-ch-pill" :class="{ 'em-detail-ch-pill--on': detailChannel === 'whatsapp' }" @click="detailChannel = 'whatsapp'">WhatsApp</button>
+                  <button class="em-detail-ch-pill" :class="{ 'em-detail-ch-pill--on': detailChannel === 'sms' }" @click="detailChannel = 'sms'">SMS</button>
+                </div>
+              </div>
+              <div class="em-detail-filter-menu-group">
+                <span class="em-detail-filter-menu-lbl">Status</span>
+                <div class="em-detail-filter-opts">
+                  <button v-for="opt in STATUS_OPTIONS" :key="opt.v" class="em-detail-filter-opt" :class="{ 'em-detail-filter-opt--on': customStatus === opt.v }" @click="customStatus = opt.v">
+                    <span class="em-stat-dd-dot" :style="{ background: DRAWER_STATUS_COLORS[opt.v]?.fg ?? '#555' }"/>
+                    <span class="em-detail-filter-opt-lbl">{{ opt.l }}</span>
+                    <span class="em-detail-filter-opt-n">{{ customStatusCounts[opt.v] ?? 0 }}</span>
+                  </button>
+                </div>
+              </div>
+              <div class="em-detail-filter-menu-group" v-if="props.event?.labels?.length">
+                <span class="em-detail-filter-menu-lbl">List</span>
+                <select v-model="customLabelId" class="em-detail-list-select">
+                  <option :value="null">All Lists</option>
+                  <option v-for="lbl in props.event.labels" :key="lbl.id" :value="lbl.id">{{ lbl.name }}</option>
+                </select>
+              </div>
+              <button v-if="detailActiveFilterCount" class="em-detail-filter-clear" @click="customStatus = 'all'; customLabelId = null">Clear filters</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recipients table -->
+        <div class="em-detail-table-wrap">
           <!-- Skeleton -->
-          <div v-if="loading && !attendees.length" class="eca-list">
-            <div v-for="n in 8" :key="`csk-${n}`" class="eca-card eca-card--sk">
-              <div class="eca-sk-circle" />
-              <div class="eca-card-info">
-                <div class="eca-sk-bar eca-sk-bar--lg" />
-                <div class="eca-sk-bar eca-sk-bar--sm" style="margin-top:4px" />
-              </div>
-              <div class="eca-card-badges">
-                <div class="eca-sk-bar eca-sk-bar--sm" />
-              </div>
-              <div class="eca-sk-bar eca-sk-bar--sm" style="width:60px" />
+          <div v-if="loading && !attendees.length" class="em-detail-table">
+            <div v-for="n in 6" :key="`csk-${n}`" class="em-detail-tbl-row em-detail-tbl-row--sk">
+              <div class="em-sk-circle" style="width:30px;height:30px;border-radius:50%;flex-shrink:0"/>
+              <div style="flex:1"><div class="em-sk-bar em-sk-bar--lg"/></div>
             </div>
           </div>
 
           <!-- Empty state -->
-          <div v-else-if="!loading && !customFilteredAttendees.length" class="em-empty-state em-empty-state--sm">
-            <p class="em-empty-title">No attendees match these filters</p>
-            <p class="em-empty-sub">Try changing the status or list filter.</p>
+          <div v-else-if="!customFilteredAttendees.length" class="em-empty-state em-empty-state--sm">
+            <p class="em-empty-title">No recipients match these filters</p>
+            <p class="em-empty-sub">Try a different search, status, or list filter.</p>
           </div>
 
-          <!-- Cards -->
-          <div v-else class="eca-list">
-            <div v-for="att in pagedDetailAttendees" :key="att.id"
-              class="eca-card eca-card--detail"
-              :class="`eca-card--${getCustomStatus(att) ?? 'unsent'}`">
-              <!-- Avatar -->
-              <div class="eca-card-icon eca-card-icon--avatar"
-                :style="{ background: avatarBg(att.fullName), color: avatarFg(att.fullName) }">
-                {{ initials(att.fullName) }}
-              </div>
-              <!-- Identity -->
-              <div class="eca-card-info">
-                <span class="eca-card-name">{{ att.fullName }}</span>
-                <span class="eca-card-meta">{{ att.phone || '—' }}</span>
-              </div>
-              <!-- Status badge -->
-              <div class="eca-card-badges">
-                <span class="eca-badge"
-                  :class="`eca-badge--${getCustomStatus(att) === 'read' ? 'read' : getCustomStatus(att) === 'delivered' ? 'sent' : (getCustomStatus(att) ?? 'draft')}`">
-                  <svg v-if="getCustomStatus(att) === 'read'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 6 7 17 2 12"/><polyline points="23 6 12 17 10.5 15.5"/></svg>
-                  <svg v-else-if="getCustomStatus(att) === 'delivered'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  <svg v-else-if="getCustomStatus(att) === 'failed'" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <!-- Table -->
+          <div v-else class="em-detail-table">
+            <div class="em-detail-tbl-hd">
+              <span class="em-detail-col em-detail-col--name">Recipient Name</span>
+              <span class="em-detail-col em-detail-col--delivery">Delivery</span>
+              <span class="em-detail-col em-detail-col--status">Status</span>
+              <span class="em-detail-col em-detail-col--details">Details</span>
+            </div>
+            <div v-for="att in pagedDetailAttendees" :key="att.id" class="em-detail-tbl-row">
+              <span class="em-detail-col em-detail-col--name">
+                <span class="em-detail-avatar" :style="{ background: avatarBg(att.fullName), color: avatarFg(att.fullName) }">{{ initials(att.fullName) }}</span>
+                <span class="em-detail-name">{{ att.fullName }}</span>
+              </span>
+              <span class="em-detail-col em-detail-col--delivery">
+                <svg v-if="detailChannel === 'whatsapp'" width="13" height="13" viewBox="0 0 448 512" fill="#128C7E"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
+                <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                {{ att.phone || '—' }}
+              </span>
+              <span class="em-detail-col em-detail-col--status">
+                <span class="em-detail-status-pill" :class="`em-detail-status-pill--${getCustomStatus(att) ?? 'unsent'}`">
+                  <span class="em-detail-status-dot"/>
                   {{ STATUS_LABELS[getCustomStatus(att)] ?? 'Unsent' }}
                 </span>
-              </div>
-              <!-- Date -->
-              <span class="eca-card-date">{{ formatDate(att.createdAt) }}</span>
+              </span>
+              <span class="em-detail-col em-detail-col--details">
+                <span class="em-detail-date">{{ formatDate(att.createdAt) }}</span>
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- Detail footer -->
-        <div class="em-table-footer" :class="{ 'em-footer--disabled': detailTotalPages === 1 }">
+        <!-- Pagination -->
+        <div class="em-detail-footer" v-if="customFilteredAttendees.length">
           <span class="em-range-lbl">
             {{ customFilteredAttendees.length === 0 ? '0' : (detailPage - 1) * DETAIL_PAGE_SIZE + 1 }}–{{ Math.min(detailPage * DETAIL_PAGE_SIZE, customFilteredAttendees.length) }}
             of {{ customFilteredAttendees.length }}
           </span>
-          <div class="em-paginator">
-            <button class="em-page-btn em-page-btn--nav" :disabled="detailPage === 1" @click="detailGoPage(detailPage - 1)">
+          <div class="em-paginator" :class="{ 'em-paginator--disabled': detailTotalPages <= 1 }">
+            <button class="em-page-btn em-page-btn--nav" :disabled="detailPage === 1 || detailTotalPages <= 1" @click="detailGoPage(detailPage - 1)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
             <template v-for="p in detailPageNumbers" :key="String(p)">
               <span v-if="p === '…'" class="em-page-ellipsis">…</span>
-              <button v-else class="em-page-btn" :class="{ 'em-page-btn--active': detailPage === p }" @click="detailGoPage(p)">{{ p }}</button>
+              <button v-else class="em-page-btn" :class="{ 'em-page-btn--active': detailPage === p }" :disabled="detailTotalPages <= 1" @click="detailGoPage(p)">{{ p }}</button>
             </template>
-            <button class="em-page-btn em-page-btn--nav" :disabled="detailPage === detailTotalPages" @click="detailGoPage(detailPage + 1)">
+            <button class="em-page-btn em-page-btn--nav" :disabled="detailPage === detailTotalPages || detailTotalPages <= 1" @click="detailGoPage(detailPage + 1)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
@@ -884,7 +1001,22 @@ const loadingCustomCamps  = ref(false)
 
 // withjoy-style tab strip above the dashboard — Create/Drafts/Scheduled/Sent
 // are mutually exclusive views, not stacked panels.
-const msgTab = ref('create')
+const VALID_TABS = ['create', 'drafts', 'scheduled', 'sent']
+const initialTab = VALID_TABS.includes(route.query.tab) ? route.query.tab : 'create'
+const msgTab = ref(initialTab)
+const MSG_TAB_LABELS = { create: 'Create', drafts: 'Drafts', scheduled: 'Scheduled', sent: 'Sent' }
+
+// Tabs stay visible on the campaign detail page (it's always reached from
+// inside one of them), so clicking one while a campaign is open must back
+// out to that tab's list rather than just relabeling the header underneath it.
+function goToTab(tab) {
+  msgTab.value = tab
+  const { campaign, ...rest } = route.query
+  router.replace({ query: { ...rest, tab } })
+  if (selectedCustomCamp.value) {
+    selectedCustomCamp.value = null
+  }
+}
 
 // A campaign's own `status` field is only flipped to 'sent' by the send-drawer's
 // success handler (see below) — it's absent on campaigns dispatched before that
@@ -915,6 +1047,87 @@ const draftCampaigns = computed(() =>
     .sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0))
 )
 
+// ── Sent tab: per-message-type icon/label + per-campaign send/fail counts ──────
+const PRESET_TYPE_META = {
+  'General Message': {
+    label: 'General',
+    color: '#374151',
+    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
+  },
+  'RSVP Reminder': {
+    label: 'RSVP Reminder',
+    color: '#374151',
+    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 13V6a2.5 2.5 0 0 0-2.5-2.5H4.5A2.5 2.5 0 0 0 2 6v12a2.5 2.5 0 0 0 2.5 2.5h8"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="m16 19 2 2 4-4"/></svg>`,
+  },
+  'Pledge Reminder': {
+    label: 'Pledge Reminder',
+    color: '#374151',
+    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="3"/><circle cx="12" cy="10" r="3.5"/><path d="M7 18c0-2.8 2.2-5 5-5s5 2.2 5 5"/><line x1="2" y1="6" x2="4" y2="6"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="2" y1="18" x2="4" y2="18"/></svg>`,
+  },
+  'Meeting Reminder': {
+    label: 'Meeting Reminder',
+    color: '#374151',
+    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="15" r="3"/><polyline points="12 13.5 12 15 13.5 15"/></svg>`,
+  },
+}
+const DEFAULT_TYPE_META = {
+  label: 'General',
+  color: '#374151',
+  icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
+}
+function messageTypeMeta(camp) { return PRESET_TYPE_META[camp.name] ?? DEFAULT_TYPE_META }
+const SENT_TYPE_OPTIONS = [...Object.keys(PRESET_TYPE_META), 'Custom']
+
+// Every messageIndexes entry that belongs to this campaign, across both
+// channels — a guest can have a whatsapp_ and an sms_ entry for the same
+// campaign, so this can return more than one per attendee.
+function campaignIndexEntries(att, campId) {
+  return (att.messageIndexes ?? []).filter(idx => {
+    const firstU = idx.indexOf('_'), lastU = idx.lastIndexOf('_')
+    if (firstU === -1 || firstU === lastU) return false
+    return idx.slice(firstU + 1, lastU) === campId
+  })
+}
+
+// Recipients + send/fail counts per sent campaign, for the Sent tab table.
+// A recipient counts as "sent" if any channel reached sent/delivered/read,
+// and "failed" only if every channel attempted for them came back failed.
+const campaignStatsMap = computed(() => {
+  const map = {}
+  for (const camp of sentCampaigns.value) {
+    const recipients = []
+    let sent = 0, failed = 0
+    for (const att of attendees.value) {
+      const entries = campaignIndexEntries(att, camp.id)
+      if (!entries.length) continue
+      recipients.push(att)
+      const statuses = entries.map(idx => idx.slice(idx.lastIndexOf('_') + 1))
+      if (statuses.some(s => s === 'sent' || s === 'delivered' || s === 'read')) sent++
+      else if (statuses.every(s => s === 'failed')) failed++
+    }
+    map[camp.id] = { recipients, sent, failed }
+  }
+  return map
+})
+
+const sentSearchQ      = ref('')
+const sentTypeFilter   = ref(null)
+const sentTypeDropOpen = ref(false)
+const sentTypeDdTriggerRef = ref(null)
+const sentTypeDdMenuRef    = ref(null)
+
+const sentTableRows = computed(() => {
+  const q = sentSearchQ.value.trim().toLowerCase()
+  return sentCampaigns.value.filter(camp => {
+    if (q && !(camp.name ?? '').toLowerCase().includes(q)) return false
+    if (sentTypeFilter.value) {
+      const isPreset = !!PRESET_TYPE_META[camp.name]
+      if (sentTypeFilter.value === 'Custom' ? isPreset : camp.name !== sentTypeFilter.value) return false
+    }
+    return true
+  })
+})
+
 const selectedCustomCamp = ref(null)
 // Read once, synchronously at setup, before any Firestore round-trip: were we
 // deep-linked here to compose rather than to browse? Everything about that flow
@@ -931,47 +1144,18 @@ const composerOnly = ref(deepLinkSend)
 // re-run the open/abort logic underneath the user.
 let deepLinkPending = deepLinkSend
 const customStatus       = ref('unsent')
-const customStatusDropOpen = ref(false)
 const customLabelId      = ref(null)
-const customLabelDropOpen = ref(false)
 const detailChannel      = ref('sms')
 
-// These dropdown menus are teleported to <body> (see template) so they
-// aren't clipped by .em-panel's overflow:hidden — position them from the
-// trigger's real screen coordinates instead of relying on CSS relative
-// positioning.
-const statusDdTriggerRef = ref(null)
-const statusDdMenuRef    = ref(null)
-const statusDdPos        = ref({ top: 0, left: 0, width: 0 })
-const listDdTriggerRef   = ref(null)
-const listDdMenuRef      = ref(null)
-const listDdPos          = ref({ top: 0, left: 0, width: 0 })
-
-function toggleStatusDd() {
-  if (!customStatusDropOpen.value) {
-    const r = statusDdTriggerRef.value.getBoundingClientRect()
-    statusDdPos.value = { top: r.bottom + 4, left: r.left, width: r.width }
-  }
-  customStatusDropOpen.value = !customStatusDropOpen.value
-}
-
-function toggleListDd() {
-  if (!customLabelDropOpen.value) {
-    const r = listDdTriggerRef.value.getBoundingClientRect()
-    listDdPos.value = { top: r.bottom + 4, left: r.left, width: r.width }
-  }
-  customLabelDropOpen.value = !customLabelDropOpen.value
-}
-
 function handleFilterDdOutsideClick(e) {
-  if (customStatusDropOpen.value && !statusDdTriggerRef.value?.contains(e.target) && !statusDdMenuRef.value?.contains(e.target)) {
-    customStatusDropOpen.value = false
-  }
-  if (customLabelDropOpen.value && !listDdTriggerRef.value?.contains(e.target) && !listDdMenuRef.value?.contains(e.target)) {
-    customLabelDropOpen.value = false
-  }
   if (recipDropOpen.value && !recipDdTriggerRef.value?.contains(e.target) && !recipDdMenuRef.value?.contains(e.target)) {
     recipDropOpen.value = false
+  }
+  if (sentTypeDropOpen.value && !sentTypeDdTriggerRef.value?.contains(e.target) && !sentTypeDdMenuRef.value?.contains(e.target)) {
+    sentTypeDropOpen.value = false
+  }
+  if (detailFilterPopoverOpen.value && !detailFilterTriggerRef.value?.contains(e.target) && !detailFilterMenuRef.value?.contains(e.target)) {
+    detailFilterPopoverOpen.value = false
   }
 }
 onMounted(() => document.addEventListener('mousedown', handleFilterDdOutsideClick))
@@ -991,6 +1175,10 @@ async function loadCustomCampaigns() {
       const match = customCampaigns.value.find(c => c.id === route.query.campaign)
       if (match) {
         selectedCustomCamp.value = match
+        if (!route.query.tab) {
+          const isSent = match.status === 'sent' || dispatchedCampaignIds.value.has(match.id)
+          msgTab.value = isSent ? 'sent' : (match.status === 'scheduled' ? 'scheduled' : 'drafts')
+        }
         // Deep-linked here from the Guest List "Send" flow, which wants to jump
         // straight into composing rather than landing on the campaign detail
         // view. The drawer is already open — this just fills in the campaign it
@@ -1029,14 +1217,49 @@ function selectCustomCamp(camp) {
   selectedCustomCamp.value = camp
   customStatus.value = 'unsent'
   customLabelId.value = null
-  router.replace({ query: { ...route.query, campaign: camp.id } })
+  router.replace({ query: { ...route.query, campaign: camp.id, tab: msgTab.value } })
 }
 
 function backToCampaignList() {
   selectedCustomCamp.value = null
   const { campaign, ...rest } = route.query
-  router.replace({ query: rest })
+  router.replace({ query: { ...rest, tab: msgTab.value } })
 }
+
+// Keep the active header tab and breadcrumb in sync with the selected campaign
+watch([selectedCustomCamp, dispatchedCampaignIds], ([camp, dispatchedIds]) => {
+  if (!camp) return
+  if (route.query.tab && VALID_TABS.includes(route.query.tab)) {
+    msgTab.value = route.query.tab
+    return
+  }
+  const isSent = camp.status === 'sent' || dispatchedIds.has(camp.id)
+  if (isSent) {
+    msgTab.value = 'sent'
+  } else if (camp.status === 'scheduled') {
+    msgTab.value = 'scheduled'
+  } else {
+    msgTab.value = 'drafts'
+  }
+  if (!route.query.tab) {
+    router.replace({ query: { ...route.query, tab: msgTab.value } })
+  }
+}, { immediate: true })
+
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && VALID_TABS.includes(newTab) && msgTab.value !== newTab) {
+    msgTab.value = newTab
+  }
+})
+
+watch(() => route.query.campaign, (newCampId) => {
+  if (!newCampId && selectedCustomCamp.value) {
+    selectedCustomCamp.value = null
+  } else if (newCampId && (!selectedCustomCamp.value || selectedCustomCamp.value.id !== newCampId)) {
+    const match = customCampaigns.value.find(c => c.id === newCampId)
+    if (match) selectedCustomCamp.value = match
+  }
+})
 
 // ── Campaign dialog ────────────────────────────────────────────────────────────
 const campDialogOpen  = ref(false)
@@ -1197,16 +1420,20 @@ async function deleteCustomCampaign(camp) {
 }
 
 // ── Filtered attendees ─────────────────────────────────────────────────────────
+const detailSearchQ = ref('')
+
 const customFilteredAttendees = computed(() => {
   if (!selectedCustomCamp.value) return []
   const campId   = selectedCustomCamp.value.id
   const status   = customStatus.value
   const labelId  = customLabelId.value
   const cardType = selectedCustomCamp.value.type
+  const q        = detailSearchQ.value.trim().toLowerCase()
 
   return attendees.value.filter(att => {
     if (!att.cards || att.cards[cardType] == null) return false
     if (labelId && !(att.labelIds ?? []).includes(labelId)) return false
+    if (q && !(att.fullName ?? '').toLowerCase().includes(q) && !(att.phone ?? '').includes(q)) return false
     const prefix = `${detailChannel.value}_${campId}_`
     const match  = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
     const s      = match ? match.slice(match.lastIndexOf('_') + 1) : null
@@ -1244,6 +1471,18 @@ const customStatusCounts = computed(() => {
   return counts
 })
 
+// "Sent" in the detail header means total dispatched (attempted), not the
+// narrower 'sent-but-not-yet-delivered' bucket — everyone who isn't still
+// sitting unsent for this channel.
+const detailDispatchedCount = computed(() => customStatusCounts.value.all - customStatusCounts.value.unsent)
+
+const detailFilterPopoverOpen = ref(false)
+const detailFilterTriggerRef  = ref(null)
+const detailFilterMenuRef     = ref(null)
+const detailActiveFilterCount = computed(() =>
+  (customStatus.value !== 'all' ? 1 : 0) + (customLabelId.value ? 1 : 0)
+)
+
 // ── Detail pagination ──────────────────────────────────────────────────────────
 const detailPage       = ref(1)
 const DETAIL_PAGE_SIZE = 10
@@ -1272,14 +1511,13 @@ watch(customFilteredAttendees, () => { detailPage.value = 1 })
 const sendRecipMode    = ref('unsent')
 const sendLabelId      = ref(null)
 const recipDropOpen    = ref(false)
-// Teleported to <body> for the same reason as statusDdMenuRef/listDdMenuRef
-// above — .em-panel's drawer otherwise clips/dims it via its own overflow and
-// transform, which is what made this dropdown look transparent in place. Once
-// teleported, the menu is no longer a DOM descendant of .em-recip-dd, so a
-// generic v-click-outside on that wrapper would treat every click inside the
-// menu as "outside" and close it on mousedown before the option's own click
-// handler ever runs — same trap the other two dropdowns avoid by tracking an
-// explicit menu ref instead. See handleFilterDdOutsideClick below.
+// Teleported to <body> — the drawer otherwise clips/dims it via its own
+// overflow and transform, which is what made this dropdown look transparent
+// in place. Once teleported, the menu is no longer a DOM descendant of
+// .em-recip-dd, so a generic v-click-outside on that wrapper would treat
+// every click inside the menu as "outside" and close it on mousedown before
+// the option's own click handler ever runs — tracked via an explicit menu
+// ref instead. See handleFilterDdOutsideClick below.
 const recipDdTriggerRef = ref(null)
 const recipDdMenuRef    = ref(null)
 const recipDdPos        = ref({ top: 0, left: 0, width: 0 })
@@ -1490,6 +1728,8 @@ async function executeSend() {
           console.error('Failed to mark campaign as sent', e)
         }
       }
+      msgTab.value = 'sent'
+      router.replace({ query: { ...route.query, tab: 'sent' } })
     }
   } catch (e) {
     sendResult.value = { ok: false, message: e.message }
@@ -1505,9 +1745,9 @@ function initials(name) {
   return p.length === 1 ? (p[0][0] ?? '?').toUpperCase() : (p[0][0] + p[p.length - 1][0]).toUpperCase()
 }
 function nameHash(s) { let h = 0; for (let i = 0; i < (s?.length ?? 0); i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h) }
-function avatarBg(n) { return `hsl(${nameHash(n ?? '') % 360}, 50%, 88%)` }
-function avatarFg(n) { return `hsl(${nameHash(n ?? '') % 360}, 50%, 30%)` }
-function formatDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' }) } catch { return '—' } }
+function avatarBg(n) { return `hsl(${nameHash(n ?? '') % 360}, 65%, 92%)` }
+function avatarFg(n) { return `hsl(${nameHash(n ?? '') % 360}, 60%, 26%)` }
+function formatDate(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) } catch { return '—' } }
 
 onMounted(() => { load(); loadCustomCampaigns() })
 watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
@@ -1520,199 +1760,709 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   color: var(--c-txt-2);
 }
 .em-root {
-  padding: 20px 24px 24px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   position: relative;
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-muted:  #3a3a3a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-  --c-divide: #2a2a2a;
-  --c-arrow:  #3a3a3a;
+  background: #ffffff;
+  --c-bg:     #ffffff;
+  --c-border: #eef0f3;
+  --c-track:  #f3f4f6;
+  --c-muted:  #f4f5f7;
+  --c-txt:    #111827;
+  --c-txt-2:  #6b7280;
+  --c-txt-3:  #9ca3af;
+  --c-divide: #f1f3f9;
+  --c-arrow:  #9ca3af;
   transition: background 300ms ease;
 }
 
-/* ── Hub header (hamburger / brand badge / title) — the page's only nav
-   chrome now that the sidebar/topbar are hidden. Sticky at the top of
-   .em-root so it stays visible while everything below it scrolls. ── */
+/* ── Unified Withjoy Hub Header ── */
 .em-hub-hd {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 60px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-bottom: none;
+  padding: 0 32px;
+  gap: 32px;
+}
+.em-hd-main {
   display: flex;
   align-items: center;
   gap: 14px;
-  height: 64px;
-  flex-shrink: 0;
-  background: var(--el-content-bg, #070707);
 }
 .em-hd-burger {
-  display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; flex-shrink: 0;
-  background: none; border: none;
-  color: var(--c-txt); cursor: pointer; font-family: inherit; padding: 0;
-  border-radius: 8px;
-  transition: color 130ms, background 130ms;
-}
-.em-hd-burger:hover { background: var(--c-muted); }
-.em-hd-sep { width: 1px; height: 24px; background: var(--c-divide); flex-shrink: 0; }
-.em-hd-icon-badge {
-  width: 40px; height: 40px; border-radius: 10px;
-  background: var(--c-muted); border: 1px solid var(--c-border);
-  color: var(--gold);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; cursor: pointer; transition: all 150ms ease;
-}
-.em-hd-icon-badge:hover { background: var(--c-bg); border-color: var(--gold); }
-.em-hd-brand-logo { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; }
-.em-hub-title {
-  font-size: 22px; font-weight: 800; color: var(--c-txt); margin: 0;
-  letter-spacing: -0.02em; white-space: nowrap;
-}
-
-/* ── Stat cards ── */
-.em-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-.em-stat-card {
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
-  padding: 20px 20px 18px; display: flex; align-items: flex-start; gap: 16px;
-  transition: background 300ms ease, border-color 300ms ease;
-}
-.em-stat-icon {
-  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
-  display: flex; align-items: center; justify-content: center;
-}
-.em-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
-.em-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
-.em-stat-icon--blue2  { background: rgba(52,183,241,0.08);  color: #34B7F1; }
-.em-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
-.em-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
-.em-stat-icon--red    { background: rgba(252,129,129,0.08); color: #fc8181; }
-.em-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.em-stat-lbl  { font-size: 11px; color: var(--c-txt-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.6px; text-transform: uppercase; }
-.em-stat-val  { font-size: 32px; font-weight: 700; color: var(--c-txt); white-space: nowrap; line-height: 1; letter-spacing: -0.5px; }
-
-/* ── Panel ── */
-.em-panel {
-  display: flex;
-  flex-direction: column;
-  background: #0d0d0d;
-  border: 1px solid var(--c-border);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: border-color 300ms ease;
-}
-.em-panel-hd {
   display: flex;
   align-items: center;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--c-divide);
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #374151;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  border-radius: 6px;
+  transition: color 130ms, background 130ms;
+}
+.em-hd-burger:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+.em-hd-brand {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.em-hd-brand-logo {
+  height: 26px;
+  max-width: 110px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.em-hd-brand-script {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-right: 2px;
+}
+.em-hd-title-group {
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
-.em-panel-title {
-  font-size: 19px; font-weight: 700; color: var(--c-txt); margin: 0;
-  letter-spacing: -0.3px; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; min-width: 0;
+.em-hub-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
-.em-panel-acts { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.em-hub-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.08em;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
 
-/* ── Table area ── */
-.em-table-area { overflow-x: auto; }
-
-/* ── withjoy-style tab strip: Create / Drafts / Scheduled / Sent ── */
+/* ── Withjoy Header Tabs (inline in top bar) ── */
 .em-msg-tabs {
-  display: flex; align-items: center; gap: 4px;
-  border-bottom: 1px solid var(--c-divide);
-  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  height: 100%;
+  margin-left: 8px;
 }
 .em-msg-tab {
-  display: flex; align-items: center; gap: 6px;
-  background: none; border: none; cursor: pointer; font-family: inherit;
-  font-size: 14px; font-weight: 600; color: var(--c-txt-2);
-  padding: 10px 4px; margin-right: 20px;
-  border-bottom: 2px solid transparent;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  padding: 0 2px;
+  margin-top: 2px;
   transition: color 130ms, border-color 130ms;
 }
-.em-msg-tab:hover { color: var(--c-txt); }
-.em-msg-tab--active { color: var(--c-txt); border-bottom-color: var(--gold); }
+.em-msg-tab:hover {
+  color: #111827;
+}
+.em-msg-tab--active {
+  color: #111827;
+  font-weight: 600;
+  border-bottom-color: #111827;
+}
 .em-msg-tab-count {
-  font-size: 11px; font-weight: 700; color: var(--c-txt-2); background: var(--c-track);
-  border-radius: 999px; padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4b5563;
+  background: #f3f4f6;
+  border-radius: 9999px;
+  padding: 1px 7px;
 }
 
-/* ── Messaging dashboard (WithJoy-inspired) — presets to start a new
-   message, a Scheduled placeholder, and what's already been sent ── */
-.em-msg-dash { display: flex; flex-direction: column; gap: 16px; }
-.em-msg-panel {
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
-  padding: 18px 20px; transition: background 300ms ease, border-color 300ms ease;
+/* ── Withjoy Dashboard Canvas ── */
+.em-msg-dash {
+  max-width: 1240px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 32px 36px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
 }
-.em-msg-panel-title { font-size: 15px; font-weight: 700; color: var(--c-txt); margin: 0 0 14px; }
-.em-msg-panel-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-.em-msg-panel-hd .em-msg-panel-title { margin: 0; }
-.em-msg-count {
-  font-size: 11px; font-weight: 700; color: var(--c-txt-2); background: var(--c-track);
-  border-radius: 999px; padding: 2px 8px;
+.em-msg-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
-.em-msg-view-all {
-  margin-left: auto; background: none; border: none; cursor: pointer; font-family: inherit;
-  font-size: 12.5px; font-weight: 600; color: var(--gold); padding: 0;
+.em-sec-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.01em;
 }
-.em-msg-view-all:hover { text-decoration: underline; }
-.em-msg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.em-msg-panel--half { display: flex; flex-direction: column; min-height: 200px; }
-.em-msg-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+
+/* ── Withjoy Hero Template Cards ── */
+.em-msg-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+@media (max-width: 960px) {
+  .em-msg-tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 540px) {
+  .em-msg-tiles {
+    grid-template-columns: 1fr;
+  }
+}
+
 .em-msg-tile {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
-  padding: 18px; border-radius: 12px; border: 1px solid var(--c-border); background: var(--c-track);
-  cursor: pointer; transition: all 130ms; font-family: inherit; text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 150ms;
+  text-align: center;
 }
-.em-msg-tile:hover:not(:disabled) { border-color: var(--gold); background: rgb(from var(--gold) r g b / 0.06); }
-.em-msg-tile:disabled { opacity: 0.5; cursor: not-allowed; }
-.em-msg-tile-label { font-size: 13.5px; font-weight: 600; color: var(--c-txt); }
-.em-msg-empty {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px; color: var(--c-txt-3); font-size: 13px; text-align: center; padding: 20px 0;
+.em-msg-tile:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
-.em-msg-sent-list { display: flex; flex-direction: column; gap: 2px; margin: 0 -8px; }
-.em-msg-sent-row {
-  display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 8px;
-  cursor: pointer; transition: background 130ms;
+.em-msg-tile-box {
+  width: 100%;
+  height: 210px;
+  background: #f4f5f7;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.02);
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), background 200ms ease, box-shadow 200ms ease;
 }
-.em-msg-sent-row:hover { background: var(--c-track); }
-.em-msg-sent-row:hover .em-msg-sent-acts { opacity: 1; }
-.em-msg-sent-icon {
-  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; color: var(--gold);
-  background: rgb(from var(--gold) r g b / 0.1);
-  display: flex; align-items: center; justify-content: center;
+.em-msg-tile:hover:not(:disabled) .em-msg-tile-box {
+  transform: translateY(-3px);
+  background: #ebedf1;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.06), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
 }
-.em-msg-sent-name { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--c-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.em-msg-sent-date { font-size: 12px; color: var(--c-txt-2); flex-shrink: 0; }
-.em-msg-sent-acts { display: flex; align-items: center; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity 130ms; }
+.em-msg-tile-label {
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  transition: color 150ms, font-weight 150ms;
+}
+.em-msg-tile:hover:not(:disabled) .em-msg-tile-label {
+  color: #111827;
+  font-weight: 600;
+}
 
-/* ── Filter bar (inside detail panel) ── */
-.em-panel-filter-bar {
-  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
-  padding: 10px 20px; border-bottom: 1px solid var(--c-divide); background: #0d0d0d;
+/* ── Scheduled & Sent Grid (Withjoy style) ── */
+.em-msg-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
 }
-
-/* ── Detail header extras ── */
-.em-detail-back {
-  display: flex; align-items: center; gap: 5px; background: none; border: none;
-  font-size: 13px; color: var(--c-txt-2); cursor: pointer; transition: color 130ms; flex-shrink: 0;
+@media (max-width: 860px) {
+  .em-msg-row {
+    grid-template-columns: 1fr;
+  }
+}
+.em-sub-col {
+  display: flex;
+  flex-direction: column;
+}
+.em-sub-card {
+  background: #ffffff;
+  border: 1px solid #eef0f3;
+  border-radius: 16px;
+  min-height: 270px;
+  padding: 24px 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+}
+.em-sub-card-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+  margin-bottom: 18px;
+}
+.em-sub-hd-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.em-sub-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.em-pill-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4b5563;
+  background: #f3f4f6;
+  border-radius: 9999px;
+  padding: 2px 8px;
+}
+.em-view-all-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  padding: 0;
+  transition: opacity 120ms;
+}
+.em-view-all-btn:hover {
+  text-decoration: underline;
+}
+.em-sub-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.em-sub-card-body--center {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px 0 6px;
+}
+.em-empty-cal-icon {
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+.em-empty-text {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 12px 0 18px;
+  font-weight: 400;
+}
+.em-new-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #18181b;
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
   font-family: inherit;
 }
-.em-detail-back:hover { color: var(--gold); }
-.em-detail-type {
-  font-size: 11px; font-weight: 600; color: var(--c-txt-2); background: rgba(255,255,255,0.06);
-  padding: 3px 8px; border-radius: 20px; white-space: nowrap; text-transform: capitalize; flex-shrink: 0;
+.em-new-pill-btn:hover {
+  background: #27272a;
+  transform: translateY(-1px);
 }
-.em-detail-count { font-size: 12px; color: var(--c-txt-2); white-space: nowrap; }
+
+/* Sent message row list */
+.em-sent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.em-sent-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 130ms;
+}
+.em-sent-item:hover {
+  background: #f9fafb;
+}
+.em-sent-item:hover .em-msg-sent-acts {
+  opacity: 1;
+}
+.em-sent-mail-icon {
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.em-sent-item-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.em-sent-item-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+.em-sent-item-date {
+  font-size: 13px;
+  color: #6b7280;
+  flex-shrink: 0;
+  margin-left: 12px;
+  font-weight: 400;
+}
+.em-msg-sent-acts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 130ms;
+}
+.em-msg-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* ── Sent tab: withjoy-style full table ── */
+.em-sent-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+.em-sent-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 0;
+}
+.em-sent-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 260px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  padding: 0 16px;
+  height: 42px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.em-sent-search-wrap:focus-within {
+  border-color: #18181b;
+  box-shadow: 0 0 0 1px #18181b;
+}
+.em-sent-search {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  color: #18181b;
+  padding-right: 8px;
+}
+.em-sent-search::placeholder { color: #9ca3af; font-size: 14px; }
+.em-sent-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 2px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.em-sent-search-clear:hover { color: #18181b; }
+.em-sent-search-icon {
+  flex-shrink: 0;
+  color: #9ca3af;
+}
+
+.em-sent-type-dd { position: relative; }
+.em-sent-type-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #18181b;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 130ms;
+}
+.em-sent-type-trigger:hover {
+  background: #f4f5f7;
+}
+.em-sent-type-trigger--on {
+  background: #f4f5f7;
+  border-color: #e5e7eb;
+  font-weight: 600;
+}
+.em-sent-tune-icon {
+  flex-shrink: 0;
+  color: #18181b;
+}
+
+.em-sent-type-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 190px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+  padding: 6px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.em-sent-type-item {
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: background 100ms;
+}
+.em-sent-type-item:hover { background: #f4f5f7; color: #18181b; }
+.em-sent-type-item--on { background: #f4f5f7; color: #18181b; font-weight: 600; }
+
+.em-sent-new-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 20px;
+  background: #18181b !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: transform 120ms, background 120ms;
+}
+.em-sent-new-btn:hover {
+  background: #27272a !important;
+  transform: translateY(-1px);
+}
+.em-sent-new-btn:active {
+  transform: translateY(0);
+}
+
+.em-sent-empty { min-height: 240px; }
+
+/* Sent Table: Edge-to-edge minimalist luxury design */
+.em-sent-table {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
+}
+.em-sent-tbl-hd,
+.em-sent-tbl-row {
+  display: grid;
+  grid-template-columns: 2.4fr 1.5fr 1.3fr 1.2fr 0.6fr 0.6fr 24px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 8px;
+}
+.em-sent-tbl-hd {
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 13px;
+  font-weight: 500;
+  color: #71717a;
+  text-transform: none;
+  letter-spacing: normal;
+  padding-bottom: 14px;
+}
+.em-sent-tbl-row {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f0f2f5;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  padding: 18px 8px;
+  transition: background 150ms;
+  border-radius: 6px;
+}
+.em-sent-tbl-row:hover {
+  background: #fafafa;
+}
+.em-sent-col { min-width: 0; }
+.em-sent-subject {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #18181b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.em-sent-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #374151;
+}
+.em-sent-type-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #374151;
+}
+.em-recip-stack { display: flex; align-items: center; }
+.em-recip-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  border: 2px solid #ffffff;
+  margin-left: -6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.em-recip-avatar:first-child { margin-left: 0; }
+.em-recip-more {
+  margin-left: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #71717a;
+}
+.em-recip-none { color: #9ca3af; font-size: 13.5px; }
+.em-sent-col--date {
+  font-size: 13.5px;
+  color: #71717a;
+}
+.em-sent-col--sent {
+  color: #18181b;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.em-sent-col--failed {
+  color: #71717a;
+  font-size: 13.5px;
+  font-weight: 400;
+}
+.em-sent-num--bad {
+  color: #ef4444 !important;
+  font-weight: 600;
+}
+.em-sent-col--chev {
+  display: flex;
+  justify-content: flex-end;
+  color: #9ca3af;
+}
+
+@media (max-width: 860px) {
+  .em-sent-toolbar { flex-wrap: wrap; }
+  .em-sent-search-wrap { max-width: none; flex-basis: 100%; }
+  .em-sent-new-btn { margin-left: 0; }
+  .em-sent-tbl-hd { display: none; }
+  .em-sent-tbl-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 16px;
+    row-gap: 8px;
+    position: relative;
+    padding: 16px 36px 16px 10px;
+  }
+  .em-sent-col--subject { flex: 1 1 100%; padding-right: 4px; white-space: normal; }
+  .em-sent-col--chev { position: absolute; top: 16px; right: 10px; }
+  .em-sent-col--type, .em-sent-col--recip, .em-sent-col--date, .em-sent-col--sent, .em-sent-col--failed {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .em-sent-col--type::before, .em-sent-col--recip::before, .em-sent-col--date::before, .em-sent-col--sent::before, .em-sent-col--failed::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    letter-spacing: 0.02em;
+  }
+}
 
 /* ── Loading / empty states ── */
 .em-loading-state { display: flex; align-items: center; gap: 10px; color: var(--c-txt-2); font-size: 14px; padding: 48px 0; justify-content: center; }
@@ -1731,41 +2481,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-camp-item-btn:hover { background: var(--c-muted); color: var(--c-txt); }
 .em-camp-item-btn--del:hover { background: rgba(255,69,58,0.08); color: #fc8181; border-color: rgba(255,69,58,0.25); }
 
-/* ── Card list ── */
-.eca-list {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 12px 16px; background: #0d0d0d;
-}
-.eca-card {
-  display: flex; align-items: center; gap: 14px;
-  padding: 13px 16px;
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
-  transition: background 150ms, border-color 150ms, box-shadow 150ms;
-  cursor: pointer;
-}
-.eca-card:hover:not(.eca-card--sk) { background: var(--c-bg); border-color: var(--c-muted); box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
-.eca-card--sk { pointer-events: none; }
-.eca-card--selected { background: rgb(from var(--gold) r g b / 0.06) !important; border-color: rgb(from var(--gold) r g b / 0.25) !important; }
-
-/* Card icon zone */
-.eca-card-icon {
-  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: rgb(from var(--gold) r g b / 0.10); color: var(--gold);
-}
-.eca-card-icon--avatar {
-  font-size: 12px; font-weight: 700; background: unset;
-}
-
-/* Card identity */
-.eca-card-info { display: flex; flex-direction: column; gap: 3px; flex: 0 0 200px; min-width: 0; }
-.eca-card-name { font-size: 13px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.eca-card-meta { font-size: 11px; color: var(--c-txt-3); }
-
-/* Card badges zone */
-.eca-card-badges { flex: 1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-
-/* Badge */
+/* Badge (still used by the send-drawer recipient picker) */
 .eca-badge {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 9px; border-radius: 20px;
@@ -1782,21 +2498,6 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .eca-badge--pending   { background: rgba(255,204,0,0.10);   color: #B36800; border-color: rgba(255,204,0,0.20); }
 .eca-badge--undelivered { background: rgba(255,69,58,0.08); color: #C41E1E; border-color: rgba(255,69,58,0.15); }
 
-/* Left border stripe by status */
-.eca-card--sent      { box-shadow: inset 3px 0 0 rgba(48,209,88,0.55); }
-.eca-card--delivered { box-shadow: inset 3px 0 0 rgba(48,209,88,0.55); }
-.eca-card--read      { box-shadow: inset 3px 0 0 rgba(52,183,241,0.55); }
-.eca-card--scheduled { box-shadow: inset 3px 0 0 rgb(from var(--gold) r g b / 0.55); }
-.eca-card--draft     { box-shadow: inset 3px 0 0 rgba(255,255,255,0.08); }
-.eca-card--failed    { box-shadow: inset 3px 0 0 rgba(255,69,58,0.40); }
-.eca-card--unsent    { box-shadow: inset 3px 0 0 rgba(255,255,255,0.06); }
-
-/* Date */
-.eca-card-date { font-size: 11px; color: var(--c-txt-3); white-space: nowrap; flex-shrink: 0; text-align: right; }
-
-/* Checkbox in detail cards */
-.eca-card-cb { display: flex; align-items: center; flex-shrink: 0; }
-
 /* Campaign list actions */
 .eca-camp-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 
@@ -1804,54 +2505,6 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .eca-selbar { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--c-divide); background: #0d0d0d; }
 .eca-selbar-cb { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .eca-selbar-lbl { font-size: 11px; font-weight: 700; color: var(--c-txt-2); text-transform: uppercase; letter-spacing: 0.5px; user-select: none; }
-
-/* Skeleton */
-@keyframes eca-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.eca-sk-circle { width: 40px; height: 40px; border-radius: 11px; background: var(--c-track); flex-shrink: 0; animation: eca-pulse 1.4s ease-in-out infinite; }
-.eca-sk-bar    { height: 12px; border-radius: 6px; background: var(--c-track); animation: eca-pulse 1.4s ease-in-out infinite; }
-.eca-sk-bar--lg { width: 140px; }
-.eca-sk-bar--sm { width: 80px; }
-
-/* Responsive */
-@media (max-width: 640px) {
-  .eca-list { padding: 8px 10px; gap: 5px; }
-
-  /* Campaign list cards — simple two-row layout */
-  .eca-card {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto auto;
-    grid-template-areas: "icon info badges" "icon info badges";
-    align-items: start; gap: 3px 12px; padding: 12px 14px;
-  }
-  .eca-card-icon   { grid-area: icon; align-self: center; }
-  .eca-card-info   { grid-area: info; flex: unset; }
-  .eca-card-badges { grid-area: badges; justify-content: flex-end; flex: unset; align-self: center; }
-  .eca-card-date   { display: none; }
-  .eca-camp-actions { display: none; }
-
-  /* Detail cards: compact 2-row grid
-     Row 1: cb | avatar | NAME         | [badge]
-     Row 2: cb | avatar | phone        | date          */
-  .eca-card.eca-card--detail {
-    grid-template-columns: auto auto 1fr auto;
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "cb icon name  bdg"
-      "cb icon meta  dt";
-    gap: 2px 10px;
-    padding: 10px 12px;
-  }
-  .eca-card.eca-card--detail .eca-card-cb   { grid-area: cb;   align-self: center; grid-row: 1/3; }
-  .eca-card.eca-card--detail .eca-card-icon { grid-area: icon; align-self: center; grid-row: 1/3; width: 36px; height: 36px; font-size: 11px; }
-  /* Flatten info wrapper so name and meta each become a grid item */
-  .eca-card.eca-card--detail .eca-card-info   { display: contents; }
-  .eca-card.eca-card--detail .eca-card-name   { grid-area: name; align-self: center; font-size: 12px; min-width: 0; }
-  .eca-card.eca-card--detail .eca-card-meta   { grid-area: meta; align-self: center; font-size: 10px; color: var(--c-txt-3); }
-  .eca-card.eca-card--detail .eca-card-badges { grid-area: bdg;  align-self: center; justify-content: flex-end; flex: unset; margin-top: 0; }
-  .eca-card.eca-card--detail .eca-card-date   { grid-area: dt;   display: block; align-self: center; font-size: 10px; color: var(--c-txt-3); padding-top: 0; text-align: right; }
-}
-@media (max-width: 400px) { .eca-card-date { display: none; } }
 
 /* ── SMS status badges ── */
 .em-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
@@ -1872,23 +2525,6 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-sk-bar--sm{ width: 60px; }
 @keyframes em-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-/* ── Filter pills ── */
-.em-filter-group { display: flex; align-items: center; gap: 8px; }
-/* Status + List wrap together as one unit — if pushed individually, a row
-   that only has room to wrap the last group leaves it stranded flush-left
-   with no push of its own. */
-.em-filter-group-cluster { display: flex; align-items: center; gap: 20px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
-.em-filter-lbl   { font-size: 10px; font-weight: 700; color: var(--c-txt-2); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
-.em-filter-pills { display: flex; gap: 4px; flex-wrap: wrap; }
-.em-filter-pill  { height: 28px; padding: 0 12px; border-radius: 20px; border: 1px solid transparent; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 130ms; font-family: inherit; }
-.em-filter-pill:hover { filter: brightness(1.15); }
-.em-filter-pill--ch        { background: rgba(255,255,255,0.06); color: var(--c-txt-2); border-color: var(--c-border); }
-.em-filter-pill--ch.em-filter-pill--on {
-  background: rgb(from var(--gold) r g b / 0.14);
-  color: var(--gold);
-  border-color: rgb(from var(--gold) r g b / 0.5);
-  font-weight: 700;
-}
 .em-filter-select {
   height: 28px; padding: 0 8px; border: 1px solid var(--c-border); border-radius: 7px;
   background: var(--c-bg); font-size: 12px; color: var(--c-txt); outline: none; cursor: pointer; color-scheme: dark;
@@ -1899,19 +2535,537 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer-list-lbl { font-size: 11px; font-weight: 700; color: var(--c-txt-2); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
 
 /* ── Table footer / pagination ── */
-.em-table-footer {
+.em-detail-footer {
   flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 20px; background: #0d0d0d; border-top: 1px solid var(--c-divide);
+  padding: 14px 4px 4px;
 }
-.em-footer--disabled { opacity: 0.38; pointer-events: none; }
 .em-range-lbl   { font-size: 13px; color: var(--c-txt-2); }
 .em-paginator   { display: flex; align-items: center; gap: 4px; }
-.em-page-btn    { min-width: 32px; height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--c-border); background: #0d0d0d; font-size: 13px; font-weight: 500; color: var(--c-txt-2); cursor: pointer; transition: all 130ms; display: flex; align-items: center; justify-content: center; }
+.em-paginator--disabled { opacity: 0.5; pointer-events: none; }
+.em-page-btn    { min-width: 32px; height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--c-border); background: #ffffff; font-size: 13px; font-weight: 500; color: var(--c-txt-2); cursor: pointer; transition: all 130ms; display: flex; align-items: center; justify-content: center; }
 .em-page-btn:hover:not(:disabled) { background: var(--c-muted); }
 .em-page-btn:disabled { opacity: 0.4; cursor: default; }
-.em-page-btn--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.18); color: var(--c-txt); }
+.em-page-btn--active { background: #111827; border-color: #111827; color: #ffffff; font-weight: 700; }
 .em-page-btn--nav    { color: var(--c-txt-2); }
 .em-page-ellipsis   { font-size: 13px; color: var(--c-txt-3); padding: 0 4px; }
+
+/* ── Campaign detail page (withjoy-style) ── */
+.em-detail-page {
+  max-width: 1240px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 24px 36px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.em-detail-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+.em-crumb-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 120ms;
+}
+.em-crumb-link:hover {
+  color: #111827;
+  text-decoration: underline;
+}
+.em-crumb-sep {
+  color: #d1d5db;
+}
+.em-crumb-current {
+  color: #111827;
+  font-weight: 600;
+}
+
+.em-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.em-detail-heading-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.em-detail-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+}
+.em-detail-type-icon {
+  display: flex;
+  flex-shrink: 0;
+}
+.em-detail-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.em-detail-heading-acts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.em-send-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #18181b !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  font-size: 14px;
+  font-weight: 600;
+  height: 42px;
+  padding: 0 22px !important;
+  cursor: pointer;
+  transition: all 150ms ease;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.em-send-btn:hover {
+  background: #27272a !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+.em-send-btn:active {
+  transform: translateY(0);
+}
+
+.em-edit-camp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff !important;
+  color: #18181b !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 9999px !important;
+  font-size: 14px;
+  font-weight: 500;
+  height: 42px;
+  padding: 0 18px !important;
+  cursor: pointer;
+  transition: all 150ms ease;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+.em-edit-camp-btn:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #000000 !important;
+}
+.em-edit-camp-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Withjoy-Style Unified 3-Column Metric Card ── */
+.em-detail-stats {
+  display: flex;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+.em-detail-stat-card {
+  flex: 1;
+  min-width: 0;
+  padding: 24px 28px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #f0f1f3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+.em-detail-stat-card:last-child {
+  border-right: none;
+}
+.em-detail-stat-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.em-detail-stat-val {
+  font-size: 38px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.em-detail-stat-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+.em-detail-stat-icon--ok {
+  color: #0d9488;
+}
+.em-detail-stat-icon--read {
+  color: #2563eb;
+}
+.em-detail-stat-icon--bad {
+  color: #9ca3af;
+}
+.em-detail-stat-lbl {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  letter-spacing: -0.01em;
+}
+.em-detail-stat-card--ok .em-detail-stat-lbl {
+  color: #0d9488;
+}
+
+/* ── Withjoy Search & Filter Toolbar ── */
+.em-detail-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.em-detail-search-wrap {
+  flex: 1;
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  padding: 0 16px;
+  height: 42px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.em-detail-search-wrap:focus-within {
+  border-color: #111827;
+  box-shadow: 0 0 0 1px #111827;
+}
+.em-detail-search {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: #111827;
+}
+.em-detail-search::placeholder {
+  color: #9ca3af;
+}
+
+.em-detail-filter-dd {
+  position: relative;
+}
+.em-detail-filter-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 18px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 150ms ease;
+}
+.em-detail-filter-trigger:hover {
+  background: #f9fafb;
+  border-color: #cbd5e1;
+}
+.em-detail-filter-trigger--on {
+  background: #f3f4f6;
+  border-color: #111827;
+}
+.em-detail-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.em-detail-filter-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 260px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+  padding: 16px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.em-detail-filter-menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.em-detail-filter-menu-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.em-detail-ch-toggle {
+  display: flex;
+  gap: 6px;
+}
+.em-detail-ch-pill {
+  flex: 1;
+  height: 32px;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 120ms;
+}
+.em-detail-ch-pill:hover {
+  color: #111827;
+}
+.em-detail-ch-pill--on {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}
+.em-detail-filter-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.em-detail-filter-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms;
+}
+.em-detail-filter-opt:hover {
+  background: #f3f4f6;
+}
+.em-detail-filter-opt--on {
+  background: #f3f4f6;
+  font-weight: 600;
+  color: #111827;
+}
+.em-detail-filter-opt-lbl {
+  flex: 1;
+}
+.em-detail-filter-opt-n {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 600;
+}
+.em-detail-list-select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 13px;
+  color: #111827;
+  outline: none;
+  cursor: pointer;
+}
+.em-detail-filter-clear {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+}
+.em-detail-filter-clear:hover {
+  color: #111827;
+  text-decoration: underline;
+}
+
+/* ── Withjoy Recipients Table ── */
+.em-detail-table-wrap {
+  background: #ffffff;
+  border: 1px solid #eef0f3;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+.em-detail-table {
+  display: flex;
+  flex-direction: column;
+}
+.em-detail-tbl-hd,
+.em-detail-tbl-row {
+  display: grid;
+  grid-template-columns: 1.8fr 1.4fr 1fr 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+}
+.em-detail-tbl-hd {
+  border-bottom: 1px solid #f0f1f3;
+  font-size: 12px;
+  font-weight: 600;
+  color: #71717a;
+  letter-spacing: 0.01em;
+}
+.em-detail-tbl-row {
+  border-bottom: 1px solid #f4f5f7;
+  transition: background 120ms ease;
+}
+.em-detail-tbl-row:last-child {
+  border-bottom: none;
+}
+.em-detail-tbl-row:hover {
+  background: #fafafa;
+}
+.em-detail-col {
+  min-width: 0;
+  font-size: 14px;
+  color: #374151;
+}
+.em-detail-col--name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.em-detail-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+.em-detail-name {
+  font-weight: 600;
+  color: #18181b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.em-detail-col--delivery {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #52525b;
+}
+.em-detail-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #18181b;
+}
+.em-detail-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.em-detail-status-pill--delivered .em-detail-status-dot {
+  background: #10b981;
+}
+.em-detail-status-pill--sent .em-detail-status-dot {
+  background: #f59e0b;
+}
+.em-detail-status-pill--read .em-detail-status-dot {
+  background: #3b82f6;
+}
+.em-detail-status-pill--failed .em-detail-status-dot {
+  background: #ef4444;
+}
+.em-detail-status-pill--unsent .em-detail-status-dot {
+  background: #9ca3af;
+}
+.em-detail-date {
+  color: #52525b;
+  font-size: 13.5px;
+}
+
+@media (max-width: 720px) {
+  .em-detail-title { font-size: 24px; }
+  .em-detail-toolbar { flex-wrap: wrap; }
+  .em-detail-search-wrap { max-width: none; flex-basis: 100%; }
+  .em-detail-filter-menu { left: 0; right: auto; width: min(280px, 90vw); }
+  .em-detail-tbl-hd { display: none; }
+  .em-detail-tbl-row {
+    display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 6px; padding: 13px 16px;
+  }
+  .em-detail-col--name { flex: 1 1 100%; }
+  .em-detail-col--delivery::before { content: 'Delivery: '; font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; }
+  .em-detail-col--details::before { content: 'Date: '; font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; }
+}
 
 /* ── Floating action bar ── */
 .em-action-bar {
@@ -2112,8 +3266,9 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 }
 
 @media (max-width: 700px) {
-  .em-root  { padding: 12px 14px 20px; gap: 12px; }
-  .em-hub-hd { height: 52px; gap: 10px; }
+  .em-root  { padding: 0; }
+  .em-msg-dash { padding: 20px 16px 40px; gap: 24px; }
+  .em-hub-hd { height: 54px; padding: 0 16px; gap: 14px; }
   .em-hub-title { font-size: 18px; }
   /* Column layout so labels get full card width */
   .em-stat-card { padding: 12px; gap: 6px; flex-direction: column; align-items: flex-start; }
@@ -2135,23 +3290,6 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   .em-status-filter-dd { flex: 1; min-width: 0; }
 }
 
-/* ── Edit button (panel header) ── */
-.em-edit-camp-btn {
-  display: flex; align-items: center; gap: 6px; padding: 8px 14px;
-  background: var(--c-bg); color: var(--c-txt-2); border: 1px solid var(--c-border); border-radius: 10px;
-  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 130ms;
-  font-family: inherit; flex-shrink: 0;
-}
-.em-edit-camp-btn:hover { border-color: var(--gold); color: var(--gold); }
-
-/* ── Send button (panel header) ── */
-.em-send-btn {
-  display: flex; align-items: center; gap: 6px; padding: 8px 16px;
-  background: var(--gold); color: var(--gold-contrast); border: none; border-radius: 10px;
-  font-size: 13px; font-weight: 700; cursor: pointer; transition: background 150ms;
-  font-family: inherit; flex-shrink: 0;
-}
-.em-send-btn:hover { background: #d4b560; }
 
 /* ── Stat dropdown (recipients) ── */
 .em-stat-dd { position: relative; }
@@ -2234,47 +3372,47 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
    Transforms the composer into a calm, elevated, full-height split-screen
    experience matching WithJoy.com:
    - Left side: A clean, pure-white canvas where form controls sit naturally
-     with generous breathing room and sentence-case labels (no floating box!).
-   - Right side: A soft, warm-neutral canvas holding a single elevated
-     preview card that showcases the live SMS / WhatsApp message.
+     with generous breathing room, refined pill toggles, and sentence-case labels.
+   - Right side: A soft, airy neutral canvas holding a single elevated floating
+     preview card showcasing the live SMS / WhatsApp message mockup.
    - Fixed header and footer rails that seamlessly frame the workspace.
    ══════════════════════════════════════════════════════════════════════════ */
 .em-drawer--composer {
-  --cx-ground:     #111114;
-  --cx-card:       #18181c;
+  --cx-ground:     #f8f9fa;
+  --cx-card:       #ffffff;
+  --cx-line:       #eef0f3;
+  --cx-shadow:     0 20px 48px -12px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.02);
+  --cx-label:      #18181b;
+  --cx-muted:      #64748b;
+  --cx-faint:      #94a3b8;
+  --cx-field:      #ffffff;
+  --cx-field-line: #e2e8f0;
+  --cx-track:      #f1f3f5;
+  --cx-seg-bg:     #ffffff;
+  --cx-seg-fg:     #18181b;
+  --cx-seg-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --cx-cta:        #18181b;
+  --cx-cta-fg:     #ffffff;
+  --cx-cta-hover:  #27272a;
+}
+
+[data-theme="dark"] .em-drawer--composer {
+  --cx-ground:     #0c0c0e;
+  --cx-card:       #16161a;
   --cx-line:       #26262c;
-  --cx-shadow:     0 8px 30px rgba(0, 0, 0, 0.45);
+  --cx-shadow:     0 20px 48px -12px rgba(0, 0, 0, 0.5);
   --cx-label:      #f4f4f6;
   --cx-muted:      #91919e;
   --cx-faint:      #636370;
-  --cx-field:      #202025;
+  --cx-field:      #1c1c21;
   --cx-field-line: #2e2e36;
   --cx-track:      #222228;
-  --cx-seg-bg:     #34343d;
+  --cx-seg-bg:     #2e2e36;
   --cx-seg-fg:     #ffffff;
   --cx-seg-shadow: 0 1px 3px rgba(0,0,0,0.4);
   --cx-cta:        #ffffff;
   --cx-cta-fg:     #111114;
   --cx-cta-hover:  #e4e4e7;
-}
-
-[data-theme="light"] .em-drawer--composer {
-  --cx-ground:     #f7f8fa;
-  --cx-card:       #ffffff;
-  --cx-line:       #eef0f3;
-  --cx-shadow:     0 4px 24px -2px rgba(0, 0, 0, 0.06), 0 2px 8px -1px rgba(0, 0, 0, 0.03);
-  --cx-label:      #111827;
-  --cx-muted:      #6b7280;
-  --cx-faint:      #9ca3af;
-  --cx-field:      #ffffff;
-  --cx-field-line: #e5e7eb;
-  --cx-track:      #f3f4f6;
-  --cx-seg-bg:     #ffffff;
-  --cx-seg-fg:     #111827;
-  --cx-seg-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.04);
-  --cx-cta:        #111827;
-  --cx-cta-fg:     #ffffff;
-  --cx-cta-hover:  #1f2937;
 }
 
 /* ── Fullscreen Overlay and Drawer Container ── */
@@ -2293,9 +3431,9 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer.em-drawer--composer .em-drawer-header {
   flex-shrink: 0 !important;
   height: 64px !important;
-  padding: 0 32px !important;
+  padding: 0 36px !important;
   background: var(--cx-card) !important;
-  border-bottom: 1px solid var(--cx-line) !important;
+  border-bottom: 1px solid #f1f3f5 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -2321,11 +3459,15 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer.em-drawer--composer .em-drawer-burger:hover {
   background: var(--cx-track) !important;
 }
+.em-drawer.em-drawer--composer .em-drawer-icon-badge {
+  display: none !important;
+}
 .em-drawer.em-drawer--composer .em-drawer-title {
-  font-size: 19px !important;
-  font-weight: 700 !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
   color: var(--cx-label) !important;
-  letter-spacing: -0.02em !important;
+  letter-spacing: -0.015em !important;
+  margin: 0 !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-close {
   width: 36px !important;
@@ -2376,18 +3518,33 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   min-height: 0 !important;
 }
 
-/* ── Left Pane (Form / Editor): Pure White Canvas, No Floating Card ── */
+/* ── Left Pane (Form / Editor): Clean Canvas ── */
 .em-drawer.em-drawer--composer .em-send-form {
-  flex: 0 0 55% !important;
-  max-width: 55% !important;
+  flex: 0 0 54% !important;
+  max-width: 54% !important;
   min-width: 380px !important;
   height: 100% !important;
   overflow-y: auto !important;
   background: var(--cx-card) !important;
-  padding: 36px 48px 60px 48px !important;
+  padding: 40px 48px 64px 48px !important;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 0, 0, 0.08) transparent !important;
+}
+.em-drawer.em-drawer--composer .em-send-form::-webkit-scrollbar {
+  width: 6px !important;
+}
+.em-drawer.em-drawer--composer .em-send-form::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.em-drawer.em-drawer--composer .em-send-form::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08) !important;
+  border-radius: 9999px !important;
+}
+.em-drawer.em-drawer--composer .em-send-form::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.16) !important;
 }
 
 /* ── Form Sections & Typography ── */
@@ -2404,7 +3561,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer.em-drawer--composer .em-drawer-section-label {
   font-size: 13px !important;
   font-weight: 600 !important;
-  color: var(--cx-label) !important;
+  color: #374151 !important;
   letter-spacing: -0.01em !important;
   text-transform: none !important;
   margin: 0 0 8px !important;
@@ -2416,7 +3573,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 /* ── Result Alert Banner ── */
 .em-drawer.em-drawer--composer .em-send-result {
   border-radius: 12px !important;
-  padding: 13px 16px !important;
+  padding: 14px 16px !important;
   margin-bottom: 24px !important;
   font-size: 13.5px !important;
   line-height: 1.5 !important;
@@ -2431,131 +3588,141 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   border: 1px solid #fecaca !important;
   color: #991b1b !important;
 }
-[data-theme="dark"] .em-drawer.em-drawer--composer .em-send-result--ok {
-  background: #064e3b !important;
-  border-color: #047857 !important;
-  color: #a7f3d0 !important;
-}
-[data-theme="dark"] .em-drawer.em-drawer--composer .em-send-result--err {
-  background: #450a0a !important;
-  border-color: #991b1b !important;
-  color: #fecaca !important;
-}
 
 /* ── Campaign Field (WithJoy-style sleek input) ── */
 .em-drawer.em-drawer--composer .em-custom-camp-display {
-  padding: 11px 15px !important;
+  padding: 12px 16px !important;
   border-radius: 10px !important;
-  background: var(--cx-field) !important;
-  border: 1px solid var(--cx-field-line) !important;
-  color: var(--cx-label) !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #18181b !important;
   font-size: 14px !important;
   font-weight: 500 !important;
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  transition: border-color 150ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-custom-camp-display:hover {
+  border-color: #cbd5e1 !important;
 }
 .em-drawer.em-drawer--composer .em-custom-camp-type {
-  font-size: 11px !important;
-  font-weight: 600 !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.3px !important;
-  padding: 3px 8px !important;
-  border-radius: 6px !important;
-  background: var(--cx-track) !important;
-  color: var(--cx-muted) !important;
+  letter-spacing: 0.05em !important;
+  padding: 3px 9px !important;
+  border-radius: 9999px !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
   margin-left: auto !important;
 }
 
-/* ── Channel: Segmented Switch (matches WithJoy "Send Time") ── */
+/* ── Channel: Segmented Switch (matches WithJoy) ── */
 .em-drawer.em-drawer--composer .em-send-ch-toggle {
-  background: var(--cx-track) !important;
-  border-radius: 10px !important;
-  padding: 3px !important;
+  background: #f1f3f5 !important;
+  border-radius: 9999px !important;
+  padding: 4px !important;
   display: flex !important;
-  gap: 2px !important;
-  border: none !important;
+  gap: 3px !important;
+  border: 1px solid rgba(0, 0, 0, 0.03) !important;
 }
 .em-drawer.em-drawer--composer .em-send-ch-btn {
   flex: 1 1 0 !important;
   height: 38px !important;
   border: none !important;
-  border-radius: 8px !important;
+  border-radius: 9999px !important;
   background: transparent !important;
   box-shadow: none !important;
   font-size: 13.5px !important;
   font-weight: 500 !important;
-  color: var(--cx-muted) !important;
+  color: #6b7280 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 8px !important;
   cursor: pointer !important;
-  transition: all 160ms ease !important;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 .em-drawer.em-drawer--composer .em-send-ch-btn:hover {
-  color: var(--cx-label) !important;
+  color: #18181b !important;
 }
 .em-drawer.em-drawer--composer .em-send-ch-btn--wsp,
 .em-drawer.em-drawer--composer .em-send-ch-btn--sms {
-  background: var(--cx-seg-bg) !important;
-  color: var(--cx-seg-fg) !important;
+  background: #ffffff !important;
+  color: #18181b !important;
   font-weight: 600 !important;
-  box-shadow: var(--cx-seg-shadow) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
 
 /* ── Recipients ── */
 .em-drawer.em-drawer--composer .em-drawer-list-row {
   display: flex !important;
   align-items: center !important;
-  gap: 10px !important;
-  margin-bottom: 10px !important;
+  gap: 12px !important;
+  margin-bottom: 12px !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-list-lbl {
   font-size: 13px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   letter-spacing: -0.01em !important;
   text-transform: none !important;
-  color: var(--cx-muted) !important;
+  color: #6b7280 !important;
   min-width: 50px !important;
 }
 .em-drawer.em-drawer--composer .em-filter-select--drawer {
   flex: 1 !important;
   height: 42px !important;
-  padding: 0 12px !important;
-  border-radius: 10px !important;
-  font-size: 13.5px !important;
-  background: var(--cx-field) !important;
-  border: 1px solid var(--cx-field-line) !important;
-  color: var(--cx-label) !important;
-}
-.em-drawer.em-drawer--composer .em-stat-dd-trigger {
-  height: 44px !important;
-  padding: 0 14px !important;
+  padding: 0 36px 0 14px !important;
   border-radius: 10px !important;
   font-size: 13.5px !important;
   font-weight: 500 !important;
-  background: var(--cx-field) !important;
-  border: 1px solid var(--cx-field-line) !important;
-  color: var(--cx-label) !important;
+  background-color: #ffffff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  appearance: none !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #18181b !important;
+  cursor: pointer !important;
+  transition: border-color 150ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-filter-select--drawer:hover {
+  border-color: #cbd5e1 !important;
+}
+.em-drawer.em-drawer--composer .em-filter-select--drawer:focus {
+  border-color: #18181b !important;
+  outline: none !important;
+}
+
+.em-drawer.em-drawer--composer .em-stat-dd-trigger {
+  height: 44px !important;
+  padding: 0 16px !important;
+  border-radius: 10px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #18181b !important;
   display: flex !important;
   align-items: center !important;
   width: 100% !important;
   cursor: pointer !important;
-  transition: border-color 150ms ease !important;
+  transition: all 150ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-stat-dd-trigger:hover {
-  border-color: var(--cx-muted) !important;
+  border-color: #cbd5e1 !important;
 }
 .em-drawer.em-drawer--composer .em-stat-dd-dot {
   width: 8px !important;
   height: 8px !important;
   border-radius: 50% !important;
-  margin-right: 8px !important;
+  margin-right: 10px !important;
   flex-shrink: 0 !important;
 }
 .em-drawer.em-drawer--composer .em-stat-dd-label {
-  color: var(--cx-label) !important;
+  color: #18181b !important;
   font-size: 13.5px !important;
   font-weight: 500 !important;
 }
@@ -2565,12 +3732,12 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   font-size: 12px !important;
   font-weight: 600 !important;
   padding: 2px 8px !important;
-  border-radius: 999px !important;
-  background: var(--cx-track) !important;
-  color: var(--cx-muted) !important;
+  border-radius: 9999px !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
 }
 .em-drawer.em-drawer--composer .em-stat-dd-chev {
-  color: var(--cx-muted) !important;
+  color: #9ca3af !important;
   transition: transform 200ms ease !important;
 }
 
@@ -2579,73 +3746,79 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   margin-top: 10px !important;
   height: 44px !important;
   width: 100% !important;
-  border-radius: 999px !important;
-  border: 1.5px solid var(--cx-field-line) !important;
-  background: var(--cx-field) !important;
-  color: var(--cx-label) !important;
+  border-radius: 9999px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  color: #18181b !important;
   font-size: 13.5px !important;
   font-weight: 600 !important;
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  padding: 0 18px !important;
+  padding: 0 20px !important;
   cursor: pointer !important;
   transition: all 160ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-pick-toggle-btn:hover {
-  border-color: var(--cx-label) !important;
+  border-color: #cbd5e1 !important;
+  background: #f8fafc !important;
 }
 .em-drawer.em-drawer--composer .em-pick-toggle-btn--on {
-  border-color: var(--cx-label) !important;
-  background: var(--cx-track) !important;
+  border-color: #18181b !important;
+  background: #f8fafc !important;
 }
 .em-drawer.em-drawer--composer .em-pick-toggle-btn .em-chip-cnt {
   font-size: 11.5px !important;
   font-weight: 600 !important;
   padding: 2px 8px !important;
-  border-radius: 999px !important;
-  background: var(--cx-label) !important;
-  color: var(--cx-card) !important;
+  border-radius: 9999px !important;
+  background: #18181b !important;
+  color: #ffffff !important;
 }
 .em-drawer.em-drawer--composer .em-recip-hint {
   margin-top: 10px !important;
   font-size: 12.5px !important;
-  color: var(--cx-muted) !important;
+  color: #6b7280 !important;
   display: flex !important;
   align-items: center !important;
   gap: 6px !important;
 }
 .em-drawer.em-drawer--composer .em-pick-wrap {
   margin-top: 10px !important;
-  border: 1px solid var(--cx-field-line) !important;
+  border: 1px solid #e2e8f0 !important;
   border-radius: 14px !important;
   overflow: hidden !important;
-  background: var(--cx-field) !important;
+  background: #ffffff !important;
 }
 .em-drawer.em-drawer--composer .em-pick-toolbar {
-  padding: 10px 12px !important;
-  background: var(--cx-track) !important;
-  border-bottom: 1px solid var(--cx-field-line) !important;
+  padding: 10px 14px !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
 }
 .em-drawer.em-drawer--composer .em-pick-search-wrap {
   height: 36px !important;
-  border-radius: 8px !important;
-  background: var(--cx-card) !important;
-  border: 1px solid var(--cx-field-line) !important;
+  border-radius: 9999px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
   flex: 1 !important;
+  padding: 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
 }
 .em-drawer.em-drawer--composer .em-pick-list {
   max-height: 240px !important;
+  overflow-y: auto !important;
 }
 
 /* ── Message / Template Section ── */
 .em-drawer.em-drawer--composer .em-browse-tpl-btn {
-  font-size: 12.5px !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
-  color: var(--cx-muted) !important;
+  color: #2563eb !important;
   background: none !important;
   border: none !important;
   cursor: pointer !important;
@@ -2655,74 +3828,70 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   transition: color 150ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-browse-tpl-btn:hover {
-  color: var(--cx-label) !important;
+  color: #1d4ed8 !important;
+  text-decoration: underline !important;
 }
 .em-drawer.em-drawer--composer .em-tpl-item {
   padding: 14px 16px !important;
   border-radius: 12px !important;
-  background: var(--cx-field) !important;
-  border: 1px solid var(--cx-field-line) !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
   margin-bottom: 8px !important;
   transition: all 150ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-tpl-item:hover {
-  border-color: var(--cx-muted) !important;
+  border-color: #cbd5e1 !important;
 }
 .em-drawer.em-drawer--composer .em-tpl-item--active {
-  border-color: var(--cx-label) !important;
-  box-shadow: 0 0 0 1px var(--cx-label) !important;
+  border-color: #18181b !important;
+  box-shadow: 0 0 0 1px #18181b !important;
 }
 .em-drawer.em-drawer--composer .em-tpl-content {
   font-size: 14px !important;
   line-height: 1.55 !important;
-  color: var(--cx-label) !important;
+  color: #18181b !important;
 }
 .em-drawer.em-drawer--composer .em-msg-missing-warn {
-  border: 1px solid var(--cx-field-line) !important;
-  background: var(--cx-track) !important;
-  color: var(--cx-muted) !important;
+  border: 1px solid #fef08a !important;
+  background: #fefce8 !important;
+  color: #854d0e !important;
   border-radius: 12px !important;
   padding: 14px 16px !important;
-  font-size: 13.5px !important;
+  font-size: 13px !important;
   line-height: 1.55 !important;
   display: flex !important;
   align-items: flex-start !important;
   gap: 10px !important;
 }
 .em-drawer.em-drawer--composer .em-msg-missing-warn svg {
-  color: var(--cx-muted) !important;
+  color: #ca8a04 !important;
   flex-shrink: 0 !important;
   margin-top: 2px !important;
-}
-[data-theme="dark"] .em-drawer.em-drawer--composer .em-msg-missing-warn {
-  border-color: var(--cx-field-line) !important;
-  background: var(--cx-track) !important;
-  color: var(--cx-muted) !important;
 }
 .em-drawer.em-drawer--composer .em-msg-missing-warn-btn {
   background: none !important;
   border: none !important;
   font-weight: 600 !important;
   text-decoration: underline !important;
-  text-underline-offset: 3px !important;
-  color: var(--cx-label) !important;
+  text-underline-offset: 2px !important;
+  color: #a16207 !important;
   cursor: pointer !important;
   padding: 0 !important;
   transition: opacity 150ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-msg-missing-warn-btn:hover {
-  opacity: 0.75 !important;
+  opacity: 0.8 !important;
 }
 
 /* ── Right Pane (Preview Stage): Soft Neutral Canvas Holding ONE Floating Card ── */
 .em-drawer.em-drawer--composer .em-send-preview {
-  flex: 0 0 45% !important;
-  max-width: 45% !important;
+  flex: 0 0 46% !important;
+  max-width: 46% !important;
   min-width: 0 !important;
   height: 100% !important;
   overflow-y: auto !important;
-  background: var(--cx-ground) !important;
-  border-left: 1px solid var(--cx-line) !important;
+  background: #f8f9fa !important;
+  border-left: 1px solid #f1f3f5 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -2730,16 +3899,25 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   padding: 44px 36px 60px !important;
   position: static !important;
   top: 0 !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 0, 0, 0.08) transparent !important;
+}
+.em-drawer.em-drawer--composer .em-send-preview::-webkit-scrollbar {
+  width: 6px !important;
+}
+.em-drawer.em-drawer--composer .em-send-preview::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08) !important;
+  border-radius: 9999px !important;
 }
 
 /* ── The Single Elevated Preview Card ── */
 .em-drawer.em-drawer--composer .em-preview-card {
   width: 100% !important;
   max-width: 440px !important;
-  background: var(--cx-card) !important;
-  border: 1px solid var(--cx-line) !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
   border-radius: 20px !important;
-  box-shadow: var(--cx-shadow) !important;
+  box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.02) !important;
   padding: 24px 22px !important;
   display: flex !important;
   flex-direction: column !important;
@@ -2749,15 +3927,15 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  padding-bottom: 14px !important;
-  border-bottom: 1px solid var(--cx-line) !important;
+  padding-bottom: 8px !important;
+  border-bottom: none !important;
 }
 .em-drawer.em-drawer--composer .em-preview-eyebrow {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: var(--cx-muted) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #94a3b8 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 0.08em !important;
 }
 .em-drawer.em-drawer--composer .em-preview-channel {
   display: inline-flex !important;
@@ -2766,32 +3944,24 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   font-size: 12px !important;
   font-weight: 600 !important;
   padding: 3px 10px !important;
-  border-radius: 999px !important;
+  border-radius: 9999px !important;
 }
 .em-drawer.em-drawer--composer .em-preview-channel--sms {
   background: #f3f0ff !important;
   color: #6366f1 !important;
 }
 .em-drawer.em-drawer--composer .em-preview-channel--wsp {
-  background: #ecfdf5 !important;
+  background: #e6f7ef !important;
   color: #059669 !important;
-}
-[data-theme="dark"] .em-drawer.em-drawer--composer .em-preview-channel--sms {
-  background: #2e1065 !important;
-  color: #c4b5fd !important;
-}
-[data-theme="dark"] .em-drawer.em-drawer--composer .em-preview-channel--wsp {
-  background: #064e3b !important;
-  color: #6ee7b7 !important;
 }
 
 /* ── Live Message Mockup Screen ── */
 .em-drawer.em-drawer--composer .em-preview-phone {
-  background: var(--cx-track) !important;
-  border: 1px solid var(--cx-line) !important;
-  border-radius: 16px !important;
+  background: #f1f3f5 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 22px !important;
   padding: 18px 16px 20px !important;
-  min-height: 270px !important;
+  min-height: 280px !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-end !important;
@@ -2799,11 +3969,20 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 }
 .em-drawer.em-drawer--composer .em-preview-notch {
   width: 44px !important;
-  height: 4px !important;
-  border-radius: 999px !important;
-  background: var(--cx-field-line) !important;
-  margin: 0 auto 20px auto !important;
+  height: 4.5px !important;
+  border-radius: 9999px !important;
+  background: #cbd5e1 !important;
+  margin: 0 auto 16px auto !important;
   flex-shrink: 0 !important;
+}
+.em-drawer.em-drawer--composer .em-phone-statusbar {
+  display: flex !important;
+  justify-content: space-between !important;
+  margin-bottom: 24px !important;
+  padding: 0 4px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
 }
 .em-drawer.em-drawer--composer .em-preview-screen {
   display: flex !important;
@@ -2815,61 +3994,41 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   background: #007aff !important;
   color: #ffffff !important;
   border-radius: 18px 18px 4px 18px !important;
-  padding: 12px 16px !important;
-  font-size: 14px !important;
-  line-height: 1.55 !important;
+  padding: 10px 15px !important;
+  font-size: 13.5px !important;
+  line-height: 1.45 !important;
   max-width: 88% !important;
   margin-left: auto !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
   word-break: break-word !important;
 }
 .em-drawer.em-drawer--composer .em-preview-bubble--wsp {
-  background: #e7ffdb !important;
+  background: #d9fdd3 !important;
   color: #111b21 !important;
-  border-radius: 12px 12px 2px 12px !important;
+  border-radius: 14px 14px 2px 14px !important;
   padding: 10px 14px !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06) !important;
-}
-[data-theme="dark"] .em-drawer.em-drawer--composer .em-preview-bubble--wsp {
-  background: #005c4b !important;
-  color: #e9edef !important;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08) !important;
 }
 .em-drawer.em-drawer--composer .em-preview-token {
-  background: rgba(255,255,255,0.24) !important;
+  background: rgba(255, 255, 255, 0.24) !important;
   color: #ffffff !important;
   padding: 1px 6px !important;
   border-radius: 4px !important;
   font-weight: 600 !important;
 }
 .em-drawer.em-drawer--composer .em-preview-bubble--wsp .em-preview-token {
-  background: rgba(0,0,0,0.07) !important;
+  background: rgba(0, 0, 0, 0.06) !important;
   color: #075e54 !important;
-}
-[data-theme="dark"] .em-drawer.em-drawer--composer .em-preview-bubble--wsp .em-preview-token {
-  background: rgba(255,255,255,0.14) !important;
-  color: #25d366 !important;
-}
-.em-drawer.em-drawer--composer .em-preview-bubble--empty {
-  background: transparent !important;
-  border: none !important;
-  color: var(--cx-faint) !important;
-  text-align: center !important;
-  font-size: 13.5px !important;
-  line-height: 1.5 !important;
-  padding: 44px 16px !important;
-  font-style: normal !important;
-  box-shadow: none !important;
-  margin: auto !important;
 }
 .em-drawer.em-drawer--composer .em-preview-caption {
   font-size: 13px !important;
-  color: var(--cx-muted) !important;
+  color: #64748b !important;
   text-align: center !important;
-  margin: 0 !important;
+  margin: 14px 0 0 !important;
   line-height: 1.5 !important;
 }
 .em-drawer.em-drawer--composer .em-preview-caption strong {
-  color: var(--cx-label) !important;
+  color: #0f172a !important;
   font-weight: 600 !important;
 }
 
@@ -2877,9 +4036,9 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer.em-drawer--composer .em-drawer-footer {
   flex-shrink: 0 !important;
   height: 72px !important;
-  padding: 0 40px !important;
-  background: var(--cx-card) !important;
-  border-top: 1px solid var(--cx-line) !important;
+  padding: 0 48px !important;
+  background: #ffffff !important;
+  border-top: 1px solid #f1f3f5 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
@@ -2896,45 +4055,45 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   flex: 0 0 auto !important;
   height: 44px !important;
   padding: 0 24px !important;
-  border-radius: 999px !important;
-  border: 1.5px solid var(--cx-field-line) !important;
-  background: transparent !important;
-  color: var(--cx-muted) !important;
+  border-radius: 9999px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  color: #374151 !important;
   font-size: 14px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   transition: all 150ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-cancel:hover {
-  border-color: var(--cx-muted) !important;
-  color: var(--cx-label) !important;
-  background: var(--cx-track) !important;
+  border-color: #cbd5e1 !important;
+  color: #111827 !important;
+  background: #f8fafc !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-send {
   flex: 0 0 auto !important;
   height: 44px !important;
   padding: 0 32px !important;
-  border-radius: 999px !important;
+  border-radius: 9999px !important;
   border: none !important;
-  background: var(--cx-cta) !important;
-  color: var(--cx-cta-fg) !important;
+  background: #18181b !important;
+  color: #ffffff !important;
   font-size: 14px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
   transition: all 160ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-send:hover:not(:disabled) {
-  background: var(--cx-cta-hover) !important;
+  background: #27272a !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16) !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-send:disabled {
-  background: var(--cx-track) !important;
-  color: var(--cx-faint) !important;
+  background: #f1f3f5 !important;
+  color: #9ca3af !important;
   opacity: 1 !important;
   cursor: not-allowed !important;
   box-shadow: none !important;
@@ -2962,7 +4121,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
     flex: 1 1 auto !important;
     max-width: 100% !important;
     border-left: none !important;
-    border-top: 1px solid var(--cx-line) !important;
+    border-top: 1px solid #f1f3f5 !important;
     height: auto !important;
     overflow-y: visible !important;
     padding: 32px 20px 48px !important;

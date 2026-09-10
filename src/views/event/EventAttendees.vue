@@ -499,292 +499,303 @@
       </div>
     </div>
 
-    <!-- ── Add / Edit Modal ── -->
+    <!-- ── Add / Edit Guest Drawer (WithJoy Experience) ── -->
     <Teleport to="body">
       <Transition name="ea-fade">
-        <div v-if="showModal" class="ea-overlay ea-overlay--center" @click.self="closeModal">
-          <Transition name="ea-sheet">
-            <div class="ea-modal" v-if="showModal">
-              <div class="ea-modal-header">
-                <div class="ea-modal-header-left">
-                  <h3 class="ea-modal-title">
-                    {{ phonePickerMode ? 'From Contacts' : editingAtt ? `Edit ${personLabel}` : addLabel }}
-                  </h3>
-                  <span v-if="phonePickerMode" class="ea-modal-sub">
-                    {{ phonePickerContacts.filter(c => c.include).length }} contact{{ phonePickerContacts.filter(c => c.include).length !== 1 ? 's' : '' }} selected
-                  </span>
-                </div>
-                <div class="ea-modal-header-right">
-                  <!-- From Contacts button — always shown when adding, opens native picker on mobile -->
+        <div v-if="showModal" class="ea-overlay" @click.self="closeModal">
+          <Transition name="ea-slide-right">
+            <div class="ea-add-drawer" v-if="showModal">
+
+              <!-- Drawer Header -->
+              <div class="ea-add-drawer-header">
+                <h3 class="ea-add-drawer-title">
+                  {{ phonePickerMode ? 'From Contacts' : editingAtt ? 'Edit Guest' : 'Add Guests' }}
+                </h3>
+                <div class="ea-add-drawer-actions">
+                  <!-- From Phonebook button -->
                   <button v-if="!editingAtt && !phonePickerMode"
-                    type="button" class="ea-phonebook-btn" @click="openPhonePicker">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    type="button" class="ea-add-phonebook-btn" @click="openPhonePicker" title="Import from phone contacts">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                       <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
-                    From Phone
+                    <span>From Phone</span>
                   </button>
-                  <!-- Back button when reviewing picked contacts -->
-                  <button v-if="phonePickerMode" type="button" class="ea-phonebook-back-btn" @click="exitPhonePickerMode">
+
+                  <button v-if="phonePickerMode" type="button" class="ea-add-phonebook-back-btn" @click="exitPhonePickerMode">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="15 18 9 12 15 6"/>
                     </svg>
                     Back
                   </button>
-                  <button class="ea-modal-close" @click="closeModal">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2.5" stroke-linecap="round">
+
+                  <button type="button" class="ea-add-help-btn" @click="showHelpInfo">Help</button>
+
+                  <button type="button" class="ea-add-close-btn" @click="closeModal" title="Close">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
                       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                   </button>
                 </div>
               </div>
 
-              <form @submit.prevent="phonePickerMode ? submitPhonePicker() : submitForm()" class="ea-form">
+              <!-- Drawer Form / Body -->
+              <form @submit.prevent="phonePickerMode ? submitPhonePicker() : submitForm()" class="ea-add-drawer-form">
+                <div class="ea-add-drawer-scroll">
 
-                <!-- ── "Open on mobile" hint when Contact Picker API not available ── -->
-                <div v-if="phonePickerUnsupported" class="ea-pb-unsupported">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
-                  </svg>
-                  <p class="ea-pb-unsupported-text">Open this page on your phone to pick contacts directly from your phonebook.</p>
-                  <button type="button" class="ea-pb-unsupported-dismiss" @click="phonePickerUnsupported = false">Got it</button>
-                </div>
-
-                <!-- ── Phone-book batch review ── -->
-                <template v-if="phonePickerMode">
-                  <div class="ea-pb-list">
-                    <div v-for="(c, i) in phonePickerContacts" :key="i"
-                      class="ea-pb-row" :class="{ 'ea-pb-row--excluded': !c.include }">
-                      <div class="ea-pb-avatar">{{ c.name.charAt(0).toUpperCase() }}</div>
-                      <div class="ea-pb-info">
-                        <span class="ea-pb-name">{{ c.name }}</span>
-                        <span class="ea-pb-phone">{{ c.phone || 'No phone' }}</span>
+                  <!-- Phone-book batch review if active -->
+                  <template v-if="phonePickerMode">
+                    <div class="ea-pb-list">
+                      <div v-for="(c, i) in phonePickerContacts" :key="i"
+                        class="ea-pb-row" :class="{ 'ea-pb-row--excluded': !c.include }">
+                        <div class="ea-pb-avatar">{{ c.name.charAt(0).toUpperCase() }}</div>
+                        <div class="ea-pb-info">
+                          <span class="ea-pb-name">{{ c.name }}</span>
+                          <span class="ea-pb-phone">{{ c.phone || 'No phone' }}</span>
+                        </div>
+                        <button type="button" class="ea-pb-toggle"
+                          :class="{ 'ea-pb-toggle--off': !c.include }"
+                          @click="c.include = !c.include">
+                          <svg v-if="c.include" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                          <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
                       </div>
-                      <button type="button" class="ea-pb-toggle"
-                        :class="{ 'ea-pb-toggle--off': !c.include }"
-                        @click="c.include = !c.include">
-                        <svg v-if="c.include" width="12" height="12" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
+                    </div>
+                  </template>
+
+                  <!-- Main WithJoy Guest Entry -->
+                  <template v-else>
+
+                    <!-- WithJoy Banner Card: Magic Link & Spreadsheet -->
+                    <div v-if="!editingAtt" class="ea-add-banner">
+                      <div class="ea-add-banner-row">
+                        <span class="ea-add-banner-text">Populate your guest list with a single magic link.</span>
+                        <button type="button" class="ea-add-banner-link" @click="copyMagicLink">Try Contact Collector</button>
+                      </div>
+                      <div class="ea-add-banner-divider" />
+                      <div class="ea-add-banner-row ea-add-banner-row--spread">
+                        <span class="ea-add-banner-sub">Have a contact list already?</span>
+                        <button type="button" class="ea-add-banner-upload-btn" @click="triggerUploadSpreadsheet">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                          </svg>
+                          Upload Spreadsheet
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Party Type Segmented Capsule -->
+                    <div class="ea-add-party-capsule">
+                      <button
+                        type="button"
+                        class="ea-party-tab"
+                        :class="{ 'ea-party-tab--active': form.partyType === 'individual' }"
+                        @click="setPartyType('individual')"
+                      >
+                        Individual
+                      </button>
+                      <button
+                        type="button"
+                        class="ea-party-tab"
+                        :class="{ 'ea-party-tab--active': form.partyType === 'couple' }"
+                        @click="setPartyType('couple')"
+                      >
+                        Couple
+                      </button>
+                      <button
+                        type="button"
+                        class="ea-party-tab"
+                        :class="{ 'ea-party-tab--active': form.partyType === 'family' }"
+                        @click="setPartyType('family')"
+                      >
+                        Family
                       </button>
                     </div>
-                  </div>
 
-                  <!-- Type selector (only on "all" tab) -->
-                  <div class="ea-field" v-if="activeType === 'all'">
-                    <label class="ea-label">Type</label>
-                    <div class="ea-type-row">
-                      <button v-for="t in ['invitation', 'contribution', 'contact']" :key="t"
-                        type="button" class="ea-type-opt" :class="{ 'ea-type-opt--active': form.kardType === t }"
-                        @click="form.kardType = t">{{ capitalize(t) }}</button>
-                    </div>
-                  </div>
+                    <!-- Contact Info Section -->
+                    <div class="ea-add-section">
+                      <h4 class="ea-add-section-title">Contact Info</h4>
 
-                  <!-- Card template (not for contact) -->
-                  <div class="ea-field" v-if="form.kardType !== 'contact'">
-                    <label class="ea-label">Card Template <span class="ea-required">*</span></label>
-                    <div v-if="fetchingTemplates" class="ea-tpl-state">
-                      <svg class="ea-tpl-spin" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="#B8924D" stroke-width="2.5" stroke-linecap="round">
-                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                      </svg>
-                      Loading templates…
-                    </div>
-                    <div v-else-if="!cardTemplates.length" class="ea-tpl-empty">
-                      No {{ form.kardType }} templates yet. Create one in <strong>Cards</strong> first.
-                    </div>
-                    <div v-else class="ea-tpl-grid">
-                      <button v-for="tpl in cardTemplates" :key="tpl.id" type="button"
-                        class="ea-tpl-opt" :class="{ 'ea-tpl-opt--active': form.templateCardId === tpl.id }"
-                        @click="form.templateCardId = tpl.id">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                          <rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/>
+                      <!-- Title (Optional) -->
+                      <div class="ea-add-field">
+                        <label class="ea-add-label">Title</label>
+                        <input v-model="form.title" class="ea-add-input" placeholder="e.g. Mr, Mrs, Dr" />
+                      </div>
+
+                      <!-- Full Name* -->
+                      <div class="ea-add-field">
+                        <label class="ea-add-label">Full Name <span class="ea-add-req-star">*</span></label>
+                        <input
+                          v-model="form.name"
+                          class="ea-add-input"
+                          :class="{ 'ea-add-input--error': formErr.name }"
+                          placeholder="First and last name"
+                          @blur="validateForm"
+                        />
+                        <span v-if="formErr.name" class="ea-field-error">{{ formErr.name }}</span>
+                      </div>
+
+                      <!-- Mobile Phone -->
+                      <div class="ea-add-field">
+                        <label class="ea-add-label">Mobile Phone</label>
+                        <VueTelInput
+                          v-model="form.phone"
+                          class="ea-tel-input ea-add-tel"
+                          :class="{ 'ea-tel-input--valid': phoneObj?.valid, 'ea-tel-input--invalid': phoneObj && !phoneObj.valid && form.phone }"
+                          :preferred-countries="['TZ', 'KE', 'UG', 'RW', 'ET', 'ZM', 'MW', 'MZ']"
+                          default-country="TZ"
+                          mode="international"
+                          :input-options="{ placeholder: '7XX XXX XXX', name: 'phone', id: 'att-phone' }"
+                          :dropdown-options="{ showDialCodeInSelection: true, showFlags: true, showSearchBox: true }"
+                          @validate="onPhoneValidate"
+                        />
+                        <span v-if="phoneObj && !phoneObj.valid && form.phone" class="ea-field-error">
+                          Enter a valid phone number with country code
+                        </span>
+                        <!-- Duplicate warning -->
+                        <div v-if="addFormDuplicate" class="ea-add-dup-warn">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          <span class="ea-add-dup-warn-text">Phone already in this event</span>
+                          <div class="ea-imp-dup-compare">
+                            <span class="ea-imp-dup-compare-label">In DB:</span>
+                            <span class="ea-imp-dup-compare-name">{{ addFormDuplicate.fullName }}</span>
+                            <span class="ea-imp-dup-compare-sep">·</span>
+                            <span class="ea-imp-dup-compare-phone">{{ addFormDuplicate.phone }}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Email -->
+                      <div class="ea-add-field">
+                        <label class="ea-add-label">Email</label>
+                        <input v-model="form.email" type="email" class="ea-add-input" placeholder="your@email.com" />
+                      </div>
+
+                      <!-- Collapsible Mailing Address -->
+                      <div class="ea-add-collapse">
+                        <button type="button" class="ea-add-collapse-btn" @click="form.showMailingAddress = !form.showMailingAddress">
+                          <span class="ea-add-collapse-label">Mailing Address</span>
+                          <svg class="ea-add-collapse-chev" :class="{ 'ea-add-collapse-chev--open': form.showMailingAddress }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </button>
+                        <div v-if="form.showMailingAddress" class="ea-add-collapse-content">
+                          <div class="ea-add-field">
+                            <label class="ea-add-label">Street Address</label>
+                            <input v-model="form.address.street" class="ea-add-input" placeholder="Street address or P.O. Box" />
+                          </div>
+                          <div class="ea-add-row-2">
+                            <div class="ea-add-field">
+                              <label class="ea-add-label">City</label>
+                              <input v-model="form.address.city" class="ea-add-input" placeholder="City" />
+                            </div>
+                            <div class="ea-add-field">
+                              <label class="ea-add-label">State / Region</label>
+                              <input v-model="form.address.state" class="ea-add-input" placeholder="State or Region" />
+                            </div>
+                          </div>
+                          <div class="ea-add-row-2">
+                            <div class="ea-add-field">
+                              <label class="ea-add-label">Postal Code</label>
+                              <input v-model="form.address.zip" class="ea-add-input" placeholder="ZIP / Postal Code" />
+                            </div>
+                            <div class="ea-add-field">
+                              <label class="ea-add-label">Country</label>
+                              <input v-model="form.address.country" class="ea-add-input" placeholder="Country" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Additional Party Members -->
+                      <div v-if="form.partyMembers.length" class="ea-add-members-list">
+                        <div v-for="(member, mIdx) in form.partyMembers" :key="member.id" class="ea-add-member-card">
+                          <div class="ea-add-member-hd">
+                            <span class="ea-add-member-title">Party Member #{{ mIdx + 2 }}</span>
+                            <button type="button" class="ea-add-member-remove" @click="removePartyMember(mIdx)" title="Remove member">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                              Remove
+                            </button>
+                          </div>
+                          <div class="ea-add-field">
+                            <label class="ea-add-label">Full Name <span class="ea-add-req-star">*</span></label>
+                            <input v-model="member.name" class="ea-add-input" placeholder="Member full name" />
+                          </div>
+                          <div class="ea-add-row-2">
+                            <div class="ea-add-field">
+                              <label class="ea-add-label">Phone</label>
+                              <input v-model="member.phone" class="ea-add-input" placeholder="Phone number" />
+                            </div>
+                            <div class="ea-add-field">
+                              <label class="ea-add-label">Relationship</label>
+                              <input v-model="member.relation" class="ea-add-input" placeholder="e.g. Spouse, Child, +1" />
+                            </div>
+                          </div>
+                          <div class="ea-add-field">
+                            <label class="ea-add-label">Email</label>
+                            <input v-model="member.email" type="email" class="ea-add-input" placeholder="member@email.com" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Add a member to this party Button -->
+                      <button type="button" class="ea-add-party-btn" @click="addPartyMember">
+                        <svg class="ea-add-party-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="12" y1="8" x2="12" y2="16"/>
+                          <line x1="8" y1="12" x2="16" y2="12"/>
                         </svg>
-                        <span>{{ tpl.name }}</span>
-                        <svg v-if="form.templateCardId === tpl.id" class="ea-tpl-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
+                        <span>Add a member to this party</span>
                       </button>
+
+                      <!-- Groups / Labels Toggle -->
+                      <div class="ea-add-field" v-if="eventLabels.length" style="margin-top: 14px;">
+                        <label class="ea-add-label">Groups / Tags</label>
+                        <div class="ea-label-row">
+                          <button v-for="lbl in eventLabels" :key="lbl.id" type="button"
+                            class="ea-label-toggle"
+                            :style="{
+                              borderColor: labelFg(lbl),
+                              color: form.labelIds.includes(lbl.id) ? labelFg(lbl) : '#888',
+                              background: form.labelIds.includes(lbl.id) ? labelBg(lbl) : 'transparent'
+                            }"
+                            @click="toggleLabel(lbl.id)">
+                            {{ lbl.name }}
+                          </button>
+                        </div>
+                      </div>
+
                     </div>
-                    <span v-if="formErr.templateCardId" class="ea-field-error">{{ formErr.templateCardId }}</span>
-                  </div>
+                  </template>
 
-                  <!-- Groups -->
-                  <div class="ea-field" v-if="eventLabels.length">
-                    <label class="ea-label">Groups</label>
-                    <div class="ea-label-row">
-                      <button v-for="lbl in eventLabels" :key="lbl.id" type="button"
-                        class="ea-label-toggle"
-                        :style="{ borderColor: labelFg(lbl), color: form.labelIds.includes(lbl.id) ? labelFg(lbl) : '#888', background: form.labelIds.includes(lbl.id) ? labelBg(lbl) : 'transparent' }"
-                        @click="toggleLabel(lbl.id)">
-                        {{ lbl.name }}
-                      </button>
-                    </div>
-                  </div>
+                </div>
 
-                  <div class="ea-form-actions">
-                    <button type="button" class="ea-btn ea-btn--ghost" @click="closeModal">Cancel</button>
-                    <button type="submit" class="ea-btn ea-btn--primary" :disabled="submitting || !phonePickerContacts.filter(c=>c.include).length">
-                      {{ submitting ? 'Adding…' : `Add ${phonePickerContacts.filter(c=>c.include).length} Contact${phonePickerContacts.filter(c=>c.include).length !== 1 ? 's' : ''}` }}
+                <!-- Drawer Sticky Footer -->
+                <div class="ea-add-drawer-footer">
+                  <span class="ea-add-req-hint">*Required fields</span>
+                  <div class="ea-add-footer-btns">
+                    <button v-if="editingAtt" type="button" class="ea-add-del-btn" @click="deleteAttendee" :disabled="submitting">
+                      Delete
                     </button>
-                  </div>
-                </template>
-
-                <!-- ── Single attendee form ── -->
-                <template v-else>
-
-                <!-- Name -->
-                <div class="ea-field">
-                  <label class="ea-label">Full Name <span class="ea-required">*</span></label>
-                  <input v-model="form.name" class="ea-input"
-                    :class="{ 'ea-input--error': formErr.name }"
-                    placeholder="Enter full name"
-                    @blur="validateForm" />
-                  <span v-if="formErr.name" class="ea-field-error">{{ formErr.name }}</span>
-                </div>
-
-                <!-- Phone -->
-                <div class="ea-field">
-                  <label class="ea-label">Phone Number</label>
-                  <VueTelInput
-                    v-model="form.phone"
-                    class="ea-tel-input"
-                    :class="{ 'ea-tel-input--valid': phoneObj?.valid, 'ea-tel-input--invalid': phoneObj && !phoneObj.valid && form.phone }"
-                    :preferred-countries="['TZ', 'KE', 'UG', 'RW', 'ET', 'ZM', 'MW', 'MZ']"
-                    default-country="TZ"
-                    mode="international"
-                    :input-options="{ placeholder: '7XX XXX XXX', name: 'phone', id: 'att-phone' }"
-                    :dropdown-options="{ showDialCodeInSelection: true, showFlags: true, showSearchBox: true }"
-                    @validate="onPhoneValidate"
-                  />
-                  <span v-if="phoneObj && !phoneObj.valid && form.phone" class="ea-field-error">
-                    Enter a valid phone number with country code
-                  </span>
-                  <!-- Duplicate warning -->
-                  <div v-if="addFormDuplicate" class="ea-add-dup-warn">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    <span class="ea-add-dup-warn-text">Phone already in this event</span>
-                    <div class="ea-imp-dup-compare">
-                      <span class="ea-imp-dup-compare-label">In DB:</span>
-                      <span class="ea-imp-dup-compare-name">{{ addFormDuplicate.fullName }}</span>
-                      <span class="ea-imp-dup-compare-sep">·</span>
-                      <span class="ea-imp-dup-compare-phone">{{ addFormDuplicate.phone }}</span>
-                      <span class="ea-imp-dup-compare-sep">·</span>
-                      <span
-                        class="ea-imp-dup-compare-status"
-                        :class="{
-                          'ea-imp-dup-status--confirmed': addFormDuplicate.attendanceStatus === 'Confirmed',
-                          'ea-imp-dup-status--declined':  addFormDuplicate.attendanceStatus === 'Declined',
-                        }"
-                      >{{ addFormDuplicate.attendanceStatus }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Type: selector only when on "all" tab or editing an existing attendee -->
-                <div class="ea-field" v-if="editingAtt || activeType === 'all'">
-                  <label class="ea-label">Attendee Type</label>
-                  <div class="ea-type-row">
-                    <button v-for="t in ['invitation', 'contribution', 'contact']" :key="t"
-                      type="button"
-                      class="ea-type-opt" :class="{ 'ea-type-opt--active': form.kardType === t }"
-                      @click="form.kardType = t">
-                      {{ capitalize(t) }}
+                    <button type="button" class="ea-add-cancel-btn" @click="closeModal">
+                      Cancel
                     </button>
-                  </div>
-                  <p v-if="editingAtt && form.kardType !== getKardType(editingAtt)" class="ea-type-change-note">
-                    Changing type will replace the current card assignment.
-                  </p>
-                </div>
-
-                <!-- Card Template (not for contact) -->
-                <div class="ea-field" v-if="form.kardType !== 'contact'">
-                  <label class="ea-label">
-                    Card Template <span class="ea-required">*</span>
-                  </label>
-
-                  <!-- Loading -->
-                  <div v-if="fetchingTemplates" class="ea-tpl-state">
-                    <svg class="ea-tpl-spin" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      stroke="#B8924D" stroke-width="2.5" stroke-linecap="round">
-                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                    </svg>
-                    Loading templates…
-                  </div>
-
-                  <!-- No templates found -->
-                  <div v-else-if="!cardTemplates.length" class="ea-tpl-empty">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888"
-                      stroke-width="1.8" stroke-linecap="round">
-                      <rect x="2" y="5" width="20" height="14" rx="3"/>
-                      <line x1="2" y1="10" x2="22" y2="10"/>
-                    </svg>
-                    No {{ form.kardType }} card templates yet.
-                    Create one in the <strong>Cards</strong> section first.
-                  </div>
-
-                  <!-- Template grid -->
-                  <div v-else class="ea-tpl-grid">
-                    <button v-for="tpl in cardTemplates" :key="tpl.id"
-                      type="button"
-                      class="ea-tpl-opt"
-                      :class="{ 'ea-tpl-opt--active': form.templateCardId === tpl.id }"
-                      @click="form.templateCardId = tpl.id">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                        <rect x="2" y="5" width="20" height="14" rx="3"/>
-                        <line x1="2" y1="10" x2="22" y2="10"/>
-                      </svg>
-                      <span>{{ tpl.name }}</span>
-                      <svg v-if="form.templateCardId === tpl.id" class="ea-tpl-check"
-                        width="13" height="13" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                        <polyline points="20 6 9 17 4 12"/>
-                      </svg>
-                    </button>
-                  </div>
-
-                  <span v-if="formErr.templateCardId" class="ea-field-error">
-                    {{ formErr.templateCardId }}
-                  </span>
-                </div>
-
-                <!-- Labels -->
-                <div class="ea-field" v-if="eventLabels.length">
-                  <label class="ea-label">Groups</label>
-                  <div class="ea-label-row">
-                    <button v-for="lbl in eventLabels" :key="lbl.id"
-                      type="button"
-                      class="ea-label-toggle"
-                      :style="{
-                        borderColor: labelFg(lbl),
-                        color: form.labelIds.includes(lbl.id) ? labelFg(lbl) : '#888',
-                        background: form.labelIds.includes(lbl.id) ? labelBg(lbl) : 'transparent'
-                      }"
-                      @click="toggleLabel(lbl.id)">
-                      {{ lbl.name }}
+                    <button type="submit" class="ea-add-save-btn" :disabled="submitting">
+                      {{ submitting ? 'Saving…' : phonePickerMode ? `Add ${phonePickerContacts.filter(c=>c.include).length} Contacts` : 'Save Details' }}
                     </button>
                   </div>
                 </div>
 
-                <!-- Actions -->
-                <div class="ea-form-actions">
-                  <button type="button" class="ea-btn ea-btn--ghost" @click="closeModal">Cancel</button>
-                  <button v-if="editingAtt" type="button" class="ea-btn ea-btn--danger"
-                    @click="deleteAttendee" :disabled="submitting">Delete</button>
-                  <button type="submit" class="ea-btn ea-btn--primary" :disabled="submitting">
-                    {{ submitting ? 'Saving…' : editingAtt ? 'Save Changes' : addLabel }}
-                  </button>
-                </div>
-
-                </template> <!-- end v-else single form -->
               </form>
+
             </div>
           </Transition>
         </div>
@@ -802,20 +813,23 @@
         <div v-if="showSendModal" class="ea-overlay ea-overlay--center" @click.self="closeSendModal">
           <Transition name="ea-sheet">
             <div class="ea-modal ea-send-modal" v-if="showSendModal">
-              <div class="ea-modal-header ea-send-modal-header" :class="{ 'ea-send-modal-header--nav': sendStep !== 'root' }">
+              <div class="ea-modal-header ea-send-modal-header" :class="{
+                'ea-send-modal-header--nav': sendStep === 'campaigns',
+                'ea-send-modal-header--centered': sendStep === 'card'
+              }">
                 <div class="ea-send-modal-header-side ea-send-modal-header-side--left">
                   <button v-if="sendStep !== 'root'" class="ea-send-back"
-                    @click="sendStep = 'root'">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    @click="sendStep = 'root'" title="Back">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                   </button>
                 </div>
                 <h3 class="ea-modal-title">
-                  {{ sendStep === 'root' ? 'What would you like to send?' : 'Campaigns' }}
+                  {{ sendStep === 'root' ? 'What would you like to send?' : sendStep === 'card' ? 'Card' : 'Campaigns' }}
                 </h3>
                 <div class="ea-send-modal-header-side ea-send-modal-header-side--right">
-                  <button class="ea-modal-close" @click="closeSendModal">
+                  <button class="ea-modal-close" @click="closeSendModal" title="Close">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2.5" stroke-linecap="round">
+                      stroke-width="2.2" stroke-linecap="round">
                       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                   </button>
@@ -824,7 +838,7 @@
 
               <!-- Step 1: Card / Message -->
               <div class="ea-send-opts" v-if="sendStep === 'root'">
-                <div class="ea-send-opt">
+                <div class="ea-send-opt" @click="openCardStep">
                   <div class="ea-send-opt-art">
                     <div class="ea-send-opt-box ea-send-opt-box--card">
                       <span class="ea-pcard ea-pcard--1" />
@@ -845,6 +859,25 @@
                   </div>
                   <span class="ea-send-opt-title">Message</span>
                   <span class="ea-send-opt-desc">Reminders, texts, and emails.</span>
+                </div>
+              </div>
+
+              <!-- Step 2: Card selection (WithJoy exact match) -->
+              <div class="ea-send-card-list" v-else-if="sendStep === 'card'">
+                <div
+                  v-for="cardOpt in CARD_OPTIONS"
+                  :key="cardOpt.id"
+                  class="ea-send-card-item"
+                  @click="selectCardOption(cardOpt)"
+                >
+                  <div class="ea-send-card-icon" v-html="cardOpt.icon" />
+                  <div class="ea-send-card-info">
+                    <span class="ea-send-card-name">{{ cardOpt.title }}</span>
+                    <span class="ea-send-card-desc">{{ cardOpt.desc }}</span>
+                  </div>
+                  <svg class="ea-send-card-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
                 </div>
               </div>
 
@@ -1929,9 +1962,12 @@ const selectedIds = reactive(new Set())
 
 // ── Search & Filter ───────────────────────────────────────────────────────────
 const searchQ = ref('')
-const activeType = ref(route.name === 'EventContacts' ? 'contact' : 'invitation')
+// Guest List shows everyone regardless of card type — a guest shouldn't be
+// invisible here just because they haven't been assigned an invitation card
+// yet. Contacts still opens pre-filtered to its own 'contact' tab.
+const activeType = ref(route.name === 'EventContacts' ? 'contact' : 'all')
 watch(() => route.name, name => {
-  activeType.value = name === 'EventContacts' ? 'contact' : 'invitation'
+  activeType.value = name === 'EventContacts' ? 'contact' : 'all'
 })
 const sortKey = ref('date')
 const sortDir = ref('desc')
@@ -2508,6 +2544,69 @@ function openMessageStep() {
   loadSendCampaigns()
 }
 
+function openCardStep() {
+  sendStep.value = 'card'
+}
+
+const CARD_OPTIONS = [
+  {
+    id: 'save-the-date',
+    purpose: 'save_the_date',
+    title: 'Save the Date',
+    desc: 'Announce your date with a beautiful design',
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2.5"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+      <path d="M12 14.2c-.4-.4-1.1-.4-1.5 0-.4.4-.4 1.1 0 1.5l1.5 1.5 1.5-1.5c.4-.4.4-1.1 0-1.5-.4-.4-1.1-.4-1.5 0z"/>
+    </svg>`
+  },
+  {
+    id: 'invitation',
+    purpose: 'invitation',
+    title: 'Invitation',
+    desc: 'Invite guests with a custom card',
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="3" width="14" height="18" rx="2.5"/>
+      <line x1="8" y1="7" x2="16" y2="7"/>
+      <circle cx="12" cy="13" r="2.2"/>
+      <path d="M12 15.2v2.3"/>
+    </svg>`
+  },
+  {
+    id: 'thank-you',
+    purpose: 'thank_you',
+    title: 'Thank You Card',
+    desc: 'Send a designed thank-you card',
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/>
+      <polyline points="3 8 12 14 21 8"/>
+      <path d="M3 8l5.5-4h7l5.5 4"/>
+      <circle cx="12" cy="14" r="2.2"/>
+      <path d="M11 14l.7.7 1.5-1.4"/>
+    </svg>`
+  },
+  {
+    id: 'enclosure',
+    purpose: 'enclosure',
+    title: 'Enclosure Card',
+    desc: 'Include extra details with an enclosure card',
+    icon: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="7" y="7" width="14" height="14" rx="2"/>
+      <path d="M3 17V5a2 2 0 0 1 2-2h12"/>
+    </svg>`
+  }
+]
+
+function selectCardOption(cardOpt) {
+  closeSendModal()
+  router.push({
+    path: `/event/${eventId.value}/cards`,
+    query: { filter: cardOpt.purpose }
+  })
+}
+
 // Round-trips back here after a campaign row sent the user off to the
 // full-screen composer on the Bulk Messages page (see the ea-send-camp-row
 // click handler) — that page's Cancel/close hands back to the returnTo URL
@@ -2651,17 +2750,81 @@ const addFormDuplicate = computed(() => {
 function onPhoneValidate(obj) { phoneObj.value = obj }
 
 function validateForm() {
-  formErr.value.name = form.value.name.trim() ? '' : 'Name is required'
-  formErr.value.templateCardId =
-    (form.value.kardType !== 'contact' && !form.value.templateCardId)
-      ? 'Select a card template'
-      : ''
+  formErr.value.name = form.value.name?.trim() ? '' : 'Name is required'
+  formErr.value.templateCardId = ''
+}
+
+function addPartyMember() {
+  form.value.partyMembers.push({
+    id: 'pm_' + Date.now() + Math.random().toString(36).substr(2, 4),
+    title: '',
+    name: '',
+    phone: '',
+    email: '',
+    relation: form.value.partyMembers.length === 0 ? 'Spouse / +1' : 'Guest'
+  })
+  if (form.value.partyType === 'individual') {
+    form.value.partyType = form.value.partyMembers.length === 1 ? 'couple' : 'family'
+  }
+}
+
+function removePartyMember(idx) {
+  form.value.partyMembers.splice(idx, 1)
+  if (form.value.partyMembers.length === 0) {
+    form.value.partyType = 'individual'
+  } else if (form.value.partyMembers.length === 1) {
+    form.value.partyType = 'couple'
+  }
+}
+
+function setPartyType(type) {
+  form.value.partyType = type
+  if (type === 'couple') {
+    if (form.value.partyMembers.length === 0) {
+      addPartyMember()
+    } else if (form.value.partyMembers.length > 1) {
+      form.value.partyMembers = form.value.partyMembers.slice(0, 1)
+    }
+  } else if (type === 'family') {
+    while (form.value.partyMembers.length < 2) {
+      addPartyMember()
+    }
+  } else if (type === 'individual') {
+    form.value.partyMembers = []
+  }
+}
+
+function triggerUploadSpreadsheet() {
+  closeModal()
+  openImport()
+}
+
+function copyMagicLink() {
+  const url = `${window.location.origin}/event-landing/${eventId.value}`
+  navigator.clipboard?.writeText(url)
+  alert('Magic link copied to clipboard! Share it with guests to collect their details.')
+}
+
+function showHelpInfo() {
+  alert('Add guests individually, or use Couple / Family to link party members together. You can also upload a spreadsheet or share a magic link.')
 }
 
 function openAdd() {
   const type = activeType.value !== 'all' ? activeType.value : 'invitation'
   editingAtt.value = null
-  form.value = { name: '', phone: '', kardType: type, templateCardId: '', labelIds: [] }
+  form.value = {
+    title: '',
+    name: '',
+    phone: '',
+    email: '',
+    partyType: 'individual',
+    partyMembers: [],
+    showMailingAddress: false,
+    address: { street: '', city: '', state: '', zip: '', country: '' },
+    kardType: type,
+    templateCardId: cardTemplates.value[0]?.id || '',
+    labelIds: []
+  }
   formErr.value = { name: '', templateCardId: '' }
   phoneObj.value = null
   showModal.value = true
@@ -2674,10 +2837,22 @@ function openEdit(att) {
   // Stored phone is E.164 digits without +; vue-tel-input needs the + to parse it
   const rawPhone = att.phone ?? ''
   form.value = {
+    title: att.title || '',
     name: att.fullName ?? '',
     phone: rawPhone ? '+' + rawPhone : '',
+    email: att.email || '',
+    partyType: att.partyType || (att.partyMembers?.length ? 'couple' : 'individual'),
+    partyMembers: att.partyMembers ? JSON.parse(JSON.stringify(att.partyMembers)) : [],
+    showMailingAddress: Boolean(att.address?.street || att.address?.city),
+    address: {
+      street: att.address?.street || '',
+      city: att.address?.city || '',
+      state: att.address?.state || '',
+      zip: att.address?.zip || '',
+      country: att.address?.country || ''
+    },
     kardType: type,
-    templateCardId: att.cards?.[type]?.templateCardId ?? '',
+    templateCardId: att.cards?.[type]?.templateCardId ?? (cardTemplates.value[0]?.id || ''),
     labelIds: [...(att.labelIds ?? [])],
   }
   formErr.value = { name: '', templateCardId: '' }
@@ -2715,13 +2890,10 @@ async function submitForm() {
     const name = form.value.name.trim()
     // Prefer the E.164 number from vue-tel-input validation; fall back to raw input stripped of +
     const phone = (phoneObj.value?.number ?? form.value.phone).trim().replace(/^\+/, '')
+    const email = form.value.email ? form.value.email.trim() : (existingAtt?.email ?? '')
     const isContact = form.value.kardType === 'contact'
     const existingAtt = editingAtt.value
 
-    // Always route through the cloud function for all types (invitation, contribution,
-    // contact). This ensures consistent Firestore structure with the Flutter app, proper
-    // billing deduction, and correct atomic type-switching (the function replaces the
-    // entire cards map so changing type cleanly removes the old card key).
     const uid = auth.currentUser.uid
     const attendeeId = existingAtt?.id ?? genAttendeeId()
     const attendeeData = {
@@ -2729,23 +2901,27 @@ async function submitForm() {
       cards:            {},
       checkinStatus:    existingAtt?.checkinStatus ?? [],
       createdAt:        existingAtt?.createdAt ?? new Date().toISOString(),
-      email:            existingAtt?.email ?? '',
+      email,
       fullName:         name,
       fullNameLower:    name.toLowerCase(),
       attendanceStatus: existingAtt?.attendanceStatus ?? 'Not Confirmed',
       phone,
+      title:            form.value.title || '',
+      partyType:        form.value.partyType,
+      partyMembers:     form.value.partyMembers,
+      address:          form.value.address,
       messages:         existingAtt?.messages ?? {},
       messageIndexes:   existingAtt?.messageIndexes ?? [],
       labelIds:         form.value.labelIds,
       idComment:        existingAtt?.idComment ?? 'No Comment',
     }
+    const templateCardId = isContact ? 'contact' : (form.value.templateCardId || cardTemplates.value[0]?.id || 'contact')
     const payload = {
       eventId:        eventId.value,
       attendees:      [attendeeData],
-      // contacts don't need a real templateCardId — the function uses "_" for them
-      templateCardId: isContact ? 'contact' : form.value.templateCardId,
+      templateCardId,
       usepng:         props.event?.usepng ?? true,
-      kardType:       form.value.kardType,
+      kardType:       form.value.kardType || 'invitation',
     }
     const res = await fetch(CREATE_ATTENDEES_URL, {
       method:  'POST',
@@ -4471,6 +4647,457 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-modal-close:hover { background: var(--c-border); color: var(--c-txt); }
 
+/* ── WithJoy Add Guest Drawer ── */
+.ea-add-drawer {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 530px;
+  max-width: 100vw;
+  background: #ffffff;
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+  z-index: 1550;
+  font-family: inherit;
+}
+
+.ea-add-drawer-header {
+  height: 64px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f0f1f3;
+  flex-shrink: 0;
+  background: #ffffff;
+}
+.ea-add-drawer-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #18181b;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.ea-add-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ea-add-phonebook-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.ea-add-phonebook-btn:hover {
+  background: #f8fafc;
+  border-color: #d1d5db;
+}
+.ea-add-phonebook-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #5b3ae8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ea-add-help-btn {
+  background: none;
+  border: none;
+  color: #5b3ae8;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+.ea-add-help-btn:hover {
+  text-decoration: underline;
+}
+.ea-add-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.ea-add-close-btn:hover {
+  background: #f4f5f7;
+  color: #18181b;
+}
+
+/* Form & Scroll Container */
+.ea-add-drawer-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ea-add-drawer-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.12) transparent;
+}
+.ea-add-drawer-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.ea-add-drawer-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 9999px;
+}
+
+/* Banner Card */
+.ea-add-banner {
+  background: #fafafa;
+  border: 1px solid #f0f1f3;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ea-add-banner-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ea-add-banner-row--spread {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+.ea-add-banner-divider {
+  height: 1px;
+  background: #f0f1f3;
+}
+.ea-add-banner-text {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #18181b;
+  line-height: 1.35;
+  max-width: 240px;
+}
+.ea-add-banner-sub {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #18181b;
+}
+.ea-add-banner-link {
+  background: none;
+  border: none;
+  color: #18181b;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  white-space: nowrap;
+}
+.ea-add-banner-link:hover {
+  color: #5b3ae8;
+}
+.ea-add-banner-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #18181b;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 130ms ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.ea-add-banner-upload-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Party Type Capsule */
+.ea-add-party-capsule {
+  display: flex;
+  background: #f4f5f6;
+  padding: 4px;
+  border-radius: 10px;
+}
+.ea-party-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #52525b;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 130ms ease;
+  text-align: center;
+}
+.ea-party-tab--active {
+  background: #ffffff;
+  color: #18181b;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Section Header */
+.ea-add-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ea-add-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #18181b;
+  letter-spacing: -0.01em;
+  margin: 6px 0 2px;
+}
+
+/* Fields & Inputs */
+.ea-add-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ea-add-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+.ea-add-req-star {
+  color: #ef4444;
+}
+.ea-add-input {
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+  font-family: inherit;
+  color: #18181b;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 130ms, box-shadow 130ms;
+}
+.ea-add-input:focus {
+  border-color: #5b3ae8;
+  box-shadow: 0 0 0 3px rgba(91, 58, 232, 0.12);
+}
+.ea-add-input--error {
+  border-color: #ef4444 !important;
+}
+.ea-add-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Collapsible Address */
+.ea-add-collapse {
+  margin-top: 4px;
+  border: 1px solid #f0f1f3;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.ea-add-collapse-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  background: #fafafa;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.ea-add-collapse-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #18181b;
+}
+.ea-add-collapse-chev {
+  color: #71717a;
+  transition: transform 150ms ease;
+}
+.ea-add-collapse-chev--open {
+  transform: rotate(180deg);
+}
+.ea-add-collapse-content {
+  padding: 16px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid #f0f1f3;
+}
+
+/* Party Member Cards */
+.ea-add-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 6px;
+}
+.ea-add-member-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fafbfe;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ea-add-member-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #edf2f7;
+}
+.ea-add-member-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #18181b;
+}
+.ea-add-member-remove {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.ea-add-member-remove:hover {
+  background: #fef2f2;
+}
+
+/* Add a member to this party button */
+.ea-add-party-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  color: #5b3ae8;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+.ea-add-party-btn:hover {
+  opacity: 0.85;
+}
+.ea-add-party-icon {
+  color: #5b3ae8;
+}
+
+/* Footer */
+.ea-add-drawer-footer {
+  padding: 18px 28px;
+  border-top: 1px solid #f0f1f3;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.ea-add-req-hint {
+  font-size: 12px;
+  color: #71717a;
+}
+.ea-add-footer-btns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ea-add-save-btn {
+  flex: 1;
+  height: 48px;
+  border-radius: 9999px;
+  background: #5b3ae8;
+  color: #ffffff;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 130ms ease;
+  box-shadow: 0 4px 14px rgba(91, 58, 232, 0.28);
+}
+.ea-add-save-btn:hover:not(:disabled) {
+  background: #4f30dc;
+  box-shadow: 0 6px 18px rgba(91, 58, 232, 0.36);
+  transform: translateY(-1px);
+}
+.ea-add-save-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ea-add-cancel-btn {
+  padding: 0 20px;
+  height: 48px;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 130ms ease;
+}
+.ea-add-cancel-btn:hover {
+  background: #f8fafc;
+}
+.ea-add-del-btn {
+  padding: 0 16px;
+  height: 48px;
+  border-radius: 9999px;
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #ef4444;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ea-add-del-btn:hover {
+  background: #fee2e2;
+}
+
 /* ── Send modal ── */
 .ea-send-modal { max-width: 480px; }
 /* Header is a 3-slot row: two equal-flex side rails (left/right) with the
@@ -4499,6 +5126,93 @@ function setImportPayment(attendeeId, amount) {
 .ea-send-modal-header--nav .ea-modal-title {
   flex: 1 1 auto; text-align: left;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.ea-send-modal-header--centered {
+  padding: 16px 20px 10px !important;
+}
+.ea-send-modal-header--centered .ea-send-modal-header-side {
+  flex: 1 1 0;
+}
+.ea-send-modal-header--centered .ea-modal-title {
+  text-align: center;
+  flex: 0 0 auto;
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #18181b;
+}
+
+.ea-send-modal .ea-modal-close,
+.ea-send-modal .ea-send-back {
+  border: none;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #4b5563;
+  transition: background 120ms, color 120ms;
+}
+.ea-send-modal .ea-modal-close:hover,
+.ea-send-modal .ea-send-back:hover {
+  background: #f4f5f7;
+  color: #18181b;
+}
+
+/* Card Selection list (WithJoy match) */
+.ea-send-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 16px 22px;
+}
+.ea-send-card-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  background: transparent;
+  transition: background 130ms ease;
+}
+.ea-send-card-item:hover {
+  background: #f8fafc;
+}
+.ea-send-card-icon {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #18181b;
+  flex-shrink: 0;
+}
+.ea-send-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.ea-send-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #18181b;
+  letter-spacing: -0.01em;
+}
+.ea-send-card-desc {
+  font-size: 13px;
+  color: #71717a;
+  line-height: 1.35;
+}
+.ea-send-card-chev {
+  color: #9ca3af;
+  flex-shrink: 0;
+  transition: transform 120ms ease, color 120ms ease;
+}
+.ea-send-card-item:hover .ea-send-card-chev {
+  color: #18181b;
+  transform: translateX(2px);
 }
 .ea-send-opts {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
