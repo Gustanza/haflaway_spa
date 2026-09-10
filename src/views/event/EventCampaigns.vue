@@ -16,6 +16,73 @@
          ══════════════════════════════════════════════ -->
     <template v-if="!selectedCustomCamp">
 
+      <!-- WithJoy-inspired messaging dashboard: presets to start a new
+           message, what's scheduled (placeholder — no logic behind it yet),
+           and what's already gone out, regardless of individual delivery
+           status. -->
+      <div class="em-msg-dash">
+        <div class="em-msg-panel">
+          <h2 class="em-msg-panel-title">Messages</h2>
+          <div class="em-msg-tiles">
+            <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('General Message')">
+              <div class="em-stat-icon em-stat-icon--blue2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <span class="em-msg-tile-label">General Message</span>
+            </button>
+            <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('RSVP Reminder')">
+              <div class="em-stat-icon em-stat-icon--purple">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <span class="em-msg-tile-label">RSVP Reminder</span>
+            </button>
+            <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('Pledge Reminder')">
+              <div class="em-stat-icon em-stat-icon--gold">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </div>
+              <span class="em-msg-tile-label">Pledge Reminder</span>
+            </button>
+            <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('Meeting Reminder')">
+              <div class="em-stat-icon em-stat-icon--teal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <span class="em-msg-tile-label">Meeting Reminder</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="em-msg-row">
+          <div class="em-msg-panel em-msg-panel--half">
+            <h2 class="em-msg-panel-title">Scheduled</h2>
+            <div class="em-msg-empty">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <p>Coming soon</p>
+            </div>
+          </div>
+
+          <div class="em-msg-panel em-msg-panel--half">
+            <div class="em-msg-panel-hd">
+              <h2 class="em-msg-panel-title">Sent</h2>
+              <span v-if="sentCampaigns.length" class="em-msg-count">{{ sentCampaigns.length }}</span>
+            </div>
+            <div v-if="loadingCustomCamps" class="em-msg-empty"><p>Loading…</p></div>
+            <div v-else-if="!sentCampaigns.length" class="em-msg-empty">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <p>No messages sent yet</p>
+            </div>
+            <div v-else class="em-msg-sent-list">
+              <div v-for="camp in sentCampaigns.slice(0, 6)" :key="camp.id" class="em-msg-sent-row" @click="selectCustomCamp(camp)">
+                <div class="em-msg-sent-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <span class="em-msg-sent-name">{{ camp.name }}</span>
+                <span class="em-msg-sent-date">{{ formatDate(camp.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Stat cards -->
       <div class="em-stats" v-if="!loadingCustomCamps || customCampaigns.length">
         <div class="em-stat-card">
@@ -68,14 +135,6 @@
       <div class="em-panel">
         <div class="em-panel-hd">
           <h2 class="em-panel-title">Notifications</h2>
-          <div class="em-panel-acts">
-            <button class="em-add-btn" @click="openCampDialog(null)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              New Campaign
-            </button>
-          </div>
         </div>
 
         <div class="em-table-area">
@@ -96,9 +155,8 @@
                 <line x1="41.5" y1="40" x2="46.5" y2="40" stroke="#B8924D" stroke-width="1.8" stroke-linecap="round"/>
               </svg>
             </div>
-            <p class="em-empty-title">No campaigns yet</p>
-            <p class="em-empty-sub">Create a named campaign to send targeted SMS messages to specific attendees.</p>
-            <button class="em-empty-cta" @click="openCampDialog(null)">Create First Campaign</button>
+            <p class="em-empty-title">No past campaigns</p>
+            <p class="em-empty-sub">Pick what you'd like to send above to get started.</p>
           </div>
 
           <div v-else class="eca-list">
@@ -540,7 +598,7 @@
                       <svg class="em-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                       Loading…
                     </span>
-                    <button class="em-browse-tpl-btn" @click="openCampDialog(selectedCustomCamp)">
+                    <button class="em-browse-tpl-btn" @click="openCampDialog(selectedCustomCamp, sendChannel)">
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                       Edit message
                     </button>
@@ -549,7 +607,7 @@
                   <template v-if="sendChannel === 'whatsapp'">
                     <div v-if="!selectedCustomCamp?.whatsappMessage" class="em-msg-missing-warn">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      <span>No WhatsApp Custom Message set for this campaign — the template's placeholder will be blank. <button class="em-msg-missing-warn-btn" @click="openCampDialog(selectedCustomCamp)">Set it now</button> before sending.</span>
+                      <span>No WhatsApp Custom Message set for this campaign — the template's placeholder will be blank. <button class="em-msg-missing-warn-btn" @click="openCampDialog(selectedCustomCamp, 'whatsapp')">Set it now</button> before sending.</span>
                     </div>
                     <div v-if="!loadingTemplates && !templates.length" class="em-tpl-empty">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B5B5BB" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -579,7 +637,7 @@
                     </div>
                     <div v-else class="em-msg-missing-warn">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      <span>No SMS message set for this campaign — it will be sent blank. <button class="em-msg-missing-warn-btn" @click="openCampDialog(selectedCustomCamp)">Set it now</button> before sending.</span>
+                      <span>No SMS message set for this campaign — it will be sent blank. <button class="em-msg-missing-warn-btn" @click="openCampDialog(selectedCustomCamp, 'sms')">Set it now</button> before sending.</span>
                     </div>
                   </template>
                 </div>
@@ -683,11 +741,11 @@
               </template>
               <label class="em-dialog-lbl" style="margin-top:14px">Custom Message</label>
               <div class="em-send-ch-toggle">
-                <button class="em-send-ch-btn" :class="{ 'em-send-ch-btn--wsp': campDialogMsgTab === 'whatsapp' }" :style="campDialogMsgTab === 'whatsapp' ? ACTIVE_CH_STYLE : null" @click="campDialogMsgTab = 'whatsapp'">
+                <button class="em-send-ch-btn" :class="{ 'em-send-ch-btn--wsp': campDialogMsgTab === 'whatsapp' }" @click="campDialogMsgTab = 'whatsapp'">
                   <svg width="14" height="14" viewBox="0 0 448 512" fill="#128C7E"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
                   WhatsApp
                 </button>
-                <button class="em-send-ch-btn" :class="{ 'em-send-ch-btn--sms': campDialogMsgTab === 'sms' }" :style="campDialogMsgTab === 'sms' ? ACTIVE_CH_STYLE : null" @click="campDialogMsgTab = 'sms'">
+                <button class="em-send-ch-btn" :class="{ 'em-send-ch-btn--sms': campDialogMsgTab === 'sms' }" @click="campDialogMsgTab = 'sms'">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                   SMS
                 </button>
@@ -838,6 +896,12 @@ const customCampaigns     = ref([])
 const loadingCustomCamps  = ref(false)
 const campPage            = ref(1)
 const CAMP_PAGE_SIZE      = 10
+
+// Dispatched at least once — regardless of individual recipients' delivery
+// state (sent/delivered/failed) — as opposed to still-draft campaigns.
+const sentCampaigns = computed(() =>
+  customCampaigns.value.filter(c => c.status === 'sent').sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0))
+)
 
 const campTotalPages = computed(() => Math.max(1, Math.ceil(customCampaigns.value.length / CAMP_PAGE_SIZE)))
 const pagedCampaigns = computed(() => {
@@ -991,9 +1055,45 @@ const campDialogSmsMessage = ref('')
 const campDialogMsgTab     = ref('whatsapp')
 const savingCamp           = ref(false)
 
-function openCampDialog(camp) {
+// ── Message-intent presets (shown inline in the panel, not behind a "New
+// Campaign" step) ────────────────────────────────────────────────────────────
+// Fixed set of message intents shown instead of a free-text name/type form —
+// picking one auto-creates a draft campaign titled after the pick and jumps
+// straight into composing/sending it (mirrors selecting an existing campaign
+// then pressing Send — see selectCustomCamp/openCustomSend below).
+const PRESET_CAMPAIGNS = ['General Message', 'RSVP Reminder', 'Pledge Reminder', 'Meeting Reminder']
+const creatingPresetCamp = ref(false)
+async function createPresetCampaign(label) {
+  if (creatingPresetCamp.value) return
+  creatingPresetCamp.value = true
+  try {
+    const createdAt = new Date().toISOString()
+    const docRef = await addDoc(collection(db, 'events', eventId.value, 'campaigns'), {
+      name: label,
+      type: 'invitation',
+      whatsappMessage: null,
+      smsMessage: null,
+      createdAt,
+      status: 'draft',
+    })
+    const newCamp = { id: docRef.id, name: label, type: 'invitation', whatsappMessage: null, smsMessage: null, createdAt, status: 'draft' }
+    customCampaigns.value.unshift(newCamp)
+    selectCustomCamp(newCamp)
+    openCustomSend()
+  } catch (e) {
+    console.error('createPresetCampaign:', e)
+  } finally {
+    creatingPresetCamp.value = false
+  }
+}
+
+function openCampDialog(camp, tab) {
   editingCamp.value = camp ?? null
-  campDialogMsgTab.value = 'whatsapp'
+  // Default to whichever channel is actually being composed (e.g. "Set it
+  // now"/"Edit message" from the send drawer) rather than always WhatsApp —
+  // otherwise a message typed while viewing the SMS warning silently lands
+  // in the WhatsApp field instead.
+  campDialogMsgTab.value = tab ?? 'whatsapp'
   campDialogName.value = camp?.name ?? ''
   campDialogType.value = camp?.type ?? 'invitation'
   campDialogWaMessage.value = camp?.whatsappMessage ?? ''
@@ -1387,6 +1487,16 @@ async function executeSend() {
     if (data.status) {
       await load()
       drawerPickList.value = []
+      if (selectedCustomCamp.value && selectedCustomCamp.value.status !== 'sent') {
+        try {
+          await setDoc(doc(db, 'events', eventId.value, 'campaigns', sendCampaign.value), { status: 'sent' }, { merge: true })
+          selectedCustomCamp.value = { ...selectedCustomCamp.value, status: 'sent' }
+          const idx = customCampaigns.value.findIndex(c => c.id === sendCampaign.value)
+          if (idx !== -1) customCampaigns.value[idx] = { ...customCampaigns.value[idx], status: 'sent' }
+        } catch (e) {
+          console.error('Failed to mark campaign as sent', e)
+        }
+      }
     }
   } catch (e) {
     sendResult.value = { ok: false, message: e.message }
@@ -1480,17 +1590,54 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 }
 .em-panel-acts { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
 
-/* ── New Campaign button ── */
-.em-add-btn {
-  display: flex; align-items: center; gap: 6px; padding: 8px 16px;
-  background: var(--gold); color: var(--gold-contrast); border: none; border-radius: 10px;
-  font-size: 13px; font-weight: 700; cursor: pointer; transition: background 150ms;
-  font-family: inherit; flex-shrink: 0;
-}
-.em-add-btn:hover { background: #d4b560; }
-
 /* ── Table area ── */
 .em-table-area { overflow-x: auto; }
+
+/* ── Messaging dashboard (WithJoy-inspired) — presets to start a new
+   message, a Scheduled placeholder, and what's already been sent ── */
+.em-msg-dash { display: flex; flex-direction: column; gap: 16px; }
+.em-msg-panel {
+  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
+  padding: 18px 20px; transition: background 300ms ease, border-color 300ms ease;
+}
+.em-msg-panel-title { font-size: 15px; font-weight: 700; color: var(--c-txt); margin: 0 0 14px; }
+.em-msg-panel-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.em-msg-panel-hd .em-msg-panel-title { margin: 0; }
+.em-msg-count {
+  font-size: 11px; font-weight: 700; color: var(--c-txt-2); background: var(--c-track);
+  border-radius: 999px; padding: 2px 8px;
+}
+.em-msg-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.em-msg-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+  padding: 18px; border-radius: 12px; border: 1px solid var(--c-border); background: var(--c-track);
+  cursor: pointer; transition: all 130ms; font-family: inherit; text-align: left;
+}
+.em-msg-tile:hover:not(:disabled) { border-color: var(--gold); background: rgb(from var(--gold) r g b / 0.06); }
+.em-msg-tile:disabled { opacity: 0.5; cursor: not-allowed; }
+.em-msg-tile-label { font-size: 13.5px; font-weight: 600; color: var(--c-txt); }
+.em-msg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.em-msg-panel--half { display: flex; flex-direction: column; min-height: 200px; }
+.em-msg-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; color: var(--c-txt-3); font-size: 13px; text-align: center; padding: 20px 0;
+}
+.em-msg-sent-list { display: flex; flex-direction: column; gap: 2px; margin: 0 -8px; }
+.em-msg-sent-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 8px;
+  cursor: pointer; transition: background 130ms;
+}
+.em-msg-sent-row:hover { background: var(--c-track); }
+.em-msg-sent-icon {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; color: var(--gold);
+  background: rgb(from var(--gold) r g b / 0.1);
+  display: flex; align-items: center; justify-content: center;
+}
+.em-msg-sent-name { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--c-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.em-msg-sent-date { font-size: 12px; color: var(--c-txt-2); flex-shrink: 0; }
+@media (max-width: 720px) {
+  .em-msg-row { grid-template-columns: 1fr; }
+}
 
 /* ── Filter bar (inside detail panel) ── */
 .em-panel-filter-bar {
@@ -1518,12 +1665,6 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-empty-icon  { margin-bottom: 16px; }
 .em-empty-title { font-size: 16px; font-weight: 700; color: var(--c-txt); margin: 0 0 6px; }
 .em-empty-sub   { font-size: 14px; color: var(--c-txt-2); margin: 0 0 16px; max-width: 300px; }
-.em-empty-cta   {
-  height: 36px; padding: 0 18px; border-radius: 10px; border: none;
-  background: var(--gold); color: var(--gold-contrast); font-size: 13px; font-weight: 700;
-  cursor: pointer; transition: background 150ms; font-family: inherit;
-}
-.em-empty-cta:hover { background: #d4b560; }
 
 /* ── Action buttons (shared) ── */
 .em-camp-item-btn {
@@ -1776,6 +1917,17 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-send-ch-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; border-radius: 12px; border: 1px solid var(--c-border, #2a2a2a); background: var(--c-bg, #1c1c1f); font-size: 15px; font-weight: 500; color: var(--c-txt-2, #8a8a92); cursor: pointer; transition: all 130ms; }
 .em-send-ch-btn:hover { border-color: #C9A84C; color: #C9A84C; }
 .em-send-ch-btn--wsp, .em-send-ch-btn--sms { background: rgb(from var(--gold) r g b / 0.14); color: var(--gold); border-color: rgb(from var(--gold) r g b / 0.5); font-weight: 700; }
+/* The Edit Campaign dialog reuses this toggle but is teleported outside
+   .em-drawer--composer, so it never sees that scope's --cx-seg-* variables
+   (the ones the composer's own copy of this toggle relies on via inline
+   style). Give it its own self-contained, teleport-safe active/inactive
+   look instead of inheriting variables that silently resolve to nothing
+   here and make the *inactive* tab look selected. */
+.em-dialog .em-send-ch-btn { background: #fff; color: #6b7280; border-color: #e5e7eb; }
+.em-dialog .em-send-ch-btn--wsp, .em-dialog .em-send-ch-btn--sms {
+  background: rgb(from var(--gold, #C9A84C) r g b / 0.14); color: var(--gold, #C9A84C);
+  border-color: rgb(from var(--gold, #C9A84C) r g b / 0.5); font-weight: 700;
+}
 .em-selected-recip-display { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgb(from var(--gold) r g b / 0.3); background: rgb(from var(--gold) r g b / 0.06); font-size: 14px; color: var(--c-txt); }
 .em-tpl-loading { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--gold); font-weight: 500; text-transform: none; letter-spacing: 0; }
 .em-tpl-empty   { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--c-txt-2); padding: 12px; border: 0.8px dashed var(--c-border); border-radius: 10px; }

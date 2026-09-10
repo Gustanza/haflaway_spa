@@ -792,9 +792,11 @@
     </Teleport>
 
     <!-- ── Send modal — "Card" is still just a visual placeholder; "Message"
-         leads into a real Campaigns list (same Firestore data/shape as the
-         full Bulk Messages page), with a bare-bones "New Campaign" create step.
-         Opening a campaign to actually send it is a later step. ── -->
+         leads into a Campaigns screen (same Firestore data/shape as the full
+         Bulk Messages page) that opens straight on the message-intent presets
+         — no separate "New Campaign" step for the user to know about. Picking
+         a preset creates its draft campaign in the background and jumps
+         straight into composing/sending it. ── -->
     <Teleport to="body">
       <Transition name="ea-fade">
         <div v-if="showSendModal" class="ea-overlay ea-overlay--center" @click.self="closeSendModal">
@@ -803,19 +805,14 @@
               <div class="ea-modal-header ea-send-modal-header" :class="{ 'ea-send-modal-header--nav': sendStep !== 'root' }">
                 <div class="ea-send-modal-header-side ea-send-modal-header-side--left">
                   <button v-if="sendStep !== 'root'" class="ea-send-back"
-                    @click="sendStep = sendStep === 'newCampaign' ? 'campaigns' : 'root'">
+                    @click="sendStep = 'root'">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                   </button>
                 </div>
                 <h3 class="ea-modal-title">
-                  {{ sendStep === 'root' ? 'What would you like to send?' : sendStep === 'campaigns' ? 'Campaigns' : 'New Campaign' }}
+                  {{ sendStep === 'root' ? 'What would you like to send?' : 'Campaigns' }}
                 </h3>
                 <div class="ea-send-modal-header-side ea-send-modal-header-side--right">
-                  <button v-if="sendStep === 'campaigns'" class="ea-send-new-camp-btn ea-send-new-camp-btn--header"
-                    @click="openNewCampaignStep">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    New Campaign
-                  </button>
                   <button class="ea-modal-close" @click="closeSendModal">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       stroke-width="2.5" stroke-linecap="round">
@@ -851,42 +848,43 @@
                 </div>
               </div>
 
-              <!-- Step 2: Campaigns list -->
-              <div class="ea-send-camps" v-else-if="sendStep === 'campaigns'">
-                <div v-if="loadingSendCampaigns" class="ea-send-camps-loading">Loading campaigns…</div>
-                <div v-else-if="!sendCampaigns.length" class="ea-send-camps-empty">
-                  <p>No campaigns yet.</p>
-                  <p class="ea-send-camps-empty-sub">Create one to start sending targeted messages to specific guests.</p>
-                </div>
-                <div v-else class="ea-send-camps-list">
-                  <div v-for="camp in sendCampaigns" :key="camp.id" class="ea-send-camp-row"
-                    @click="$router.push(`/event/${eventId}/bulk-messages?campaign=${camp.id}&send=1&returnTo=${encodeURIComponent(`/event/${eventId}/attendees?reopenCampaigns=1`)}`)">
+              <!-- Step 2: Campaigns — opens straight on the message-intent presets
+                   (no separate "New Campaign" click to get there); picking one
+                   creates its draft campaign right away and jumps into
+                   composing/sending it. Past campaigns, if any, are listed
+                   below for reopening/resending. -->
+              <div class="ea-send-camps" v-else>
+                <div class="ea-send-camps-list">
+                  <div v-for="label in PRESET_CAMPAIGNS" :key="label" class="ea-send-camp-row"
+                    :class="{ 'ea-send-camp-row--disabled': creatingPresetCamp }"
+                    @click="createPresetCampaign(label)">
                     <span class="ea-send-camp-icon">
-                      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     </span>
                     <span class="ea-send-camp-text">
-                      <span class="ea-send-camp-name">{{ camp.name }}</span>
-                      <span class="ea-send-camp-meta">{{ capitalize(camp.type) }} campaign · Created {{ formatDate(camp.createdAt) }}</span>
+                      <span class="ea-send-camp-name">{{ label }}</span>
                     </span>
                     <svg class="ea-send-camp-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </div>
                 </div>
-              </div>
 
-              <!-- Step 3: New Campaign (bare minimum — name + type only) -->
-              <div class="ea-send-new-camp" v-else>
-                <label class="ea-send-fld-lbl">Campaign Name</label>
-                <input v-model="newCampName" class="ea-send-fld-input" placeholder="e.g. Thank You Messages"
-                  autofocus @keydown.enter="createSendCampaign" />
-                <label class="ea-send-fld-lbl" style="margin-top:14px">Type</label>
-                <div class="ea-send-type-row">
-                  <button class="ea-send-type-btn" :class="{ 'ea-send-type-btn--on': newCampType === 'invitation' }" @click="newCampType = 'invitation'">Invitation</button>
-                  <button class="ea-send-type-btn" :class="{ 'ea-send-type-btn--on': newCampType === 'contribution' }" @click="newCampType = 'contribution'">Contribution</button>
-                  <button class="ea-send-type-btn" :class="{ 'ea-send-type-btn--on': newCampType === 'contact' }" @click="newCampType = 'contact'">Contact</button>
-                </div>
-                <button class="ea-send-create-btn" :disabled="!newCampName.trim() || savingNewCamp" @click="createSendCampaign">
-                  {{ savingNewCamp ? 'Creating…' : 'Create Campaign' }}
-                </button>
+                <div v-if="loadingSendCampaigns" class="ea-send-camps-loading">Loading past campaigns…</div>
+                <template v-else-if="sendCampaigns.length">
+                  <p class="ea-send-camps-divider">Past Campaigns</p>
+                  <div class="ea-send-camps-list">
+                    <div v-for="camp in sendCampaigns" :key="camp.id" class="ea-send-camp-row"
+                      @click="$router.push(`/event/${eventId}/bulk-messages?campaign=${camp.id}&send=1&returnTo=${encodeURIComponent(`/event/${eventId}/attendees?reopenCampaigns=1`)}`)">
+                      <span class="ea-send-camp-icon">
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                      </span>
+                      <span class="ea-send-camp-text">
+                        <span class="ea-send-camp-name">{{ camp.name }}</span>
+                        <span class="ea-send-camp-meta">{{ capitalize(camp.type) }} campaign · Created {{ formatDate(camp.createdAt) }}</span>
+                      </span>
+                      <svg class="ea-send-camp-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </div>
+                  </div>
+                </template>
               </div>
             </div>
           </Transition>
@@ -2483,9 +2481,9 @@ async function fetchTemplates(type) {
 // ── Add / Edit modal ──────────────────────────────────────────────────────────
 const showModal = ref(false)
 const showSendModal = ref(false)
-// 'root' (Card/Message choice) → 'campaigns' (list, real Firestore data — same
-// collection as EventCampaigns.vue) → 'newCampaign' (bare-minimum create form).
-// Opening a campaign to actually send it is a later step, not built yet.
+// 'root' (Card/Message choice) → 'campaigns' (opens straight on the
+// message-intent presets, same Firestore collection as EventCampaigns.vue,
+// with any past campaigns listed below for reopening/resending).
 const sendStep = ref('root')
 function closeSendModal() { showSendModal.value = false; sendStep.value = 'root' }
 
@@ -2524,31 +2522,29 @@ onMounted(() => {
   }
 })
 
-const newCampName = ref('')
-const newCampType = ref('invitation')
-const savingNewCamp = ref(false)
-function openNewCampaignStep() {
-  newCampName.value = ''
-  newCampType.value = 'invitation'
-  sendStep.value = 'newCampaign'
-}
-async function createSendCampaign() {
-  if (!newCampName.value.trim() || savingNewCamp.value) return
-  savingNewCamp.value = true
+// Fixed set of message intents shown instead of a free-text campaign name/type
+// form — picking one auto-creates a draft campaign titled after the pick and
+// jumps straight into composing/sending it (see createPresetCampaign below).
+const PRESET_CAMPAIGNS = ['General Message', 'RSVP Reminder', 'Pledge Reminder', 'Meeting Reminder']
+const creatingPresetCamp = ref(false)
+async function createPresetCampaign(label) {
+  if (creatingPresetCamp.value) return
+  creatingPresetCamp.value = true
   try {
-    await addDoc(collection(db, 'events', eventId.value, 'campaigns'), {
-      name: newCampName.value.trim(),
-      type: newCampType.value,
+    const docRef = await addDoc(collection(db, 'events', eventId.value, 'campaigns'), {
+      name: label,
+      type: 'invitation',
       whatsappMessage: null,
       smsMessage: null,
       createdAt: new Date().toISOString(),
+      status: 'draft',
     })
-    await loadSendCampaigns(true)
-    sendStep.value = 'campaigns'
+    closeSendModal()
+    router.push(`/event/${eventId.value}/bulk-messages?campaign=${docRef.id}&send=1&returnTo=${encodeURIComponent(`/event/${eventId.value}/attendees?reopenCampaigns=1`)}`)
   } catch (e) {
-    console.error('createSendCampaign:', e)
+    console.error('createPresetCampaign:', e)
   } finally {
-    savingNewCamp.value = false
+    creatingPresetCamp.value = false
   }
 }
 const editingAtt = ref(null)
@@ -4560,30 +4556,12 @@ function setImportPayment(attendeeId, amount) {
 .ea-send-back:hover { background: #f4f4fd; color: #1a1a2e; }
 
 .ea-send-camps { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
-.ea-send-new-camp-btn {
-  align-self: flex-start; display: flex; align-items: center; gap: 6px;
-  padding: 8px 16px; background: #4f46e5; color: #fff; border: none; border-radius: 999px;
-  font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
-  transition: background 150ms;
+.ea-send-camps-loading { padding: 24px 4px; text-align: center; color: #6b7280; font-size: 13px; }
+.ea-send-camps-divider {
+  margin: 4px 0 -4px; font-size: 11px; font-weight: 700; color: #9ca3af;
+  text-transform: uppercase; letter-spacing: 0.5px;
 }
-.ea-send-new-camp-btn:hover { background: #4338ca; }
-/* Header variant: keeps the "New Campaign" label (an icon alone didn't read
-   as an action to anyone unfamiliar with it), but trades the solid-fill CTA
-   for a soft tinted-ghost pill so it doesn't compete with the title — the
-   3-slot header layout above is what actually keeps it from colliding. */
-.ea-send-new-camp-btn--header {
-  padding: 6px 12px; font-size: 12px; flex-shrink: 0; align-self: center;
-  background: rgba(79,70,229,0.1); color: #4f46e5; border: 1px solid rgba(79,70,229,0.22);
-  transition: background 150ms, border-color 150ms, box-shadow 150ms, color 150ms;
-}
-.ea-send-new-camp-btn--header:hover {
-  background: rgba(79,70,229,0.18); border-color: rgba(79,70,229,0.4);
-  color: #4338ca; box-shadow: 0 0 0 4px rgba(79,70,229,0.1);
-}
-.ea-send-camps-loading, .ea-send-camps-empty { padding: 24px 4px; text-align: center; color: #6b7280; font-size: 13px; }
-.ea-send-camps-empty p { margin: 0 0 4px; }
-.ea-send-camps-empty-sub { font-size: 12.5px; color: #9ca3af; }
-.ea-send-camps-list { display: flex; flex-direction: column; max-height: 400px; overflow-y: auto; margin: 0 -6px; }
+.ea-send-camps-list { display: flex; flex-direction: column; max-height: 320px; overflow-y: auto; margin: 0 -6px; }
 .ea-send-camp-row {
   display: flex; align-items: center; gap: 16px; padding: 14px 6px;
   border-bottom: 1px solid #f0f0f5; border-radius: 10px;
@@ -4591,6 +4569,7 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-send-camp-row:hover { background: #f8f8fd; }
 .ea-send-camp-row:last-child { border-bottom: none; }
+.ea-send-camp-row--disabled { opacity: 0.5; pointer-events: none; }
 .ea-send-camp-icon {
   width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
   border: 1.3px solid #e8e8f4; color: #1a1a2e;
@@ -4600,28 +4579,6 @@ function setImportPayment(attendeeId, amount) {
 .ea-send-camp-name { font-size: 15.5px; font-weight: 700; color: #1a1a2e; }
 .ea-send-camp-meta { font-size: 13px; color: #6b7280; text-transform: capitalize; }
 .ea-send-camp-chev { color: #b0b0c0; flex-shrink: 0; }
-
-.ea-send-new-camp { padding: 8px 22px 22px; display: flex; flex-direction: column; }
-.ea-send-fld-lbl { font-size: 12px; font-weight: 600; color: #6b7280; letter-spacing: 0.3px; margin-bottom: 6px; display: block; }
-.ea-send-fld-input {
-  width: 100%; padding: 10px 12px; border: 1px solid #e8e8f4; border-radius: 10px;
-  font-size: 13.5px; color: #1a1a2e; outline: none; font-family: inherit; box-sizing: border-box;
-}
-.ea-send-fld-input:focus { border-color: #4f46e5; }
-.ea-send-type-row { display: flex; gap: 8px; }
-.ea-send-type-btn {
-  flex: 1; padding: 9px 10px; border: 1px solid #e8e8f4; border-radius: 10px;
-  background: #fff; color: #6b7280; font-size: 12.5px; font-weight: 600; cursor: pointer;
-  font-family: inherit; transition: background 130ms, border-color 130ms, color 130ms;
-}
-.ea-send-type-btn--on { background: #eeecfd; border-color: #4f46e5; color: #4338ca; }
-.ea-send-create-btn {
-  margin-top: 20px; padding: 12px 16px; background: #4f46e5; color: #fff; border: none;
-  border-radius: 10px; font-size: 13.5px; font-weight: 700; cursor: pointer; font-family: inherit;
-  transition: background 150ms;
-}
-.ea-send-create-btn:hover:not(:disabled) { background: #4338ca; }
-.ea-send-create-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .ea-form {
   padding: 20px 22px;
