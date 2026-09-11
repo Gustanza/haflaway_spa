@@ -1075,6 +1075,18 @@
 
               <form @submit.prevent="submitContactPicker" class="ea-form">
                 <div class="ea-field">
+                  <label class="ea-label">Send As <span class="ea-required">*</span></label>
+                  <div class="ea-type-row">
+                    <button v-for="t in ['invitation','contribution']" :key="t"
+                      type="button" class="ea-type-opt"
+                      :class="{ 'ea-type-opt--active': contactPickerForm.kardType === t }"
+                      @click="contactPickerForm.kardType = t">
+                      {{ capitalize(t) }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="ea-field">
                   <label class="ea-label">Card Template <span class="ea-required">*</span></label>
                   <div v-if="fetchingTemplates" class="ea-tpl-state">
                     <svg class="ea-tpl-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2.5" stroke-linecap="round">
@@ -1083,7 +1095,7 @@
                     Loading templates…
                   </div>
                   <div v-else-if="!cardTemplates.length" class="ea-tpl-empty">
-                    No invitation templates yet. Create one in <strong>Cards</strong> first.
+                    No {{ contactPickerForm.kardType }} templates yet. Create one in <strong>Cards</strong> first.
                   </div>
                   <div v-else class="ea-tpl-grid">
                     <button v-for="tpl in cardTemplates" :key="tpl.id" type="button"
@@ -1146,24 +1158,6 @@
               </div>
 
               <div class="ea-imp-body">
-                <!-- Type: selector only on "all" tab; locked to current tab otherwise -->
-                <div class="ea-field" v-if="activeType === 'all'">
-                  <label class="ea-label">Attendee Type <span class="ea-required">*</span></label>
-                  <div class="ea-type-row">
-                    <button v-for="t in ['invitation','contribution','contact']" :key="t"
-                      type="button" class="ea-type-opt"
-                      :class="{ 'ea-type-opt--active': importKardType === t }"
-                      @click="importKardType = t">
-                      {{ capitalize(t) }}
-                    </button>
-                  </div>
-                  <p class="ea-imp-type-hint">
-                    <template v-if="importKardType === 'invitation'">Guests who receive an invitation card.</template>
-                    <template v-else-if="importKardType === 'contribution'">Guests who pledge or pay contributions.</template>
-                    <template v-else>General contacts — no card, optional pledge/contribution fields.</template>
-                  </p>
-                </div>
-
                 <!-- Drop zone -->
                 <div class="ea-dropzone"
                   :class="{ 'ea-dropzone--over': dropOver, 'ea-dropzone--filled': importFileName }"
@@ -1242,7 +1236,7 @@
                 <!-- File info pill -->
                 <div class="ea-imp-file-pill">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  {{ importFileName }} · {{ importRows.length }} rows · {{ capitalize(importKardType) }}
+                  {{ importFileName }} · {{ importRows.length }} rows
                 </div>
 
                 <!-- ── Step 1: Labels ── -->
@@ -1301,8 +1295,8 @@
                     </div>
                   </div>
 
-                  <!-- Pledges — contribution & contact only -->
-                  <div v-if="importKardType === 'contribution' || importKardType === 'contact'" class="ea-map-row">
+                  <!-- Pledges — optional for any guest -->
+                  <div class="ea-map-row">
                     <div class="ea-map-icon-wrap">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                     </div>
@@ -1325,8 +1319,8 @@
                     </div>
                   </div>
 
-                  <!-- Contribution paid — contribution & contact only -->
-                  <div v-if="importKardType === 'contribution' || importKardType === 'contact'" class="ea-map-row">
+                  <!-- Contribution paid — optional for any guest -->
+                  <div class="ea-map-row">
                     <div class="ea-map-icon-wrap">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                     </div>
@@ -1346,32 +1340,6 @@
                         </div>
                       </div>
                       <span v-else class="ea-map-skip">Skipped</span>
-                    </div>
-                  </div>
-
-                  <!-- Card Template — invitation & contribution only -->
-                  <div v-if="importKardType !== 'contact'" class="ea-map-row ea-map-row--card">
-                    <div class="ea-map-icon-wrap">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                    </div>
-                    <span class="ea-map-label">Card Template <span class="ea-required">*</span></span>
-                    <div class="ea-map-select-wrap ea-map-drop-wrap">
-                      <div v-if="fetchingTemplates" class="ea-map-loading">
-                        <svg class="ea-tpl-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B8924D" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                        Loading…
-                      </div>
-                      <div v-else-if="!cardTemplates.length" class="ea-map-empty">
-                        No {{ importKardType }} templates yet — create one in Cards first.
-                      </div>
-                      <template v-else>
-                        <button type="button" class="ea-map-drop-trigger" @click="mapDropOpen = mapDropOpen === 'card' ? null : 'card'">
-                          <span :class="{ 'ea-map-drop-placeholder': importMapping.card === null }">{{ importMapping.card !== null ? cardTplLabel(importMapping.card) : 'Select template…' }}</span>
-                          <svg class="ea-type-chevron" :class="{ 'ea-type-chevron--open': mapDropOpen === 'card' }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-                        </button>
-                        <div v-if="mapDropOpen === 'card'" class="ea-type-drop ea-map-drop">
-                          <button v-for="tpl in cardTemplates" :key="tpl.id" type="button" class="ea-type-drop-item" :class="{ 'ea-type-drop-item--active': importMapping.card === tpl.id }" @click="importMapping.card = tpl.id; mapDropOpen = null">{{ tpl.name }}</button>
-                        </div>
-                      </template>
                     </div>
                   </div>
                 </div>
@@ -1410,7 +1378,7 @@
               <div class="ea-imp-preview-hero">
                 <div>
                   <p class="ea-imp-preview-title">Import Preview</p>
-                  <p class="ea-imp-preview-sub">{{ importPreviewList.length }} guest{{ importPreviewList.length !== 1 ? 's' : '' }} · {{ capitalize(importKardType) }}</p>
+                  <p class="ea-imp-preview-sub">{{ importPreviewList.length }} guest{{ importPreviewList.length !== 1 ? 's' : '' }}</p>
                 </div>
                 <!-- Labels assigned -->
                 <div v-if="importSelectedLabels.length" class="ea-imp-preview-labels">
@@ -1420,12 +1388,6 @@
                     {{ lbl.name }}
                   </span>
                 </div>
-              </div>
-
-              <!-- Card template being used -->
-              <div v-if="importKardType !== 'contact'" class="ea-imp-tpl-banner">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                Template: <strong>{{ cardTemplates.find(t => t.id === importMapping.card)?.name ?? '—' }}</strong>
               </div>
 
               <!-- Empty state -->
@@ -1474,8 +1436,8 @@
                         }"
                       >{{ att._existingAttendee.attendanceStatus }}</span>
                     </div>
-                    <!-- pledge / contribution for contribution & contact -->
-                    <div v-if="importKardType === 'contribution' || importKardType === 'contact'" class="ea-imp-row-amounts">
+                    <!-- pledge / contribution, when mapped -->
+                    <div v-if="att.pledgedAmount != null || att.paidAmount != null" class="ea-imp-row-amounts">
                       <span v-if="att.pledgedAmount != null" class="ea-imp-amount ea-imp-amount--pledge">
                         Pledge: {{ att.pledgedAmount ? formatMoney(att.pledgedAmount) : '—' }}
                       </span>
@@ -1856,7 +1818,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { db, auth } from '../../firebase'
 import {
   collection, query, orderBy, where,
-  getDocs, updateDoc, deleteDoc, deleteField, doc, addDoc,
+  getDocs, updateDoc, deleteDoc, deleteField, doc, addDoc, setDoc, writeBatch,
   arrayUnion, arrayRemove,
 } from 'firebase/firestore'
 function genAttendeeId() {
@@ -2649,8 +2611,8 @@ async function createPresetCampaign(label) {
 const editingAtt = ref(null)
 const submitting = ref(false)
 
-const form = ref({ name: '', phone: '', kardType: 'invitation', templateCardId: '', labelIds: [] })
-const formErr = ref({ name: '', templateCardId: '' })
+const form = ref({ name: '', phone: '', labelIds: [] })
+const formErr = ref({ name: '' })
 const phoneObj = ref(null)   // populated by vue-tel-input @validate
 
 // ── Phone-book picker (Contact Picker API — Android Chrome / iOS Safari 14.5+) ──
@@ -2694,42 +2656,28 @@ function exitPhonePickerMode() {
 async function submitPhonePicker() {
   const contacts = phonePickerContacts.value.filter(c => c.include && c.name)
   if (!contacts.length) return
-  if (form.value.kardType !== 'contact' && !form.value.templateCardId) {
-    formErr.value.templateCardId = 'Select a card template'
-    return
-  }
   submitting.value = true
   try {
-    const attendeeList = contacts.map(c => ({
-      id:               genAttendeeId(),
-      cards:            {},
-      checkinStatus:    [],
-      createdAt:        new Date().toISOString(),
-      email:            '',
-      fullName:         c.name,
-      fullNameLower:    c.name.toLowerCase(),
-      attendanceStatus: 'Not Confirmed',
-      phone:            c.phone.replace(/^\+/, ''),
-      messages:         {},
-      messageIndexes:   [],
-      labelIds:         form.value.labelIds,
-      idComment:        'No Comment',
-    }))
-    const payload = {
-      eventId:        eventId.value,
-      attendees:      attendeeList,
-      templateCardId: form.value.kardType === 'contact' ? 'contact' : form.value.templateCardId,
-      usepng:         props.event?.usepng ?? true,
-      kardType:       form.value.kardType,
+    const batch = writeBatch(db)
+    for (const c of contacts) {
+      const id = genAttendeeId()
+      batch.set(doc(db, 'events', eventId.value, 'attendees', id), {
+        id,
+        cards:            {},
+        checkinStatus:    [],
+        createdAt:        new Date().toISOString(),
+        email:            '',
+        fullName:         c.name,
+        fullNameLower:    c.name.toLowerCase(),
+        attendanceStatus: 'Not Confirmed',
+        phone:            c.phone.replace(/^\+/, ''),
+        messages:         {},
+        messageIndexes:   [],
+        labelIds:         form.value.labelIds,
+        idComment:        'No Comment',
+      }, { merge: true })
     }
-    const res = await fetch(CREATE_ATTENDEES_URL, {
-      method:  'POST',
-      headers: { 'Authorization': `Bearer ${auth.currentUser.uid}` },
-      body:    JSON.stringify(payload),
-    })
-    if (!res.ok) throw new Error(`Cloud function error: ${res.status}`)
-    const json = await res.json()
-    if (!json.status) throw new Error(json.message ?? 'Server error')
+    await batch.commit()
     await loadInitial()
     closeModal()
   } catch (e) {
@@ -2751,7 +2699,6 @@ function onPhoneValidate(obj) { phoneObj.value = obj }
 
 function validateForm() {
   formErr.value.name = form.value.name?.trim() ? '' : 'Name is required'
-  formErr.value.templateCardId = ''
 }
 
 function addPartyMember() {
@@ -2810,7 +2757,6 @@ function showHelpInfo() {
 }
 
 function openAdd() {
-  const type = activeType.value !== 'all' ? activeType.value : 'invitation'
   editingAtt.value = null
   form.value = {
     title: '',
@@ -2821,19 +2767,15 @@ function openAdd() {
     partyMembers: [],
     showMailingAddress: false,
     address: { street: '', city: '', state: '', zip: '', country: '' },
-    kardType: type,
-    templateCardId: cardTemplates.value[0]?.id || '',
     labelIds: []
   }
-  formErr.value = { name: '', templateCardId: '' }
+  formErr.value = { name: '' }
   phoneObj.value = null
   showModal.value = true
-  fetchTemplates(type)
 }
 
 function openEdit(att) {
   editingAtt.value = att
-  const type = getKardType(att)
   // Stored phone is E.164 digits without +; vue-tel-input needs the + to parse it
   const rawPhone = att.phone ?? ''
   form.value = {
@@ -2851,22 +2793,13 @@ function openEdit(att) {
       zip: att.address?.zip || '',
       country: att.address?.country || ''
     },
-    kardType: type,
-    templateCardId: att.cards?.[type]?.templateCardId ?? (cardTemplates.value[0]?.id || ''),
     labelIds: [...(att.labelIds ?? [])],
   }
-  formErr.value = { name: '', templateCardId: '' }
+  formErr.value = { name: '' }
   phoneObj.value = null
   closeDetail()
   showModal.value = true
-  fetchTemplates(type)
 }
-
-// Re-fetch templates whenever the type changes in the form
-watch(() => form.value.kardType, type => {
-  form.value.templateCardId = ''
-  fetchTemplates(type)
-})
 
 function closeModal() {
   showModal.value = false
@@ -2884,20 +2817,21 @@ function toggleLabel(id) {
 
 async function submitForm() {
   validateForm()
-  if (formErr.value.name || formErr.value.templateCardId) return
+  if (formErr.value.name) return
   submitting.value = true
   try {
+    const existingAtt = editingAtt.value
     const name = form.value.name.trim()
     // Prefer the E.164 number from vue-tel-input validation; fall back to raw input stripped of +
     const phone = (phoneObj.value?.number ?? form.value.phone).trim().replace(/^\+/, '')
     const email = form.value.email ? form.value.email.trim() : (existingAtt?.email ?? '')
-    const isContact = form.value.kardType === 'contact'
-    const existingAtt = editingAtt.value
 
-    const uid = auth.currentUser.uid
     const attendeeId = existingAtt?.id ?? genAttendeeId()
     const attendeeData = {
       id:               attendeeId,
+      // Empty map + merge:true below is a no-op on an existing doc's `cards` field —
+      // it deliberately never touches whatever card(s) sending a card has already
+      // attached. Guests are just contact info here; cards are a separate, later step.
       cards:            {},
       checkinStatus:    existingAtt?.checkinStatus ?? [],
       createdAt:        existingAtt?.createdAt ?? new Date().toISOString(),
@@ -2915,39 +2849,12 @@ async function submitForm() {
       labelIds:         form.value.labelIds,
       idComment:        existingAtt?.idComment ?? 'No Comment',
     }
-    const templateCardId = isContact ? 'contact' : (form.value.templateCardId || cardTemplates.value[0]?.id || 'contact')
-    const payload = {
-      eventId:        eventId.value,
-      attendees:      [attendeeData],
-      templateCardId,
-      usepng:         props.event?.usepng ?? true,
-      kardType:       form.value.kardType || 'invitation',
-    }
-    const res = await fetch(CREATE_ATTENDEES_URL, {
-      method:  'POST',
-      headers: {
-        // No Content-Type: application/json — the function calls JSON.parse(req.body)
-        // itself, so the body must arrive as a raw string (text/plain), not pre-parsed.
-        'Authorization': `Bearer ${uid}`,
-      },
-      body: JSON.stringify(payload),
-    })
-    if (!res.ok) throw new Error(`Cloud function error: ${res.status}`)
-    const json = await res.json()
-    if (!json.status) throw new Error(json.message ?? 'Server error')
 
-    // Firestore merge: true deeply merges nested maps, so the old card type key
-    // survives alongside the new one. Explicitly delete it so the attendee only
-    // ever has one card type — matching the mobile app's expectation.
-    if (existingAtt) {
-      const oldType = getKardType(existingAtt)
-      if (oldType !== form.value.kardType) {
-        await updateDoc(
-          doc(db, 'events', eventId.value, 'attendees', attendeeId),
-          { [`cards.${oldType}`]: deleteField() },
-        )
-      }
-    }
+    await setDoc(
+      doc(db, 'events', eventId.value, 'attendees', attendeeId),
+      attendeeData,
+      { merge: true },
+    )
 
     await loadInitial()
     closeModal()
@@ -3100,12 +3007,11 @@ watch([isAllPageSelected, isSomePageSelected], () => {
 
 // ── Import flow ───────────────────────────────────────────────────────────────
 
-const importPhase          = ref(0)          // 0=closed 1=file+type 2=map 3=preview
-const importKardType       = ref('invitation')
+const importPhase          = ref(0)          // 0=closed 1=file 2=map 3=preview
 const importFileName       = ref('')
 const importHeaders        = ref([])         // [{ idx, label }]
 const importRows           = ref([])         // raw rows (no header row)
-const importMapping        = reactive({ name: null, phone: null, ahadi: null, mchango: null, card: null })
+const importMapping        = reactive({ name: null, phone: null, ahadi: null, mchango: null })
 const importMapAhadi       = ref(true)
 const importMapMchango     = ref(true)
 const importSelectedLabels = ref([])
@@ -3118,20 +3024,17 @@ const dropOver             = ref(false)
 const fileInputRef         = ref(null)
 
 function openImport() {
-  const type = activeType.value !== 'all' ? activeType.value : 'invitation'
   importPhase.value = 1
-  importKardType.value = type
   importFileName.value = ''
   importHeaders.value = []
   importRows.value = []
-  Object.assign(importMapping, { name: null, phone: null, ahadi: null, mchango: null, card: null })
+  Object.assign(importMapping, { name: null, phone: null, ahadi: null, mchango: null })
   importMapAhadi.value = true
   importMapMchango.value = true
   importSelectedLabels.value = []
   importPreviewList.value = []
   importFileError.value = ''
   importProcessing.value = false
-  fetchTemplates(type)
 }
 
 function closeImport() { importPhase.value = 0 }
@@ -3142,7 +3045,7 @@ function closeImport() { importPhase.value = 0 }
 const contactPickerPhase     = ref(0) // 0=closed 1=select 2=apply
 const contactPickerSearch    = ref('')
 const contactPickerSelected  = reactive(new Set())
-const contactPickerForm      = ref({ templateCardId: '', labelIds: [] })
+const contactPickerForm      = ref({ kardType: 'invitation', templateCardId: '', labelIds: [] })
 const contactPickerErr       = ref('')
 const contactPickerSubmitting = ref(false)
 const contactPickerFilterLabelId  = ref(null)
@@ -3185,7 +3088,7 @@ function openContactPicker() {
   contactPickerPhase.value = 1
   contactPickerSearch.value = ''
   contactPickerSelected.clear()
-  contactPickerForm.value = { templateCardId: '', labelIds: [] }
+  contactPickerForm.value = { kardType: 'invitation', templateCardId: '', labelIds: [] }
   contactPickerErr.value = ''
   contactPickerFilterLabelId.value = null
   contactPickerLabelDropOpen.value = false
@@ -3200,9 +3103,15 @@ function closeContactPicker() {
 function contactPickerNext() {
   if (!contactPickerSelected.size) return
   contactPickerPhase.value = 2
-  fetchTemplates('invitation')
+  fetchTemplates(contactPickerForm.value.kardType)
 }
 function contactPickerBack() { contactPickerPhase.value = 1 }
+
+// Re-fetch templates and reset the chosen one when the send-as type changes
+watch(() => contactPickerForm.value.kardType, type => {
+  contactPickerForm.value.templateCardId = ''
+  fetchTemplates(type)
+})
 
 async function submitContactPicker() {
   if (!contactPickerForm.value.templateCardId) {
@@ -3246,7 +3155,7 @@ async function submitContactPicker() {
             attendees:      payload,
             templateCardId: contactPickerForm.value.templateCardId,
             usepng:         props.event?.usepng ?? true,
-            kardType:       'invitation',
+            kardType:       contactPickerForm.value.kardType,
           }),
         })
         if (!res.ok) throw new Error(`Server error (${res.status})`)
@@ -3355,12 +3264,6 @@ async function parseImportFile(file) {
   }
 }
 
-// Re-fetch templates and reset card selection when type changes in the import
-watch(() => importKardType.value, type => {
-  importMapping.card = null
-  fetchTemplates(type)
-})
-
 function toggleImportLabel(id) {
   const idx = importSelectedLabels.value.indexOf(id)
   if (idx === -1) importSelectedLabels.value.push(id)
@@ -3370,13 +3273,10 @@ function toggleImportLabel(id) {
 function validateImportMapping() {
   if (importMapping.name === null)  return 'Select the column that contains the guest name.'
   if (importMapping.phone === null) return 'Select the column that contains the phone number.'
-  const isContrib = importKardType.value === 'contribution' || importKardType.value === 'contact'
-  if (isContrib && importMapAhadi.value && importMapping.ahadi === null)
+  if (importMapAhadi.value && importMapping.ahadi === null)
     return 'Select the Pledges column or disable the toggle.'
-  if (isContrib && importMapMchango.value && importMapping.mchango === null)
+  if (importMapMchango.value && importMapping.mchango === null)
     return 'Select the Contribution column or disable the toggle.'
-  if (importKardType.value !== 'contact' && !importMapping.card)
-    return 'Select a card template.'
   return null
 }
 
@@ -3447,7 +3347,6 @@ function cleanNumeric(raw) {
 }
 
 function buildPreviewList() {
-  const isContrib = importKardType.value === 'contribution' || importKardType.value === 'contact'
   const phoneIndex = new Map(attendees.value.map(a => [a.phone, a]))
 
   return importRows.value
@@ -3458,9 +3357,9 @@ function buildPreviewList() {
 
       const phone = transformNumber(rawPhone)
 
-      const pledgedAmount = (isContrib && importMapAhadi.value && importMapping.ahadi !== null)
+      const pledgedAmount = (importMapAhadi.value && importMapping.ahadi !== null)
         ? cleanNumeric(row[importMapping.ahadi]) : null
-      const paidAmount    = (isContrib && importMapMchango.value && importMapping.mchango !== null)
+      const paidAmount    = (importMapMchango.value && importMapping.mchango !== null)
         ? cleanNumeric(row[importMapping.mchango]) : null
 
       const existing = phone ? phoneIndex.get(phone) : null
@@ -3489,55 +3388,39 @@ function buildPreviewList() {
 async function runImport() {
   if (!importPreviewList.value.length || importing.value) return
   importing.value = true
-  const uid            = auth.currentUser?.uid
-  const templateCardId = importKardType.value === 'contact' ? 'contact' : importMapping.card
-  const snapshot       = [...importPreviewList.value]   // copy so we can mutate the reactive list
+  const snapshot = [...importPreviewList.value]   // copy so we can mutate the reactive list
 
-  for (let i = 0; i < snapshot.length; i += 2) {
-    const batch   = snapshot.slice(i, i + 2)
-    const payload = batch.map(p => ({
-      id:               p._id,
-      cards:            {},
-      checkinStatus:    [],
-      createdAt:        new Date().toISOString(),
-      email:            '',
-      fullName:         p.fullName,
-      fullNameLower:    p.fullNameLower,
-      attendanceStatus: 'Not Confirmed',
-      phone:            p.phone,
-      messages:         {},
-      messageIndexes:   [],
-      labelIds:         p.labelIds,
-      idComment:        'No Comment',
-      ...(p.pledgedAmount != null ? { pledgedAmount: p.pledgedAmount } : {}),
-      ...(p.paidAmount    != null ? { paidAmount:    p.paidAmount    } : {}),
-    }))
+  // Firestore batched writes cap at 500 ops — chunk well under that.
+  const CHUNK = 400
+  for (let i = 0; i < snapshot.length; i += CHUNK) {
+    const chunk = snapshot.slice(i, i + CHUNK)
+    const batch = writeBatch(db)
+    for (const p of chunk) {
+      batch.set(doc(db, 'events', eventId.value, 'attendees', p._id), {
+        id:               p._id,
+        cards:            {},
+        checkinStatus:    [],
+        createdAt:        new Date().toISOString(),
+        email:            '',
+        fullName:         p.fullName,
+        fullNameLower:    p.fullNameLower,
+        attendanceStatus: 'Not Confirmed',
+        phone:            p.phone,
+        messages:         {},
+        messageIndexes:   [],
+        labelIds:         p.labelIds,
+        idComment:        'No Comment',
+        ...(p.pledgedAmount != null ? { pledgedAmount: p.pledgedAmount } : {}),
+        ...(p.paidAmount    != null ? { paidAmount:    p.paidAmount    } : {}),
+      }, { merge: true })
+    }
 
     try {
-      const res = await fetch(CREATE_ATTENDEES_URL, {
-        method:  'POST',
-        headers: { 'Authorization': `Bearer ${uid}` },
-        body:    JSON.stringify({
-          eventId:        eventId.value,
-          attendees:      payload,
-          templateCardId,
-          usepng:         props.event?.usepng ?? true,
-          kardType:       importKardType.value,
-        }),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const json = await res.json()
-      if (!json.status) throw new Error(json.message ?? 'Server error')
-
-      for (const result of (json.data ?? [])) {
-        if (!result.status) continue
-        const p   = batch.find(a => a._id === result.attendeeId)
-        const idx = importPreviewList.value.findIndex(a => a._id === result.attendeeId)
+      await batch.commit()
+      for (const p of chunk) {
+        const idx = importPreviewList.value.findIndex(a => a._id === p._id)
         if (idx !== -1) importPreviewList.value.splice(idx, 1)
-        // For contribution / contact: write a payment sub-collection entry when paidAmount > 0
-        if (p && (importKardType.value === 'contribution' || importKardType.value === 'contact') && p.paidAmount) {
-          setImportPayment(result.attendeeId, p.paidAmount)
-        }
+        if (p.paidAmount) setImportPayment(p._id, p.paidAmount)
       }
     } catch (err) {
       console.error('Import batch error', err)
