@@ -436,7 +436,7 @@
           </span>
 
           <!-- Date -->
-          <span class="ea-card-date">{{ formatDate(att.createdAt) }}</span>
+          <span class="ea-card-date">{{ formatDateTime(att.createdAt) }}</span>
 
           <!-- Row action buttons (shown on hover or when pending) -->
           <div class="ea-card-actions" @click.stop>
@@ -868,6 +868,7 @@
                   v-for="cardOpt in CARD_OPTIONS"
                   :key="cardOpt.id"
                   class="ea-send-card-item"
+                  :class="{ 'ea-send-card-item--disabled': checkingCardOption }"
                   @click="selectCardOption(cardOpt)"
                 >
                   <div class="ea-send-card-icon" v-html="cardOpt.icon" />
@@ -875,7 +876,10 @@
                     <span class="ea-send-card-name">{{ cardOpt.title }}</span>
                     <span class="ea-send-card-desc">{{ cardOpt.desc }}</span>
                   </div>
-                  <svg class="ea-send-card-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg v-if="checkingCardOption === cardOpt.id" class="ea-send-card-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M21 12a9 9 0 1 1-9-9"/>
+                  </svg>
+                  <svg v-else class="ea-send-card-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </div>
@@ -2228,6 +2232,14 @@ function formatDate(iso) {
   return d.toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function formatDateTime(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  const datePart = d.toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })
+  const timePart = d.toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })
+  return `${datePart}, ${timePart}`
+}
+
 function formatMoney(n) {
   if (!n) return 'TZS 0'
   return 'TZS ' + Number(n).toLocaleString()
@@ -2561,12 +2573,57 @@ const CARD_OPTIONS = [
   }
 ]
 
-function selectCardOption(cardOpt) {
-  closeSendModal()
-  router.push({
-    path: `/event/${eventId.value}/cards`,
-    query: { filter: cardOpt.purpose }
-  })
+const DESIGNER_BASE = 'https://haflaway-designer.web.app/designer'
+const checkingCardOption = ref(null)
+async function selectCardOption(cardOpt) {
+  if (checkingCardOption.value) return
+  checkingCardOption.value = cardOpt.id
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, 'events', eventId.value, 'cards'),
+        where('purpose', '==', cardOpt.purpose),
+      )
+    )
+    if (snap.empty) {
+      closeSendModal()
+      window.open(`${DESIGNER_BASE}/${eventId.value}/create`, '_blank', 'noopener')
+      return
+    }
+
+    // Reuse one canonical, static campaign per card purpose per event so repeat
+    // sends never lose track of who's already received it (send status lives
+    // on the attendee's messageIndexes, keyed by this campaign's doc id).
+    const campSnap = await getDocs(
+      query(
+        collection(db, 'events', eventId.value, 'campaigns'),
+        where('cardPurpose', '==', cardOpt.purpose),
+      )
+    )
+    let campaignId
+    if (!campSnap.empty) {
+      campaignId = campSnap.docs[0].id
+    } else {
+      const docRef = await addDoc(collection(db, 'events', eventId.value, 'campaigns'), {
+        name: cardOpt.title,
+        type: cardOpt.purpose,
+        cardPurpose: cardOpt.purpose,
+        whatsappMessage: null,
+        smsMessage: null,
+        createdAt: new Date().toISOString(),
+        status: 'draft',
+      })
+      campaignId = docRef.id
+    }
+
+    closeSendModal()
+    router.push(`/event/${eventId.value}/bulk-messages?campaign=${campaignId}&send=1&returnTo=${encodeURIComponent(`/event/${eventId.value}/attendees`)}`)
+  } catch (e) {
+    console.error('selectCardOption:', e)
+    closeSendModal()
+  } finally {
+    checkingCardOption.value = null
+  }
 }
 
 // Round-trips back here after a campaign row sent the user off to the
@@ -2594,7 +2651,6 @@ async function createPresetCampaign(label) {
   try {
     const docRef = await addDoc(collection(db, 'events', eventId.value, 'campaigns'), {
       name: label,
-      type: 'invitation',
       whatsappMessage: null,
       smsMessage: null,
       createdAt: new Date().toISOString(),
@@ -5096,6 +5152,16 @@ function setImportPayment(attendeeId, amount) {
 .ea-send-card-item:hover .ea-send-card-chev {
   color: #18181b;
   transform: translateX(2px);
+}
+.ea-send-card-item--disabled { opacity: 0.5; pointer-events: none; }
+.ea-send-card-spinner {
+  color: #9ca3af;
+  flex-shrink: 0;
+  animation: ea-spin 700ms linear infinite;
+}
+@keyframes ea-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 .ea-send-opts {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px;

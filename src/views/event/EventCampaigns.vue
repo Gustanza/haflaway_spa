@@ -563,7 +563,7 @@
                       <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                     </svg>
                   </span>
-                  <h2 class="em-drawer-title">Send {{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }} Campaign</h2>
+                  <h2 class="em-drawer-title">{{ selectedCustomCamp?.cardPurpose ? `Send ${selectedCustomCamp.name}` : `Send ${sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS'} Campaign` }}</h2>
                 </div>
                 <button class="em-drawer-close" @click="closeSendDrawer" title="Close">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -597,7 +597,7 @@
                   <div class="em-custom-camp-display">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color: var(--cx-muted); flex-shrink: 0;" stroke-width="1.8" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                     {{ selectedCustomCamp?.name }}
-                    <span class="em-custom-camp-type">{{ selectedCustomCamp?.type }}</span>
+                    <span v-if="selectedCustomCamp?.type" class="em-custom-camp-type">{{ selectedCustomCamp.type }}</span>
                   </div>
                 </div>
 
@@ -689,11 +689,43 @@
 
                   <p class="em-recip-hint">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    {{ sendRecipCount }} recipient{{ sendRecipCount !== 1 ? 's' : '' }} will receive this message
+                    {{ sendRecipCount }} recipient{{ sendRecipCount !== 1 ? 's' : '' }} will receive this {{ selectedCustomCamp?.cardPurpose ? 'card' : 'message' }}
                   </p>
                 </div>
 
-                <div class="em-drawer-section">
+                <div v-if="selectedCustomCamp?.cardPurpose" class="em-drawer-section">
+                  <p class="em-drawer-section-label">Card</p>
+                  <div class="em-tpl-item em-tpl-item--active" style="cursor: default">
+                    <div class="em-tpl-body">
+                      <p class="em-tpl-content">
+                        Each recipient gets their own card, rendered fresh from the
+                        {{ selectedCustomCamp.name }} template at send time — no message to write here.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div v-if="sendRunId" class="em-send-run">
+                    <p class="em-send-run-title">
+                      <svg v-if="!sendRun?.finishedAt" class="em-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                      <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      {{ sendRun?.finishedAt ? 'Done' : 'Sending…' }}
+                      {{ (sendRun?.counts?.sent ?? 0) + (sendRun?.counts?.renderFailed ?? 0) + (sendRun?.counts?.sendFailed ?? 0) }} / {{ sendRun?.total ?? '…' }}
+                    </p>
+                    <div class="em-send-run-counts">
+                      <span class="em-send-run-count em-send-run-count--ok">{{ sendRun?.counts?.sent ?? 0 }} sent</span>
+                      <span v-if="sendRun?.counts?.renderFailed" class="em-send-run-count em-send-run-count--err">{{ sendRun.counts.renderFailed }} render failed</span>
+                      <span v-if="sendRun?.counts?.sendFailed" class="em-send-run-count em-send-run-count--err">{{ sendRun.counts.sendFailed }} send failed</span>
+                    </div>
+                    <div v-if="sendRun?.results" class="em-send-run-log">
+                      <div v-for="(r, attId) in sendRun.results" :key="attId" class="em-send-run-row" :class="`em-send-run-row--${r.status}`">
+                        <span class="em-send-run-row-name">{{ recipientsById[attId]?.fullName ?? attId }}</span>
+                        <span class="em-send-run-row-status">{{ SEND_RUN_STATUS_LABELS[r.status] ?? r.status }}<template v-if="r.error"> — {{ r.error }}</template></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else class="em-drawer-section">
                   <p class="em-drawer-section-label">
                     {{ sendChannel === 'whatsapp' ? 'Template' : 'Message' }}
                     <span v-if="sendChannel === 'whatsapp' && loadingTemplates" class="em-tpl-loading">
@@ -777,7 +809,9 @@
                             </svg>
                           </div>
                           <p class="em-preview-empty-msg">
-                            {{ sendChannel === 'whatsapp' ? 'Pick a template to preview it here.' : 'Set an SMS message to preview it here.' }}
+                            {{ selectedCustomCamp?.cardPurpose
+                              ? 'Each recipient\'s card is rendered individually — no shared preview to show here.'
+                              : (sendChannel === 'whatsapp' ? 'Pick a template to preview it here.' : 'Set an SMS message to preview it here.') }}
                           </p>
                           <p class="em-preview-empty-hint">Real-time mobile delivery simulation</p>
                         </div>
@@ -907,7 +941,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db, auth } from '../../firebase'
-import { collection, query, orderBy, where, getDocs, addDoc, setDoc, deleteDoc, doc } from 'firebase/firestore'
+import { collection, query, orderBy, where, getDocs, addDoc, setDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore'
 import { useNavDrawer } from '../../composables/useNavDrawer.js'
 import { useOrg } from '../../composables/useOrg.js'
 
@@ -921,6 +955,10 @@ const eventId = computed(() => props.eventId ?? route.params.eventId)
 const SMS_URL = 'https://sendsmsaction-frbu33fema-uc.a.run.app'
 const WSP_URL = 'https://sendwhatsappinvitationmessages-frbu33fema-uc.a.run.app'
 const GENERAL_CAMPAIGN_CATEGORY = 'haflaway-general-campaign'
+// Our own VPS-hosted service (see /server) — renders each recipient's card
+// then dispatches it, for the canonical per-purpose card campaigns only.
+// Defaults to localhost for local dev; set VITE_CARD_SERVER_URL once deployed.
+const CARD_SERVER_URL = import.meta.env.VITE_CARD_SERVER_URL || 'http://localhost:8080'
 
 // Inline style wins over any stylesheet cascade oddity — used to force the
 // active WhatsApp/SMS tab to render visibly. Sourced from --gold (the live
@@ -978,6 +1016,8 @@ const STATUS_OPTIONS = computed(() => {
 // ── Attendees ──────────────────────────────────────────────────────────────────
 const attendees = ref([])
 const loading   = ref(false)
+const recipientsById = computed(() => Object.fromEntries(attendees.value.map(a => [a.id, a])))
+const SEND_RUN_STATUS_LABELS = { sent: 'Sent', render_failed: 'Render failed', send_failed: 'Send failed' }
 
 async function load() {
   if (!eventId.value) return
@@ -1159,7 +1199,10 @@ function handleFilterDdOutsideClick(e) {
   }
 }
 onMounted(() => document.addEventListener('mousedown', handleFilterDdOutsideClick))
-onUnmounted(() => document.removeEventListener('mousedown', handleFilterDdOutsideClick))
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleFilterDdOutsideClick)
+  stopWatchingSendRun()
+})
 
 async function loadCustomCampaigns() {
   if (!eventId.value) return
@@ -1286,13 +1329,12 @@ async function createPresetCampaign(label) {
     const createdAt = new Date().toISOString()
     const docRef = await addDoc(collection(db, 'events', eventId.value, 'campaigns'), {
       name: label,
-      type: 'invitation',
       whatsappMessage: null,
       smsMessage: null,
       createdAt,
       status: 'draft',
     })
-    const newCamp = { id: docRef.id, name: label, type: 'invitation', whatsappMessage: null, smsMessage: null, createdAt, status: 'draft' }
+    const newCamp = { id: docRef.id, name: label, whatsappMessage: null, smsMessage: null, createdAt, status: 'draft' }
     customCampaigns.value.unshift(newCamp)
     selectCustomCamp(newCamp)
     openCustomSend()
@@ -1428,10 +1470,16 @@ const customFilteredAttendees = computed(() => {
   const status   = customStatus.value
   const labelId  = customLabelId.value
   const cardType = selectedCustomCamp.value.type
+  // A canonical card-purpose campaign (see EventAttendees.vue selectCardOption)
+  // targets the whole guest list, since it's the one that renders/issues the
+  // card in the first place — nobody has att.cards[cardType] set yet. Same for
+  // a plain message preset with no type at all (General Message, etc.) — it's
+  // not tied to any specific card, so it shouldn't be scoped by card possession.
+  const gateByCard = !selectedCustomCamp.value.cardPurpose && !!cardType
   const q        = detailSearchQ.value.trim().toLowerCase()
 
   return attendees.value.filter(att => {
-    if (!att.cards || att.cards[cardType] == null) return false
+    if (gateByCard && (!att.cards || att.cards[cardType] == null)) return false
     if (labelId && !(att.labelIds ?? []).includes(labelId)) return false
     if (q && !(att.fullName ?? '').toLowerCase().includes(q) && !(att.phone ?? '').includes(q)) return false
     const prefix = `${detailChannel.value}_${campId}_`
@@ -1454,10 +1502,11 @@ const customStatusCounts = computed(() => {
   if (!selectedCustomCamp.value) return { all: 0, unsent: 0, sent: 0, delivered: 0, read: 0, failed: 0 }
   const campId   = selectedCustomCamp.value.id
   const cardType = selectedCustomCamp.value.type
+  const gateByCard = !selectedCustomCamp.value.cardPurpose && !!cardType
   const labelId  = customLabelId.value
   const prefix   = `${detailChannel.value}_${campId}_`
   const base = attendees.value.filter(att => {
-    if (!att.cards || att.cards[cardType] == null) return false
+    if (gateByCard && (!att.cards || att.cards[cardType] == null)) return false
     if (labelId && !(att.labelIds ?? []).includes(labelId)) return false
     return true
   })
@@ -1535,7 +1584,9 @@ const drawerPickSearch = ref('')
 const sendRecipPool = computed(() => {
   if (!selectedCustomCamp.value) return []
   const cardType = selectedCustomCamp.value.type
-  let pool = attendees.value.filter(att => att.cards && att.cards[cardType] != null)
+  let pool = (selectedCustomCamp.value.cardPurpose || !cardType)
+    ? attendees.value.slice()
+    : attendees.value.filter(att => att.cards && att.cards[cardType] != null)
   if (sendLabelId.value) pool = pool.filter(a => (a.labelIds ?? []).includes(sendLabelId.value))
   return pool
 })
@@ -1604,6 +1655,26 @@ const selectedTemplate = ref(null)
 const loadingTemplates = ref(false)
 const sending          = ref(false)
 const sendResult       = ref(null)
+// Card-purpose sends run async on the card server and report progress via a
+// Firestore doc this listens to live — same "reactive Firestore read drives
+// the UI" pattern the rest of this screen already uses for Sent/Unsent counts.
+const sendRunId    = ref(null)
+const sendRun      = ref(null)
+let unsubscribeSendRun = null
+function stopWatchingSendRun() {
+  if (unsubscribeSendRun) { unsubscribeSendRun(); unsubscribeSendRun = null }
+  sendRunId.value = null
+  sendRun.value = null
+}
+function watchSendRun(campaignId, runId) {
+  stopWatchingSendRun()
+  sendRunId.value = runId
+  unsubscribeSendRun = onSnapshot(
+    doc(db, 'events', eventId.value, 'campaigns', campaignId, 'sendRuns', runId),
+    (snap) => { sendRun.value = snap.exists() ? snap.data() : null },
+    (e) => console.error('watchSendRun:', e)
+  )
+}
 // Set only when this drawer was deep-linked open from elsewhere (e.g. the
 // Guest List "Send" flow) — closing it should then hand the user back to
 // where they came from instead of stranding them on this campaign's detail
@@ -1612,6 +1683,13 @@ const deepLinkReturnTo = ref(deepLinkSend ? (route.query.returnTo ?? null) : nul
 
 const canSend = computed(() => {
   if (sending.value || sendRecipCount.value === 0) return false
+  // A card-purpose campaign has no message/template to fill in — the card
+  // itself, rendered fresh per recipient, is the content. But its send runs
+  // async on the card server after this returns, so `sending` alone doesn't
+  // cover the whole window — block again while a started run hasn't reported
+  // finishedAt yet, otherwise a double-click (or a second tab) can fire a
+  // second overlapping batch against the same recipients.
+  if (selectedCustomCamp.value?.cardPurpose) return !(sendRunId.value && !sendRun.value?.finishedAt)
   if (sendChannel.value === 'whatsapp') return !!selectedTemplate.value && !!selectedCustomCamp.value?.whatsappMessage
   return !!selectedCustomCamp.value?.smsMessage
 })
@@ -1630,6 +1708,7 @@ function openCustomSend() {
   sendCampaign.value = selectedCustomCamp.value.id
   sendChannel.value  = 'sms'
   sendResult.value   = null
+  stopWatchingSendRun()
   sendRecipMode.value = 'unsent'
   sendLabelId.value = null
   pickOpen.value = false
@@ -1646,6 +1725,7 @@ function onChannelChange(ch) {
 }
 
 function closeSendDrawer() {
+  stopWatchingSendRun()
   // The deep link is spent either way — otherwise an in-flight campaigns fetch
   // that lands after this close would walk back in and re-open the composer.
   deepLinkPending = false
@@ -1700,14 +1780,60 @@ async function loadSendTemplates() {
   }
 }
 
+async function executeSendCard() {
+  const user = auth.currentUser
+  if (!user) throw new Error('Not authenticated')
+  const idToken = await user.getIdToken()
+  const campaignId = selectedCustomCamp.value.id
+  const res = await fetch(
+    `${CARD_SERVER_URL}/events/${eventId.value}/campaigns/${campaignId}/send`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        attendeeIds: sendRecipients.value.map(a => a.id),
+        channel: sendChannel.value,
+        purpose: selectedCustomCamp.value.cardPurpose,
+      }),
+    }
+  )
+  const data = await res.json()
+  if (res.status === 409 && data.runId) {
+    // Another click/tab already has a run going for this campaign — attach to
+    // it instead of erroring, so progress still shows correctly.
+    watchSendRun(campaignId, data.runId)
+    return
+  }
+  if (!res.ok || !data.ok) {
+    sendResult.value = { ok: false, message: data.message ?? `Request failed (${res.status}).` }
+    return
+  }
+  // The batch keeps running on the card server after this returns — progress
+  // streams in live via the sendRuns doc this now starts watching, the same
+  // way Sent/Unsent counts elsewhere on this screen stay live off Firestore.
+  watchSendRun(campaignId, data.runId)
+  drawerPickList.value = []
+}
+
 async function executeSend() {
   if (!canSend.value) return
   sending.value = true
   sendResult.value = null
   try {
+    if (selectedCustomCamp.value?.cardPurpose) {
+      await executeSendCard()
+      return
+    }
     const user = auth.currentUser
     if (!user) throw new Error('Not authenticated')
-    const kardType = selectedCustomCamp.value?.type ?? 'invitation'
+    // Sourced from cardPurpose, not the campaign's own `type` — a manually
+    // -typed reminder campaign (or a legacy doc from before cardPurpose
+    // existed) has a real `type` but must never get a card attached; only
+    // the canonical per-purpose campaigns should, and those never reach this
+    // branch at all (see the cardPurpose check above). This is always null
+    // here in practice — kept explicit rather than a bare `null` so the
+    // invariant stays visible if that ever changes.
+    const kardType = selectedCustomCamp.value?.cardPurpose ?? null
     const url = sendChannel.value === 'whatsapp' ? WSP_URL : SMS_URL
     const body = sendChannel.value === 'whatsapp'
       ? { templateId: selectedTemplate.value.id, type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipients.value.map(a => a.id), kardType }
@@ -3159,6 +3285,20 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-tpl-radio-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
 .em-tpl-body    { flex: 1; min-width: 0; }
 .em-tpl-content { font-size: 13px; color: var(--c-txt); margin: 0 0 4px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+
+.em-send-run { margin-top: 14px; padding: 12px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-bg); }
+.em-send-run-title { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: var(--c-txt); margin: 0 0 8px; }
+.em-send-run-counts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.em-send-run-count { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+.em-send-run-count--ok  { background: rgba(34,197,94,0.12); color: #22c55e; }
+.em-send-run-count--err { background: rgba(239,68,68,0.12); color: #ef4444; }
+.em-send-run-log { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.em-send-run-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; padding: 6px 8px; border-radius: 8px; background: var(--c-bg-2, rgba(148,163,184,0.06)); }
+.em-send-run-row-name { color: var(--c-txt); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.em-send-run-row-status { color: var(--c-txt-2); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.em-send-run-row--render_failed .em-send-run-row-status,
+.em-send-run-row--send_failed .em-send-run-row-status { color: #ef4444; }
+.em-send-run-row--sent .em-send-run-row-status { color: #22c55e; }
 .em-tpl-meta    { font-size: 11px; color: var(--c-txt-3); margin: 0; }
 
 /* ── Live message preview (right column) ── */
