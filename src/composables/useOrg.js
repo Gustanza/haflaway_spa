@@ -174,6 +174,39 @@ async function setEventSenderId(eventId, senderId) {
   return res.data
 }
 
+// ── SMS provider credentials (smtz / wasambazie) ────────────────────────────
+// Per-organization override for the two providers whose credentials aren't
+// baked into env vars shared by every org (see functions/organizations/
+// smsCredentials.js and haflaway_server's resolveOrgSmsCredentials). Only
+// ever holds `{ configured, updatedAt }` per provider — the actual secret
+// values never round-trip back to the client once saved.
+const smsCredentialsStatus = ref({ smtz: null, wasambazie: null })
+
+// Not a live listener (unlike senderIds) — status comes from a callable, not
+// a Firestore read, so the panel that shows it re-fetches on demand (tab
+// open / org switch) rather than subscribing.
+async function loadSmsCredentialsStatus(orgId) {
+  if (!orgId) { smsCredentialsStatus.value = { smtz: null, wasambazie: null }; return smsCredentialsStatus.value }
+  const res = await httpsCallable(functions, 'getOrgSmsCredentialsStatus')({ orgId })
+  smsCredentialsStatus.value = res.data
+  return res.data
+}
+
+// Owner-only, enforced server-side. `credentials` is `{ apiKey }` for smtz or
+// `{ publicKey, secretKey }` for wasambazie.
+async function setSmsCredentials(orgId, provider, credentials) {
+  const res = await httpsCallable(functions, 'setOrgSmsCredentials')({ orgId, provider, credentials })
+  await loadSmsCredentialsStatus(orgId)
+  return res.data
+}
+
+// Drops the org's override so dispatch falls back to the platform default.
+async function clearSmsCredentials(orgId, provider) {
+  const res = await httpsCallable(functions, 'clearOrgSmsCredentials')({ orgId, provider })
+  await loadSmsCredentialsStatus(orgId)
+  return res.data
+}
+
 // Per-member capabilities live in the org's `memberPerms` map, keyed by uid:
 //   { [uid]: { canCreate: true, ... } }
 // The owner is implicitly all-true and never appears in the map. Adding a
@@ -327,6 +360,10 @@ export function useOrg() {
     requestSenderId,
     setDefaultSenderId,
     setEventSenderId,
+    smsCredentialsStatus,
+    loadSmsCredentialsStatus,
+    setSmsCredentials,
+    clearSmsCredentials,
     canCreateEvents,
     memberCan,
     setMemberPermission,

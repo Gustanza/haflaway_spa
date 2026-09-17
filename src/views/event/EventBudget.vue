@@ -1,334 +1,221 @@
 <template>
   <div class="eb-root">
 
-    <!-- ── Stat cards ── -->
-    <div class="eb-stats" v-if="!loading && !loadError">
-      <div class="eb-stat-card">
-        <div class="eb-stat-icon eb-stat-icon--purple">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="7" width="20" height="14" rx="2"/>
-            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-          </svg>
-        </div>
-        <div class="eb-stat-body">
-          <span class="eb-stat-lbl">Total Estimated</span>
-          <span class="eb-stat-val eb-stat-val--money">TZS {{ formatMoney(totalEstimated) }}</span>
-        </div>
-      </div>
-
-      <div class="eb-stat-card">
-        <div class="eb-stat-icon eb-stat-icon--gold">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"/>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
-        </div>
-        <div class="eb-stat-body">
-          <span class="eb-stat-lbl">Total Spent</span>
-          <span class="eb-stat-val eb-stat-val--money">TZS {{ formatMoney(totalActual) }}</span>
-        </div>
-      </div>
-
-      <div class="eb-stat-card">
-        <div class="eb-stat-icon" :class="remaining >= 0 ? 'eb-stat-icon--teal' : 'eb-stat-icon--red'">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <template v-if="remaining >= 0">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-              <polyline points="17 6 23 6 23 12"/>
-            </template>
-            <template v-else>
-              <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
-              <polyline points="17 18 23 18 23 12"/>
-            </template>
-          </svg>
-        </div>
-        <div class="eb-stat-body">
-          <span class="eb-stat-lbl">{{ remaining >= 0 ? 'Remaining' : 'Over Budget' }}</span>
-          <span class="eb-stat-val eb-stat-val--money" :style="{ color: remaining >= 0 ? '#2dd4bf' : '#fc8181' }">
-            TZS {{ formatMoney(Math.abs(remaining)) }}
-          </span>
-        </div>
-      </div>
-
-      <div class="eb-stat-card">
-        <div class="eb-stat-icon eb-stat-icon--blue">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-        </div>
-        <div class="eb-stat-body">
-          <span class="eb-stat-lbl">Line Items</span>
-          <span class="eb-stat-val">{{ items.length }}</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="eb-panel">
-
+    <div class="eb-sticky-head">
       <div class="eb-panel-hd">
-        <h2 class="eb-panel-title">Budget</h2>
-        <div class="eb-panel-acts">
-          <!-- Search expanded state -->
-          <template v-if="searchOpen">
-            <div class="eb-search-expanded">
-              <div class="eb-search-wrap">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input
-                  ref="searchInputRef"
-                  v-model="searchQ"
-                  class="eb-search"
-                  placeholder="Search items…"
-                  @keydown.esc="closeSearch"
-                />
-                <button v-if="searchQ" class="eb-search-clear" @click="searchQ = ''">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <button class="eb-search-cancel" @click="closeSearch">Cancel</button>
-          </template>
-
-          <!-- Normal state -->
-          <template v-else>
-            <!-- Search pill -->
-            <button
-              class="eb-search-pill"
-              :class="{ 'eb-search-pill--active': searchQ }"
-              @click="openSearch"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              Search
-            </button>
-
-            <!-- Count label -->
-            <span class="eb-toolbar-count" v-if="!loading">{{ filtered.length }} item{{ filtered.length !== 1 ? 's' : '' }}</span>
-
-            <!-- Refresh pill -->
-            <button class="eb-refresh-btn" @click="load()" :disabled="loading" title="Refresh">
-              <svg
-                width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
-                :class="{ 'eb-spin': loading }"
-              >
-                <polyline points="23 4 23 10 17 10"/>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-              </svg>
-            </button>
-
-            <!-- Add button -->
-            <button class="eb-add-btn" @click="openAdd">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Add Item
-            </button>
-          </template>
-        </div>
-      </div>
-
-    <!-- ── Loading skeleton ── -->
-    <div class="eb-list" v-if="loading">
-      <div v-for="i in 5" :key="i" class="eb-card eb-card--sk">
-        <div class="eb-sk-circle"></div>
-        <div class="eb-card-info">
-          <div class="eb-sk-bar eb-sk-bar--lg"></div>
-          <div class="eb-sk-bar eb-sk-bar--sm" style="margin-top:4px"></div>
-        </div>
-        <div class="eb-card-amounts">
-          <div class="eb-amount-item">
-            <div class="eb-sk-bar eb-sk-bar--sm"></div>
-            <div class="eb-sk-bar eb-sk-bar--lg" style="margin-top:4px"></div>
-          </div>
-          <div class="eb-amount-item">
-            <div class="eb-sk-bar eb-sk-bar--sm"></div>
-            <div class="eb-sk-bar eb-sk-bar--lg" style="margin-top:4px"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Error ── -->
-    <div v-else-if="loadError" class="eb-empty">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#e55" stroke-width="1.5">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      <p class="eb-empty-title">Something went wrong</p>
-      <p class="eb-empty-sub">{{ loadError }}</p>
-    </div>
-
-    <!-- ── Card list ── -->
-    <div v-else class="eb-list">
-
-      <!-- Empty state -->
-      <div v-if="!filtered.length" class="eb-empty">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="7" width="20" height="14" rx="2"/>
-          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-          <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
-        </svg>
-        <p class="eb-empty-title">{{ searchQ ? 'No matching items' : 'No budget items yet' }}</p>
-        <p class="eb-empty-sub">{{ searchQ ? 'Try a different search term' : 'Start planning what you need for your event' }}</p>
-        <button v-if="!searchQ" class="eb-add-btn eb-add-btn--lg" @click="openAdd">Add First Item</button>
-      </div>
-
-      <!-- Item cards -->
-      <div
-        v-for="(item, i) in filtered"
-        :key="item.id"
-        class="eb-card"
-        :class="item.actualCost != null && item.actualCost > item.estimatedCost ? 'eb-card--expense' : 'eb-card--income'"
-      >
-        <!-- Icon zone -->
-        <div class="eb-card-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="7" width="20" height="14" rx="2"/>
-            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        <button type="button" class="eb-hd-burger" title="Menu" @click="navDrawer.open()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
+        </button>
+        <div class="eb-hd-sep" />
+        <div class="eb-hd-badge" @click="$router.push('/events')" title="All Events">
+          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="eb-hd-brand-logo" />
+          <span v-else class="eb-hd-brand-script">.joy</span>
+        </div>
+        <div class="eb-hd-sep" />
+        <div class="eb-hd-title-group">
+          <h1 class="eb-hub-title">Budget</h1>
+          <span class="eb-hub-count">{{ items.length }}</span>
         </div>
 
-        <!-- Identity -->
-        <div class="eb-card-info">
-          <span class="eb-card-name">{{ item.description }}</span>
-          <div class="eb-card-meta">
-            <span class="eb-cat-badge">{{ item.category }}</span>
-            <span class="eb-status" :class="`eb-status--${item.status}`">{{ STATUS_LABELS[item.status] ?? item.status }}</span>
-          </div>
-          <span v-if="item.vendor" class="eb-card-vendor">{{ item.vendor }}</span>
-        </div>
-
-        <!-- Amounts -->
-        <div class="eb-card-amounts">
-          <div class="eb-amount-item">
-            <span class="eb-amount-label">Estimated</span>
-            <span class="eb-amount-value eb-amount-value--gold">{{ formatMoney(item.estimatedCost) }}</span>
-          </div>
-          <div class="eb-amount-item">
-            <span class="eb-amount-label">Actual</span>
-            <span
-              v-if="item.actualCost != null"
-              class="eb-amount-value"
-              :class="item.actualCost > item.estimatedCost ? 'eb-amount-value--over' : 'eb-amount-value--under'"
-            >{{ formatMoney(item.actualCost) }}</span>
-            <span v-else class="eb-amount-value eb-amount-value--dash">—</span>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="eb-card-actions">
-          <button class="eb-act-btn" @click="openEdit(item)" title="Edit">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-          <button class="eb-act-btn eb-act-btn--danger" @click="deleteItem(item)" title="Delete">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/><path d="M14 11v6"/>
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Footer totals -->
-      <div v-if="filtered.length" class="eb-table-footer">
-        <span class="eb-range-label">{{ filtered.length }} item{{ filtered.length !== 1 ? 's' : '' }}</span>
-        <span class="eb-range-label">
-          Estimated: TZS {{ formatMoney(totalEstimated) }} &nbsp;·&nbsp; Spent: TZS {{ formatMoney(totalActual) }}
-        </span>
-      </div>
-    </div>
-
-    </div><!-- /eb-panel -->
-
-    <!-- ── Add/Edit Modal ── -->
-    <div v-if="modal.open" class="eb-backdrop" @click.self="closeModal">
-      <div class="eb-modal">
-        <div class="eb-modal-hd">
-          <h2 class="eb-modal-title">{{ modal.editId ? 'Edit Budget Item' : 'Add Budget Item' }}</h2>
-          <button class="eb-modal-close" @click="closeModal" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <div class="eb-search-wrap">
+          <svg class="eb-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input v-model="searchQ" class="eb-search" placeholder="Filter by name" />
+          <button v-if="searchQ" type="button" class="eb-search-clear" @click="searchQ = ''" aria-label="Clear">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
+          <span v-else class="eb-search-filter" title="Filter">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+              <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+              <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+            </svg>
+          </span>
         </div>
 
-        <form class="eb-modal-body" @submit.prevent="saveItem">
-          <div class="eb-field">
-            <label class="eb-label">Category</label>
+        <button type="button" class="eb-add-btn" @click="openAdd">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add Item
+        </button>
+        <button type="button" class="eb-hd-gear" title="Settings" @click="$router.push(`/event/${eventId}/settings`)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="eb-toolbar2">
+        <button
+          v-for="f in STATUS_FILTERS" :key="f.val" type="button"
+          class="eb-tb2-btn" :class="{ 'eb-tb2-btn--active': statusFilter === f.val }"
+          @click="statusFilter = f.val"
+        >
+          <span class="eb-tb2-lbl">
+            {{ f.label }}
+            <span class="eb-tb2-cnt">{{ statusCount(f.val) }}</span>
+          </span>
+        </button>
+        <div class="eb-tb2-divider" />
+        <span class="eb-tb2-stat">Est. TZS {{ formatMoney(totalEstimated) }}</span>
+        <span class="eb-tb2-stat">Spent TZS {{ formatMoney(totalActual) }}</span>
+        <span class="eb-tb2-stat" :class="{ 'eb-tb2-stat--over': remaining < 0 }">
+          {{ remaining >= 0 ? 'Left' : 'Over' }} TZS {{ formatMoney(Math.abs(remaining)) }}
+        </span>
+      </div>
+
+      <div class="eb-row-grid eb-col-head" v-if="!loading && filtered.length">
+        <button type="button" class="eb-col-btn" @click="toggleSort('name')">
+          Item
+          <svg class="eb-sort-icon" :class="{ 'eb-sort-icon--active': sortKey === 'name', 'eb-sort-icon--desc': sortKey === 'name' && sortDir === 'desc' }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <span class="eb-col-lbl">Category</span>
+        <span class="eb-col-lbl">Vendor</span>
+        <button type="button" class="eb-col-btn" @click="toggleSort('status')">
+          Status
+          <svg class="eb-sort-icon" :class="{ 'eb-sort-icon--active': sortKey === 'status', 'eb-sort-icon--desc': sortKey === 'status' && sortDir === 'desc' }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <button type="button" class="eb-col-btn eb-col-btn--right" @click="toggleSort('est')">
+          Estimated
+          <svg class="eb-sort-icon" :class="{ 'eb-sort-icon--active': sortKey === 'est', 'eb-sort-icon--desc': sortKey === 'est' && sortDir === 'desc' }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <button type="button" class="eb-col-btn eb-col-btn--right" @click="toggleSort('spent')">
+          Spent
+          <svg class="eb-sort-icon" :class="{ 'eb-sort-icon--active': sortKey === 'spent', 'eb-sort-icon--desc': sortKey === 'spent' && sortDir === 'desc' }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <span class="eb-col-actions" />
+      </div>
+    </div>
+
+    <div class="eb-table-wrap">
+      <div v-if="loading && !items.length" class="eb-list">
+        <div v-for="n in 6" :key="n" class="eb-row-grid eb-row eb-row--sk">
+          <div class="eb-sk-bar eb-sk-bar--lg" />
+          <div class="eb-sk-bar eb-sk-bar--sm" />
+          <div class="eb-sk-bar eb-sk-bar--md" />
+          <div class="eb-sk-bar eb-sk-bar--sm" />
+          <div class="eb-sk-bar eb-sk-bar--sm" />
+          <div class="eb-sk-bar eb-sk-bar--sm" />
+          <span />
+        </div>
+      </div>
+
+      <div v-else-if="loadError" class="eb-empty">
+        <p class="eb-empty-kicker">Error</p>
+        <h2 class="eb-empty-title">Couldn’t load the budget</h2>
+        <p class="eb-empty-lede">{{ loadError }}</p>
+      </div>
+
+      <div v-else-if="!filtered.length" class="eb-empty">
+        <p class="eb-empty-kicker">The ledger</p>
+        <h2 class="eb-empty-title">{{ searchQ || statusFilter !== 'all' ? 'Nothing matches' : 'Still unwritten' }}</h2>
+        <p class="eb-empty-lede">{{ searchQ || statusFilter !== 'all' ? 'Try another search or filter.' : 'Venue, flowers, the band — add a line and estimated, spent, and remaining stay in the bar above.' }}</p>
+        <button v-if="!searchQ && statusFilter === 'all'" type="button" class="eb-empty-row" @click="openAdd">
+          <span class="eb-empty-plus">+</span>
+          <span class="eb-empty-row-copy">
+            <span class="eb-empty-row-title">Add a line item</span>
+            <span class="eb-empty-row-sub">Estimated now, actual when you pay</span>
+          </span>
+        </button>
+      </div>
+
+      <div v-else class="eb-list">
+        <div
+          v-for="item in filtered"
+          :key="item.id"
+          class="eb-row-grid eb-row"
+          role="button"
+          tabindex="0"
+          @click="openEdit(item)"
+          @keydown.enter="openEdit(item)"
+        >
+          <span class="eb-cell-name">{{ item.description }}</span>
+          <span class="eb-cell-muted">{{ item.category || '—' }}</span>
+          <span class="eb-cell-muted">{{ item.vendor || '—' }}</span>
+          <span class="eb-badge" :class="`eb-badge--${item.status}`">{{ STATUS_LABELS[item.status] ?? item.status }}</span>
+          <span class="eb-cell-amt">TZS {{ formatMoney(item.estimatedCost) }}</span>
+          <span class="eb-cell-amt" :class="{ 'eb-cell-amt--over': item.actualCost != null && item.actualCost > item.estimatedCost }">
+            {{ item.actualCost != null ? 'TZS ' + formatMoney(item.actualCost) : '—' }}
+          </span>
+          <button type="button" class="eb-row-del" title="Delete" @click.stop="deleteItem(item)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <Teleport to="body">
+      <div v-if="modal.open" class="eb-joy-backdrop" @pointerdown.self="closeModal">
+        <div class="eb-dialog" role="dialog" aria-modal="true" @pointerdown.stop>
+          <div class="eb-dialog-hd">
+            <h3 class="eb-dialog-title">{{ modal.editId ? 'Edit line item' : 'Add line item' }}</h3>
+            <button type="button" class="eb-dialog-x" aria-label="Close" @click="closeModal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <form class="eb-dialog-body" @submit.prevent="saveItem">
+            <label class="eb-field-label">Category</label>
             <select v-model="modal.form.category" class="eb-input" required>
               <option value="" disabled>Select a category</option>
               <option v-for="c in CATEGORIES" :key="c" :value="c">{{ c }}</option>
             </select>
-          </div>
-
-          <div class="eb-field">
-            <label class="eb-label">Description</label>
+            <label class="eb-field-label">Description</label>
             <input v-model="modal.form.description" class="eb-input" placeholder="e.g. Dinner for 300 guests" required />
-          </div>
-
-          <div class="eb-field">
-            <label class="eb-label">Vendor <span class="eb-opt">(optional)</span></label>
+            <label class="eb-field-label">Vendor <span class="eb-opt">optional</span></label>
             <input v-model="modal.form.vendor" class="eb-input" placeholder="e.g. Royal Catering Co." />
-          </div>
-
-          <div class="eb-field-row">
-            <div class="eb-field">
-              <label class="eb-label">Estimated Cost (TZS)</label>
-              <input v-model.number="modal.form.estimatedCost" type="number" min="0" class="eb-input" placeholder="0" required />
-            </div>
-            <div class="eb-field">
-              <label class="eb-label">Actual Cost (TZS) <span class="eb-opt">(optional)</span></label>
-              <input v-model="modal.form.actualCostStr" type="number" min="0" class="eb-input" placeholder="leave blank if not yet spent" />
-            </div>
-          </div>
-
-          <div class="eb-field">
-            <label class="eb-label">Status</label>
+            <label class="eb-field-label">Estimated (TZS)</label>
+            <input v-model.number="modal.form.estimatedCost" type="number" min="0" class="eb-input" placeholder="0" required />
+            <label class="eb-field-label">Actual (TZS) <span class="eb-opt">optional</span></label>
+            <input v-model="modal.form.actualCostStr" type="number" min="0" class="eb-input" placeholder="Leave blank if not yet spent" />
+            <label class="eb-field-label">Status</label>
             <select v-model="modal.form.status" class="eb-input">
               <option value="planned">Planned</option>
               <option value="booked">Booked</option>
               <option value="paid">Paid</option>
             </select>
-          </div>
-
-          <div class="eb-field">
-            <label class="eb-label">Notes <span class="eb-opt">(optional)</span></label>
-            <textarea v-model="modal.form.notes" class="eb-input eb-textarea" placeholder="Any additional details..." rows="2" />
-          </div>
-
-          <div class="eb-modal-ft">
-            <button type="button" class="eb-btn eb-btn--ghost" @click="closeModal" :disabled="modal.saving">Cancel</button>
-            <button type="submit" class="eb-btn eb-btn--primary" :disabled="modal.saving">
-              {{ modal.saving ? 'Saving…' : (modal.editId ? 'Save Changes' : 'Add Item') }}
-            </button>
-          </div>
-        </form>
+            <label class="eb-field-label">Notes <span class="eb-opt">optional</span></label>
+            <textarea v-model="modal.form.notes" class="eb-textarea" rows="3" placeholder="Any extra detail…" />
+            <div class="eb-dialog-foot">
+              <button type="button" class="eb-dialog-cancel" @click="closeModal" :disabled="modal.saving">Cancel</button>
+              <button type="submit" class="eb-dialog-save" :disabled="modal.saving">
+                {{ modal.saving ? 'Saving…' : (modal.editId ? 'Save' : 'Add item') }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { db } from '../../firebase'
 import {
   collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp
 } from 'firebase/firestore'
+import { useOrg } from '../../composables/useOrg.js'
+import { useNavDrawer } from '../../composables/useNavDrawer.js'
 
 const route   = useRoute()
 const eventId = computed(() => route.params.eventId)
+const { brandName, brandLogoUrl } = useOrg()
+const navDrawer = useNavDrawer()
 
 const CATEGORIES = [
   'Venue', 'Catering', 'Photography', 'Music / DJ', 'Decoration',
@@ -336,16 +223,21 @@ const CATEGORIES = [
 ]
 
 const STATUS_LABELS = { planned: 'Planned', booked: 'Booked', paid: 'Paid' }
+const STATUS_FILTERS = [
+  { val: 'all',     label: 'All' },
+  { val: 'planned', label: 'Planned' },
+  { val: 'booked',  label: 'Booked' },
+  { val: 'paid',    label: 'Paid' },
+]
+const STATUS_SCORE = { paid: 0, booked: 1, planned: 2 }
 
 const loading   = ref(true)
 const loadError = ref('')
 const items     = ref([])
 const searchQ   = ref('')
-
-const searchOpen     = ref(false)
-const searchInputRef = ref(null)
-function openSearch() { searchOpen.value = true; nextTick(() => searchInputRef.value?.focus()) }
-function closeSearch() { searchOpen.value = false; searchQ.value = '' }
+const statusFilter = ref('all')
+const sortKey = ref('name')
+const sortDir = ref('asc')
 
 const modal = ref({ open: false, editId: null, saving: false, form: emptyForm() })
 
@@ -353,30 +245,48 @@ function emptyForm() {
   return { category: '', description: '', vendor: '', estimatedCost: '', actualCostStr: '', status: 'planned', notes: '' }
 }
 
-// ── Computed ──────────────────────────────────────────────────────────────────
-
 const totalEstimated = computed(() => items.value.reduce((s, i) => s + (i.estimatedCost ?? 0), 0))
 const totalActual    = computed(() => items.value.reduce((s, i) => s + (i.actualCost ?? 0), 0))
 const remaining      = computed(() => totalEstimated.value - totalActual.value)
 
+function statusCount(val) {
+  if (val === 'all') return items.value.length
+  return items.value.filter(i => (i.status ?? 'planned') === val).length
+}
+
 const filtered = computed(() => {
   const q = searchQ.value.trim().toLowerCase()
-  if (!q) return items.value
-  return items.value.filter(i =>
-    (i.description ?? '').toLowerCase().includes(q) ||
-    (i.category   ?? '').toLowerCase().includes(q) ||
-    (i.vendor     ?? '').toLowerCase().includes(q)
-  )
+  let list = items.value
+  if (q) {
+    list = list.filter(i =>
+      (i.description ?? '').toLowerCase().includes(q) ||
+      (i.category   ?? '').toLowerCase().includes(q) ||
+      (i.vendor     ?? '').toLowerCase().includes(q)
+    )
+  }
+  if (statusFilter.value !== 'all') {
+    list = list.filter(i => (i.status ?? 'planned') === statusFilter.value)
+  }
+  const dir = sortDir.value === 'desc' ? -1 : 1
+  return [...list].sort((a, b) => {
+    let cmp = 0
+    if (sortKey.value === 'name') cmp = (a.description ?? '').localeCompare(b.description ?? '')
+    if (sortKey.value === 'status') cmp = (STATUS_SCORE[a.status] ?? 3) - (STATUS_SCORE[b.status] ?? 3)
+    if (sortKey.value === 'est') cmp = (a.estimatedCost ?? 0) - (b.estimatedCost ?? 0)
+    if (sortKey.value === 'spent') cmp = (a.actualCost ?? -1) - (b.actualCost ?? -1)
+    return cmp * dir
+  })
 })
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+function toggleSort(key) {
+  if (sortKey.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  else { sortKey.value = key; sortDir.value = 'asc' }
+}
 
 function formatMoney(n) {
   if (n == null || n === '') return '0'
   return Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 })
 }
-
-// ── Data ──────────────────────────────────────────────────────────────────────
 
 async function load() {
   loading.value   = true
@@ -397,8 +307,6 @@ async function load() {
     loading.value = false
   }
 }
-
-// ── Modal ─────────────────────────────────────────────────────────────────────
 
 function openAdd() {
   modal.value = { open: true, editId: null, saving: false, form: emptyForm() }
@@ -424,6 +332,10 @@ function openEdit(item) {
 function closeModal() {
   if (modal.value.saving) return
   modal.value.open = false
+}
+
+function onKey(e) {
+  if (e.key === 'Escape' && modal.value.open) closeModal()
 }
 
 async function saveItem() {
@@ -474,326 +386,275 @@ async function deleteItem(item) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  window.addEventListener('keydown', onKey)
+})
+onUnmounted(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <style scoped>
 .eb-root {
-  padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 16px;
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-muted:  #3a3a3a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-  --c-divide: #2a2a2a;
-  --c-arrow:  #3a3a3a;
-  transition: background 300ms ease;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: #1f2937;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
+.eb-sticky-head { position: sticky; top: 0; z-index: 20; background: #ffffff; }
 
-/* ── Panel ── */
-.eb-panel {
-  display: flex; flex-direction: column;
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px; overflow: hidden;
-  transition: background 300ms ease, border-color 300ms ease;
-}
 .eb-panel-hd {
-  display: flex; align-items: center;
-  padding: 14px 20px; border-bottom: 1px solid var(--c-border); gap: 10px;
-}
-.eb-panel-title {
-  font-size: 19px; font-weight: 700; color: var(--c-txt); margin: 0; letter-spacing: -0.3px; white-space: nowrap;
-}
-.eb-panel-acts { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-
-/* ── Stat cards ── */
-.eb-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.eb-stat-card {
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
-  padding: 20px 20px 18px; display: flex; align-items: flex-start; gap: 16px;
-  transition: background 300ms ease, border-color 300ms ease;
-}
-.eb-stat-icon {
-  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
-  display: flex; align-items: center; justify-content: center;
-}
-.eb-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
-.eb-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
-.eb-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
-.eb-stat-icon--red    { background: rgba(252,129,129,0.08); color: #fc8181; }
-.eb-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
-.eb-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.eb-stat-lbl  { font-size: 11px; color: var(--c-txt-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
-.eb-stat-val  { font-size: 32px; font-weight: 700; color: var(--c-txt); line-height: 1; letter-spacing: -0.5px; }
-.eb-stat-val--money { font-size: 22px; }
-
-/* ── Search pill ── */
-.eb-search-pill {
-  display: flex; align-items: center; gap: 6px;
-  padding: 7px 12px; border-radius: 10px;
-  border: 1px solid var(--c-border); background: var(--c-muted);
-  color: var(--c-txt-2); font-size: 12px; font-weight: 500;
-  font-family: inherit; cursor: pointer;
-  transition: all 140ms; white-space: nowrap;
-}
-.eb-search-pill:hover { background: var(--c-bg); color: var(--c-txt); }
-.eb-search-pill--active { color: var(--c-txt); border-color: var(--c-border); background: var(--c-bg); }
-
-/* ── Search expanded ── */
-.eb-search-expanded { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
-.eb-search-wrap {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 10px;
-  padding: 0 12px; height: 36px; flex: 1;
-  transition: border-color 150ms;
-}
-.eb-search-wrap:focus-within { border-color: var(--gold); }
-.eb-search { flex: 1; border: none; outline: none; font-size: 13px; color: var(--c-txt); background: transparent; }
-.eb-search::placeholder { color: #666; }
-.eb-search-clear { background: none; border: none; cursor: pointer; color: var(--c-txt-3); display: flex; align-items: center; padding: 0; }
-.eb-search-clear:hover { color: var(--c-txt); }
-.eb-search-cancel {
-  flex-shrink: 0; padding: 7px 2px; border: none; background: none;
-  font-size: 13px; font-weight: 500; color: var(--c-txt-2); cursor: pointer;
-  font-family: inherit; transition: color 130ms;
-}
-.eb-search-cancel:hover { color: var(--c-txt); }
-
-.eb-toolbar-count { font-size: 12px; color: var(--c-txt-2); }
-
-/* ── Refresh button ── */
-.eb-refresh-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 9px;
-  background: var(--c-muted); border: 1px solid var(--c-border);
-  color: var(--c-txt-2); cursor: pointer;
-  transition: background 140ms, color 140ms, border-color 140ms;
+  display: flex;
+  align-items: center;
+  height: 92px;
+  padding: 0 36px;
+  gap: 14px;
   flex-shrink: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f3f5;
 }
-.eb-refresh-btn:hover:not(:disabled) { background: var(--c-bg); color: var(--c-txt); border-color: var(--c-border); }
-.eb-refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* ── Spin animation ── */
-.eb-spin { animation: eb-spin-anim 1.1s linear infinite; }
-@keyframes eb-spin-anim { to { transform: rotate(360deg); } }
-
-.eb-add-btn {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--gold); border: none;
-  color: var(--gold-contrast); font-size: 13px; font-weight: 700;
-  padding: 0 14px; height: 36px; border-radius: 10px; cursor: pointer;
-  transition: background 150ms;
-  font-family: inherit; white-space: nowrap; flex-shrink: 0;
-}
-.eb-add-btn:hover { background: #d4b560; }
-.eb-add-btn--lg { margin-top: 8px; height: 40px; padding: 0 20px; }
-
-/* ── Card list ── */
-.eb-list {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 12px 16px; background: var(--c-bg);
-}
-
-.eb-card {
-  display: flex; align-items: center; gap: 14px;
-  padding: 13px 16px;
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
-  transition: background 150ms, border-color 150ms, box-shadow 150ms;
-}
-.eb-card:hover:not(.eb-card--sk) { background: var(--c-hover, var(--c-bg)); border-color: var(--c-border); box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
-.eb-card--sk { pointer-events: none; }
-
-/* Left border stripe */
-.eb-card--income  { box-shadow: inset 3px 0 0 rgba(48,209,88,0.50); }
-.eb-card--expense { box-shadow: inset 3px 0 0 rgba(255,69,58,0.40); }
-
-/* Icon zone */
-.eb-card-icon {
-  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+.eb-hd-burger {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 1px solid #e5e7eb; border-radius: 50%; background: #fff;
+  color: #4b5563; cursor: pointer; padding: 0;
   display: flex; align-items: center; justify-content: center;
-  background: rgb(from var(--gold) r g b / 0.10); color: var(--gold);
 }
-
-/* Identity */
-.eb-card-info { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
-.eb-card-name { font-size: 13px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.eb-card-meta { font-size: 11px; color: var(--c-txt-3); display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
-.eb-card-vendor { font-size: 11px; color: var(--c-txt-3); margin-top: 2px; }
-
-/* Amounts zone */
-.eb-card-amounts { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
-.eb-amount-item { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-.eb-amount-label { font-size: 10px; color: var(--c-txt-3); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
-.eb-amount-value { font-size: 14px; font-weight: 700; color: var(--c-txt); }
-.eb-amount-value--over  { color: #C41E1E; }
-.eb-amount-value--under { color: #1D7A38; }
-.eb-amount-value--gold  { color: var(--gold); }
-.eb-amount-value--dash  { color: var(--c-txt-3); }
-
-/* Card actions */
-.eb-card-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
-
-/* Category badge */
-.eb-cat-badge {
-  display: inline-block; padding: 2px 9px; border-radius: 6px;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
-  background: var(--c-badge-bg, rgba(255,255,255,0.06)); color: var(--c-txt-2); border: 1px solid var(--c-border);
-  white-space: nowrap;
+.eb-hd-burger:hover { background: #f8fafc; color: #18181b; border-color: #d1d5db; }
+.eb-hd-sep { width: 1px; height: 16px; background: #e5e7eb; flex-shrink: 0; margin: 0 4px; }
+.eb-hd-badge {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e5e7eb;
+  overflow: hidden; background: #fff; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
-
-/* Status badge */
-.eb-status {
-  display: inline-block; padding: 2px 10px; border-radius: 20px;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.2px; white-space: nowrap;
+.eb-hd-brand-logo { width: 100%; height: 100%; object-fit: cover; }
+.eb-hd-brand-script {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic; font-size: 18px; font-weight: 700;
+  color: #111827; letter-spacing: -0.04em; line-height: 1;
 }
-.eb-status--planned { background: rgba(148,163,184,0.10); color: #999; border: 1px solid rgba(148,163,184,0.15); }
-.eb-status--booked  { background: rgba(96,165,250,0.10);  color: #60a5fa; border: 1px solid rgba(96,165,250,0.15); }
-.eb-status--paid    { background: rgba(52,211,153,0.10);  color: #34d399; border: 1px solid rgba(52,211,153,0.15); }
+.eb-hd-title-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.eb-hub-title {
+  margin: 0; font-size: 22px; font-weight: 600; color: #18181b;
+  letter-spacing: -0.015em; white-space: nowrap;
+}
+.eb-hub-count {
+  font-size: 12.5px; font-weight: 600; color: #4b5563;
+  background: #f1f3f5; border-radius: 9999px; padding: 2px 10px;
+}
+.eb-search-wrap {
+  position: relative; display: flex; align-items: center;
+  flex: 1 1 0; margin: 0 20px; min-width: 220px;
+}
+.eb-search-icon { position: absolute; left: 16px; color: #9ca3af; pointer-events: none; }
+.eb-search {
+  width: 100%; height: 44px; padding: 0 48px 0 44px;
+  background: #f3f4f6; border: none; border-radius: 9999px;
+  font-size: 15px; color: #111827; outline: none; font-family: inherit;
+}
+.eb-search:focus { background: #eeeeef; }
+.eb-search::placeholder { color: #9ca3af; font-weight: 400; }
+.eb-search-clear {
+  position: absolute; right: 10px; width: 32px; height: 32px;
+  border: none; background: none; color: #9ca3af;
+  cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+}
+.eb-search-clear:hover { color: #111827; }
+.eb-search-filter {
+  position: absolute; right: 8px; width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid #e5e7eb; border-radius: 50%; background: #fff; color: #6b7280;
+}
+.eb-add-btn {
+  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+  height: 40px; padding: 0 20px; border: none; border-radius: 9999px;
+  background: #222; color: #fff; font-family: inherit;
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+.eb-add-btn:hover { background: #000; }
+.eb-hd-gear {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.eb-hd-gear:hover { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; }
 
-/* Action buttons */
-.eb-act-btn {
+.eb-toolbar2 {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 36px; border-bottom: 1px solid #f1f3f5; background: #fff;
+}
+.eb-tb2-btn {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 34px; padding: 6px 14px;
+  border: 1px solid #e2e8f0; border-radius: 9999px; background: #fff;
+  cursor: pointer; font-family: inherit;
+}
+.eb-tb2-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+.eb-tb2-btn--active { background: #f1f5f9; border-color: #cbd5e1; }
+.eb-tb2-lbl { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #475569; white-space: nowrap; }
+.eb-tb2-btn--active .eb-tb2-lbl { color: #0f172a; font-weight: 600; }
+.eb-tb2-cnt {
+  min-width: 18px; padding: 1px 6px; border-radius: 9999px;
+  background: #f1f5f9; font-size: 10.5px; font-weight: 700; color: #475569;
   display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border-radius: 7px;
-  background: none; border: none; cursor: pointer;
-  color: var(--c-txt-3); transition: background 130ms, color 130ms;
 }
-.eb-act-btn:hover { background: var(--c-badge-bg, rgba(255,255,255,0.07)); color: var(--c-txt); }
-.eb-act-btn--danger:hover { background: rgba(239,68,68,0.12); color: #f87171; }
+.eb-tb2-divider { width: 1px; height: 20px; background: #e5e7eb; margin: 0 4px; flex-shrink: 0; }
+.eb-tb2-stat { font-size: 13px; font-weight: 500; color: #64748b; white-space: nowrap; }
+.eb-tb2-stat--over { color: #991b1b; }
 
-/* List footer */
-.eb-table-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 11px 0 3px; border-top: 1px solid var(--c-divide);
-  margin-top: 2px; gap: 12px; flex-wrap: wrap;
+.eb-row-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) 120px minmax(120px, 1fr) 110px 130px 120px 40px;
+  align-items: center; gap: 16px;
 }
-.eb-range-label { font-size: 12px; color: var(--c-txt-2); font-weight: 500; white-space: nowrap; }
+.eb-col-head {
+  padding: 14px 36px; border-bottom: 1px solid #f1f3f5; background: #fff;
+}
+.eb-col-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 700; color: #111827; justify-self: start;
+}
+.eb-col-btn--right { justify-self: end; }
+.eb-col-lbl { font-size: 13px; font-weight: 700; color: #111827; }
+.eb-col-actions { width: 40px; }
+.eb-sort-icon { opacity: 0.28; }
+.eb-sort-icon--active { opacity: 1; }
+.eb-sort-icon--desc { transform: rotate(180deg); }
 
-/* ── Skeleton ── */
+.eb-table-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.eb-list { display: flex; flex-direction: column; }
+
+.eb-empty { padding: 48px 36px; }
+.eb-empty-kicker {
+  margin: 0 0 6px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: #94a3b8;
+}
+.eb-empty-title {
+  margin: 0 0 10px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 400; font-style: italic; font-size: 28px; color: #1a1a1a; line-height: 1.15;
+}
+.eb-empty-lede { margin: 0 0 22px; max-width: 40ch; font-size: 14px; color: #64748b; line-height: 1.55; }
+.eb-empty-row {
+  width: min(420px, 100%); display: flex; align-items: center; gap: 14px;
+  padding: 16px 14px; border: 1px dashed #d1d5db; border-radius: 14px;
+  background: #fafafa; cursor: pointer; text-align: left; font-family: inherit;
+}
+.eb-empty-row:hover { border-color: #111827; background: #fff; }
+.eb-empty-plus {
+  width: 36px; height: 36px; border-radius: 50%; background: #111827; color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+}
+.eb-empty-row-copy { display: flex; flex-direction: column; gap: 2px; }
+.eb-empty-row-title { font-size: 15px; font-weight: 600; color: #111827; }
+.eb-empty-row-sub { font-size: 13px; color: #64748b; }
+
+.eb-row {
+  padding: 12px 36px; border-bottom: 1px solid #f1f3f5;
+  cursor: pointer; background: none;
+}
+.eb-row:hover:not(.eb-row--sk) { background: #f9fafb; }
+.eb-row--sk { pointer-events: none; }
+.eb-cell-name { font-size: 14px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eb-cell-muted { font-size: 13.5px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eb-cell-amt { font-size: 13.5px; font-weight: 600; color: #111827; text-align: right; font-variant-numeric: tabular-nums; }
+.eb-cell-amt--over { color: #991b1b; }
+.eb-badge {
+  display: inline-flex; align-items: center; justify-self: start;
+  height: 22px; padding: 0 10px; border-radius: 9999px;
+  font-size: 11.5px; font-weight: 600; background: #f3f4f6; color: #4b5563;
+}
+.eb-badge--paid { background: #111827; color: #fff; }
+.eb-badge--booked { background: #e9eaee; color: #111827; }
+.eb-row-del {
+  width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: none; color: #94a3b8; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; justify-self: end;
+}
+.eb-row-del:hover { background: #fef2f2; color: #991b1b; }
+
 @keyframes eb-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.eb-sk-circle { width: 40px; height: 40px; border-radius: 11px; background: var(--c-track); flex-shrink: 0; animation: eb-pulse 1.4s ease-in-out infinite; }
-.eb-sk-bar    { height: 12px; border-radius: 6px; background: var(--c-track); animation: eb-pulse 1.4s ease-in-out infinite; }
-.eb-sk-bar--lg { width: 140px; }
-.eb-sk-bar--sm { width: 80px; }
+.eb-sk-bar { height: 12px; border-radius: 6px; background: #f1f5f9; animation: eb-pulse 1.4s ease-in-out infinite; }
+.eb-sk-bar--lg { width: 160px; }
+.eb-sk-bar--md { width: 90px; }
+.eb-sk-bar--sm { width: 64px; }
 
-/* ── Empty state ── */
-.eb-empty {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 60px 20px; gap: 8px;
-}
-.eb-empty-title { font-size: 14px; font-weight: 600; color: var(--c-txt-2); margin: 4px 0 0; }
-.eb-empty-sub   { font-size: 13px; color: var(--c-txt-3); margin: 0; }
-
-/* ── Modal ── */
-.eb-backdrop {
-  position: fixed; inset: 0; z-index: 500;
-  background: var(--overlay-bg);
-  display: flex; align-items: center; justify-content: center; padding: 20px;
-}
-.eb-modal {
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px;
-  width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
-  transition: background 300ms ease, border-color 300ms ease;
-}
-.eb-modal-hd {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px 16px; border-bottom: 1px solid var(--c-border); flex-shrink: 0;
-}
-.eb-modal-title { font-size: 16px; font-weight: 700; color: var(--c-txt); margin: 0; }
-.eb-modal-close {
-  background: none; border: none; cursor: pointer; color: var(--c-txt-3);
-  display: flex; align-items: center; padding: 4px; border-radius: 6px;
-  transition: color 130ms, background 130ms;
-}
-.eb-modal-close:hover { color: var(--c-txt); background: var(--c-badge-bg, rgba(255,255,255,0.06)); }
-
-.eb-modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
-.eb-modal-ft   { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
-
-.eb-field     { display: flex; flex-direction: column; gap: 6px; }
-.eb-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.eb-label     { font-size: 12px; font-weight: 600; color: var(--c-txt-2); letter-spacing: 0.2px; }
-.eb-opt       { font-weight: 400; color: var(--c-txt-3); }
-
-.eb-input {
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 9px;
-  padding: 9px 12px; font-size: 13.5px; color: var(--c-txt); outline: none;
-  transition: border-color 150ms; font-family: inherit; width: 100%; box-sizing: border-box;
-}
-.eb-input:focus  { border-color: var(--gold); }
-.eb-input::placeholder { color: var(--c-txt-3); }
-.eb-textarea { resize: vertical; min-height: 64px; }
-
-select.eb-input { appearance: none; cursor: pointer; }
-
-/* Buttons */
-.eb-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 0 18px; height: 38px; border-radius: 10px;
-  font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit;
-  transition: background 150ms, opacity 150ms; border: none;
-}
-.eb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.eb-btn--ghost   { background: var(--c-badge-bg, rgba(255,255,255,0.06)); color: var(--c-txt-2); border: 1px solid var(--c-border); }
-.eb-btn--ghost:hover:not(:disabled)   { background: var(--c-muted, rgba(255,255,255,0.10)); color: var(--c-txt); }
-.eb-btn--primary { background: rgb(from var(--gold) r g b / 0.15); color: var(--gold); border: 1px solid rgb(from var(--gold) r g b / 0.3); }
-.eb-btn--primary:hover:not(:disabled) { background: rgb(from var(--gold) r g b / 0.25); border-color: rgb(from var(--gold) r g b / 0.5); }
-
-/* ── Responsive ── */
 @media (max-width: 900px) {
-  .eb-stats { grid-template-columns: repeat(2, 1fr); }
+  .eb-panel-hd { height: auto; flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
+  .eb-toolbar2, .eb-col-head, .eb-row, .eb-empty { padding-left: 16px; padding-right: 16px; }
+  .eb-search-wrap { flex: 1 1 100%; margin: 8px 0 0; order: 8; }
+  .eb-hd-sep { display: none; }
+  .eb-row-grid { grid-template-columns: minmax(140px, 1.4fr) 90px minmax(90px, 1fr) 90px 100px 90px 36px; gap: 10px; }
 }
-@media (max-width: 640px) {
-  /* Panel header: wrap so acts don't squeeze title */
-  .eb-panel-hd { flex-wrap: wrap; padding: 10px 14px; gap: 8px; }
-  .eb-panel-title { flex: 1; font-size: 17px; }
-  .eb-panel-acts { order: 2; flex-shrink: 0; }
+@media (max-width: 720px) {
+  .eb-col-head { display: none; }
+  .eb-row-grid { grid-template-columns: 1fr auto auto; }
+  .eb-row > :nth-child(2),
+  .eb-row > :nth-child(3),
+  .eb-row > :nth-child(5) { display: none; }
+}
+</style>
 
-  /* Stat cards: switch to column layout so label never wraps */
-  .eb-stat-card { flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 14px 12px; }
-  .eb-stat-icon { width: 32px; height: 32px; border-radius: 8px; margin-top: 0; flex-shrink: 0; }
-  .eb-stat-body { gap: 2px; width: 100%; }
-  .eb-stat-lbl { font-size: 10px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .eb-stat-val { font-size: 20px; }
-  .eb-stat-val--money { font-size: 16px; }
-
-  /* List */
-  .eb-list { padding: 8px 10px; gap: 5px; }
-
-  /* Budget item cards: flex-wrap with explicit order so actions stay top-right */
-  .eb-card { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0; padding: 12px 14px; }
-  .eb-card-icon    { flex-shrink: 0; align-self: flex-start; margin-right: 12px; order: 1; }
-  .eb-card-info    { flex: 1; min-width: 0; order: 2; }
-  .eb-card-actions { flex-shrink: 0; display: flex; gap: 4px; margin-left: 8px; order: 3; }
-  /* amounts wraps to its own row (order 4), indented past icon */
-  .eb-card-amounts {
-    order: 4;
-    flex: 0 0 100%;
-    margin-left: 52px; /* indent to clear icon+gap */
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--c-divide);
-  }
-  .eb-amount-item { flex-direction: row; align-items: center; gap: 5px; }
-  .eb-amount-item + .eb-amount-item { margin-left: 14px; padding-left: 14px; border-left: 1px solid var(--c-divide); }
-  .eb-amount-label { font-size: 10px; text-transform: none; letter-spacing: 0; color: var(--c-txt-3); }
-  .eb-amount-value { font-size: 13px; }
+<style>
+html .eb-joy-backdrop {
+  position: fixed; inset: 0; z-index: 1600;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.32) !important;
+  backdrop-filter: none !important;
 }
-@media (max-width: 600px) {
-  .eb-root  { padding: 12px 14px 24px; gap: 12px; }
-  .eb-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .eb-field-row { grid-template-columns: 1fr; }
+html .eb-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-height: min(720px, 90vh);
+  display: flex; flex-direction: column;
+  background: #fff; color: #111827; border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.2); overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
-@media (max-width: 420px) {
-  .eb-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .eb-stat-card { padding: 12px 12px 10px; gap: 6px; }
-  .eb-stat-val { font-size: 18px; }
-  .eb-stat-val--money { font-size: 15px; }
-  .eb-stat-icon { width: 28px; height: 28px; }
+html .eb-dialog-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 10px 24px; flex-shrink: 0;
 }
+html .eb-dialog-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: #111827; }
+html .eb-dialog-x {
+  width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: #f8fafc; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+html .eb-dialog-x:hover { background: #f1f5f9; color: #111827; }
+html .eb-dialog-body { padding: 4px 24px 0; overflow-y: auto; min-height: 0; }
+html .eb-field-label {
+  display: block; font-size: 13px; font-weight: 600; color: #374151;
+  margin: 0 0 8px;
+}
+html .eb-opt { font-weight: 500; color: #94a3b8; margin-left: 4px; }
+html .eb-input, html .eb-textarea {
+  width: 100%; box-sizing: border-box; margin-bottom: 14px;
+  background: #fff; border: 1px solid #e5e7eb; color: #111827;
+  font-family: inherit; font-size: 14px; outline: none;
+}
+html .eb-input {
+  height: 46px; border-radius: 9999px; padding: 0 16px;
+}
+html .eb-textarea {
+  min-height: 88px; border-radius: 14px; padding: 12px 16px; resize: vertical;
+}
+html .eb-input:focus, html .eb-textarea:focus { border-color: #d1d5db; }
+html .eb-dialog-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 8px 0 18px; background: #fff;
+}
+html .eb-dialog-cancel {
+  height: 40px; padding: 0 18px; border: none; background: none;
+  font-size: 14px; font-weight: 600; color: #111827; cursor: pointer; font-family: inherit;
+}
+html .eb-dialog-save {
+  height: 40px; padding: 0 22px; border: none; border-radius: 9999px;
+  background: #111827; color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+html .eb-dialog-save:disabled { opacity: 0.4; cursor: default; }
 </style>

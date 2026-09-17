@@ -90,11 +90,11 @@
         </div>
 
         <div class="ea-search-wrap ea-search-inline">
-          <svg class="ea-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="ea-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          <input v-model="searchQ" class="ea-search" placeholder="Search by name or phone…" />
+          <input v-model="searchQ" class="ea-search" placeholder="Filter by name" />
           <button v-if="searchQ" class="ea-search-clear" @click="searchQ = ''">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2.5" stroke-linecap="round">
@@ -102,8 +102,11 @@
             </svg>
           </button>
           <span v-else class="ea-search-filter" title="Filter">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+              <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+              <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
             </svg>
           </span>
         </div>
@@ -802,12 +805,16 @@
       </Transition>
     </Teleport>
 
-    <!-- ── Send modal — "Card" is still just a visual placeholder; "Message"
-         leads into a Campaigns screen (same Firestore data/shape as the full
-         Bulk Messages page) that opens straight on the message-intent presets
-         — no separate "New Campaign" step for the user to know about. Picking
-         a preset creates its draft campaign in the background and jumps
-         straight into composing/sending it. ── -->
+    <!-- ── Send modal — "Card" checks whether a blueprint exists for the chosen
+         purpose (events/{eventId}/cards) before proceeding: if so, it starts a
+         campaign of that type and drops straight into the composer below; if
+         not, it detours to the Cards tab so the user can create one via the
+         Designer first. "Message" leads into a Campaigns screen (same
+         Firestore data/shape as the full Bulk Messages page) that opens
+         straight on the message-intent presets — no separate "New Campaign"
+         step for the user to know about. Picking a preset creates its draft
+         campaign in the background and jumps straight into composing/sending
+         it. ── -->
     <Teleport to="body">
       <Transition name="ea-fade">
         <div v-if="showSendModal" class="ea-overlay ea-overlay--center" @click.self="closeSendModal">
@@ -868,6 +875,7 @@
                   v-for="cardOpt in CARD_OPTIONS"
                   :key="cardOpt.id"
                   class="ea-send-card-item"
+                  :class="{ 'ea-send-card-item--busy': checkingCardOpt && checkingCardOpt !== cardOpt.id }"
                   @click="selectCardOption(cardOpt)"
                 >
                   <div class="ea-send-card-icon" v-html="cardOpt.icon" />
@@ -875,7 +883,10 @@
                     <span class="ea-send-card-name">{{ cardOpt.title }}</span>
                     <span class="ea-send-card-desc">{{ cardOpt.desc }}</span>
                   </div>
-                  <svg class="ea-send-card-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg v-if="checkingCardOpt === cardOpt.id" class="ea-send-card-chev ea-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                  </svg>
+                  <svg v-else class="ea-send-card-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
                 </div>
@@ -884,8 +895,11 @@
               <!-- Step 2: Campaigns — opens straight on the message-intent presets
                    (no separate "New Campaign" click to get there); picking one
                    creates its draft campaign right away and jumps into
-                   composing/sending it. Past campaigns, if any, are listed
-                   below for reopening/resending. -->
+                   composing/sending it. Deliberately does NOT list past
+                   campaigns here — this is a quick picker for starting a new
+                   send, not a management view (that's the full Bulk Messages
+                   page), and a growing pile of old/oddly-named ad-hoc
+                   campaigns doesn't belong in a 4-item quick-pick list. -->
               <div class="ea-send-camps" v-else>
                 <div class="ea-send-camps-list">
                   <div v-for="label in PRESET_CAMPAIGNS" :key="label" class="ea-send-camp-row"
@@ -900,24 +914,6 @@
                     <svg class="ea-send-camp-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </div>
                 </div>
-
-                <div v-if="loadingSendCampaigns" class="ea-send-camps-loading">Loading past campaigns…</div>
-                <template v-else-if="sendCampaigns.length">
-                  <p class="ea-send-camps-divider">Past Campaigns</p>
-                  <div class="ea-send-camps-list">
-                    <div v-for="camp in sendCampaigns" :key="camp.id" class="ea-send-camp-row"
-                      @click="$router.push(`/event/${eventId}/bulk-messages?campaign=${camp.id}&send=1&returnTo=${encodeURIComponent(`/event/${eventId}/attendees?reopenCampaigns=1`)}`)">
-                      <span class="ea-send-camp-icon">
-                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                      </span>
-                      <span class="ea-send-camp-text">
-                        <span class="ea-send-camp-name">{{ camp.name }}</span>
-                        <span class="ea-send-camp-meta">{{ capitalize(camp.type) }} campaign · Created {{ formatDate(camp.createdAt) }}</span>
-                      </span>
-                      <svg class="ea-send-camp-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                    </div>
-                  </div>
-                </template>
               </div>
             </div>
           </Transition>
@@ -1817,8 +1813,8 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from
 import { useRoute, useRouter } from 'vue-router'
 import { db, auth } from '../../firebase'
 import {
-  collection, query, orderBy, where,
-  getDocs, updateDoc, deleteDoc, deleteField, doc, addDoc, setDoc, writeBatch,
+  collection, query, orderBy, where, limit,
+  getDocs, getDoc, updateDoc, deleteDoc, deleteField, doc, addDoc, setDoc, writeBatch,
   arrayUnion, arrayRemove,
 } from 'firebase/firestore'
 function genAttendeeId() {
@@ -1828,6 +1824,36 @@ function genAttendeeId() {
   crypto.getRandomValues(arr)
   arr.forEach(b => { id += chars[b % chars.length] })
   return id
+}
+
+// Capacity = how many people this attendee's card actually admits: 1 for a
+// lone guest, +1 per party member added (Couple/Family) — mirrors haflaway_
+// server's cardData.js resolveTicketType, which derives the SINGLE/DOUBLE/
+// FAMILY card label from this same partyMembers count.
+function partyCapacity(partyMembers) {
+  return 1 + (partyMembers?.length ?? 0)
+}
+
+// Same fallback haflaway_server's cardData.js resolvePartyType() uses for
+// legacy attendees that predate the partyType field — needed here so an old
+// record's *effective* type can be compared against the form's new value.
+function effectivePartyType(att) {
+  return att?.partyType || (att?.partyMembers?.length ? 'couple' : 'individual')
+}
+
+// Builds (or grows) the checkinStatus slot array to match capacity — each
+// slot is one scannable check-in at the door. Growing only ever appends new
+// slots and never truncates, so shrinking a party (e.g. Family -> Couple)
+// can't silently wipe out a slot someone already got scanned into.
+function withCapacitySlots(existingSlots, capacity) {
+  const slots = [...(existingSlots ?? [])]
+  while (slots.length < capacity) {
+    slots.push({
+      attendee_name: `SLOT ${String(slots.length + 1).padStart(2, '0')}`,
+      checkpoints: {},
+    })
+  }
+  return slots
 }
 
 import * as XLSX from 'xlsx'
@@ -2485,25 +2511,8 @@ const showSendModal = ref(false)
 const sendStep = ref('root')
 function closeSendModal() { showSendModal.value = false; sendStep.value = 'root' }
 
-const sendCampaigns = ref([])
-const loadingSendCampaigns = ref(false)
-let sendCampaignsLoaded = false
-async function loadSendCampaigns(force = false) {
-  if (sendCampaignsLoaded && !force) return
-  loadingSendCampaigns.value = true
-  try {
-    const snap = await getDocs(query(collection(db, 'events', eventId.value, 'campaigns'), orderBy('createdAt', 'desc')))
-    sendCampaigns.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    sendCampaignsLoaded = true
-  } catch (e) {
-    console.error('loadSendCampaigns:', e)
-  } finally {
-    loadingSendCampaigns.value = false
-  }
-}
 function openMessageStep() {
   sendStep.value = 'campaigns'
-  loadSendCampaigns()
 }
 
 function openCardStep() {
@@ -2561,12 +2570,72 @@ const CARD_OPTIONS = [
   }
 ]
 
-function selectCardOption(cardOpt) {
-  closeSendModal()
-  router.push({
-    path: `/event/${eventId.value}/cards`,
-    query: { filter: cardOpt.purpose }
-  })
+// Checks whether this event already has a card blueprint for the chosen
+// purpose (events/{eventId}/cards, same lookup the card server's
+// resolveTemplateByPurpose does). If one exists, start a card-send campaign
+// and jump into the Message composer for it — same pattern createPresetCampaign
+// already uses, just keyed by card purpose instead of a message intent. If
+// none exists yet, there's nothing to render — send the user to the Cards tab
+// (filtered to this purpose) where the empty state points them at the
+// Designer, with returnToSend wired up so they can resume this Send flow
+// once the template's been created.
+const checkingCardOpt = ref(null)
+async function selectCardOption(cardOpt) {
+  if (checkingCardOpt.value) return
+  checkingCardOpt.value = cardOpt.id
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'events', eventId.value, 'cards'),
+      where('purpose', '==', cardOpt.purpose),
+      limit(1)
+    ))
+    // The user may have backed out or closed the modal while this lookup was
+    // in flight — don't act on a choice they've since abandoned.
+    if (!showSendModal.value || sendStep.value !== 'card') return
+    closeSendModal()
+    if (snap.empty) {
+      router.push({
+        path: `/event/${eventId.value}/cards`,
+        query: { filter: cardOpt.purpose, returnToSend: cardOpt.purpose }
+      })
+      return
+    }
+    // One persistent campaign per (event, purpose) — a deterministic doc id
+    // instead of addDoc's random one, so this can never mint a duplicate no
+    // matter how many times or how close together it's clicked: two
+    // concurrent first-sends for the same purpose both resolve to this exact
+    // same document, not two different ones racing to be created. A
+    // duplicate here would be a real regression, not a cosmetic one — the
+    // send/delivery-status tracking (messageIndexes, per-channel dispatch
+    // counters) lives on the campaign id, so a second "Invitation" campaign
+    // would have no memory of who'd already been sent one under the first.
+    const campaignRef = doc(db, 'events', eventId.value, 'campaigns', `card_${cardOpt.purpose}`)
+    const campaignSnap = await getDoc(campaignRef)
+    if (!campaignSnap.exists()) {
+      await setDoc(campaignRef, {
+        name: cardOpt.title,
+        type: cardOpt.purpose,
+        // Distinguishes this from a plain message campaign (whose `type` is
+        // always 'invitation' too, for unrelated legacy reasons) so the
+        // composer knows to look up a purpose-specific WhatsApp template
+        // category instead of the generic one — see EventCampaigns.vue.
+        kind: 'card',
+        whatsappMessage: null,
+        smsMessage: null,
+        createdAt: new Date().toISOString(),
+        status: 'draft',
+      })
+    }
+    // Card campaigns compose on the Invitations screen (cardScope:true), not
+    // Bulk Messages — that screen's own campaign list now filters to
+    // kind !== 'card', so a card campaign deep-linked there would vanish
+    // from the very list this deep link relies on to restore it.
+    router.push(`/event/${eventId.value}/invitations?campaign=${campaignRef.id}&send=1&returnTo=${encodeURIComponent(`/event/${eventId.value}/attendees?reopenCampaigns=1`)}`)
+  } catch (e) {
+    console.error('selectCardOption:', e)
+  } finally {
+    checkingCardOpt.value = null
+  }
 }
 
 // Round-trips back here after a campaign row sent the user off to the
@@ -2664,7 +2733,7 @@ async function submitPhonePicker() {
       batch.set(doc(db, 'events', eventId.value, 'attendees', id), {
         id,
         cards:            {},
-        checkinStatus:    [],
+        checkinStatus:    withCapacitySlots(null, 1),
         createdAt:        new Date().toISOString(),
         email:            '',
         fullName:         c.name,
@@ -2827,13 +2896,31 @@ async function submitForm() {
     const email = form.value.email ? form.value.email.trim() : (existingAtt?.email ?? '')
 
     const attendeeId = existingAtt?.id ?? genAttendeeId()
+
+    // A rendered card only ever bakes in full_name, ticket_type (derived from
+    // partyType) and the guest's first label (see haflaway_server's
+    // cardData.js buildAttendeeData) — pass_code/qr_code are keyed off the
+    // immutable attendee id, so they can never go stale. If editing changes
+    // any of those three, every already-rendered card for this attendee now
+    // shows wrong/outdated info and must be invalidated so the next send
+    // renders a fresh one. An edit to anything else the card doesn't show
+    // (phone, email, address) must NOT force a reprint — that's the whole
+    // point of preserving `cards` below instead of always wiping it.
+    const cardRelevantFieldsChanged = !!existingAtt && (
+      existingAtt.fullName !== name ||
+      effectivePartyType(existingAtt) !== form.value.partyType ||
+      (existingAtt.labelIds?.[0] ?? null) !== (form.value.labelIds?.[0] ?? null)
+    )
+
     const attendeeData = {
       id:               attendeeId,
-      // Empty map + merge:true below is a no-op on an existing doc's `cards` field —
-      // it deliberately never touches whatever card(s) sending a card has already
-      // attached. Guests are just contact info here; cards are a separate, later step.
-      cards:            {},
-      checkinStatus:    existingAtt?.checkinStatus ?? [],
+      // Firestore's set(..., {merge:true}) does NOT treat an empty object as
+      // "leave this field alone" — it replaces the whole field with {}. Used
+      // deliberately here to invalidate stale cards when a printed field
+      // changed; otherwise the existing map is carried forward untouched (a
+      // brand new attendee legitimately starts with none either way).
+      cards:            cardRelevantFieldsChanged ? {} : (existingAtt?.cards ?? {}),
+      checkinStatus:    withCapacitySlots(existingAtt?.checkinStatus, partyCapacity(form.value.partyMembers)),
       createdAt:        existingAtt?.createdAt ?? new Date().toISOString(),
       email,
       fullName:         name,
@@ -2921,16 +3008,52 @@ async function saveEditLabel() {
   savingLabel.value = true
   // Always write colorValue as integer so Flutter never receives a String
   const updated = { ...lbl, name, colorValue: hexToColorInt(editLabelColor.value) }
+  const nameChanged = name !== lbl.name
   try {
     await updateDoc(doc(db, 'events', eventId.value), { labels: arrayRemove(lbl) })
     await updateDoc(doc(db, 'events', eventId.value), { labels: arrayUnion(updated) })
     const idx = localLabels.value.findIndex(l => l.id === lbl.id)
     if (idx !== -1) localLabels.value[idx] = updated
     editingLabel.value = null
+    // A renamed label is printed on every card whose PRIMARY label is this
+    // one — cardData.js's buildAttendeeData() only ever reads labelIds[0].
+    // Those attendees' own labelIds never changed, so submitForm()'s
+    // invalidation can't catch this; do it here instead. A color-only edit
+    // never appears on a card, so skip this entirely when the name is the same.
+    if (nameChanged) await invalidateCardsForRenamedLabel(lbl.id)
   } catch (e) {
     console.error('Failed to update label', e)
   } finally {
     savingLabel.value = false
+  }
+}
+
+// Clears `cards` (forcing a fresh, correctly-priced re-render on the next
+// send) for every attendee whose FIRST label is the one just renamed — the
+// exact set cardData.js would actually print the new name for.
+async function invalidateCardsForRenamedLabel(labelId) {
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'events', eventId.value, 'attendees'),
+      where('labelIds', 'array-contains', labelId),
+    ))
+    const affected = snap.docs.filter(d => (d.data().labelIds ?? [])[0] === labelId)
+    const CHUNK = 400   // stay well under Firestore's 500-op batch cap
+    for (let i = 0; i < affected.length; i += CHUNK) {
+      const chunk = affected.slice(i, i + CHUNK)
+      const batch = writeBatch(db)
+      for (const d of chunk) batch.update(d.ref, { cards: {} })
+      await batch.commit()
+      // Mirror per chunk, not after the whole loop — if a LATER chunk throws,
+      // attendees from already-committed earlier chunks must still reflect
+      // the real Firestore state instead of staying stale until a reload.
+      for (const d of chunk) {
+        const idx = attendees.value.findIndex(a => a.id === d.id)
+        if (idx !== -1) attendees.value[idx] = { ...attendees.value[idx], cards: {} }
+      }
+    }
+  } catch (e) {
+    console.error('Failed to invalidate cards after label rename', e)
   }
 }
 
@@ -3399,7 +3522,7 @@ async function runImport() {
       batch.set(doc(db, 'events', eventId.value, 'attendees', p._id), {
         id:               p._id,
         cards:            {},
-        checkinStatus:    [],
+        checkinStatus:    withCapacitySlots(null, 1),
         createdAt:        new Date().toISOString(),
         email:            '',
         fullName:         p.fullName,
@@ -3624,55 +3747,59 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-search-icon {
   position: absolute;
-  left: 18px;
+  left: 16px;
   pointer-events: none;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
+  color: #9ca3af;
 }
 .ea-search {
   width: 100%;
-  height: 52px;
-  padding: 0 42px 0 48px;
-  background: none;
-  border: 1.5px solid var(--c-border);
+  height: 44px;
+  padding: 0 48px 0 44px;
+  background: #f3f4f6;
+  border: none;
   border-radius: 999px;
-  font-size: 16px;
-  color: var(--c-txt);
+  font-size: 15px;
+  color: #111827;
   outline: none;
   box-shadow: none;
   font-family: inherit;
-  transition: border-color 150ms, box-shadow 150ms;
 }
-.ea-search:focus { border-color: rgba(79,70,229,0.4); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
-.ea-search::placeholder { color: var(--c-txt-3); }
+.ea-search:focus { background: #eeeeef; box-shadow: none; }
+.ea-search::placeholder { color: #9ca3af; font-weight: 400; }
 .ea-search-clear {
   position: absolute;
-  right: 14px;
+  right: 10px;
   background: none;
   border: none;
-  color: var(--c-txt-3);
+  color: #9ca3af;
   cursor: pointer;
   display: flex;
   align-items: center;
-  padding: 4px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border-radius: 50%;
 }
-.ea-search-clear svg { width: 15px; height: 15px; }
+.ea-search-clear svg { width: 14px; height: 14px; }
 .ea-search-filter {
   position: absolute;
-  right: 12px;
-  width: 30px;
-  height: 30px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--c-border);
+  border: 1px solid #e5e7eb;
   border-radius: 50%;
-  color: var(--c-txt-2);
+  background: #fff;
+  color: #6b7280;
   flex-shrink: 0;
 }
-.ea-search-filter svg { width: 14px; height: 14px; }
-.ea-search-clear:hover { color: var(--c-txt-2); }
+.ea-search-filter svg { width: 15px; height: 15px; }
+.ea-search-clear:hover { color: #111827; }
 
 .ea-toolbar-right {
   display: flex;
@@ -3761,7 +3888,7 @@ function setImportPayment(attendeeId, amount) {
 .ea-add-btn:hover { background: #4338ca; box-shadow: 0 2px 8px rgba(79,70,229,0.28); }
 .ea-add-btn svg { width: 16px; height: 16px; }
 .ea-panel-hd .ea-add-btn { margin-left: 0; }
-.ea-panel-hd .ea-search-inline { flex: 0 1 480px; margin: 0 auto; }
+.ea-panel-hd .ea-search-inline { flex: 1 1 0; margin: 0 20px; min-width: 220px; max-width: none; }
 
 .ea-send-btn {
   display: flex;
@@ -5060,6 +5187,10 @@ function setImportPayment(attendeeId, amount) {
 }
 .ea-send-card-item:hover {
   background: #f8fafc;
+}
+.ea-send-card-item--busy {
+  opacity: 0.5;
+  pointer-events: none;
 }
 .ea-send-card-icon {
   width: 26px;

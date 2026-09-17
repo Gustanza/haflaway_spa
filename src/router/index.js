@@ -23,7 +23,6 @@ const MyEvents = () => import('../views/MyEvents.vue')
 const EventLayout = () => import('../views/event/EventLayout.vue')
 const EventOverview = () => import('../views/event/EventOverview.vue')
 const EventAttendees = () => import('../views/event/EventAttendees.vue')
-const EventMessages = () => import('../views/event/EventMessages.vue')
 const EventTemplates = () => import('../views/event/EventTemplates.vue')
 const EventCampaigns = () => import('../views/event/EventCampaigns.vue')
 const EventCheckins = () => import('../views/event/EventCheckins.vue')
@@ -31,6 +30,7 @@ const EventCards = () => import('../views/event/EventCards.vue')
 const EventGallery = () => import('../views/event/EventGallery.vue')
 const EventZawadi = () => import('../views/event/EventZawadi.vue')
 const EventSettings = () => import('../views/event/EventSettings.vue')
+const EventSchedule = () => import('../views/event/EventSchedule.vue')
 const EventTeam = () => import('../views/event/EventTeam.vue')
 const EventPayments = () => import('../views/event/EventPayments.vue')
 const EventBudget = () => import('../views/event/EventBudget.vue')
@@ -139,7 +139,12 @@ const routes = [
             { path: 'contacts', name: 'EventContacts', component: EventAttendees, meta: { title: 'Contact List' } },
             { path: 'checkins', name: 'EventCheckins', component: EventCheckins, meta: { title: 'Check-ins' } },
             { path: 'cards', name: 'EventCards', component: EventCards, meta: { title: 'Cards' } },
-            { path: 'invitations', name: 'EventMessages', component: EventMessages, meta: { title: 'Invitations' } },
+            // Card-scoped view of the same Messaging screen (EventCampaigns) —
+            // replaces the old fixed-lifecycle-campaign EventMessages screen,
+            // which this route used to point to. That component is still in
+            // the tree (unrouted) rather than deleted, in case anything in it
+            // is worth salvaging later.
+            { path: 'invitations', name: 'EventInvitations', component: EventCampaigns, props: { cardScope: true }, meta: { title: 'Invitations' } },
             { path: 'bulk-messages', name: 'EventCampaigns', component: EventCampaigns, meta: { title: 'Bulk Messages' } },
             { path: 'templates', name: 'EventTemplates', component: EventTemplates, meta: { title: 'Templates' } },
             { path: 'gallery', name: 'EventGallery', component: EventGallery, meta: { title: 'Gallery' } },
@@ -147,6 +152,7 @@ const routes = [
             { path: 'payments', name: 'EventPayments', component: EventPayments, meta: { title: 'Payments' } },
             { path: 'budget', name: 'EventBudget', component: EventBudget, meta: { title: 'Budget' } },
             { path: 'team', name: 'EventTeam', component: EventTeam, meta: { title: 'Team' } },
+            { path: 'schedule', name: 'EventSchedule', component: EventSchedule, meta: { title: 'Schedule' } },
             { path: 'settings', name: 'EventSettings', component: EventSettings, meta: { title: 'Settings' } },
         ],
     },

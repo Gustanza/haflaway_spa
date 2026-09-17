@@ -1,463 +1,250 @@
 <template>
   <div class="ez-root">
 
-    <!-- ── Stat cards ── -->
-    <div class="ez-stats">
-      <div class="ez-stat-card">
-        <div class="ez-stat-icon ez-stat-icon--purple">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 12 20 22 4 22 4 12"/>
-            <rect x="2" y="7" width="20" height="5"/>
-            <line x1="12" y1="22" x2="12" y2="7"/>
-            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-          </svg>
-        </div>
-        <div class="ez-stat-body">
-          <span class="ez-stat-lbl">Gift Items</span>
-          <span class="ez-stat-val">{{ items.length }}</span>
-        </div>
-      </div>
-      <div class="ez-stat-card">
-        <div class="ez-stat-icon ez-stat-icon--gold">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="8 12 12 16 16 12"/>
-            <line x1="12" y1="8" x2="12" y2="16"/>
-          </svg>
-        </div>
-        <div class="ez-stat-body">
-          <span class="ez-stat-lbl">Total Target</span>
-          <span class="ez-stat-val ez-stat-val--money">TZS {{ fmtAmt(totalTarget) }}</span>
-        </div>
-      </div>
-      <div class="ez-stat-card">
-        <div class="ez-stat-icon ez-stat-icon--teal">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        </div>
-        <div class="ez-stat-body">
-          <span class="ez-stat-lbl">Funded</span>
-          <span class="ez-stat-val ez-stat-val--money">TZS {{ fmtAmt(totalFunded) }}</span>
-        </div>
-      </div>
-      <div class="ez-stat-card">
-        <div class="ez-stat-icon ez-stat-icon--blue">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-        </div>
-        <div class="ez-stat-body">
-          <span class="ez-stat-lbl">Contributors</span>
-          <span class="ez-stat-val">{{ totalContribs }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Panel ── -->
-    <div class="ez-panel">
-
-      <!-- Panel header -->
+    <div class="ez-sticky-head">
       <div class="ez-panel-hd">
-        <h2 class="ez-panel-title">Gifts of Love</h2>
-        <div class="ez-panel-acts">
-          <template v-if="searchOpen">
-            <div class="ez-search-wrap ez-search-expanded">
-              <svg class="ez-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input ref="searchInputRef" v-model="searchQ" class="ez-search"
-                placeholder="Search gift items…"
-                @keydown.esc="closeSearch" />
-              <button v-if="searchQ" class="ez-search-clear" @click="searchQ = ''">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-            <button class="ez-search-cancel" @click="closeSearch">Cancel</button>
-          </template>
-          <template v-else>
-            <button class="ez-search-pill" :class="{ 'ez-search-pill--active': searchQ }" @click="openSearch">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              Search
-            </button>
-            <button class="ez-refresh-btn" @click="loadItems" :disabled="loading" title="Refresh">
-              <svg :class="{ 'ez-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-            </button>
-            <button class="ez-add-btn" @click="openItemForm(null)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Add Item
-            </button>
-          </template>
+        <button type="button" class="ez-hd-burger" title="Menu" @click="navDrawer.open()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="ez-hd-sep" />
+        <div class="ez-hd-badge" @click="$router.push('/events')" title="All Events">
+          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="ez-hd-brand-logo" />
+          <span v-else class="ez-hd-brand-script">.joy</span>
         </div>
+        <div class="ez-hd-sep" />
+        <div class="ez-hd-title-group">
+          <h1 class="ez-hub-title">Gifts of Love</h1>
+          <span class="ez-hub-count">{{ items.length }}</span>
+        </div>
+
+        <div class="ez-search-wrap">
+          <svg class="ez-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input v-model="searchQ" class="ez-search" placeholder="Filter by name" />
+          <button v-if="searchQ" type="button" class="ez-search-clear" @click="searchQ = ''" aria-label="Clear">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <button type="button" class="ez-add-btn" @click="openItemForm(null)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add Item
+        </button>
+        <button type="button" class="ez-hd-gear" title="Settings" @click="$router.push(`/event/${eventId}/settings`)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       </div>
 
-      <!-- Panel body -->
-      <div class="ez-panel-body">
-
-        <!-- Loading -->
-        <div v-if="loading" class="ez-empty">
-          <svg class="ez-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-            stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-          </svg>
-          <p>Loading gift items…</p>
-        </div>
-
-        <!-- Empty -->
-        <div v-else-if="!filteredItems.length" class="ez-empty">
-          <div class="ez-empty-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-              stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 12 20 22 4 22 4 12"/>
-              <rect x="2" y="7" width="20" height="5"/>
-              <line x1="12" y1="22" x2="12" y2="7"/>
-              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-            </svg>
-          </div>
-          <p class="ez-empty-title">{{ searchQ ? 'No items match' : 'No gift items yet' }}</p>
-          <p class="ez-empty-sub">{{ searchQ ? 'Try a different search' : 'Add your first Gift of Love item for guests to contribute to' }}</p>
-          <button v-if="!searchQ" class="ez-empty-cta" @click="openItemForm(null)">Add Item</button>
-        </div>
-
-        <!-- Items list -->
-        <div v-else class="ez-items-list">
-          <div v-for="item in filteredItems" :key="item.id"
-            class="ez-item-card" @click="openDetail(item)">
-
-            <!-- Header row -->
-            <div class="ez-item-head">
-              <div class="ez-item-ico">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 12 20 22 4 22 4 12"/>
-                  <rect x="2" y="7" width="20" height="5"/>
-                  <line x1="12" y1="22" x2="12" y2="7"/>
-                  <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-                  <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-                </svg>
-              </div>
-              <div class="ez-item-info">
-                <p class="ez-item-title">{{ item.title }}</p>
-                <p v-if="item.description" class="ez-item-desc">{{ item.description }}</p>
-              </div>
-              <!-- Actions -->
-              <div class="ez-item-actions" @click.stop>
-                <template v-if="confirmDeleteId === item.id">
-                  <span class="ez-del-lbl">Delete?</span>
-                  <button class="ez-del-yes" @click.stop="deleteItem(item)"
-                    :disabled="deletingId === item.id">
-                    {{ deletingId === item.id ? '…' : 'Yes' }}
-                  </button>
-                  <button class="ez-del-no" @click.stop="confirmDeleteId = null">No</button>
-                </template>
-                <template v-else>
-                  <button class="ez-action-btn ez-action-btn--edit"
-                    @click.stop="openItemForm(item)" title="Edit">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2.2" stroke-linecap="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                  </button>
-                  <button class="ez-action-btn ez-action-btn--del"
-                    @click.stop="confirmDeleteId = item.id" title="Delete">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2.2" stroke-linecap="round">
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                      <path d="M10 11v6M14 11v6"/>
-                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                    </svg>
-                  </button>
-                </template>
-              </div>
-            </div>
-
-            <!-- Progress bar -->
-            <div class="ez-item-bar-track">
-              <div class="ez-item-bar-fill"
-                :style="{
-                  width: `${Math.min(100, itemPct(item) * 100)}%`,
-                  background: itemPct(item) >= 1 ? '#30D158' : '#C9A84C'
-                }"/>
-            </div>
-
-            <!-- Amounts row -->
-            <div class="ez-item-foot">
-              <span class="ez-item-funded">TZS {{ fmtAmt(item.totalFunded) }}</span>
-              <span class="ez-item-target">/ TZS {{ fmtAmt(item.targetAmount) }}</span>
-              <div class="ez-item-badges">
-                <span class="ez-item-pct-badge"
-                  :class="itemPct(item) >= 1 ? 'ez-item-pct-badge--done' : ''">
-                  {{ (itemPct(item) * 100).toFixed(0) }}%
-                </span>
-                <span class="ez-item-gifts-badge">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#C9A84C" stroke="none">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                  </svg>
-                  {{ item.contributorCount }}
-                </span>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
+      <div class="ez-toolbar2">
+        <button
+          v-for="f in STATUS_FILTERS" :key="f.val" type="button"
+          class="ez-tb2-btn" :class="{ 'ez-tb2-btn--active': statusFilter === f.val }"
+          @click="statusFilter = f.val"
+        >
+          <span class="ez-tb2-lbl">
+            {{ f.label }}
+            <span class="ez-tb2-cnt">{{ statusCount(f.val) }}</span>
+          </span>
+        </button>
+        <div class="ez-tb2-divider" />
+        <span class="ez-tb2-stat">Target TZS {{ fmtAmt(totalTarget) }}</span>
+        <span class="ez-tb2-stat">Funded TZS {{ fmtAmt(totalFunded) }}</span>
+        <span class="ez-tb2-stat">{{ totalContribs }} {{ totalContribs === 1 ? 'gift' : 'gifts' }}</span>
       </div>
     </div>
 
-    <!-- ══ Detail Drawer ══ -->
-    <Teleport to="body">
-      <Transition name="ez-fade">
-        <div v-if="selectedItem" class="ez-overlay" @click.self="closeDetail">
-          <Transition name="ez-slide">
-            <div class="ez-drawer" v-if="selectedItem">
+    <div class="ez-split">
+      <div class="ez-editor">
+        <p class="ez-crumb">Website / Gifts of Love</p>
 
-              <!-- Drawer header -->
-              <div class="ez-drawer-head">
-                <button class="ez-drawer-back" @click="closeDetail">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-                  Close
-                </button>
-                <button class="ez-drawer-edit-btn" @click="openItemForm(selectedItem)">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.2" stroke-linecap="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                  Edit
-                </button>
-              </div>
-
-              <!-- Item title + badge -->
-              <div class="ez-drawer-title-row">
-                <div class="ez-drawer-ico">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 12 20 22 4 22 4 12"/>
-                    <rect x="2" y="7" width="20" height="5"/>
-                    <line x1="12" y1="22" x2="12" y2="7"/>
-                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-                  </svg>
-                </div>
-                <div>
-                  <p class="ez-drawer-item-title">{{ selectedItem.title }}</p>
-                  <span class="ez-drawer-badge">GIFT OF LOVE</span>
-                </div>
-              </div>
-
-              <!-- Progress card -->
-              <div class="ez-prog-card">
-                <p v-if="selectedItem.description" class="ez-prog-desc">{{ selectedItem.description }}</p>
-
-                <!-- Ring + stats -->
-                <div class="ez-prog-row">
-                  <!-- SVG ring -->
-                  <svg class="ez-ring" width="76" height="76" viewBox="0 0 76 76">
-                    <circle cx="38" cy="38" r="29" fill="none" stroke="#ECECEF" stroke-width="6"/>
-                    <circle cx="38" cy="38" r="29" fill="none"
-                      :stroke="itemPct(selectedItem) >= 1 ? '#30D158' : '#C9A84C'"
-                      stroke-width="6"
-                      :stroke-dasharray="182.2"
-                      :stroke-dashoffset="182.2 * (1 - itemPct(selectedItem))"
-                      stroke-linecap="round"
-                      transform="rotate(-90 38 38)"/>
-                    <text x="38" y="43" text-anchor="middle" font-size="13" font-weight="800"
-                      :fill="itemPct(selectedItem) >= 1 ? '#30D158' : '#C9A84C'">
-                      {{ (itemPct(selectedItem) * 100).toFixed(0) }}%
-                    </text>
-                  </svg>
-
-                  <!-- Stats -->
-                  <div class="ez-prog-stats">
-                    <div class="ez-prog-stat-row">
-                      <span class="ez-prog-stat-lbl">Funded</span>
-                      <span class="ez-prog-stat-val" style="color:#C9A84C">
-                        TZS {{ fmtAmt(selectedItem.totalFunded) }}
-                      </span>
-                    </div>
-                    <div class="ez-prog-stat-row">
-                      <span class="ez-prog-stat-lbl">Target</span>
-                      <span class="ez-prog-stat-val">TZS {{ fmtAmt(selectedItem.targetAmount) }}</span>
-                    </div>
-                    <div class="ez-prog-stat-row">
-                      <span class="ez-prog-stat-lbl">Remaining</span>
-                      <span class="ez-prog-stat-val">
-                        TZS {{ fmtAmt(Math.max(0, selectedItem.targetAmount - selectedItem.totalFunded)) }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Linear bar -->
-                <div class="ez-prog-bar-track" style="margin-top:14px">
-                  <div class="ez-prog-bar-fill"
-                    :style="{
-                      width: `${Math.min(100, itemPct(selectedItem) * 100)}%`,
-                      background: itemPct(selectedItem) >= 1 ? '#30D158' : '#C9A84C'
-                    }"/>
-                </div>
-
-                <!-- Goal reached -->
-                <div v-if="itemPct(selectedItem) >= 1" class="ez-goal-reached">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#30D158"
-                    stroke-width="2.5" stroke-linecap="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  Goal reached!
-                </div>
-              </div>
-
-              <!-- Contributors section -->
-              <div class="ez-drawer-section">
-                <div class="ez-section-head">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#C9A84C" stroke="none">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                  </svg>
-                  <span class="ez-section-lbl">Contributors</span>
-                  <span v-if="selectedItem.contributorCount > 0" class="ez-section-cnt">
-                    {{ selectedItem.contributorCount }}
-                  </span>
-                </div>
-
-                <div v-if="loadingContribs" class="ez-contribs-loading">
-                  <svg class="ez-spin" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                  </svg>
-                </div>
-
-                <div v-else-if="!contributions.length" class="ez-contribs-empty">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D0CAC0"
-                    stroke-width="1.5" stroke-linecap="round">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                  </svg>
-                  <p>No contributions yet</p>
-                  <p class="ez-contribs-empty-sub">Gifts will appear here once guests contribute</p>
-                </div>
-
-                <div v-else class="ez-contribs-list">
-                  <div v-for="c in contributions" :key="c.id" class="ez-contrib-tile">
-                    <div class="ez-contrib-avatar"
-                      :style="{ background: avatarBg(c.attendeeInitial), color: avatarFg(c.attendeeInitial) }">
-                      {{ c.attendeeInitial }}
-                    </div>
-                    <div class="ez-contrib-info">
-                      <div class="ez-contrib-name-row">
-                        <span class="ez-contrib-name">{{ c.attendeeName }}</span>
-                        <span class="ez-contrib-amt">TZS {{ fmtAmt(c.amount) }}</span>
-                      </div>
-                      <p v-if="c.note" class="ez-contrib-note">"{{ c.note }}"</p>
-                      <p class="ez-contrib-date">{{ formatDate(c.paidAt) }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </Transition>
+        <div v-if="loading && !items.length" class="ez-empty">
+          <p class="ez-empty-kicker">Registry</p>
+          <h2 class="ez-empty-title">Loading…</h2>
         </div>
-      </Transition>
-    </Teleport>
 
-    <!-- ══ Add / Edit Modal ══ -->
-    <Teleport to="body">
-      <Transition name="ez-fade">
-        <div v-if="showItemForm" class="ez-modal-overlay" @click.self="showItemForm = false">
-          <div class="ez-modal">
-            <!-- Header -->
-            <div class="ez-modal-head">
-              <div class="ez-modal-ico">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-                  stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 12 20 22 4 22 4 12"/>
-                  <rect x="2" y="7" width="20" height="5"/>
-                  <line x1="12" y1="22" x2="12" y2="7"/>
-                  <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-                  <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-                </svg>
+        <div v-else-if="!filteredItems.length" class="ez-empty">
+          <p class="ez-empty-kicker">The registry</p>
+          <h2 class="ez-empty-title">{{ searchQ || statusFilter !== 'all' ? 'Nothing matches' : 'Still unwritten' }}</h2>
+          <p class="ez-empty-lede">{{ searchQ || statusFilter !== 'all' ? 'Try another search or filter.' : 'Honeymoon, home, the first year — add a wish and guests give toward it on the website.' }}</p>
+          <button v-if="!searchQ && statusFilter === 'all'" type="button" class="ez-empty-row" @click="openItemForm(null)">
+            <span class="ez-empty-plus">+</span>
+            <span class="ez-empty-row-copy">
+              <span class="ez-empty-row-title">Add a wish</span>
+              <span class="ez-empty-row-sub">It lands in the preview on the right</span>
+            </span>
+          </button>
+        </div>
+
+        <div v-else class="ez-list">
+          <div
+            v-for="item in filteredItems" :key="item.id"
+            class="ez-item"
+            :class="{ 'ez-item--on': selectedItem?.id === item.id }"
+            @click="selectItem(item)"
+          >
+            <div class="ez-item-copy">
+              <span class="ez-item-title">{{ item.title }}</span>
+              <span v-if="item.description" class="ez-item-sub">{{ item.description }}</span>
+              <div class="ez-bar">
+                <div class="ez-bar-fill" :style="{ width: `${itemPct(item) * 100}%` }" />
               </div>
-              <h3 class="ez-modal-title">{{ editingItem ? 'Edit Item' : 'New Gift Item' }}</h3>
+              <span class="ez-item-meta">
+                TZS {{ fmtAmt(item.totalFunded) }} / {{ fmtAmt(item.targetAmount) }}
+                · {{ item.contributorCount ?? 0 }} {{ (item.contributorCount ?? 0) === 1 ? 'gift' : 'gifts' }}
+              </span>
             </div>
-
-            <!-- Fields -->
-            <div class="ez-modal-body">
-              <label class="ez-field-lbl">Item Name <span class="ez-required">*</span></label>
-              <input ref="titleInputRef" v-model="formTitle" class="ez-field-inp"
-                :class="{ 'ez-field-inp--err': formErrors.title }"
-                placeholder="e.g. Honeymoon Trip to Zanzibar"
-                @keydown.enter="saveItem" />
-              <p v-if="formErrors.title" class="ez-field-err">{{ formErrors.title }}</p>
-
-              <label class="ez-field-lbl" style="margin-top:14px">Description <span class="ez-optional">(optional)</span></label>
-              <textarea v-model="formDesc" class="ez-field-inp ez-field-ta"
-                placeholder="Short note about this item…" rows="2"/>
-
-              <label class="ez-field-lbl" style="margin-top:14px">Target Amount (TZS) <span class="ez-required">*</span></label>
-              <input v-model="formAmount" class="ez-field-inp"
-                :class="{ 'ez-field-inp--err': formErrors.amount }"
-                type="number" min="1"
-                placeholder="e.g. 500000"
-                @keydown.enter="saveItem" />
-              <p v-if="formErrors.amount" class="ez-field-err">{{ formErrors.amount }}</p>
-            </div>
-
-            <!-- Actions -->
-            <div class="ez-modal-actions">
-              <button class="ez-modal-cancel" @click="showItemForm = false">Cancel</button>
-              <button class="ez-modal-save" @click="saveItem" :disabled="savingItem">
-                {{ savingItem ? 'Saving…' : (editingItem ? 'Save Changes' : 'Add Item') }}
-              </button>
+            <div class="ez-item-acts" @click.stop>
+              <template v-if="confirmDeleteId === item.id">
+                <span class="ez-del-lbl">Delete?</span>
+                <button type="button" class="ez-chip-btn ez-chip-btn--danger" @click="deleteItem(item)">
+                  {{ deletingId === item.id ? '…' : 'Yes' }}
+                </button>
+                <button type="button" class="ez-chip-btn" @click="confirmDeleteId = null">No</button>
+              </template>
+              <template v-else>
+                <button type="button" class="ez-chip-btn" @click="openItemForm(item)">Edit</button>
+                <button type="button" class="ez-chip-btn" @click="confirmDeleteId = item.id">Delete</button>
+              </template>
             </div>
           </div>
         </div>
-      </Transition>
+      </div>
+
+      <aside class="ez-preview">
+        <div class="ez-preview-bar">
+          <span class="ez-preview-kicker">Guest website</span>
+          <button v-if="selectedItem" type="button" class="ez-preview-edit" @click="openItemForm(selectedItem)">Edit</button>
+        </div>
+
+        <div class="ez-preview-stage">
+          <div v-if="!selectedItem" class="ez-site">
+            <p class="ez-site-kicker">Gifts of Love</p>
+            <h2 class="ez-site-title">Pick a wish</h2>
+            <p class="ez-site-lede">Guests see this registry on the event website. Choose an item on the left.</p>
+          </div>
+
+          <div v-else class="ez-site">
+            <p class="ez-site-kicker">Gifts of Love</p>
+            <h2 class="ez-site-title">{{ selectedItem.title }}</h2>
+            <p v-if="selectedItem.description" class="ez-site-lede">{{ selectedItem.description }}</p>
+
+            <div class="ez-site-amt">
+              <span class="ez-site-pct">{{ (itemPct(selectedItem) * 100).toFixed(0) }}%</span>
+              <span class="ez-site-amt-copy">
+                TZS {{ fmtAmt(selectedItem.totalFunded) }} of {{ fmtAmt(selectedItem.targetAmount) }}
+              </span>
+            </div>
+            <div class="ez-bar ez-bar--site">
+              <div class="ez-bar-fill" :style="{ width: `${itemPct(selectedItem) * 100}%` }" />
+            </div>
+            <p v-if="itemPct(selectedItem) >= 1" class="ez-site-done">This wish is fully given.</p>
+
+            <p class="ez-site-people-lbl">From your people</p>
+            <div v-if="loadingContribs" class="ez-site-muted">Loading gifts…</div>
+            <div v-else-if="!contributions.length" class="ez-site-muted">No gifts yet — they appear here when a guest contributes.</div>
+            <div v-else class="ez-people">
+              <div v-for="c in contributions" :key="c.id" class="ez-person">
+                <div class="ez-person-av" :style="{ background: avatarBg(c.attendeeInitial), color: avatarFg(c.attendeeInitial) }">
+                  {{ c.attendeeInitial || '?' }}
+                </div>
+                <div class="ez-person-copy">
+                  <span class="ez-person-name">{{ c.attendeeName }}</span>
+                  <span v-if="c.note" class="ez-person-note">“{{ c.note }}”</span>
+                  <span class="ez-person-when">{{ formatDate(c.paidAt) }}</span>
+                </div>
+                <span class="ez-person-amt">TZS {{ fmtAmt(c.amount) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <Teleport to="body">
+      <div v-if="showItemForm" class="ez-joy-overlay" @pointerdown.self="showItemForm = false">
+        <div class="ez-dialog" role="dialog" aria-modal="true" @pointerdown.stop>
+          <div class="ez-dialog-hd">
+            <h3 class="ez-dialog-title">{{ editingItem ? 'Edit wish' : 'Add a wish' }}</h3>
+            <button type="button" class="ez-dialog-x" aria-label="Close" @click="showItemForm = false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div class="ez-dialog-body">
+            <p class="ez-dialog-sub">{{ editingItem ? 'Update this gift for guests.' : 'Guests contribute toward this on the website.' }}</p>
+            <label class="ez-field-label">Name</label>
+            <input
+              ref="titleInputRef"
+              v-model="formTitle"
+              class="ez-input"
+              :class="{ 'ez-input--err': formErrors.title }"
+              placeholder="e.g. Honeymoon to Zanzibar"
+              @keydown.enter="saveItem"
+            />
+            <p v-if="formErrors.title" class="ez-field-err">{{ formErrors.title }}</p>
+            <label class="ez-field-label">Note <span class="ez-opt">optional</span></label>
+            <textarea v-model="formDesc" class="ez-textarea" rows="3" placeholder="A line guests will read…" />
+            <label class="ez-field-label">Target (TZS)</label>
+            <input
+              v-model="formAmount"
+              class="ez-input"
+              :class="{ 'ez-input--err': formErrors.amount }"
+              type="number" min="1"
+              placeholder="e.g. 500000"
+              @keydown.enter="saveItem"
+            />
+            <p v-if="formErrors.amount" class="ez-field-err">{{ formErrors.amount }}</p>
+          </div>
+          <div class="ez-dialog-foot">
+            <button type="button" class="ez-dialog-cancel" @click="showItemForm = false">Cancel</button>
+            <button type="button" class="ez-dialog-save" :disabled="savingItem" @click="saveItem">
+              {{ savingItem ? 'Saving…' : (editingItem ? 'Save' : 'Add item') }}
+            </button>
+          </div>
+        </div>
+      </div>
     </Teleport>
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { db } from '../../firebase'
 import {
   collection, getDocs, addDoc, updateDoc, deleteDoc,
   doc, query, orderBy, where, serverTimestamp,
 } from 'firebase/firestore'
+import { useOrg } from '../../composables/useOrg.js'
+import { useNavDrawer } from '../../composables/useNavDrawer.js'
 
 const props   = defineProps({ event: Object, eventId: String })
 const route   = useRoute()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
+const { brandName, brandLogoUrl } = useOrg()
+const navDrawer = useNavDrawer()
 
-// ── State ─────────────────────────────────────────────────────────────────────
+const STATUS_FILTERS = [
+  { val: 'all',     label: 'All' },
+  { val: 'open',    label: 'In progress' },
+  { val: 'funded',  label: 'Funded' },
+]
+
 const items        = ref([])
 const loading      = ref(false)
 const searchQ      = ref('')
-const searchOpen     = ref(false)
-const searchInputRef = ref(null)
-function openSearch() { searchOpen.value = true; nextTick(() => searchInputRef.value?.focus()) }
-function closeSearch() { searchOpen.value = false; searchQ.value = '' }
+const statusFilter = ref('all')
 
 const selectedItem    = ref(null)
 const contributions   = ref([])
@@ -475,23 +262,31 @@ const titleInputRef = ref(null)
 const confirmDeleteId = ref(null)
 const deletingId      = ref(null)
 
-// ── Computed ──────────────────────────────────────────────────────────────────
+function itemPct(item) {
+  return item.targetAmount > 0
+    ? Math.min(1, (item.totalFunded ?? 0) / item.targetAmount)
+    : 0
+}
+
+function statusCount(val) {
+  if (val === 'all') return items.value.length
+  if (val === 'funded') return items.value.filter(i => itemPct(i) >= 1).length
+  return items.value.filter(i => itemPct(i) < 1).length
+}
+
 const filteredItems = computed(() => {
+  let list = items.value
   const q = searchQ.value.trim().toLowerCase()
-  if (!q) return items.value
-  return items.value.filter(i => i.title.toLowerCase().includes(q))
+  if (q) list = list.filter(i => (i.title ?? '').toLowerCase().includes(q) || (i.description ?? '').toLowerCase().includes(q))
+  if (statusFilter.value === 'funded') list = list.filter(i => itemPct(i) >= 1)
+  if (statusFilter.value === 'open') list = list.filter(i => itemPct(i) < 1)
+  return list
 })
 
 const totalTarget   = computed(() => items.value.reduce((s, i) => s + (i.targetAmount ?? 0), 0))
 const totalFunded   = computed(() => items.value.reduce((s, i) => s + (i.totalFunded ?? 0), 0))
 const totalContribs = computed(() => items.value.reduce((s, i) => s + (i.contributorCount ?? 0), 0))
-const pctDone       = computed(() =>
-  totalTarget.value > 0
-    ? Math.min(100, (totalFunded.value / totalTarget.value) * 100)
-    : 0
-)
 
-// ── Data loading ──────────────────────────────────────────────────────────────
 async function loadItems() {
   if (!eventId.value) return
   loading.value = true
@@ -527,9 +322,24 @@ async function loadContributions(item) {
   }
 }
 
-onMounted(loadItems)
+function selectItem(item) {
+  if (selectedItem.value?.id === item.id) return
+  selectedItem.value = item
+  confirmDeleteId.value = null
+  loadContributions(item)
+}
 
-// ── Item CRUD ─────────────────────────────────────────────────────────────────
+watch(filteredItems, (list) => {
+  if (!list.length) {
+    selectedItem.value = null
+    contributions.value = []
+    return
+  }
+  if (!selectedItem.value || !list.some(i => i.id === selectedItem.value.id)) {
+    selectItem(list[0])
+  }
+})
+
 function openItemForm(item) {
   editingItem.value = item
   formTitle.value   = item?.title ?? ''
@@ -541,7 +351,6 @@ function openItemForm(item) {
 }
 
 async function saveItem() {
-  // Validate
   const errors = {}
   if (!formTitle.value.trim()) errors.title = 'Name is required'
   const amt = parseFloat(String(formAmount.value ?? ''))
@@ -576,7 +385,9 @@ async function saveItem() {
         createdAt:        serverTimestamp(),
       }
       const ref = await addDoc(collection(db, 'events', eventId.value, 'zawadiItems'), newData)
-      items.value.push({ id: ref.id, ...newData })
+      const created = { id: ref.id, ...newData }
+      items.value.push(created)
+      selectItem(created)
     }
     showItemForm.value = false
   } catch (e) {
@@ -591,29 +402,17 @@ async function deleteItem(item) {
   deletingId.value = item.id
   try {
     await deleteDoc(doc(db, 'events', eventId.value, 'zawadiItems', item.id))
-    items.value       = items.value.filter(i => i.id !== item.id)
+    items.value = items.value.filter(i => i.id !== item.id)
     confirmDeleteId.value = null
-    if (selectedItem.value?.id === item.id) selectedItem.value = null
+    if (selectedItem.value?.id === item.id) {
+      selectedItem.value = null
+      contributions.value = []
+    }
   } catch (e) {
     console.error('Failed to delete item', e)
   } finally {
     deletingId.value = null
   }
-}
-
-// ── Detail drawer ─────────────────────────────────────────────────────────────
-function openDetail(item) {
-  selectedItem.value = item
-  confirmDeleteId.value = null
-  loadContributions(item)
-}
-function closeDetail() { selectedItem.value = null }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function itemPct(item) {
-  return item.targetAmount > 0
-    ? Math.min(1, (item.totalFunded ?? 0) / item.targetAmount)
-    : 0
 }
 
 function fmtAmt(v) {
@@ -632,467 +431,306 @@ function formatDate(val) {
 }
 
 const AVATAR_PALETTE = [
-  ['#D4E8C2', '#3A6B1A'], ['#C2D8E8', '#1A4B6B'], ['#E8D4C2', '#6B3A1A'],
-  ['#D4C2E8', '#3A1A6B'], ['#E8C2D4', '#6B1A3A'], ['#C2E8D4', '#1A6B3A'],
-  ['#E8E4C2', '#6B5A1A'], ['#C2E8E8', '#1A6B6B'],
+  ['#f3f4f6', '#374151'], ['#e5e7eb', '#1f2937'], ['#f1f5f9', '#334155'],
+  ['#eeeef0', '#111827'], ['#e9eaee', '#4b5563'], ['#f8fafc', '#1f2937'],
 ]
 function avatarBg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVATAR_PALETTE.length][0] }
 function avatarFg(init) { return AVATAR_PALETTE[(init?.charCodeAt(0) ?? 0) % AVATAR_PALETTE.length][1] }
+
+function onKey(e) {
+  if (e.key === 'Escape' && showItemForm.value) showItemForm.value = false
+}
+
+onMounted(() => {
+  loadItems()
+  window.addEventListener('keydown', onKey)
+})
+onUnmounted(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <style scoped>
-/* ══ Root ══ */
 .ez-root {
-  display: flex;
-  flex-direction: column;
-  padding: 20px 24px 24px;
-  gap: 16px;
+  min-height: 100vh; height: 100%;
+  display: flex; flex-direction: column;
+  background: #fff; color: #1f2937;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-muted:  #3a3a3a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-  --c-divide: #2a2a2a;
-  --c-arrow:  #3a3a3a;
-  transition: background 300ms ease;
+  overflow: hidden;
 }
-
-/* ── Stat cards ── */
-.ez-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.ez-stat-card {
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
-  padding: 20px 20px 18px; display: flex; align-items: flex-start; gap: 16px;
-  transition: background 300ms ease, border-color 300ms ease;
+.ez-sticky-head { position: sticky; top: 0; z-index: 20; background: #fff; }
+.ez-panel-hd {
+  display: flex; align-items: center; height: 92px; padding: 0 36px; gap: 14px;
+  border-bottom: 1px solid #f1f3f5;
 }
-.ez-stat-icon {
-  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
+.ez-hd-burger {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 1px solid #e5e7eb; border-radius: 50%; background: #fff;
+  color: #4b5563; cursor: pointer; padding: 0;
   display: flex; align-items: center; justify-content: center;
 }
-.ez-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
-.ez-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
-.ez-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
-.ez-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
-.ez-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.ez-stat-lbl  { font-size: 11px; color: var(--c-txt-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.6px; text-transform: uppercase; }
-.ez-stat-val  { font-size: 32px; font-weight: 700; color: var(--c-txt); white-space: nowrap; line-height: 1; letter-spacing: -0.5px; }
-.ez-stat-val--money { font-size: 24px; letter-spacing: -0.3px; }
-
-/* ── Panel ── */
-.ez-panel {
-  display: flex;
-  flex-direction: column;
-  background: #0d0d0d;
-  border: 1px solid var(--c-border);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: border-color 300ms ease;
+.ez-hd-burger:hover { background: #f8fafc; color: #18181b; border-color: #d1d5db; }
+.ez-hd-sep { width: 1px; height: 16px; background: #e5e7eb; flex-shrink: 0; margin: 0 4px; }
+.ez-hd-badge {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e5e7eb;
+  overflow: hidden; background: #fff; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
-.ez-panel-hd {
-  display: flex;
-  align-items: center;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--c-divide);
-  gap: 10px;
+.ez-hd-brand-logo { width: 100%; height: 100%; object-fit: cover; }
+.ez-hd-brand-script {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic; font-size: 18px; font-weight: 700;
+  color: #111827; letter-spacing: -0.04em; line-height: 1;
 }
-.ez-panel-title {
-  font-size: 19px; font-weight: 700; color: var(--c-txt); margin: 0;
-  letter-spacing: -0.3px; white-space: nowrap;
+.ez-hd-title-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ez-hub-title { margin: 0; font-size: 22px; font-weight: 600; color: #18181b; letter-spacing: -0.015em; white-space: nowrap; }
+.ez-hub-count {
+  font-size: 12.5px; font-weight: 600; color: #4b5563;
+  background: #f1f3f5; border-radius: 9999px; padding: 2px 10px;
 }
-.ez-panel-acts { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.ez-panel-body { padding: 20px; }
-
-
-/* Search */
 .ez-search-wrap {
   position: relative; display: flex; align-items: center;
-  min-width: 180px; max-width: 260px;
+  flex: 1 1 0; margin: 0 20px; min-width: 220px;
 }
-.ez-search-icon { position: absolute; left: 10px; pointer-events: none; }
+.ez-search-icon { position: absolute; left: 16px; color: #9ca3af; pointer-events: none; }
 .ez-search {
-  width: 100%; padding: 8px 32px;
-  border: 1px solid var(--c-border); border-radius: 10px;
-  font-size: 13px; font-family: inherit; outline: none;
-  background: var(--c-bg); color: var(--c-txt);
-  transition: border-color 150ms, box-shadow 150ms;
+  width: 100%; height: 44px; padding: 0 44px 0 44px;
+  background: #f3f4f6; border: none; border-radius: 9999px;
+  font-size: 15px; color: #111827; outline: none; font-family: inherit;
 }
-.ez-search:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
+.ez-search:focus { background: #eeeeef; }
+.ez-search::placeholder { color: #9ca3af; }
 .ez-search-clear {
-  position: absolute; right: 8px; background: none; border: none;
-  cursor: pointer; color: var(--c-txt-2); padding: 2px;
-  display: flex; align-items: center;
+  position: absolute; right: 10px; width: 32px; height: 32px;
+  border: none; background: none; color: #9ca3af; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
 }
-.ez-search-clear:hover { color: var(--c-txt); }
-
-/* Refresh button */
-.ez-refresh-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  border: 1px solid var(--c-border); background: #0d0d0d; color: var(--c-txt-2);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 140ms;
-}
-.ez-refresh-btn:hover:not(:disabled) { background: var(--c-muted); color: var(--c-txt); }
-.ez-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* Add Item button (gold primary) */
 .ez-add-btn {
-  display: flex; align-items: center; gap: 6px; padding: 8px 16px;
-  background: var(--gold); color: var(--gold-contrast); border: none; border-radius: 10px;
-  font-size: 13px; font-weight: 700; cursor: pointer; transition: background 150ms;
-  font-family: inherit; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+  height: 40px; padding: 0 20px; border: 1px solid #e5e7eb; border-radius: 9999px;
+  background: #fff; color: #111827; font-family: inherit;
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
 }
-.ez-add-btn:hover { background: #d4b560; }
+.ez-add-btn:hover { background: #f8fafc; border-color: #d1d5db; }
+.ez-hd-gear {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.ez-hd-gear:hover { background: #f8fafc; color: #0f172a; }
 
-/* Empty state */
-.ez-empty {
-  display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; min-height: 280px; color: var(--c-txt-3);
+.ez-toolbar2 {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 36px; border-bottom: 1px solid #f1f3f5;
 }
-.ez-empty-icon {
-  width: 64px; height: 64px; border-radius: 50%;
-  background: rgba(255,255,255,0.03); border: 1px solid var(--c-border);
-  display: flex; align-items: center; justify-content: center;
-}
-.ez-empty-title { font-size: 15px; font-weight: 600; color: var(--c-txt-2); margin: 0; }
-.ez-empty-sub   { font-size: 13px; color: var(--c-txt-3); margin: 0; text-align: center; max-width: 300px; }
-.ez-empty-cta {
-  margin-top: 6px; padding: 9px 20px; border-radius: 10px;
-  background: rgba(226,232,240,0.12); color: var(--c-txt); font-size: 13px; font-weight: 600;
-  border: none; cursor: pointer; transition: background 140ms; font-family: inherit;
-}
-.ez-empty-cta:hover { background: #1a2236; }
-
-/* ══ Items list ══ */
-.ez-items-list { display: flex; flex-direction: column; gap: 12px; max-width: 720px; }
-
-.ez-item-card {
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px;
-  padding: 16px 16px 14px; cursor: pointer;
-  transition: box-shadow 150ms, border-color 150ms, background 300ms ease;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-}
-.ez-item-card:hover { box-shadow: 0 3px 14px rgba(0,0,0,0.09); border-color: var(--c-muted); }
-
-/* Item head */
-.ez-item-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
-.ez-item-ico {
-  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  background: rgba(184,146,77,0.10); border: 1px solid rgb(from var(--gold) r g b / 0.15);
-  display: flex; align-items: center; justify-content: center;
-}
-.ez-item-info { flex: 1; min-width: 0; }
-.ez-item-title { font-size: 15px; font-weight: 600; color: var(--c-txt); margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ez-item-desc  { font-size: 12px; color: var(--c-txt-2); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ez-item-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-.ez-del-lbl { font-size: 12px; font-weight: 600; color: #FF453A; }
-.ez-del-yes {
-  padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
-  border: 1px solid rgba(255,59,48,0.3); background: rgba(255,59,48,0.08); color: #FF453A;
-  cursor: pointer; font-family: inherit; transition: background 120ms;
-}
-.ez-del-yes:hover:not(:disabled) { background: rgba(255,59,48,0.16); }
-.ez-del-yes:disabled { opacity: 0.6; cursor: not-allowed; }
-.ez-del-no {
-  padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
-  border: 1px solid var(--c-border); background: #0d0d0d; color: var(--c-txt-2);
+.ez-tb2-btn {
+  display: flex; align-items: center;
+  min-height: 34px; padding: 6px 14px;
+  border: 1px solid #e2e8f0; border-radius: 9999px; background: #fff;
   cursor: pointer; font-family: inherit;
 }
-.ez-del-no:hover { background: var(--c-muted); }
-.ez-action-btn {
-  width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--c-border);
-  background: #0d0d0d; color: var(--c-txt-2);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 130ms;
+.ez-tb2-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+.ez-tb2-btn--active { background: #f1f5f9; border-color: #cbd5e1; }
+.ez-tb2-lbl { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #475569; white-space: nowrap; }
+.ez-tb2-btn--active .ez-tb2-lbl { color: #0f172a; font-weight: 600; }
+.ez-tb2-cnt {
+  min-width: 18px; padding: 1px 6px; border-radius: 9999px;
+  background: #f1f5f9; font-size: 10.5px; font-weight: 700; color: #475569;
 }
-.ez-action-btn--edit:hover { border-color: rgb(from var(--gold) r g b / 0.3); color: var(--gold); background: var(--c-bg); }
-.ez-action-btn--del:hover  { border-color: rgba(255,59,48,0.3); color: #FF453A; background: rgba(255,59,48,0.05); }
+.ez-tb2-divider { width: 1px; height: 16px; background: #e5e7eb; margin: 0 4px; }
+.ez-tb2-stat { font-size: 12.5px; font-weight: 600; color: #64748b; }
 
-/* Progress bar */
-.ez-item-bar-track { height: 5px; border-radius: 3px; background: var(--c-track); overflow: hidden; margin-bottom: 10px; }
-.ez-item-bar-fill  { height: 100%; border-radius: 3px; transition: width 400ms ease; }
+.ez-split { flex: 1; display: flex; align-items: stretch; min-height: 0; background: #f7f7f8; }
+.ez-editor {
+  flex: 1 1 50%; width: 50%; min-width: 0;
+  background: #fff; border-right: 1px solid #f0f0f2;
+  overflow-y: auto; padding: 22px 32px 48px;
+}
+.ez-crumb { margin: 0 0 18px; font-size: 12.5px; font-weight: 500; color: #94a3b8; }
+.ez-empty { padding: 8px 2px 0; }
+.ez-empty-kicker {
+  margin: 0 0 6px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: #94a3b8;
+}
+.ez-empty-title {
+  margin: 0 0 10px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 400; font-style: italic; font-size: 28px; color: #1a1a1a;
+}
+.ez-empty-lede { margin: 0 0 22px; max-width: 42ch; font-size: 14px; color: #64748b; line-height: 1.55; }
+.ez-empty-row {
+  width: min(420px, 100%); display: flex; align-items: center; gap: 14px;
+  padding: 16px 14px; border: 1px dashed #d1d5db; border-radius: 14px;
+  background: #fafafa; cursor: pointer; text-align: left; font-family: inherit;
+}
+.ez-empty-row:hover { border-color: #c4c4c8; background: #fff; }
+.ez-empty-plus {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #fff; color: #374151; border: 1px solid #e5e7eb;
+  display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+}
+.ez-empty-row-copy { display: flex; flex-direction: column; gap: 2px; }
+.ez-empty-row-title { font-size: 15px; font-weight: 600; color: #111827; }
+.ez-empty-row-sub { font-size: 13px; color: #64748b; }
 
-/* Foot row */
-.ez-item-foot { display: flex; align-items: center; gap: 4px; }
-.ez-item-funded { font-size: 13px; font-weight: 700; color: var(--gold); }
-.ez-item-target { font-size: 12px; color: var(--c-txt-2); flex: 1; }
-.ez-item-badges { display: flex; gap: 6px; }
-.ez-item-pct-badge {
-  padding: 2px 8px; border-radius: 20px;
-  font-size: 11px; font-weight: 600;
-  background: var(--c-track); color: var(--c-txt-2); border: 1px solid var(--c-border);
-}
-.ez-item-pct-badge--done { background: rgba(52,211,153,0.12); color: #34d399; border-color: transparent; }
-.ez-item-gifts-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 8px; border-radius: 20px;
-  font-size: 11px; font-weight: 600;
-  background: rgba(184,146,77,0.10); color: var(--gold); border: 1px solid rgb(from var(--gold) r g b / 0.15);
-}
-
-/* ══ Drawer ══ */
-.ez-overlay {
-  position: fixed; inset: 0; z-index: 200;
-  background: var(--overlay-bg);
-}
-.ez-drawer {
-  position: fixed; right: 0; top: 0; bottom: 0;
-  width: 400px; background: var(--c-bg);
-  box-shadow: -4px 0 32px rgba(0,0,0,0.5);
-  display: flex; flex-direction: column; overflow-y: auto; z-index: 201;
-}
-.ez-drawer-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 1px solid var(--c-divide); flex-shrink: 0;
-}
-.ez-drawer-back {
-  display: flex; align-items: center; gap: 5px;
-  padding: 6px 10px; border-radius: 8px;
-  border: none; background: var(--c-bg); color: var(--c-txt-2);
-  font-size: 13px; font-weight: 500; cursor: pointer;
-  transition: all 130ms; font-family: inherit;
-}
-.ez-drawer-back:hover { background: var(--c-muted); color: var(--c-txt); }
-.ez-drawer-edit-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border-radius: 8px;
-  border: 1px solid var(--c-border); background: #0d0d0d; color: var(--c-txt-2);
-  font-size: 12px; font-weight: 500; font-family: inherit;
-  text-decoration: none; cursor: pointer; transition: all 130ms;
-}
-.ez-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: var(--gold); background: var(--c-bg); }
-
-/* Item title row in drawer */
-.ez-drawer-title-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 16px 20px; border-bottom: 1px solid var(--c-divide);
-}
-.ez-drawer-ico {
-  width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
-  background: rgba(184,146,77,0.10); border: 1px solid rgb(from var(--gold) r g b / 0.15);
-  display: flex; align-items: center; justify-content: center;
-}
-.ez-drawer-item-title { font-size: 17px; font-weight: 700; color: var(--c-txt); margin: 0 0 5px; }
-.ez-drawer-badge {
-  display: inline-block; padding: 2px 8px; border-radius: 20px;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
-  background: rgb(from var(--gold) r g b / 0.08); color: var(--gold);
-  border: 1px solid rgb(from var(--gold) r g b / 0.15);
-}
-
-/* Progress card */
-.ez-prog-card {
-  margin: 16px 20px; padding: 18px;
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px;
-  transition: background 300ms ease, border-color 300ms ease;
-}
-.ez-prog-desc { font-size: 13px; color: var(--c-txt-2); margin: 0 0 14px; line-height: 1.5; }
-.ez-prog-row  { display: flex; align-items: center; gap: 18px; }
-.ez-ring      { flex-shrink: 0; }
-.ez-prog-stats { flex: 1; display: flex; flex-direction: column; gap: 7px; }
-.ez-prog-stat-row { display: flex; align-items: center; gap: 6px; }
-.ez-prog-stat-lbl { font-size: 12px; color: var(--c-txt-2); min-width: 64px; }
-.ez-prog-stat-val { font-size: 13px; font-weight: 600; color: var(--c-txt); }
-.ez-prog-bar-track { height: 6px; border-radius: 3px; background: var(--c-track); overflow: hidden; }
-.ez-prog-bar-fill  { height: 100%; border-radius: 3px; transition: width 400ms ease; }
-.ez-goal-reached {
-  display: flex; align-items: center; gap: 5px; justify-content: center;
-  margin-top: 10px; font-size: 12px; font-weight: 600; color: #30D158;
-}
-
-/* Contributors section */
-.ez-drawer-section { padding: 0 20px 24px; }
-.ez-section-head {
-  display: flex; align-items: center; gap: 7px;
-  margin-bottom: 12px;
-}
-.ez-section-lbl { font-size: 13px; font-weight: 600; color: var(--c-txt); }
-.ez-section-cnt {
-  padding: 1px 7px; border-radius: 20px;
-  background: rgb(from var(--gold) r g b / 0.08); color: var(--gold);
-  font-size: 11px; font-weight: 600;
-}
-.ez-contribs-loading {
-  display: flex; justify-content: center; padding: 24px;
-}
-.ez-contribs-empty {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  padding: 28px; color: var(--c-txt-3);
-}
-.ez-contribs-empty p { margin: 0; font-size: 14px; font-weight: 500; color: var(--c-txt-2); }
-.ez-contribs-empty-sub { font-size: 12px; color: var(--c-txt-3) !important; }
-.ez-contribs-list { display: flex; flex-direction: column; gap: 0; }
-.ez-contrib-tile {
+.ez-list { display: flex; flex-direction: column; }
+.ez-item {
   display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 0; border-bottom: 1px solid var(--c-divide);
+  padding: 16px 4px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
 }
-.ez-contrib-tile:last-of-type { border-bottom: none; }
-.ez-contrib-avatar {
-  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+.ez-item:hover { background: #fafafa; }
+.ez-item--on { background: #f7f7f8; }
+.ez-item-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ez-item-title { font-size: 15px; font-weight: 600; color: #111827; }
+.ez-item-sub {
+  font-size: 13px; color: #64748b;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ez-item-meta { font-size: 12.5px; color: #64748b; }
+.ez-bar { height: 4px; border-radius: 9999px; background: #f1f3f5; overflow: hidden; }
+.ez-bar-fill { height: 100%; background: #111827; width: 0; }
+.ez-bar--site { margin: 12px 0 8px; height: 5px; }
+.ez-item-acts { opacity: 0; pointer-events: none; display: flex; gap: 6px; align-items: center; flex-shrink: 0; padding-top: 2px; }
+.ez-item:hover .ez-item-acts, .ez-item--on .ez-item-acts { opacity: 1; pointer-events: auto; }
+.ez-del-lbl { font-size: 12px; font-weight: 600; color: #111827; }
+.ez-chip-btn {
+  height: 28px; padding: 0 10px; border-radius: 9999px;
+  border: 1px solid #e5e7eb; background: #fff; color: #374151;
+  font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+}
+.ez-chip-btn:hover { background: #f8fafc; }
+.ez-chip-btn--danger { color: #9f1239; border-color: #fecdd3; }
+
+.ez-preview {
+  flex: 1 1 50%; width: 50%; min-width: 0;
+  display: flex; flex-direction: column; background: #f4f4f5;
+}
+.ez-preview-bar {
+  height: 48px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px; background: #fff; border-bottom: 1px solid #f0f0f2; flex-shrink: 0;
+}
+.ez-preview-kicker {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #94a3b8;
+}
+.ez-preview-edit {
+  border: none; background: none; font-size: 12.5px; font-weight: 600;
+  color: #374151; cursor: pointer; font-family: inherit;
+}
+.ez-preview-edit:hover { color: #111827; }
+.ez-preview-stage {
+  flex: 1; min-height: 0; overflow: auto;
+  padding: 28px 24px 40px;
+  display: flex; justify-content: center; align-items: flex-start;
+}
+.ez-site {
+  width: min(420px, 100%);
+  background: #FAF6EF; color: #241F18;
+  border-radius: 4px; box-shadow: 0 18px 50px rgba(36, 31, 24, 0.08);
+  padding: 40px 36px 44px;
+}
+.ez-site-kicker {
+  margin: 0 0 10px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: #8a8178;
+}
+.ez-site-title {
+  margin: 0 0 10px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 400; font-size: 28px; color: #241F18; line-height: 1.2;
+}
+.ez-site-lede { margin: 0 0 22px; font-size: 14px; color: #6b645c; line-height: 1.55; }
+.ez-site-amt { display: flex; align-items: baseline; gap: 12px; }
+.ez-site-pct {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 32px; font-weight: 400; color: #241F18;
+}
+.ez-site-amt-copy { font-size: 13px; color: #8a8178; }
+.ez-site-done { margin: 10px 0 0; font-size: 13px; font-weight: 600; color: #374151; }
+.ez-site-people-lbl {
+  margin: 28px 0 12px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: #8a8178;
+}
+.ez-site-muted { margin: 0; font-size: 13.5px; color: #8a8178; }
+.ez-people { display: flex; flex-direction: column; gap: 12px; }
+.ez-person { display: flex; align-items: flex-start; gap: 10px; }
+.ez-person-av {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700;
 }
-.ez-contrib-info { flex: 1; min-width: 0; }
-.ez-contrib-name-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  margin-bottom: 2px;
-}
-.ez-contrib-name { font-size: 13px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ez-contrib-amt  { font-size: 13px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
-.ez-contrib-note { font-size: 12px; color: var(--c-txt-2); margin: 0 0 2px; font-style: italic; line-height: 1.4; }
-.ez-contrib-date { font-size: 11px; color: var(--c-txt-3); margin: 0; }
+.ez-person-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ez-person-name { font-size: 13.5px; font-weight: 600; color: #241F18; }
+.ez-person-note { font-size: 13px; font-style: italic; color: #6b645c; }
+.ez-person-when { font-size: 12px; color: #8a8178; }
+.ez-person-amt { font-size: 12.5px; font-weight: 600; color: #241F18; flex-shrink: 0; }
 
-/* ══ Add/Edit Modal ══ */
-.ez-modal-overlay {
-  position: fixed; inset: 0; z-index: 300;
-  background: var(--overlay-bg);
-  display: flex; align-items: center; justify-content: center; padding: 20px;
+.ez-input, .ez-textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid #e5e7eb; border-radius: 12px;
+  font-size: 15px; font-family: inherit; color: #111827; outline: none;
+  padding: 0 14px;
 }
-.ez-modal {
-  background: #0d0d0d; border-radius: 20px;
-  padding: 0; width: 100%; max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.18); overflow: hidden;
-  border: 1px solid var(--c-border);
-  transition: border-color 300ms ease;
+.ez-input { height: 44px; }
+.ez-textarea { padding: 12px 14px; resize: vertical; }
+.ez-input--err { border-color: #fecdd3; }
+.ez-field-err { margin: 6px 0 0; font-size: 12.5px; color: #9f1239; }
+.ez-opt { font-weight: 500; color: #94a3b8; }
+
+@media (max-width: 980px) {
+  .ez-split { flex-direction: column; }
+  .ez-editor, .ez-preview { width: 100%; flex-basis: auto; }
+  .ez-editor { border-right: none; border-bottom: 1px solid #f0f0f2; max-height: 46vh; }
+  .ez-preview { min-height: 54vh; }
+  .ez-item-acts { opacity: 1; pointer-events: auto; }
 }
-.ez-modal-head {
-  display: flex; align-items: center; gap: 12px;
-  padding: 20px 24px 16px; border-bottom: 1px solid var(--c-divide);
+@media (max-width: 900px) {
+  .ez-panel-hd { height: auto; flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
+  .ez-search-wrap { flex: 1 1 100%; margin: 8px 0 0; order: 8; }
+  .ez-hd-sep { display: none; }
+  .ez-toolbar2 { padding-left: 16px; padding-right: 16px; }
+  .ez-editor { padding: 16px; }
 }
-.ez-modal-ico {
-  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  background: rgba(184,146,77,0.10); border: 1px solid rgb(from var(--gold) r g b / 0.15);
+</style>
+
+<style>
+html .ez-joy-overlay {
+  position: fixed; inset: 0; z-index: 1600;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.32) !important;
+  backdrop-filter: none !important;
+}
+html .ez-dialog {
+  width: min(480px, calc(100vw - 32px));
+  background: #fff; color: #111827; border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+html .ez-dialog-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 10px 24px;
+}
+html .ez-dialog-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: #111827; }
+html .ez-dialog-x {
+  width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: #f8fafc; color: #64748b; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.ez-modal-title { font-size: 17px; font-weight: 700; color: var(--c-txt); margin: 0; }
-.ez-modal-body { padding: 18px 24px; display: flex; flex-direction: column; }
-.ez-field-lbl {
-  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
-  display: block; margin-bottom: 6px;
+html .ez-dialog-body { padding: 4px 24px 12px; }
+html .ez-dialog-sub { margin: 0 0 18px; font-size: 14px; color: #64748b; line-height: 1.5; }
+html .ez-field-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin: 14px 0 8px; }
+html .ez-dialog-body .ez-field-label:first-of-type { margin-top: 0; }
+html .ez-dialog-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 20px; border-top: 1px solid #f0f0f2;
 }
-.ez-required { color: #FF453A; }
-.ez-optional { color: var(--c-txt-3); font-weight: 400; }
-.ez-field-inp {
-  width: 100%; padding: 10px 14px; box-sizing: border-box;
-  border: 1px solid var(--c-border); border-radius: 10px;
-  font-size: 14px; font-family: inherit; outline: none; color: var(--c-txt);
-  background: var(--c-bg); transition: border-color 150ms, box-shadow 150ms;
+html .ez-dialog-cancel {
+  height: 40px; padding: 0 16px; border: none; background: none;
+  font-size: 14px; font-weight: 600; color: #111827; cursor: pointer; font-family: inherit;
 }
-.ez-field-inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
-.ez-field-inp--err { border-color: rgba(255,59,48,0.5); }
-.ez-field-ta { resize: none; line-height: 1.5; }
-.ez-field-err { font-size: 11px; color: #FF453A; margin: 4px 0 0; }
-.ez-modal-actions {
-  display: flex; gap: 10px;
-  padding: 16px 24px; border-top: 1px solid var(--c-divide);
+html .ez-dialog-save {
+  height: 40px; padding: 0 18px; border: 1px solid #e5e7eb; border-radius: 9999px;
+  background: #fff; color: #111827; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
-.ez-modal-cancel {
-  flex: 1; padding: 11px; border-radius: 10px;
-  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
-  font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
-  transition: background 130ms;
-}
-.ez-modal-cancel:hover { background: var(--c-muted); }
-.ez-modal-save {
-  flex: 1; padding: 11px; border-radius: 10px;
-  border: none; background: var(--gold); color: var(--gold-contrast);
-  font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
-  transition: background 130ms;
-}
-.ez-modal-save:hover:not(:disabled) { background: #d4b560; }
-.ez-modal-save:disabled { opacity: 0.45; cursor: not-allowed; }
-
-/* ══ Transitions ══ */
-.ez-fade-enter-active, .ez-fade-leave-active { transition: opacity 200ms ease; }
-.ez-fade-enter-from,   .ez-fade-leave-to     { opacity: 0; }
-.ez-slide-enter-active, .ez-slide-leave-active { transition: transform 260ms ease; }
-.ez-slide-enter-from,   .ez-slide-leave-to     { transform: translateX(100%); }
-
-/* ── Search pill ── */
-.ez-search-pill {
-  display: flex; align-items: center; gap: 6px;
-  padding: 7px 12px; border-radius: 10px;
-  border: 1px solid var(--c-border); background: var(--c-bg);
-  color: var(--c-txt-2); font-size: 12px; font-weight: 500;
-  font-family: inherit; cursor: pointer;
-  transition: all 140ms; white-space: nowrap;
-}
-.ez-search-pill:hover { background: var(--c-muted); color: var(--c-txt); }
-.ez-search-pill--active { color: var(--c-txt); border-color: rgba(240,236,230,0.2); background: rgba(240,236,230,0.06); }
-.ez-search-expanded { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
-.ez-search-cancel {
-  flex-shrink: 0; padding: 7px 2px; border: none; background: none;
-  font-size: 13px; font-weight: 500; color: var(--c-txt-2); cursor: pointer;
-  font-family: inherit; transition: color 130ms;
-}
-.ez-search-cancel:hover { color: var(--c-txt); }
-
-/* Spin */
-.ez-spin { animation: ez-spin-anim 1.1s linear infinite; }
-@keyframes ez-spin-anim { to { transform: rotate(360deg); } }
-
-/* ── Responsive ── */
-@media (max-width: 700px) {
-  .ez-root  { padding: 12px 14px 20px; gap: 12px; }
-
-  /* Stats */
-  .ez-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .ez-stat-card { padding: 14px 14px 12px; gap: 12px; min-width: 0; overflow: hidden; }
-  .ez-stat-icon { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; }
-  .ez-stat-val  { font-size: 24px; }
-  .ez-stat-val--money { font-size: 18px; }
-  .ez-stat-body { gap: 6px; min-width: 0; }
-  .ez-stat-lbl  { font-size: 10px; letter-spacing: 0; }
-
-  /* Panel header: stack title + search on first row, buttons on second */
-  .ez-panel-hd {
-    flex-wrap: wrap;
-    row-gap: 8px;
-    padding: 12px 14px;
-  }
-  .ez-panel-title { font-size: 16px; }
-  .ez-hd-search {
-    min-width: 0;
-    flex: 1 1 100%;
-    max-width: 100%;
-    order: 3;
-  }
-  .ez-panel-acts { margin-left: auto; }
-
-  /* Panel body */
-  .ez-panel-body { padding: 12px; }
-
-  /* Item cards */
-  .ez-items-list { max-width: 100%; gap: 10px; }
-  .ez-item-card { padding: 14px 12px 12px; }
-  .ez-item-title { font-size: 14px; }
-  .ez-item-foot { flex-wrap: wrap; gap: 6px; }
-  .ez-item-target { flex: 1 1 100%; order: 3; font-size: 11px; }
-  .ez-item-badges { order: 2; }
-
-  /* Drawer */
-  .ez-drawer { width: 100%; }
-
-  /* Progress ring row: stack vertically on small screens */
-  .ez-prog-row { flex-direction: column; align-items: flex-start; gap: 12px; }
-}
-
-@media (max-width: 400px) {
-  .ez-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .ez-stat-val { font-size: 20px; }
-  .ez-stat-val--money { font-size: 15px; }
-  .ez-stat-lbl { font-size: 10px; }
-
-  .ez-panel-hd { padding: 10px 12px; }
-  .ez-panel-title { font-size: 15px; }
-  .ez-add-btn { padding: 7px 12px; font-size: 12px; }
-
-  .ez-item-card { padding: 12px 10px 10px; }
-  .ez-item-ico { width: 34px; height: 34px; border-radius: 9px; }
-  .ez-item-funded { font-size: 12px; }
-  .ez-item-title { font-size: 13px; }
-
-  .ez-search { font-size: 12px; }
-}
+html .ez-dialog-save:disabled { opacity: 0.45; cursor: default; }
 </style>

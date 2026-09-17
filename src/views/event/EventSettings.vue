@@ -12,21 +12,31 @@
     </div>
 
     <template v-else>
-      <!-- ── Page header ── -->
-      <div class="es-header">
-        <div>
-          <h1 class="es-page-title">Event Settings</h1>
-          <p class="es-page-sub">Manage language, card format, venues and visibility.</p>
-        </div>
-        <div class="es-header-actions">
-          <button class="es-edit-btn" @click="router.push(`/edit-event/${eventId}`)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      <div class="es-sticky-head">
+        <div class="es-hub-hd">
+          <button type="button" class="es-hd-burger" title="Menu" @click="navDrawer.open()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
+          </button>
+          <div class="es-hd-sep" />
+          <div class="es-hd-badge" @click="$router.push('/events')" title="All Events">
+            <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="es-hd-brand-logo" />
+            <span v-else class="es-hd-brand-script">.joy</span>
+          </div>
+          <div class="es-hd-sep" />
+          <div class="es-hd-title-group">
+            <h1 class="es-hub-title">Settings</h1>
+            <span class="es-hub-chip" :class="isPublished ? 'es-hub-chip--pub' : 'es-hub-chip--draft'">
+              {{ isPublished ? 'Published' : 'Draft' }}
+            </span>
+          </div>
+          <span class="es-hd-event" :title="event.title">{{ event.title }}</span>
+          <button type="button" class="es-edit-btn" @click="router.push(`/edit-event/${eventId}`)">
             Edit Details
           </button>
           <button
+            type="button"
             class="es-save-btn"
             :class="{ 'es-save-btn--dirty': isDirty && !saving }"
             :disabled="saving || !isDirty"
@@ -39,43 +49,21 @@
             {{ saving ? 'Saving…' : (isDirty ? 'Save changes' : 'Saved') }}
           </button>
         </div>
-      </div>
 
-      <!-- ── Event summary strip (persistent context) ── -->
-      <div class="es-summary">
-        <div class="es-event-card-thumb">
-          <img v-if="event.eventThumbnail" :src="event.eventThumbnail" :alt="event.title" />
-          <div v-else class="es-event-card-thumb-placeholder">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(184,146,77,0.5)" stroke-width="1.5" stroke-linecap="round">
-              <rect x="3" y="4" width="18" height="18" rx="3"/>
-              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
+        <div class="es-tabs" role="tablist">
+          <button
+            v-for="t in tabs"
+            :key="t.id"
+            type="button"
+            class="es-tab"
+            :class="{ 'es-tab--on': activeTab === t.id, 'es-tab--danger': t.id === 'danger' }"
+            role="tab"
+            :aria-selected="activeTab === t.id"
+            @click="activeTab = t.id"
+          >
+            {{ t.label }}
+          </button>
         </div>
-        <div class="es-event-card-info">
-          <span class="es-event-card-name">{{ event.title }}</span>
-          <span class="es-event-card-type">{{ event.categoryId ?? 'Event' }}</span>
-        </div>
-        <div class="es-event-card-status" :class="isPublished ? 'es-status--pub' : 'es-status--draft'">
-          <span class="es-status-dot" />
-          {{ isPublished ? 'Published' : 'Draft' }}
-        </div>
-      </div>
-
-      <!-- ── Tab bar ── -->
-      <div class="es-tabs" role="tablist">
-        <button
-          v-for="t in tabs"
-          :key="t.id"
-          class="es-tab"
-          :class="{ 'es-tab--on': activeTab === t.id, 'es-tab--danger': t.id === 'danger' }"
-          role="tab"
-          :aria-selected="activeTab === t.id"
-          @click="activeTab = t.id"
-        >
-          {{ t.label }}
-        </button>
       </div>
 
       <!-- ── Tab panes ── -->
@@ -141,7 +129,7 @@
                 :class="{ 'es-location-row--sep': idx < locations.length - 1 }"
               >
                 <div class="es-loc-icon-wrap">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                   </svg>
                 </div>
@@ -176,59 +164,6 @@
             </div>
           </div>
 
-          <!-- 1b. PROGRAMME — Locations/Venues tab -->
-          <div v-show="activeTab === 'locations'" class="es-panel">
-            <div class="es-panel-hd">
-              <div class="es-panel-hd-left">
-                <div class="es-accent-bar" />
-                <div class="es-section-meta">
-                  <span class="es-section-label">PROGRAMME</span>
-                  <span class="es-section-hint">Build the run-of-day schedule guests will see</span>
-                </div>
-              </div>
-              <button class="es-add-btn" @click="openScheduleModal()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add
-              </button>
-            </div>
-
-            <div v-if="!schedule.length" class="es-placeholder">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D0CEC9" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-              No programme items added yet
-            </div>
-            <div v-else class="es-location-list">
-              <div
-                v-for="(item, idx) in sortedSchedule"
-                :key="item.id"
-                class="es-location-row"
-                :class="{ 'es-location-row--sep': idx < sortedSchedule.length - 1 }"
-              >
-                <div class="es-loc-icon-wrap">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round">
-                    <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
-                  </svg>
-                </div>
-                <div class="es-loc-info">
-                  <span class="es-loc-label">{{ item.title }}</span>
-                  <span class="es-loc-place">{{ fmtSchedTime(item.time) }}</span>
-                  <span v-if="item.description" class="es-loc-desc">{{ item.description }}</span>
-                </div>
-                <button class="es-loc-edit" @click="openScheduleModal(item)" title="Edit">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                  </svg>
-                </button>
-                <button class="es-loc-del" @click="removeScheduleItem(item)" title="Remove">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                    <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
           <!-- 2. LANGUAGE — General tab -->
           <div v-show="activeTab === 'general'" class="es-panel">
             <div class="es-panel-hd es-panel-hd--flat">
@@ -242,14 +177,14 @@
               <button class="es-radio-opt" :class="{ 'es-radio-opt--on': language === 'sw' }" @click="language = 'sw'">
                 <span class="es-radio-flag">🇹🇿</span>
                 <span class="es-radio-lbl">Kiswahili</span>
-                <svg v-if="language === 'sw'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg v-if="language === 'sw'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                 <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DDDBD6" stroke-width="1.6"><circle cx="12" cy="12" r="10"/></svg>
               </button>
               <div class="es-radio-sep" />
               <button class="es-radio-opt" :class="{ 'es-radio-opt--on': language === 'en' }" @click="language = 'en'">
                 <span class="es-radio-flag">🇬🇧</span>
                 <span class="es-radio-lbl">English</span>
-                <svg v-if="language === 'en'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg v-if="language === 'en'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                 <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DDDBD6" stroke-width="1.6"><circle cx="12" cy="12" r="10"/></svg>
               </button>
             </div>
@@ -338,7 +273,7 @@
               >
                 <span class="es-sid-opt-val">{{ orgDefaultSenderId || 'HAFLAWAY' }}</span>
                 <span class="es-sid-opt-tag">Organization default</span>
-                <svg v-if="!eventSenderId" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg v-if="!eventSenderId" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </button>
 
               <!-- Anything else this org has had approved -->
@@ -352,7 +287,7 @@
               >
                 <span class="es-sid-opt-val">{{ sid.value }}</span>
                 <span v-if="eventSenderId === sid.value" class="es-sid-opt-tag">Only this event</span>
-                <svg v-if="eventSenderId === sid.value" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg v-if="eventSenderId === sid.value" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </button>
             </div>
 
@@ -374,13 +309,13 @@
             </div>
             <div class="es-toggle-group">
               <button class="es-toggle-opt" :class="{ 'es-toggle-opt--on': usePng }" @click="usePng = true">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="usePng ? '#C9A84C' : '#B5B5BB'" stroke-width="2" stroke-linecap="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="usePng ? '#111827' : '#B5B5BB'" stroke-width="2" stroke-linecap="round">
                   <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                 </svg>
                 PNG Image
               </button>
               <button class="es-toggle-opt" :class="{ 'es-toggle-opt--on': !usePng }" @click="usePng = false">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="!usePng ? '#C9A84C' : '#B5B5BB'" stroke-width="2" stroke-linecap="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="!usePng ? '#111827' : '#B5B5BB'" stroke-width="2" stroke-linecap="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                 </svg>
                 PDF Document
@@ -399,7 +334,7 @@
             </div>
             <button class="es-action-row" @click="showPublishDialog = true">
               <div class="es-action-icon" :class="isPublished ? 'es-action-icon--green' : ''">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="isPublished ? '#34d399' : '#888'" stroke-width="2" stroke-linecap="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" :stroke="isPublished ? '#111827' : '#888'" stroke-width="2" stroke-linecap="round">
                   <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
                   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                 </svg>
@@ -436,7 +371,7 @@
                 <p class="es-artwork-hint">Click or drag an image to upload</p>
               </div>
               <div v-if="savingHeroImage" class="es-artwork-uploading">
-                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 Uploading…
@@ -475,7 +410,7 @@
                 <p class="es-artwork-hint">Click or drag a video to upload · under 40MB</p>
               </div>
               <div v-if="savingHeroVideo" class="es-artwork-uploading">
-                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 Uploading…
@@ -510,7 +445,7 @@
               </svg>
               <p class="es-artwork-hint">{{ heroMusicUrl ? 'Click or drag to replace the track' : 'Click or drag an audio file to upload · under 15MB' }}</p>
               <div v-if="savingHeroMusic" class="es-artwork-uploading es-artwork-uploading--inline">
-                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 Uploading…
@@ -550,7 +485,7 @@
                 <p class="es-artwork-hint">Click or drag an image to upload</p>
               </div>
               <div v-if="savingFoodBev" class="es-artwork-uploading">
-                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 Uploading…
@@ -589,7 +524,7 @@
                 <p class="es-artwork-hint">Click or drag an image to upload</p>
               </div>
               <div v-if="savingDressCode" class="es-artwork-uploading">
-                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 Uploading…
@@ -628,7 +563,7 @@
                 <p class="es-artwork-hint">Click or drag a photo to upload</p>
               </div>
               <div v-if="savingMcPhoto" class="es-artwork-uploading">
-                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                <svg class="es-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 Uploading…
@@ -679,7 +614,7 @@
                 :class="{ 'es-location-row--sep': idx < contacts.length - 1 }"
               >
                 <div class="es-loc-icon-wrap">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                 </div>
                 <div class="es-loc-info">
                   <span class="es-loc-label">{{ c.name }}</span>
@@ -755,13 +690,13 @@
     <!-- Add/Edit Venue side panel -->
     <Teleport to="body">
       <Transition name="es-fade">
-        <div v-if="locationModalOpen" class="es-modal-backdrop" @click.self="closeLocationModal" />
+        <div v-if="locationModalOpen" class="es-joy-backdrop" @click.self="closeLocationModal" />
       </Transition>
       <Transition name="es-drawer">
         <div v-if="locationModalOpen" class="es-modal">
             <div class="es-modal-hd">
               <div class="es-modal-ico">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                 </svg>
               </div>
@@ -797,7 +732,7 @@
                 @keydown.enter.prevent="suggestionCursor >= 0 && pickSuggestion(placeSuggestions[suggestionCursor])"
                 @keydown.escape="placeSuggestions = []"
               />
-              <svg v-if="placesLoading" class="es-spin es-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+              <svg v-if="placesLoading" class="es-spin es-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
               </svg>
               <button v-else-if="locForm.placeName" class="es-search-clear" @click="clearPlacePick" title="Clear">
@@ -812,7 +747,7 @@
                   :class="{ 'es-suggestion--active': i === suggestionCursor }"
                   @mousedown.prevent="pickSuggestion(s)"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                   </svg>
                   <div class="es-suggestion-text">
@@ -825,7 +760,7 @@
 
             <!-- Picked place chip -->
             <div v-if="locForm.placeName" class="es-picked-place">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
               </svg>
               <span class="es-picked-name">{{ locForm.placeName }}</span>
@@ -853,65 +788,16 @@
       </Transition>
     </Teleport>
 
-    <!-- Add/Edit Programme item side panel -->
-    <Teleport to="body">
-      <Transition name="es-fade">
-        <div v-if="scheduleModalOpen" class="es-modal-backdrop" @click.self="closeScheduleModal" />
-      </Transition>
-      <Transition name="es-drawer">
-        <div v-if="scheduleModalOpen" class="es-modal">
-            <div class="es-modal-hd">
-              <div class="es-modal-ico">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
-                </svg>
-              </div>
-              <div class="es-modal-hd-text">
-                <h3 class="es-modal-title">{{ editingSchedId ? 'Edit Programme Item' : 'Add Programme Item' }}</h3>
-                <p class="es-modal-sub">{{ editingSchedId ? "Update this item's details" : "Add an activity to the day's run of show" }}</p>
-              </div>
-              <button class="es-modal-close" @click="closeScheduleModal">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-
-            <div class="es-modal-body">
-            <label class="es-field-label">ACTIVITY</label>
-            <input v-model="scheduleForm.title" class="es-input" placeholder="e.g. Ceremony, Cocktail Hour" />
-
-            <label class="es-field-label" style="margin-top:8px">TIME</label>
-            <input v-model="scheduleForm.time" type="datetime-local" class="es-input" />
-
-            <label class="es-field-label" style="margin-top:8px">NOTE <span class="es-field-optional">· optional</span></label>
-            <textarea v-model="scheduleForm.description" class="es-textarea" rows="3" placeholder="Any extra detail guests should know…"></textarea>
-            </div>
-
-            <div class="es-modal-actions">
-              <button class="es-modal-cancel" @click="closeScheduleModal">Cancel</button>
-              <button
-                class="es-modal-save"
-                :disabled="!scheduleForm.title.trim() || !scheduleForm.time || savingSched"
-                @click="saveScheduleItem"
-              >
-                {{ savingSched ? (editingSchedId ? 'Saving…' : 'Adding…') : (editingSchedId ? 'Save Changes' : 'Add Item') }}
-              </button>
-            </div>
-        </div>
-      </Transition>
-    </Teleport>
-
     <!-- Add/Edit Contact side panel -->
     <Teleport to="body">
       <Transition name="es-fade">
-        <div v-if="contactModalOpen" class="es-modal-backdrop" @click.self="closeContactModal" />
+        <div v-if="contactModalOpen" class="es-joy-backdrop" @click.self="closeContactModal" />
       </Transition>
       <Transition name="es-drawer">
         <div v-if="contactModalOpen" class="es-modal">
             <div class="es-modal-hd">
               <div class="es-modal-ico">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
               </div>
               <div class="es-modal-hd-text">
                 <h3 class="es-modal-title">{{ editingContactId ? 'Edit Contact' : 'Add Contact' }}</h3>
@@ -952,10 +838,10 @@
     <!-- Publish / Unpublish dialog -->
     <Teleport to="body">
       <Transition name="es-fade">
-        <div v-if="showPublishDialog" class="es-overlay" @click.self="showPublishDialog = false">
+        <div v-if="showPublishDialog" class="es-joy-overlay" @click.self="showPublishDialog = false">
           <div class="es-dialog">
             <div class="es-dialog-icon">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="1.8" stroke-linecap="round">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="2" y1="12" x2="22" y2="12"/>
                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
@@ -981,7 +867,7 @@
     <!-- Delete dialog -->
     <Teleport to="body">
       <Transition name="es-fade">
-        <div v-if="showDeleteDialog" class="es-overlay" @click.self="closeDeleteDialog">
+        <div v-if="showDeleteDialog" class="es-joy-overlay" @click.self="closeDeleteDialog">
           <div class="es-dialog">
             <div class="es-dialog-icon es-dialog-icon--red">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FF3B30" stroke-width="1.8" stroke-linecap="round">
@@ -1035,15 +921,17 @@ import { db, storage } from '../../firebase'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { doc, setDoc, updateDoc, deleteDoc, deleteField, getDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
 import { useOrg } from '../../composables/useOrg.js'
+import { useNavDrawer } from '../../composables/useNavDrawer.js'
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
 const props = defineProps({ event: Object, eventId: String })
 const route  = useRoute()
 const router = useRouter()
 const {
-  activeOrg, isOwner,
+  activeOrg, isOwner, brandName, brandLogoUrl,
   approvedSenderIds, defaultSenderId: orgDefaultSenderId, setEventSenderId,
 } = useOrg()
+const navDrawer = useNavDrawer()
 
 // ── SMS sender ID ──────────────────────────────────────────────────────────
 // Writes immediately rather than joining the Save-button dirty set: it's a
@@ -1077,7 +965,7 @@ const eventId = computed(() => props.eventId ?? route.params.eventId)
 const tabs = [
   { id: 'general',   label: 'General'   },
   { id: 'access',    label: 'Access'    },
-  { id: 'locations', label: 'Venues & Programme' },
+  { id: 'locations', label: 'Venues' },
   { id: 'extras',    label: 'Extras' },
   { id: 'danger',    label: 'Danger'    },
 ]
@@ -1169,8 +1057,6 @@ const usePng     = ref(true)
 const scanPromo  = ref('')
 const isPublished = ref(false)
 const locations  = ref([])
-const schedule   = ref([])
-const sortedSchedule = computed(() => [...schedule.value].sort((a, b) => new Date(a.time) - new Date(b.time)))
 const heroImageUrl     = ref('')
 const heroVideoEnabled = ref(false)
 const heroVideoUrl     = ref('')
@@ -1197,7 +1083,6 @@ watch(() => props.event, (ev) => {
   scanPromo.value   = ev.scanPromo ?? ''
   isPublished.value = (ev.status ?? 'draft').toLowerCase() === 'published'
   locations.value   = Array.isArray(ev.locations) ? [...ev.locations] : []
-  schedule.value    = Array.isArray(ev.schedule) ? [...ev.schedule] : []
   contacts.value    = Array.isArray(ev.contacts) ? [...ev.contacts] : []
   visibleTo.value   = Array.isArray(ev.visibleTo) ? [...ev.visibleTo] : []
   heroImageUrl.value     = ev.heroImageUrl ?? ''
@@ -1222,7 +1107,6 @@ watch(() => props.event, (ev) => {
 // ── Saving flags ───────────────────────────────────────────────────────────
 const saving      = ref(false)
 const savingLoc   = ref(false)
-const savingSched = ref(false)
 const savingHeroImage = ref(false)
 const savingHeroVideo = ref(false)
 const savingHeroMusic = ref(false)
@@ -1234,7 +1118,6 @@ const deleting    = ref(false)
 
 // ── Dialog/modal visibility ────────────────────────────────────────────────
 const locationModalOpen  = ref(false)
-const scheduleModalOpen  = ref(false)
 const contactModalOpen   = ref(false)
 const showPublishDialog  = ref(false)
 const showDeleteDialog   = ref(false)
@@ -1245,17 +1128,6 @@ const editingLocId = ref(null)
 const locForm = ref({ label: '', placeName: '', lat: '', lng: '', description: '', dateTime: '' })
 
 function fmtLocDateTime(iso) {
-  if (!iso) return ''
-  try {
-    return new Date(iso).toLocaleString('en-TZ', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-  } catch { return '' }
-}
-
-// ── Programme (schedule) form ────────────────────────────────────────────────
-const editingSchedId = ref(null)
-const scheduleForm = ref({ title: '', time: '', description: '' })
-
-function fmtSchedTime(iso) {
   if (!iso) return ''
   try {
     return new Date(iso).toLocaleString('en-TZ', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -1354,18 +1226,6 @@ function openLocationModal(loc = null) {
 }
 function closeLocationModal() { locationModalOpen.value = false; placeSuggestions.value = []; editingLocId.value = null }
 
-function openScheduleModal(item = null) {
-  if (item) {
-    editingSchedId.value = item.id
-    scheduleForm.value = { title: item.title ?? '', time: item.time ?? '', description: item.description ?? '' }
-  } else {
-    editingSchedId.value = null
-    scheduleForm.value = { title: '', time: '', description: '' }
-  }
-  scheduleModalOpen.value = true
-}
-function closeScheduleModal() { scheduleModalOpen.value = false; editingSchedId.value = null }
-
 function openContactModal(c = null) {
   if (c) {
     editingContactId.value = c.id
@@ -1458,43 +1318,6 @@ async function removeLocation(loc) {
     await updateDoc(doc(db, 'events', eventId.value), { locations: updated })
     locations.value = updated
     showToast('Venue removed')
-  } catch (e) {
-    showToast('Error: ' + e.message, true)
-  }
-}
-
-// ── Programme (event.schedule) ────────────────────────────────────────────────
-async function saveScheduleItem() {
-  const title = scheduleForm.value.title.trim()
-  const time  = scheduleForm.value.time
-  if (!title || !time) return
-
-  const description = scheduleForm.value.description.trim()
-  const fields = { title, time, ...(description ? { description } : {}) }
-
-  const updated = editingSchedId.value
-    ? schedule.value.map(s => s.id === editingSchedId.value ? { id: s.id, ...fields } : s)
-    : [...schedule.value, { id: Date.now().toString(), ...fields }]
-
-  savingSched.value = true
-  try {
-    await updateDoc(doc(db, 'events', eventId.value), { schedule: updated })
-    schedule.value = updated
-    closeScheduleModal()
-    showToast(editingSchedId.value ? 'Programme item updated' : 'Programme item added')
-  } catch (e) {
-    showToast('Error: ' + e.message, true)
-  } finally {
-    savingSched.value = false
-  }
-}
-
-async function removeScheduleItem(item) {
-  const updated = schedule.value.filter(s => s.id !== item.id)
-  try {
-    await updateDoc(doc(db, 'events', eventId.value), { schedule: updated })
-    schedule.value = updated
-    showToast('Programme item removed')
   } catch (e) {
     showToast('Error: ' + e.message, true)
   }
@@ -1760,32 +1583,26 @@ function showToast(msg, isErr = false) {
 <style scoped>
 /* ── Root ──────────────────────────────────────────────────────────────── */
 .es-root {
-  padding: 28px 32px 64px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 64px;
+  background: #ffffff;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-muted:  #3a3a3a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-  --c-divide: #2a2a2a;
+  --c-bg:     #ffffff;
+  --c-border: #e5e7eb;
+  --c-track:  #f1f3f5;
+  --c-muted:  #f3f4f6;
+  --c-txt:    #111827;
+  --c-txt-2:  #64748b;
+  --c-txt-3:  #94a3b8;
+  --c-divide: #f1f3f5;
   --c-arrow:  #3a3a3a;
   transition: background 300ms ease;
 }
 
-/* ── Two-column grid ────────────────────────────────────────────────────── */
-.es-grid {
-  display: grid;
-  grid-template-columns: 55fr 45fr;
-  gap: 20px;
-  align-items: start;
-}
-.es-col {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+.es-grid,
+.es-col { display: contents; }
 
 /* ── Tabbed settings layout ─────────────────────────────────────────────── */
 .es-summary {
@@ -1799,40 +1616,64 @@ function showToast(msg, isErr = false) {
   gap: 12px;
   transition: background 300ms ease, border-color 300ms ease;
 }
+.es-sticky-head { position: sticky; top: 0; z-index: 20; background: #fff; }
+.es-hub-hd {
+  display: flex; align-items: center; height: 92px; padding: 0 36px; gap: 14px;
+  border-bottom: 1px solid #f1f3f5;
+}
+.es-hd-burger {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 1px solid #e5e7eb; border-radius: 50%; background: #fff;
+  color: #4b5563; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.es-hd-burger:hover { background: #f8fafc; color: #18181b; border-color: #d1d5db; }
+.es-hd-sep { width: 1px; height: 16px; background: #e5e7eb; flex-shrink: 0; margin: 0 4px; }
+.es-hd-badge {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e5e7eb;
+  overflow: hidden; background: #fff; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.es-hd-brand-logo { width: 100%; height: 100%; object-fit: cover; }
+.es-hd-brand-script {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic; font-size: 18px; font-weight: 700;
+  color: #111827; letter-spacing: -0.04em; line-height: 1;
+}
+.es-hd-title-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.es-hub-title { margin: 0; font-size: 22px; font-weight: 600; color: #18181b; letter-spacing: -0.015em; white-space: nowrap; }
+.es-hub-chip {
+  font-size: 12px; font-weight: 600; color: #4b5563;
+  background: #f1f3f5; border-radius: 9999px; padding: 2px 10px;
+}
+.es-hub-chip--pub { background: #111827; color: #fff; }
+.es-hd-event {
+  flex: 1; min-width: 0; font-size: 13.5px; color: #64748b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .es-tabs {
-  width: 100%;
-  margin: 0 0 20px;
-  display: flex;
-  gap: 4px;
-  padding: 5px;
-  background: var(--c-bg);
-  border: 1px solid var(--c-border);
-  border-radius: 14px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 36px; border-bottom: 1px solid #f1f3f5;
+  overflow-x: auto; scrollbar-width: none;
 }
 .es-tabs::-webkit-scrollbar { display: none; }
 .es-tab {
-  flex: 1;
-  padding: 9px 20px;
-  border: none;
-  background: transparent;
-  color: var(--c-txt-3);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 140ms, color 140ms;
-  white-space: nowrap;
+  min-height: 34px; padding: 6px 14px;
+  border: 1px solid #e2e8f0; border-radius: 9999px; background: #fff;
+  color: #475569; font-family: inherit; font-size: 13px; font-weight: 500;
+  cursor: pointer; white-space: nowrap;
 }
-.es-tab:hover { color: var(--c-txt); }
-.es-tab--on { background: rgb(from var(--gold) r g b / 0.12); color: var(--gold); }
-.es-tab--danger.es-tab--on { background: rgba(255,59,48,0.1); color: #FF3B30; }
+.es-tab:hover { background: #f8fafc; border-color: #cbd5e1; }
+.es-tab--on { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; font-weight: 600; }
+.es-tab--danger.es-tab--on { background: #fef2f2; border-color: #fecdd3; color: #9f1239; }
 .es-tabpanes {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: flex; flex-wrap: wrap; align-items: stretch;
+  gap: 16px; width: 100%; box-sizing: border-box;
+  padding: 24px 36px 0;
+}
+.es-panel {
+  flex: 1 1 480px;
+  min-width: 0;
 }
 
 /* ── Panel card ─────────────────────────────────────────────────────────── */
@@ -1840,7 +1681,7 @@ function showToast(msg, isErr = false) {
   background: var(--c-bg);
   border: 1px solid var(--c-border);
   border-radius: 16px;
-  padding: 16px;
+  padding: 18px 20px;
   overflow: hidden;
   transition: background 300ms ease, border-color 300ms ease;
 }
@@ -1869,9 +1710,10 @@ function showToast(msg, isErr = false) {
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgb(from var(--gold) r g b / 0.08);
-  border: 1px solid rgba(10,10,11,0.12);
-  color: var(--gold);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  color: #111827;
+  border-radius: 9999px;
   border-radius: 8px;
   padding: 6px 12px;
   font-size: 12px;
@@ -1882,7 +1724,7 @@ function showToast(msg, isErr = false) {
   flex-shrink: 0;
   white-space: nowrap;
 }
-.es-add-btn:hover { background: rgba(184,146,77,0.18); }
+.es-add-btn:hover { background: #f8fafc; }
 
 /* ── Event summary card (right column top) ──────────────────────────────── */
 .es-event-card {
@@ -1949,7 +1791,7 @@ function showToast(msg, isErr = false) {
   flex-shrink: 0;
 }
 .es-status--pub  { background: rgba(52,199,89,0.1);   color: #34d399; }
-.es-status--draft { background: rgb(from var(--gold) r g b / 0.08); color: #A08230; }
+.es-status--draft { background: #f3f4f6; color: #4b5563; }
 .es-status-dot {
   width: 6px;
   height: 6px;
@@ -1961,7 +1803,7 @@ function showToast(msg, isErr = false) {
 
 /* ── Responsive collapse ────────────────────────────────────────────────── */
 @media (max-width: 680px) {
-  .es-grid { grid-template-columns: 1fr; }
+  .es-panel { flex-basis: 100%; }
 }
 
 /* ── Skeleton ──────────────────────────────────────────────────────────── */
@@ -2005,13 +1847,14 @@ function showToast(msg, isErr = false) {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: transparent;
+  background: #fff;
   color: var(--c-txt);
-  border: 1px solid var(--c-border);
-  border-radius: 10px;
-  padding: 9px 18px;
-  font-size: 13px;
-  font-weight: 700;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  padding: 0 18px;
+  height: 40px;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
   transition: background 150ms, border-color 150ms, color 150ms, box-shadow 150ms;
@@ -2020,34 +1863,34 @@ function showToast(msg, isErr = false) {
 .es-save-btn:disabled { color: var(--c-txt-2); cursor: default; }
 /* Dirty state — the button "screams" to be saved: gold fill + soft pulse. */
 .es-save-btn--dirty {
-  background: var(--gold);
-  color: #0a0a0b;
-  border-color: transparent;
-  animation: es-save-pulse 1.8s ease-in-out infinite;
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
 }
-.es-save-btn--dirty:hover { filter: brightness(1.06); }
+.es-save-btn--dirty:hover { background: #000000; }
 .es-save-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 @keyframes es-save-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(from var(--gold) r g b / 0.5); }
-  50%      { box-shadow: 0 0 0 6px rgb(from var(--gold) r g b / 0); }
+  0%, 100% { box-shadow: 0 0 0 0 #d1d5db; }
+  50%      { box-shadow: 0 0 0 6px transparent; }
 }
 .es-edit-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: transparent;
+  background: #fff;
   color: var(--c-txt);
-  border: 1px solid var(--c-border);
-  border-radius: 10px;
-  padding: 9px 16px;
-  font-size: 13px;
-  font-weight: 700;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  padding: 0 16px;
+  height: 40px;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
   transition: border-color 150ms, color 150ms;
   flex-shrink: 0;
 }
-.es-edit-btn:hover { border-color: var(--gold); color: var(--gold); }
+.es-edit-btn:hover { background: #f8fafc; border-color: #d1d5db; }
 
 /* ── Sections ──────────────────────────────────────────────────────────── */
 .es-section {
@@ -2063,7 +1906,7 @@ function showToast(msg, isErr = false) {
   gap: 10px;
   margin-bottom: 14px;
 }
-.es-accent-bar {
+.es-accent-bar { display: none;
   width: 3px;
   height: 34px;
   border-radius: 2px;
@@ -2086,9 +1929,9 @@ function showToast(msg, isErr = false) {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   padding: 1px 5px;
-  background: rgb(from var(--gold) r g b / 0.1);
+  background: #f3f4f6;
   border-radius: 5px;
-  color: var(--gold);
+  color: #111827;
 }
 
 /* ── SMS sender ID picker ── */
@@ -2106,8 +1949,8 @@ function showToast(msg, isErr = false) {
 }
 .es-sid-opt:hover:not(:disabled) { border-color: rgba(255,255,255,0.22); }
 .es-sid-opt--on {
-  border-color: rgb(from var(--gold) r g b / 0.55);
-  background: rgb(from var(--gold) r g b / 0.07);
+  border-color: #d1d5db;
+  background: #f8fafc;
 }
 .es-sid-opt:disabled { opacity: 0.6; cursor: not-allowed; }
 .es-sid-opt-val {
@@ -2119,7 +1962,7 @@ function showToast(msg, isErr = false) {
   color: var(--c-txt-3); background: rgba(255,255,255,0.06);
   border-radius: 6px; padding: 3px 7px; margin-left: auto;
 }
-.es-sid-opt--on .es-sid-opt-tag { color: var(--gold); background: rgb(from var(--gold) r g b / 0.14); }
+.es-sid-opt--on .es-sid-opt-tag { color: #111827; background: #e9eaee; }
 .es-sid-note  { font-size: 11.5px; color: var(--c-txt-3); line-height: 1.5; margin-top: 10px; display: block; }
 .es-sid-error { font-size: 12px; color: #FF453A; margin: 10px 0 0; }
 
@@ -2155,7 +1998,7 @@ function showToast(msg, isErr = false) {
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: rgb(from var(--gold) r g b / 0.08);
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2211,7 +2054,7 @@ function showToast(msg, isErr = false) {
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   transition: transform 150ms;
 }
-.es-switch--on .es-switch-track { background: var(--gold); }
+.es-switch--on .es-switch-track { background: #111827; }
 .es-switch--on .es-switch-thumb { transform: translateX(16px); }
 .es-switch-label { font-size: 13px; font-weight: 600; color: var(--c-txt-2); }
 .es-switch--on .es-switch-label { color: var(--c-txt); }
@@ -2230,7 +2073,7 @@ function showToast(msg, isErr = false) {
   background: var(--c-bg);
   transition: border-color 150ms;
 }
-.es-artwork-drop:hover { border-color: rgb(from var(--gold) r g b / 0.5); }
+.es-artwork-drop:hover { border-color: #d1d5db; }
 .es-artwork-drop--has { border-style: solid; }
 .es-artwork-preview { width: 100%; height: 100%; max-height: 260px; object-fit: cover; position: absolute; inset: 0; }
 .es-artwork-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; }
@@ -2271,7 +2114,7 @@ function showToast(msg, isErr = false) {
   transition: border-color 150ms;
   text-align: center;
 }
-.es-audio-drop:hover { border-color: rgb(from var(--gold) r g b / 0.5); }
+.es-audio-drop:hover { border-color: #d1d5db; }
 .es-audio-player { width: 100%; margin-top: 12px; }
 
 /* ── Visibility list (owner-only) ──────────────────────────────────────── */
@@ -2290,7 +2133,7 @@ function showToast(msg, isErr = false) {
 .es-vis-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .es-vis-name { font-size: 13px; font-weight: 600; color: var(--c-txt); }
 .es-vis-email { font-size: 12px; color: var(--c-txt-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.es-vis-check { width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; accent-color: var(--gold); }
+.es-vis-check { width: 17px; height: 17px; cursor: pointer; flex-shrink: 0; accent-color: #111827; }
 
 /* ── Locations list ────────────────────────────────────────────────────── */
 .es-location-list { margin-top: 10px; }
@@ -2310,7 +2153,7 @@ function showToast(msg, isErr = false) {
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: rgb(from var(--gold) r g b / 0.08);
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2353,7 +2196,7 @@ function showToast(msg, isErr = false) {
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: .2px;
-  color: var(--gold);
+  color: #111827;
 }
 .es-loc-link {
   display: flex;
@@ -2363,7 +2206,7 @@ function showToast(msg, isErr = false) {
   border-radius: 7px;
   transition: color 130ms, background 130ms;
 }
-.es-loc-link:hover { color: var(--gold); background: rgba(10,10,11,0.03); }
+.es-loc-link:hover { color: #111827; background: rgba(10,10,11,0.03); }
 .es-loc-del {
   display: flex;
   align-items: center;
@@ -2387,7 +2230,7 @@ function showToast(msg, isErr = false) {
   border-radius: 7px;
   transition: color 130ms, background 130ms;
 }
-.es-loc-edit:hover { color: var(--gold); background: rgb(from var(--gold) r g b / 0.08); }
+.es-loc-edit:hover { color: #111827; background: #f3f4f6; }
 
 /* ── Scan promo card ───────────────────────────────────────────────────── */
 .es-promo-card { padding: 14px; }
@@ -2406,7 +2249,7 @@ function showToast(msg, isErr = false) {
   box-sizing: border-box;
   line-height: 1.6;
 }
-.es-textarea:focus { border-color: var(--gold); background: var(--c-bg); }
+.es-textarea:focus { border-color: #111827; background: var(--c-bg); }
 .es-textarea::placeholder { color: var(--c-txt-3); }
 
 .es-promo-footer {
@@ -2449,7 +2292,7 @@ function showToast(msg, isErr = false) {
   transition: background 130ms;
 }
 .es-radio-opt:hover { background: var(--c-bg); }
-.es-radio-opt--on { background: rgba(184,146,77,0.05); }
+.es-radio-opt--on { background: #f7f7f8; }
 .es-radio-flag { font-size: 20px; }
 .es-radio-lbl {
   flex: 1;
@@ -2457,7 +2300,7 @@ function showToast(msg, isErr = false) {
   font-weight: 500;
   color: var(--c-txt);
 }
-.es-radio-opt--on .es-radio-lbl { font-weight: 600; color: var(--gold); }
+.es-radio-opt--on .es-radio-lbl { font-weight: 600; color: #111827; }
 
 /* ── Card format toggle ────────────────────────────────────────────────── */
 .es-toggle-group {
@@ -2486,7 +2329,7 @@ function showToast(msg, isErr = false) {
 }
 .es-toggle-opt--on {
   background: var(--c-bg);
-  color: var(--gold);
+  color: #111827;
   font-weight: 600;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   border: 1px solid rgba(10,10,11,0.08);
@@ -2536,7 +2379,7 @@ function showToast(msg, isErr = false) {
   transition: border-color 150ms, background 300ms ease;
   box-sizing: border-box;
 }
-.es-input:focus { border-color: var(--gold); background: var(--c-bg); }
+.es-input:focus { border-color: #111827; background: var(--c-bg); }
 .es-input::placeholder { color: var(--c-txt-3); }
 .es-input--center { text-align: center; }
 
@@ -2626,8 +2469,8 @@ function showToast(msg, isErr = false) {
   align-items: center;
   gap: 8px;
   padding: 9px 12px;
-  background: rgba(184,146,77,0.12);
-  border: 1px solid rgba(201,168,76,0.25);
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
   margin-top: 2px;
 }
@@ -2650,18 +2493,18 @@ function showToast(msg, isErr = false) {
 /* ── Overlay ──
    Also a Teleport target — same --c-* redeclaration as .es-modal-backdrop
    above, needed for .es-dialog and everything inside it to resolve colors. */
-.es-overlay {
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-muted:  #3a3a3a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-  --c-divide: #2a2a2a;
+.es-joy-overlay {
+  --c-bg:     #ffffff;
+  --c-border: #e5e7eb;
+  --c-track:  #f1f3f5;
+  --c-muted:  #f3f4f6;
+  --c-txt:    #111827;
+  --c-txt-2:  #64748b;
+  --c-txt-3:  #94a3b8;
+  --c-divide: #f1f3f5;
   position: fixed;
   inset: 0;
-  background: var(--overlay-bg);
+  background: rgba(15, 23, 42, 0.32);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2675,29 +2518,29 @@ function showToast(msg, isErr = false) {
    here. Redeclare them on this shared Teleport root (same fix already used
    by EventMessages.vue's .em-overlay) so every var(--c-*) inside the panel
    resolves again, instead of quietly falling back to transparent/initial. */
-.es-modal-backdrop {
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-muted:  #3a3a3a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-  --c-divide: #2a2a2a;
+.es-joy-backdrop {
+  --c-bg:     #ffffff;
+  --c-border: #e5e7eb;
+  --c-track:  #f1f3f5;
+  --c-muted:  #f3f4f6;
+  --c-txt:    #111827;
+  --c-txt-2:  #64748b;
+  --c-txt-3:  #94a3b8;
+  --c-divide: #f1f3f5;
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: var(--overlay-bg);
+  background: rgba(15, 23, 42, 0.32);
 }
 .es-modal {
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-muted:  #3a3a3a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-  --c-divide: #2a2a2a;
+  --c-bg:     #ffffff;
+  --c-border: #e5e7eb;
+  --c-track:  #f1f3f5;
+  --c-muted:  #f3f4f6;
+  --c-txt:    #111827;
+  --c-txt-2:  #64748b;
+  --c-txt-3:  #94a3b8;
+  --c-divide: #f1f3f5;
   position: fixed;
   top: 0;
   right: 0;
@@ -2707,7 +2550,7 @@ function showToast(msg, isErr = false) {
   max-width: 92vw;
   background: var(--c-bg);
   border-left: 1px solid var(--c-border);
-  box-shadow: -8px 0 40px rgba(0,0,0,0.35);
+  box-shadow: -8px 0 40px rgba(0,0,0,0.12);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2725,8 +2568,8 @@ function showToast(msg, isErr = false) {
   height: 40px;
   border-radius: 11px;
   flex-shrink: 0;
-  background: rgba(184,146,77,0.10);
-  border: 1px solid rgb(from var(--gold) r g b / 0.2);
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2781,17 +2624,17 @@ function showToast(msg, isErr = false) {
 .es-modal-save {
   flex: 1;
   padding: 11px;
-  background: var(--gold);
+  background: #111827;
   border: none;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 700;
-  color: var(--gold-contrast);
+  color: #ffffff;
   cursor: pointer;
   font-family: inherit;
   transition: background 130ms, opacity 130ms;
 }
-.es-modal-save:hover:not(:disabled) { background: #d4b560; }
+.es-modal-save:hover:not(:disabled) { background: #000; color: #fff; }
 .es-modal-save:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .es-field-label {
@@ -2823,7 +2666,7 @@ function showToast(msg, isErr = false) {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgb(from var(--gold) r g b / 0.08);
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2873,7 +2716,7 @@ function showToast(msg, isErr = false) {
 
 /* ── Toast — also a Teleport target, same --c-bg redeclaration ── */
 .es-toast {
-  --c-bg: #141414;
+  --c-bg: #111827;
   position: fixed;
   bottom: 28px;
   left: 50%;
@@ -2913,26 +2756,18 @@ function showToast(msg, isErr = false) {
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  /* Tighten side padding so panels don't feel cramped on tablets / DevTools viewports */
-  .es-root { padding: 20px 20px 56px; }
-  .es-header { margin-bottom: 24px; }
+  .es-hub-hd { height: auto; flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
+  .es-hd-sep { display: none; }
+  .es-hd-event { flex: 1 1 100%; order: 8; }
+  .es-tabs, .es-tabpanes { padding-left: 16px; padding-right: 16px; }
   .es-page-title { font-size: 22px; }
 }
 
 @media (max-width: 780px) {
-  /* Single-column layout earlier — 680px is too late when a sidebar is present */
-  .es-grid { grid-template-columns: 1fr; }
-  .es-root { padding: 16px 16px 48px; }
+  .es-panel { flex-basis: 100%; }
 }
 
 @media (max-width: 600px) {
-  .es-root { padding: 14px 14px 48px; }
-  /* Header: remove the double-padding from earlier rule, just tighten spacing */
-  .es-header { margin-bottom: 16px; gap: 12px; }
-  .es-page-title { font-size: 19px; letter-spacing: -0.3px; }
-  .es-page-sub { font-size: 12px; }
-  .es-save-btn { padding: 8px 16px; font-size: 13px; }
-  /* Panels: reduce padding and ensure long description text wraps cleanly */
   .es-panel { padding: 12px; }
   .es-section-hint { overflow-wrap: break-word; word-break: break-word; }
   /* Panel header left: shrink so hint text doesn't push outside the panel */

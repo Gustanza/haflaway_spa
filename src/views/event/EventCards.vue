@@ -1,363 +1,209 @@
 <template>
   <div class="evc-root">
 
-    <!-- ══ Stat Cards ══ -->
-    <div class="evc-stats">
-      <div class="evc-stat-card">
-        <div class="evc-stat-icon evc-stat-icon--gold">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        </div>
-        <div class="evc-stat-body">
-          <span class="evc-stat-lbl">Total</span>
-          <span class="evc-stat-val">{{ cards.length }}</span>
-        </div>
+    <!-- ══ Resume-send banner — arrives here via the Guest List's Send flow when
+         no card blueprint existed yet for the chosen purpose. Stays up (even
+         across a refresh) until the user either continues or dismisses it. ══ -->
+    <div v-if="returnToSend" class="evc-resume-banner">
+      <div class="evc-resume-text">
+        <p class="evc-resume-title">Waiting on a {{ PURPOSE_LABELS[returnToSend] ?? returnToSend }} template</p>
+        <p class="evc-resume-sub">
+          Create it with the Designer (opens in a new tab), then come back and continue sending.
+        </p>
       </div>
-      <div class="evc-stat-card">
-        <div class="evc-stat-icon evc-stat-icon--amber">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        </div>
-        <div class="evc-stat-body">
-          <span class="evc-stat-lbl">Invitations</span>
-          <span class="evc-stat-val">{{ purposeCount('invitation') }}</span>
-        </div>
-      </div>
-      <div class="evc-stat-card">
-        <div class="evc-stat-icon evc-stat-icon--green">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        </div>
-        <div class="evc-stat-body">
-          <span class="evc-stat-lbl">Contributions</span>
-          <span class="evc-stat-val">{{ purposeCount('contribution') }}</span>
-        </div>
-      </div>
-      <div class="evc-stat-card">
-        <div class="evc-stat-icon evc-stat-icon--purple">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        </div>
-        <div class="evc-stat-body">
-          <span class="evc-stat-lbl">Save the Date</span>
-          <span class="evc-stat-val">{{ purposeCount('save_the_date') }}</span>
-        </div>
+      <div class="evc-resume-acts">
+        <span v-if="resumeNoCardYet" class="evc-resume-warn">No template found for this purpose yet.</span>
+        <button class="evc-resume-continue" :disabled="resumingSend" @click="continueSendFlow">
+          {{ resumingSend ? 'Checking…' : 'Continue Sending' }}
+        </button>
+        <button class="evc-resume-dismiss" @click="dismissResumeBanner" title="Dismiss">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
     </div>
 
-    <!-- ══ Panel ══ -->
-    <div class="evc-panel">
+    <div class="evc-sticky-head">
       <div class="evc-panel-hd">
-        <h2 class="evc-panel-title">Cards</h2>
-        <div class="evc-panel-acts">
-          <!-- Expanded search state -->
-          <template v-if="searchOpen">
-            <div class="evc-search-expanded">
-              <div class="evc-search-wrap">
-                <svg class="evc-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                  stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input ref="searchInputRef" v-model="searchQ" class="evc-search"
-                  placeholder="Search by type or purpose…"
-                  @keydown.escape="closeSearch" />
-                <button v-if="searchQ" class="evc-search-clear" @click="searchQ = ''">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <button class="evc-search-cancel" @click="closeSearch">Cancel</button>
-          </template>
-
-          <!-- Normal state -->
-          <template v-else>
-            <button class="evc-search-pill" :class="{ 'evc-search-pill--active': searchQ }" @click="openSearch">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              Search
-            </button>
-            <div class="evc-filter-chips">
-              <button v-for="f in PURPOSE_FILTERS" :key="f.val"
-                class="evc-chip" :class="{ 'evc-chip--active': purposeFilter === f.val }"
-                @click="purposeFilter = f.val">
-                {{ f.label }}
-                <span class="evc-chip-cnt">{{ purposeCount(f.val) }}</span>
-              </button>
-            </div>
-            <button class="evc-refresh-btn" @click="loadData" :disabled="loading" title="Refresh">
-              <svg :class="{ 'evc-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-            </button>
-            <a :href="designerCreateUrl" target="_blank" rel="noopener" class="evc-new-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              New Template
-            </a>
-          </template>
+        <button type="button" class="evc-hd-burger" title="Menu" @click="navDrawer.open()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="evc-hd-sep" />
+        <div class="evc-hd-badge" @click="$router.push('/events')" title="All Events">
+          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="evc-hd-brand-logo" />
+          <span v-else class="evc-hd-brand-script">.joy</span>
         </div>
-      </div>
+        <div class="evc-hd-sep" />
+        <div class="evc-hd-title-group">
+          <h1 class="evc-hub-title">Cards</h1>
+          <span class="evc-hub-count">{{ cards.length }}</span>
+        </div>
 
-      <!-- ══ Content ══ -->
-      <div class="evc-content">
+        <div class="evc-search-wrap">
+          <svg class="evc-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input v-model="searchQ" class="evc-search" placeholder="Filter by name" />
+          <button v-if="searchQ" type="button" class="evc-search-clear" @click="searchQ = ''" aria-label="Clear">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <span v-else class="evc-search-filter" title="Filter">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+              <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+              <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+            </svg>
+          </span>
+        </div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="evc-empty">
-        <svg class="evc-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
-          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-        </svg>
-        <p>Loading templates…</p>
-      </div>
-
-      <!-- Empty -->
-      <div v-else-if="!filteredCards.length" class="evc-empty">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D0CAC0"
-          stroke-width="1.2" stroke-linecap="round">
-          <rect x="2" y="5" width="20" height="14" rx="3"/>
-          <line x1="2" y1="10" x2="22" y2="10"/>
-          <line x1="7" y1="15" x2="10" y2="15"/>
-          <line x1="14" y1="15" x2="17" y2="15"/>
-        </svg>
-        <p class="evc-empty-title">No card templates yet</p>
-        <p class="evc-empty-sub">Create your first template using the designer</p>
-        <a :href="designerCreateUrl" target="_blank" rel="noopener" class="evc-empty-cta">
-          Open Designer
+        <a :href="designerCreateUrl" target="_blank" rel="noopener" class="evc-add-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          New Template
         </a>
+        <button type="button" class="evc-hd-gear" title="Settings" @click="$router.push(`/event/${eventId}/settings`)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       </div>
 
-      <!-- Grid -->
-      <div v-else class="evc-grid">
-        <div v-for="card in filteredCards" :key="card.id"
-          class="evc-card" :class="{ 'evc-card--selected': selectedCard?.id === card.id }"
-          @click="openDetail(card)">
+      <div class="evc-toolbar2">
+        <button
+          v-for="f in PURPOSE_FILTERS" :key="f.val" type="button"
+          class="evc-tb2-btn" :class="{ 'evc-tb2-btn--active': purposeFilter === f.val }"
+          @click="purposeFilter = f.val"
+        >
+          <span class="evc-tb2-lbl">
+            {{ f.label }}
+            <span class="evc-tb2-cnt">{{ purposeCount(f.val) }}</span>
+          </span>
+        </button>
+      </div>
+    </div>
 
-          <!-- Template image / placeholder -->
-          <div class="evc-card-thumb"
-            :class="{ 'evc-card-thumb--placeholder': !card.templateUrl }"
-            :style="card.templateUrl
-              ? { backgroundImage: `url(${card.templateUrl})` }
-              : { background: purposeGradient(card.purpose) }">
-            <!-- No-image placeholder icon -->
-            <div v-if="!card.templateUrl" class="evc-thumb-placeholder">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="1.2" stroke-linecap="round" opacity="0.4">
-                <rect x="2" y="5" width="20" height="14" rx="3"/>
-                <line x1="2" y1="10" x2="22" y2="10"/>
+    <div class="evc-split">
+      <div class="evc-editor">
+        <p class="evc-crumb">Stationery / Templates</p>
+
+        <div v-if="loading && !cards.length" class="evc-empty">
+          <p class="evc-empty-kicker">Templates</p>
+          <h2 class="evc-empty-title">Loading…</h2>
+        </div>
+
+        <div v-else-if="!filteredCards.length" class="evc-empty">
+          <p class="evc-empty-kicker">The stationery</p>
+          <h2 class="evc-empty-title">{{ searchQ || purposeFilter !== 'all' ? 'Nothing matches' : 'Still unwritten' }}</h2>
+          <p class="evc-empty-lede">{{ searchQ || purposeFilter !== 'all' ? 'Try another search or filter.' : 'Invitation, contribution, save the date — open the designer and the first template lands here.' }}</p>
+          <a v-if="!searchQ && purposeFilter === 'all'" :href="designerCreateUrl" target="_blank" rel="noopener" class="evc-empty-row">
+            <span class="evc-empty-plus">+</span>
+            <span class="evc-empty-row-copy">
+              <span class="evc-empty-row-title">New template</span>
+              <span class="evc-empty-row-sub">It lands in the preview on the right</span>
+            </span>
+          </a>
+        </div>
+
+        <div v-else class="evc-list">
+          <div
+            v-for="card in filteredCards" :key="card.id"
+            class="evc-item"
+            :class="{ 'evc-item--on': selectedCard?.id === card.id }"
+            @click="selectCard(card)"
+          >
+            <div
+              class="evc-item-thumb"
+              :style="card.templateUrl
+                ? { backgroundImage: `url(${card.templateUrl})` }
+                : {}"
+            >
+              <svg v-if="!card.templateUrl" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+                <rect x="3" y="5" width="18" height="14" rx="2"/>
+                <path d="M3 10h18"/>
               </svg>
             </div>
-            <!-- Purpose badge overlay -->
-            <span class="evc-thumb-badge" :style="purposeStyle(card.purpose)">
-              {{ PURPOSE_LABELS[card.purpose] ?? card.purpose }}
-            </span>
-          </div>
-
-          <!-- Card info -->
-          <div class="evc-card-body">
-            <p class="evc-card-type">{{ card.type || '—' }}</p>
-            <div class="evc-card-meta">
-              <span class="evc-meta-chip">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2" stroke-linecap="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                </svg>
-                {{ card.capacity ?? '—' }}
-              </span>
-              <span class="evc-meta-chip">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2" stroke-linecap="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-                {{ (card.clearAt ?? []).length }}
-              </span>
+            <div class="evc-item-copy">
+              <span class="evc-item-title">{{ card.type || 'Untitled' }}</span>
+              <span class="evc-item-sub">{{ PURPOSE_LABELS[card.purpose] ?? card.purpose }} · {{ card.capacity ?? '—' }} guests</span>
+              <span class="evc-item-chip">{{ (card.clearAt ?? []).length }} checkpoints</span>
             </div>
-          </div>
-
-          <!-- Actions row -->
-          <div class="evc-card-actions" @click.stop>
-            <template v-if="confirmDeleteId === card.id">
-              <span class="evc-del-confirm-lbl">Delete?</span>
-              <button class="evc-action-btn evc-action-btn--danger" @click="deleteCard(card)">
-                {{ deletingId === card.id ? '…' : 'Yes' }}
-              </button>
-              <button class="evc-action-btn" @click="confirmDeleteId = null">No</button>
-            </template>
-            <template v-else>
-              <a :href="designerEditUrl(card.id)" target="_blank" rel="noopener"
-                class="evc-action-btn evc-action-btn--edit">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.2" stroke-linecap="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-                Edit
-              </a>
-              <button class="evc-action-btn evc-action-btn--del-ghost"
-                @click="confirmDeleteId = card.id">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.2" stroke-linecap="round">
-                  <polyline points="3 6 5 6 21 6"/>
-                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                  <path d="M10 11v6M14 11v6"/>
-                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                </svg>
-                Delete
-              </button>
-            </template>
+            <div class="evc-item-acts" @click.stop>
+              <template v-if="confirmDeleteId === card.id">
+                <span class="evc-del-confirm-lbl">Delete?</span>
+                <button type="button" class="evc-action-btn evc-action-btn--danger" @click="deleteCard(card)">
+                  {{ deletingId === card.id ? '…' : 'Yes' }}
+                </button>
+                <button type="button" class="evc-action-btn" @click="confirmDeleteId = null">No</button>
+              </template>
+              <template v-else>
+                <a :href="designerEditUrl(card.id)" target="_blank" rel="noopener" class="evc-action-btn" title="Edit in Designer">Edit</a>
+                <button type="button" class="evc-action-btn" @click="confirmDeleteId = card.id">Delete</button>
+              </template>
+            </div>
+            <svg class="evc-item-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
         </div>
       </div>
-    </div><!-- /evc-content -->
-    </div><!-- /evc-panel -->
 
-    <!-- ══ Detail Drawer ══ -->
-    <Teleport to="body">
-      <Transition name="evc-fade">
-        <div v-if="selectedCard" class="evc-overlay" @click.self="closeDetail">
-          <Transition name="evc-slide">
-            <div class="evc-drawer" v-if="selectedCard">
-
-              <!-- Header -->
-              <div class="evc-drawer-header">
-                <button class="evc-drawer-back" @click="closeDetail">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-                  Close
-                </button>
-                <a :href="designerEditUrl(selectedCard.id)" target="_blank" rel="noopener"
-                  class="evc-drawer-edit-btn">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.2" stroke-linecap="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                  Edit in Designer
-                </a>
-              </div>
-
-              <!-- Template preview -->
-              <div class="evc-preview-wrap">
-                <div v-if="selectedCard.templateUrl" class="evc-preview-img"
-                  :style="{ backgroundImage: `url(${selectedCard.templateUrl})` }"/>
-                <div v-else class="evc-preview-placeholder"
-                  :style="{ background: purposeGradient(selectedCard.purpose) }">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="1.2" stroke-linecap="round" opacity="0.35">
-                    <rect x="2" y="5" width="20" height="14" rx="3"/>
-                    <line x1="2" y1="10" x2="22" y2="10"/>
-                  </svg>
-                  <p>No preview available</p>
-                </div>
-              </div>
-
-              <!-- Details -->
-              <div class="evc-drawer-body">
-
-                <!-- Header row -->
-                <div class="evc-detail-head">
-                  <div>
-                    <p class="evc-detail-type">{{ selectedCard.type || '—' }}</p>
-                    <span class="evc-purpose-badge" :style="purposeStyle(selectedCard.purpose)">
-                      {{ PURPOSE_LABELS[selectedCard.purpose] ?? selectedCard.purpose }}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Stats row -->
-                <div class="evc-detail-stats">
-                  <div class="evc-detail-stat">
-                    <span class="evc-detail-stat-n">{{ selectedCard.capacity ?? '—' }}</span>
-                    <span class="evc-detail-stat-lbl">Capacity</span>
-                  </div>
-                  <div class="evc-detail-stat-sep"/>
-                  <div class="evc-detail-stat">
-                    <span class="evc-detail-stat-n">{{ (selectedCard.clearAt ?? []).length }}</span>
-                    <span class="evc-detail-stat-lbl">Checkpoints</span>
-                  </div>
-                  <div class="evc-detail-stat-sep"/>
-                  <div class="evc-detail-stat">
-                    <span class="evc-detail-stat-n">{{ attendeeCountFor(selectedCard.id) }}</span>
-                    <span class="evc-detail-stat-lbl">Attendees</span>
-                  </div>
-                </div>
-
-                <!-- Checkpoints -->
-                <div v-if="(selectedCard.clearAt ?? []).length" class="evc-drawer-block">
-                  <p class="evc-block-lbl">Valid At Checkpoints</p>
-                  <div class="evc-cp-list">
-                    <div v-for="cpId in selectedCard.clearAt" :key="cpId" class="evc-cp-item">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-                        stroke-width="2" stroke-linecap="round">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                        <circle cx="12" cy="10" r="3"/>
-                      </svg>
-                      {{ checkpointName(cpId) }}
-                    </div>
-                  </div>
-                </div>
-                <div v-else class="evc-drawer-block">
-                  <p class="evc-block-lbl">Valid At Checkpoints</p>
-                  <p class="evc-detail-none">No checkpoints assigned — valid everywhere</p>
-                </div>
-
-                <!-- Attendees using this template -->
-                <div class="evc-drawer-block">
-                  <p class="evc-block-lbl">Attendees Using This Template</p>
-                  <div v-if="!attendeesFor(selectedCard).length" class="evc-detail-none">
-                    No attendees assigned yet
-                  </div>
-                  <div v-else class="evc-att-list">
-                    <div v-for="att in attendeesFor(selectedCard).slice(0, 8)" :key="att.id"
-                      class="evc-att-row">
-                      <div class="evc-att-avatar"
-                        :style="{ background: avatarBg(att.fullName), color: avatarColor(att.fullName) }">
-                        {{ initials(att.fullName) }}
-                      </div>
-                      <div class="evc-att-info">
-                        <span class="evc-att-name">{{ att.fullName }}</span>
-                        <span class="evc-att-phone">{{ att.phone || '—' }}</span>
-                      </div>
-                      <span class="evc-att-card-status"
-                        :class="isCardPending(att, selectedCard) ? 'evc-att-pending' : 'evc-att-ready'">
-                        {{ isCardPending(att, selectedCard) ? 'Pending' : 'Ready' }}
-                      </span>
-                    </div>
-                    <p v-if="attendeesFor(selectedCard).length > 8" class="evc-att-more">
-                      + {{ attendeesFor(selectedCard).length - 8 }} more attendees
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Created date -->
-                <p class="evc-drawer-added">
-                  Created {{ formatDate(selectedCard.createdAt) }}
-                </p>
-              </div>
-            </div>
-          </Transition>
+      <aside class="evc-preview">
+        <div class="evc-preview-bar">
+          <span class="evc-preview-kicker">Guest card</span>
+          <a
+            v-if="selectedCard"
+            :href="designerEditUrl(selectedCard.id)"
+            target="_blank"
+            rel="noopener"
+            class="evc-preview-edit"
+          >Edit in Designer</a>
         </div>
-      </Transition>
-    </Teleport>
+
+        <div class="evc-preview-stage">
+          <div v-if="!selectedCard" class="evc-paper evc-paper--empty">
+            <p class="evc-paper-kicker">Stationery</p>
+            <h2 class="evc-paper-title">Pick a template</h2>
+            <p class="evc-paper-lede">Select a template on the left and guests’ stationery appears here.</p>
+          </div>
+
+          <div
+            v-else
+            class="evc-paper"
+            :class="{ 'evc-paper--art': !!selectedCard.templateUrl }"
+            :style="paperStyle(selectedCard)"
+          >
+            <template v-if="!selectedCard.templateUrl">
+              <p class="evc-paper-kicker">{{ PURPOSE_LABELS[selectedCard.purpose] ?? selectedCard.purpose }}</p>
+              <h2 class="evc-paper-title">{{ selectedCard.type || 'Untitled' }}</h2>
+              <p class="evc-paper-lede">Open the designer to paint this card. Until then, this is the blank.</p>
+            </template>
+          </div>
+        </div>
+      </aside>
+    </div>
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { db } from '../../firebase'
-import { collection, getDocs, deleteDoc, doc, getDoc } from 'firebase/firestore'
+import { collection, getDocs, deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore'
+import { useOrg } from '../../composables/useOrg.js'
+import { useNavDrawer } from '../../composables/useNavDrawer.js'
 
 const props   = defineProps({ event: Object, eventId: String })
 const route   = useRoute()
+const router  = useRouter()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
+const { brandName, brandLogoUrl } = useOrg()
+const navDrawer = useNavDrawer()
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DESIGNER_BASE = 'https://haflaway-designer.web.app/designer'
@@ -366,21 +212,19 @@ const PURPOSE_LABELS = {
   invitation:    'Invitation',
   contribution:  'Contribution',
   save_the_date: 'Save the Date',
+  thank_you:     'Thank You',
+  enclosure:     'Enclosure',
   contact:       'Contact',
 }
 
-const PURPOSE_STYLES = {
-  invitation:    { bg: 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%)', color: '#f0f0ec' },
-  contribution:  { bg: 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%)', color: '#f0f0ec' },
-  save_the_date: { bg: 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%)', color: '#f0f0ec' },
-  contact:       { bg: 'linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%)', color: '#f0f0ec' },
-}
-
-const PURPOSE_GRADIENTS = {
-  invitation:    'linear-gradient(145deg, #1c1a14 0%, #2a2418 100%)',
-  contribution:  'linear-gradient(145deg, #101a14 0%, #162418 100%)',
-  save_the_date: 'linear-gradient(145deg, #101620 0%, #16202e 100%)',
-  contact:       'linear-gradient(145deg, #141618 0%, #1e2228 100%)',
+// Matches CARD_OPTIONS' titles in EventAttendees.vue's Send modal exactly —
+// used only for naming a campaign started from the Continue Sending banner,
+// so it reads the same as one started directly from that modal.
+const CARD_PURPOSE_TITLES = {
+  save_the_date: 'Save the Date',
+  invitation:    'Invitation',
+  thank_you:     'Thank You Card',
+  enclosure:     'Enclosure Card',
 }
 
 const PURPOSE_FILTERS = [
@@ -393,20 +237,27 @@ const PURPOSE_FILTERS = [
 ]
 
 // ── State ─────────────────────────────────────────────────────────────────────
-const cards       = ref([])
-const checkpoints = ref([])
-const attendees   = ref([])
-const loading     = ref(false)
+const cards   = ref([])
+const loading = ref(false)
 
 const searchQ       = ref('')
-const searchOpen    = ref(false)
-const searchInputRef = ref(null)
-function openSearch() { searchOpen.value = true; nextTick(() => searchInputRef.value?.focus()) }
-function closeSearch() { searchOpen.value = false; searchQ.value = '' }
 const purposeFilter = ref(route.query.filter || 'all')
 const selectedCard  = ref(null)
 const confirmDeleteId = ref(null)
 const deletingId    = ref(null)
+
+// ── Resume-send banner (arrived here from the Guest List's Send flow because
+// no card blueprint existed yet for this purpose) ──────────────────────────────
+const returnToSendRaw = route.query.returnToSend
+const returnToSend    = ref((Array.isArray(returnToSendRaw) ? returnToSendRaw[0] : returnToSendRaw) || null)
+const resumingSend    = ref(false)
+const resumeNoCardYet = ref(false)
+// Which screen sent us here for this purpose — the Guest List's Send modal
+// (default, unchanged) or the Invitations page's own Card tiles — so
+// continueSendFlow() below knows where "come back and continue" actually
+// means. Same array-safe unwrap as returnToSend above.
+const originRaw = route.query.origin
+const sendOrigin = (Array.isArray(originRaw) ? originRaw[0] : originRaw) || 'attendees'
 
 // ── URLs ──────────────────────────────────────────────────────────────────────
 const designerCreateUrl = computed(() => `${DESIGNER_BASE}/${eventId.value}/create`)
@@ -417,15 +268,7 @@ async function loadData() {
   if (!eventId.value) return
   loading.value = true
   try {
-    const [cardsSnap, cpSnap, attSnap] = await Promise.all([
-      getDocs(collection(db, 'events', eventId.value, 'cards')),
-      getDocs(collection(db, 'events', eventId.value, 'checkpoints')),
-      getDocs(collection(db, 'events', eventId.value, 'attendees')),
-    ])
-
-    checkpoints.value = cpSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-    attendees.value   = attSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-
+    const cardsSnap = await getDocs(collection(db, 'events', eventId.value, 'cards'))
     const kardList = cardsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
     // Fetch templateUrl from global cards/{id} collection in parallel
@@ -447,67 +290,19 @@ async function loadData() {
   }
 }
 
-onMounted(loadData)
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function purposeStyle(purpose) {
-  const s = PURPOSE_STYLES[purpose]
-  return s ? { background: s.bg, color: s.color } : { background: '#ECECEF', color: '#5A5550' }
-}
-function purposeGradient(purpose) {
-  return PURPOSE_GRADIENTS[purpose] ?? PURPOSE_GRADIENTS.contact
-}
-
-function checkpointName(cpId) {
-  return checkpoints.value.find(c => c.id === cpId)?.name ?? cpId
-}
-
-function attendeesFor(card) {
-  return attendees.value.filter(a => {
-    const cards = a.cards ?? {}
-    return Object.values(cards).some(v => v?.templateCardId === card.id)
-  })
-}
-
-function attendeeCountFor(cardId) {
-  return attendees.value.filter(a => {
-    const cards = a.cards ?? {}
-    return Object.values(cards).some(v => v?.templateCardId === cardId)
-  }).length
-}
-
-function isCardPending(att, card) {
-  const cards = att.cards ?? {}
-  const entry = Object.values(cards).find(v => v?.templateCardId === card.id)
-  if (!entry?.url) return true
-  return !entry.url.startsWith('http') || entry.url.includes('placeholder')
-}
+onMounted(() => { loadData() })
 
 function purposeCount(val) {
   if (val === 'all') return cards.value.length
   return cards.value.filter(c => c.purpose === val).length
 }
 
-function formatDate(ts) {
-  if (!ts) return '—'
-  try {
-    const d = ts.toDate ? ts.toDate() : new Date(ts)
-    return d.toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })
-  } catch { return '—' }
+function paperStyle(card) {
+  const s = {}
+  if (card.templateUrl) s.backgroundImage = `url(${card.templateUrl})`
+  if (card.cardWidth && card.cardHeight) s.aspectRatio = `${card.cardWidth} / ${card.cardHeight}`
+  return s
 }
-
-function initials(name) {
-  if (!name) return '?'
-  return name.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase()
-}
-
-const AVATAR_COLORS = [
-  ['#D4E8C2','#3A6B1A'], ['#C2D8E8','#1A4B6B'], ['#E8D4C2','#6B3A1A'],
-  ['#D4C2E8','#3A1A6B'], ['#E8C2D4','#6B1A3A'], ['#C2E8D4','#1A6B3A'],
-  ['#E8E4C2','#6B5A1A'], ['#C2E8E8','#1A6B6B'],
-]
-function avatarBg(name)    { return AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length][0] }
-function avatarColor(name) { return AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length][1] }
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 const filteredCards = computed(() => {
@@ -525,19 +320,21 @@ const filteredCards = computed(() => {
   return list
 })
 
-const statsItems = computed(() => [
-  { val: 'all',          label: 'Total',         count: cards.value.length,                              color: null        },
-  { val: 'invitation',   label: 'Invitation',    count: cards.value.filter(c => c.purpose === 'invitation').length,   color: '#C9A84C'  },
-  { val: 'contribution', label: 'Contribution',  count: cards.value.filter(c => c.purpose === 'contribution').length, color: '#30D158'  },
-  { val: 'save_the_date',label: 'Save the Date', count: cards.value.filter(c => c.purpose === 'save_the_date').length,color: '#5E9AFF'  },
-])
+watch(filteredCards, (list) => {
+  if (!list.length) {
+    selectedCard.value = null
+    return
+  }
+  if (!selectedCard.value || !list.some(c => c.id === selectedCard.value.id)) {
+    selectedCard.value = list[0]
+  }
+}, { immediate: true })
 
 // ── Actions ───────────────────────────────────────────────────────────────────
-function openDetail(card) {
-  selectedCard.value  = card
+function selectCard(card) {
+  selectedCard.value = card
   confirmDeleteId.value = null
 }
-function closeDetail() { selectedCard.value = null }
 
 async function deleteCard(card) {
   if (deletingId.value) return
@@ -553,412 +350,401 @@ async function deleteCard(card) {
     deletingId.value = null
   }
 }
-</script>
 
+// ── Resume-send banner actions ─────────────────────────────────────────────────
+function dismissResumeBanner() {
+  returnToSend.value = null
+  const { returnToSend: _drop, ...rest } = route.query
+  router.replace({ query: rest })
+}
+
+// Re-checks for a blueprint under this purpose (a fresh loadData() already ran
+// on mount, so `cards` reflects whatever exists right now) and, if one's been
+// created in the Designer since we got here, starts the same card-send
+// campaign the Guest List's Send flow would have — same shape as
+// EventAttendees.vue's selectCardOption for the "blueprint exists" path.
+async function continueSendFlow() {
+  if (resumingSend.value) return
+  const purpose = returnToSend.value
+  if (!purpose) return
+  resumingSend.value = true
+  resumeNoCardYet.value = false
+  try {
+    // Refresh first — the Designer tab may have just saved a new template,
+    // and the in-memory `cards` list from onMounted's loadData() could be
+    // stale (or still loading) by the time they click this.
+    await loadData()
+    // The user may have dismissed the banner (or it changed) while this was
+    // refreshing — don't act on a purpose they're no longer waiting on.
+    if (returnToSend.value !== purpose) return
+    const hasCard = cards.value.some(c => c.purpose === purpose)
+    if (!hasCard) {
+      resumeNoCardYet.value = true
+      return
+    }
+    // Same deterministic per-(event, purpose) campaign id as
+    // EventAttendees.vue's selectCardOption — never a fresh addDoc — so this
+    // detour through the Designer rejoins the exact same campaign rather
+    // than forking off a second "Invitation" with no memory of who the first
+    // one already reached.
+    const campaignRef = doc(db, 'events', eventId.value, 'campaigns', `card_${purpose}`)
+    const campaignSnap = await getDoc(campaignRef)
+    if (!campaignSnap.exists()) {
+      await setDoc(campaignRef, {
+        // Matches the title CARD_OPTIONS shows in the Send modal (EventAttendees.vue)
+        // so a campaign is named the same whether the blueprint existed already
+        // or was just created via this Designer detour.
+        name: CARD_PURPOSE_TITLES[purpose] ?? PURPOSE_LABELS[purpose] ?? purpose,
+        type: purpose,
+        // See EventAttendees.vue's selectCardOption — flags this as a card
+        // campaign so the composer looks up a purpose-specific WhatsApp
+        // template category instead of the generic one.
+        kind: 'card',
+        whatsappMessage: null,
+        smsMessage: null,
+        createdAt: new Date().toISOString(),
+        status: 'draft',
+      })
+    }
+    // Card campaigns always compose on the Invitations screen now
+    // (cardScope:true) — Bulk Messages' own list filters kind:'card' out
+    // entirely, so a card campaign deep-linked there would find no match to
+    // restore. Only the return path differs by origin: the Guest List's Send
+    // modal wants to bounce back there; opened directly from the Invitations
+    // tiles, there's nowhere else to go — closing with no returnTo just
+    // reveals this same page underneath, which already IS the campaign's home.
+    const returnToQs = sendOrigin === 'invitations'
+      ? ''
+      : `&returnTo=${encodeURIComponent(`/event/${eventId.value}/attendees?reopenCampaigns=1`)}`
+    router.push(`/event/${eventId.value}/invitations?campaign=${campaignRef.id}&send=1${returnToQs}`)
+  } catch (e) {
+    console.error('continueSendFlow:', e)
+  } finally {
+    resumingSend.value = false
+  }
+}
+</script>
 <style scoped>
-/* ══ Root ══ */
 .evc-root {
+  min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px 24px 24px;
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-muted:  #3a3a3a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-  --c-divide: #2a2a2a;
-  --c-arrow:  #3a3a3a;
-  transition: background 300ms ease;
+  background: #ffffff;
+  color: #1f2937;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
 }
-
-/* ══ Stat Cards ══ */
-.evc-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+.evc-resume-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  margin: 12px 36px 0; padding: 14px 18px;
+  border-radius: 14px; background: #f8fafc; border: 1px solid #e5e7eb;
 }
-.evc-stat-card {
-  background: var(--c-bg);
-  border: 1px solid var(--c-border);
-  border-radius: 12px;
-  padding: 20px 20px 18px;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  transition: background 300ms ease, border-color 300ms ease;
+.evc-resume-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.evc-resume-title { font-size: 13.5px; font-weight: 700; color: #111827; margin: 0; }
+.evc-resume-sub { font-size: 12.5px; color: #64748b; margin: 0; }
+.evc-resume-acts { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.evc-resume-warn { font-size: 12.5px; color: #92400e; font-weight: 500; }
+.evc-resume-continue {
+  height: 36px; padding: 0 16px; border: 1px solid #e5e7eb; border-radius: 9999px;
+  background: #fff; color: #111827; font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer;
 }
-.evc-stat-icon {
-  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
+.evc-resume-continue:hover { background: #f8fafc; border-color: #d1d5db; }
+.evc-resume-continue:disabled { opacity: 0.5; cursor: default; }
+.evc-resume-dismiss {
+  width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: none; color: #94a3b8; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.evc-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
-.evc-stat-icon--amber  { background: rgba(255,159,10,0.08);  color: #FF9F0A; }
-.evc-stat-icon--green  { background: rgba(48,209,88,0.08);   color: #30D158; }
-.evc-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
-.evc-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.evc-stat-lbl  { font-size: 11px; color: var(--c-txt-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; }
-.evc-stat-val  { font-size: 32px; font-weight: 700; color: var(--c-txt); line-height: 1; letter-spacing: -0.5px; }
+.evc-resume-dismiss:hover { background: #f3f4f6; color: #111827; }
 
-/* ══ Panel ══ */
-.evc-panel {
-  background: var(--c-bg);
-  border: 1px solid var(--c-border);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: background 300ms ease, border-color 300ms ease;
-}
+.evc-sticky-head { position: sticky; top: 0; z-index: 20; background: #fff; }
 .evc-panel-hd {
-  display: flex;
-  align-items: center;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--c-border);
-  gap: 10px;
+  display: flex; align-items: center; height: 92px; padding: 0 36px; gap: 14px;
+  border-bottom: 1px solid #f1f3f5;
 }
-.evc-panel-title {
-  font-size: 19px; font-weight: 700; color: var(--c-txt);
-  margin: 0; letter-spacing: -0.3px; white-space: nowrap;
+.evc-hd-burger {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 1px solid #e5e7eb; border-radius: 50%; background: #fff;
+  color: #4b5563; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
 }
-.evc-panel-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
-
-/* Search pill */
-.evc-search-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border-radius: 20px;
-  border: 1px solid var(--c-border); background: var(--c-bg);
-  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
-  cursor: pointer; transition: all 140ms; font-family: inherit;
+.evc-hd-burger:hover { background: #f8fafc; color: #18181b; border-color: #d1d5db; }
+.evc-hd-sep { width: 1px; height: 16px; background: #e5e7eb; flex-shrink: 0; margin: 0 4px; }
+.evc-hd-badge {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e5e7eb;
+  overflow: hidden; background: #fff; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
-.evc-search-pill:hover { background: var(--c-bg); color: var(--c-txt-2); }
-.evc-search-pill--active { background: rgb(from var(--gold) r g b / 0.10); border-color: rgb(from var(--gold) r g b / 0.3); color: var(--gold); }
-
-/* Expanded search */
-.evc-search-expanded { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
-
-/* Cancel button */
-.evc-search-cancel {
-  flex-shrink: 0; padding: 7px 2px; border: none; background: none;
-  font-size: 13px; font-weight: 500; color: var(--c-txt-2); cursor: pointer;
-  font-family: inherit; transition: color 130ms;
+.evc-hd-brand-logo { width: 100%; height: 100%; object-fit: cover; }
+.evc-hd-brand-script {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic; font-size: 18px; font-weight: 700;
+  color: #111827; letter-spacing: -0.04em; line-height: 1;
 }
-.evc-search-cancel:hover { color: var(--c-txt); }
-
-/* Search */
+.evc-hd-title-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.evc-hub-title { margin: 0; font-size: 22px; font-weight: 600; color: #18181b; letter-spacing: -0.015em; white-space: nowrap; }
+.evc-hub-count {
+  font-size: 12.5px; font-weight: 600; color: #4b5563;
+  background: #f1f3f5; border-radius: 9999px; padding: 2px 10px;
+}
 .evc-search-wrap {
   position: relative; display: flex; align-items: center;
-  width: 100%;
+  flex: 1 1 0; margin: 0 20px; min-width: 220px;
 }
-.evc-search-icon { position: absolute; left: 10px; pointer-events: none; }
+.evc-search-icon { position: absolute; left: 16px; color: #9ca3af; pointer-events: none; }
 .evc-search {
-  width: 100%; padding: 8px 32px;
-  border: 1px solid var(--c-border); border-radius: 10px;
-  font-size: 13px; font-family: inherit; outline: none;
-  background: var(--c-bg); color: var(--c-txt);
-  transition: border-color 150ms, box-shadow 150ms;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  width: 100%; height: 44px; padding: 0 48px 0 44px;
+  background: #f3f4f6; border: none; border-radius: 9999px;
+  font-size: 15px; color: #111827; outline: none; font-family: inherit;
 }
-.evc-search:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: var(--c-bg); }
+.evc-search:focus { background: #eeeeef; }
+.evc-search::placeholder { color: #9ca3af; }
 .evc-search-clear {
-  position: absolute; right: 8px;
-  background: none; border: none; cursor: pointer; color: var(--c-txt-2); padding: 2px;
-  display: flex; align-items: center;
+  position: absolute; right: 10px; width: 32px; height: 32px;
+  border: none; background: none; color: #9ca3af; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
 }
-.evc-search-clear:hover { color: var(--c-txt); }
-
-/* Filter chips */
-.evc-filter-chips { display: flex; gap: 4px; }
-.evc-chip {
-  padding: 6px 12px; border-radius: 20px;
-  border: 1px solid var(--c-border); background: var(--c-bg);
-  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
-  cursor: pointer; transition: all 140ms; font-family: inherit;
-}
-.evc-chip:hover { background: var(--c-bg); color: var(--c-txt-2); }
-.evc-chip--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: var(--c-txt); font-weight: 600; }
-.evc-chip-cnt {
-  display: inline-flex; min-width: 18px; padding: 1px 5px;
-  background: var(--c-bg); border-radius: 10px;
-  font-size: 11px; font-weight: 600; color: var(--c-txt-2); margin-left: 5px;
-}
-.evc-chip--active .evc-chip-cnt { background: rgb(from var(--gold) r g b / 0.08); color: var(--gold); }
-
-/* Refresh + New Template */
-.evc-refresh-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
+.evc-search-filter {
+  position: absolute; right: 8px; width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 140ms; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  border: 1px solid #e5e7eb; border-radius: 50%; background: #fff; color: #6b7280;
 }
-.evc-refresh-btn:hover:not(:disabled) { background: var(--c-bg); color: var(--c-txt); }
-.evc-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.evc-new-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: 10px;
-  background: var(--gold); color: #0e0e0e; border: none;
-  font-size: 13px; font-weight: 700; font-family: inherit;
-  text-decoration: none; cursor: pointer;
-  transition: background 140ms;
+.evc-add-btn {
+  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+  height: 40px; padding: 0 20px; border: 1px solid #e5e7eb; border-radius: 9999px;
+  background: #fff; color: #111827; font-family: inherit;
+  font-size: 13.5px; font-weight: 600; cursor: pointer; text-decoration: none;
 }
-.evc-new-btn:hover { background: #d4b560; }
+.evc-add-btn:hover { background: #f8fafc; border-color: #d1d5db; }
+.evc-hd-gear {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.evc-hd-gear:hover { background: #f8fafc; color: #0f172a; }
 
-/* ══ Content / Grid ══ */
-.evc-content { padding: 20px; }
-
-.evc-empty {
-  display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; min-height: 300px; color: var(--c-txt-3);
+.evc-toolbar2 {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 36px; border-bottom: 1px solid #f1f3f5;
 }
-.evc-empty-title { font-size: 15px; font-weight: 600; color: var(--c-txt-2); margin: 0; }
-.evc-empty-sub   { font-size: 13px; color: var(--c-txt-3); margin: 0; }
-.evc-empty-cta {
-  margin-top: 6px; padding: 9px 20px; border-radius: 10px;
-  background: rgba(226,232,240,0.12); color: var(--c-txt); font-size: 13px; font-weight: 600;
-  text-decoration: none; transition: background 140ms;
+.evc-tb2-btn {
+  display: flex; align-items: center;
+  min-height: 34px; padding: 6px 14px;
+  border: 1px solid #e2e8f0; border-radius: 9999px; background: #fff;
+  cursor: pointer; font-family: inherit;
 }
-.evc-empty-cta:hover { background: var(--c-bg); }
-
-.evc-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
-  width: 100%;
+.evc-tb2-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+.evc-tb2-btn--active { background: #f1f5f9; border-color: #cbd5e1; }
+.evc-tb2-lbl { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #475569; white-space: nowrap; }
+.evc-tb2-btn--active .evc-tb2-lbl { color: #0f172a; font-weight: 600; }
+.evc-tb2-cnt {
+  min-width: 18px; padding: 1px 6px; border-radius: 9999px;
+  background: #f1f5f9; font-size: 10.5px; font-weight: 700; color: #475569;
 }
 
-/* Card tile */
-.evc-card {
-  background: var(--c-bg);
-  border: 1px solid var(--c-border);
-  border-radius: 14px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: background 300ms ease, border-color 300ms ease, box-shadow 160ms, transform 160ms;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-}
-.evc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); border-color: var(--c-muted); transform: translateY(-1px); }
-.evc-card--selected { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.15); }
-
-.evc-card-thumb {
-  width: 100%;
-  aspect-ratio: 3 / 2;
-}
-.evc-card-thumb--placeholder {
-  aspect-ratio: unset;
-  height: 72px;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  position: relative;
+.evc-split {
+  flex: 1;
   display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-  padding: 10px;
+  align-items: stretch;
+  min-height: 0;
+  background: #f7f7f8;
 }
-.evc-thumb-placeholder {
-  position: absolute; inset: 0;
+.evc-editor {
+  flex: 1 1 50%;
+  width: 50%;
+  min-width: 0;
+  background: #ffffff;
+  border-right: 1px solid #f0f0f2;
+  overflow-y: auto;
+  padding: 22px 32px 48px;
+}
+.evc-crumb {
+  margin: 0 0 18px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+.evc-empty { padding: 8px 2px 0; }
+.evc-empty-kicker {
+  margin: 0 0 6px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: #94a3b8;
+}
+.evc-empty-title {
+  margin: 0 0 10px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 400; font-style: italic; font-size: 28px; color: #1a1a1a;
+}
+.evc-empty-lede { margin: 0 0 22px; max-width: 42ch; font-size: 14px; color: #64748b; line-height: 1.55; }
+.evc-empty-row {
+  width: min(420px, 100%); display: flex; align-items: center; gap: 14px;
+  padding: 16px 14px; border: 1px dashed #d1d5db; border-radius: 14px;
+  background: #fafafa; text-decoration: none; font-family: inherit;
+}
+.evc-empty-row:hover { border-color: #c4c4c8; background: #fff; }
+.evc-empty-plus {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #fff; color: #374151; border: 1px solid #e5e7eb;
+  display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+}
+.evc-empty-row-copy { display: flex; flex-direction: column; gap: 2px; }
+.evc-empty-row-title { font-size: 15px; font-weight: 600; color: #111827; }
+.evc-empty-row-sub { font-size: 13px; color: #64748b; }
+
+.evc-list { display: flex; flex-direction: column; }
+.evc-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 4px 16px;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.evc-item:hover { background: #fafafa; }
+.evc-item--on { background: #f7f7f8; }
+.evc-item-thumb {
+  width: 52px; height: 68px; flex-shrink: 0;
+  border-radius: 6px;
+  border: 1px solid #ececec;
+  background: #faf6ef center / cover no-repeat;
+  color: #9ca3af;
   display: flex; align-items: center; justify-content: center;
-  color: var(--c-txt-2);
 }
-.evc-thumb-badge {
-  position: relative; z-index: 1;
-  padding: 3px 9px; border-radius: 20px;
-  font-size: 10px; font-weight: 700;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+.evc-item-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.evc-item-title { font-size: 15px; font-weight: 600; color: #111827; }
+.evc-item-sub { font-size: 13px; color: #64748b; }
+.evc-item-chip {
+  display: inline-flex;
+  margin-top: 2px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 11.5px;
+  font-weight: 600;
+  align-items: center;
 }
-
-.evc-card-body { padding: 12px 14px 10px; display: flex; align-items: center; gap: 10px; }
-.evc-card-type {
-  font-size: 14px; font-weight: 700; color: var(--c-txt);
-  margin: 0; letter-spacing: -0.1px; white-space: nowrap;
+.evc-item-acts {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
 }
-.evc-card-meta { display: flex; align-items: center; gap: 10px; }
-.evc-meta-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 11px; color: var(--c-txt-2); font-weight: 500;
-}
-
-/* Card action row */
-.evc-card-actions {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 14px;
-  border-top: 1px solid var(--c-divide);
-}
-.evc-del-confirm-lbl { font-size: 12px; color: #FF453A; font-weight: 600; flex: 1; }
+.evc-item:hover .evc-item-acts,
+.evc-item--on .evc-item-acts { opacity: 1; pointer-events: auto; }
+.evc-item-chev { color: #9ca3af; flex-shrink: 0; }
 .evc-action-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 11px; border-radius: 7px;
-  font-size: 12px; font-weight: 500; font-family: inherit;
-  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
-  cursor: pointer; transition: all 130ms; text-decoration: none;
+  height: 28px; padding: 0 10px; border-radius: 9999px;
+  border: 1px solid #e5e7eb; background: #fff; color: #374151;
+  font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
 }
-.evc-action-btn:hover { background: var(--c-bg); color: var(--c-txt); }
-.evc-action-btn--edit:hover { border-color: rgba(184,146,77,0.5); color: var(--gold); background: var(--c-bg); }
-.evc-action-btn--del-ghost:hover { border-color: rgba(255,59,48,0.3); color: #FF453A; background: rgba(255,59,48,0.05); }
-.evc-action-btn--danger { border-color: rgba(255,59,48,0.4); color: #FF453A; background: rgba(255,59,48,0.06); }
-.evc-action-btn--danger:hover { background: rgba(255,59,48,0.12); }
+.evc-action-btn:hover { background: #f8fafc; border-color: #d1d5db; }
+.evc-action-btn--danger { background: #fff; color: #9f1239; border-color: #fecdd3; }
+.evc-del-confirm-lbl { font-size: 12px; font-weight: 600; color: #111827; }
 
-/* ══ Drawer ══ */
-.evc-overlay {
-  position: fixed; inset: 0; z-index: 200;
-  background: var(--overlay-bg);
+.evc-preview {
+  flex: 1 1 50%;
+  width: 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f4f4f5;
 }
-.evc-drawer {
-  position: fixed; right: 0; top: 0; bottom: 0;
-  width: 380px; background: var(--c-bg);
-  box-shadow: -4px 0 32px rgba(0,0,0,0.5);
-  display: flex; flex-direction: column; overflow-y: auto; z-index: 201;
-  transition: background 300ms ease;
+.evc-preview-bar {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f2;
+  flex-shrink: 0;
 }
-.evc-drawer-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 1px solid var(--c-divide); flex-shrink: 0;
+.evc-preview-kicker {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
 }
-.evc-drawer-back {
-  display: flex; align-items: center; gap: 5px;
-  padding: 6px 10px; border-radius: 8px;
-  border: none; background: var(--c-bg); color: var(--c-txt-2);
-  font-size: 13px; font-weight: 500; cursor: pointer;
-  transition: all 130ms; font-family: inherit;
+.evc-preview-edit {
+  font-size: 12.5px; font-weight: 600; color: #374151; text-decoration: none;
 }
-.evc-drawer-back:hover { background: var(--c-track); color: var(--c-txt); }
-.evc-drawer-edit-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border-radius: 8px;
-  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
-  font-size: 12px; font-weight: 500; font-family: inherit;
-  text-decoration: none; cursor: pointer; transition: all 130ms;
+.evc-preview-edit:hover { color: #111827; }
+.evc-preview-stage {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 28px 24px 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-.evc-drawer-edit-btn:hover { border-color: rgba(184,146,77,0.5); color: var(--gold); background: var(--c-bg); }
-
-/* Template preview */
-.evc-preview-wrap { padding: 16px 20px; background: var(--c-bg); border-bottom: 1px solid var(--c-border); flex-shrink: 0; }
-.evc-preview-img {
-  width: 100%; aspect-ratio: 3 / 2;
-  background-size: contain; background-position: center; background-repeat: no-repeat;
-  border-radius: 10px; border: 1px solid var(--c-border); background-color: var(--c-bg);
+.evc-paper {
+  width: min(420px, 100%);
+  min-height: 280px;
+  background: #FAF6EF;
+  color: #241F18;
+  border-radius: 4px;
+  box-shadow: 0 18px 50px rgba(36, 31, 24, 0.08);
+  padding: 40px 36px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
-.evc-preview-placeholder {
-  width: 100%; aspect-ratio: 3 / 2;
-  border-radius: 10px; border: 1px solid var(--c-border);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; color: var(--c-txt-2);
+.evc-paper--art {
+  min-height: 0;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: #faf6ef;
 }
-.evc-preview-placeholder p { font-size: 12px; margin: 0; color: var(--c-txt-3); }
-
-/* Drawer body */
-.evc-drawer-body { display: flex; flex-direction: column; padding: 0 0 24px; }
-
-.evc-detail-head {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 16px 20px 12px; border-bottom: 1px solid var(--c-divide);
+.evc-paper-kicker {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8a8178;
 }
-.evc-detail-type { font-size: 18px; font-weight: 700; color: var(--c-txt); margin: 0 0 6px; }
-.evc-purpose-badge {
-  display: inline-block; padding: 3px 10px; border-radius: 20px;
-  font-size: 11px; font-weight: 700;
+.evc-paper-title {
+  margin: 0 0 12px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 400;
+  font-size: 28px;
+  color: #241F18;
+  line-height: 1.2;
 }
-
-.evc-detail-stats {
-  display: flex; align-items: center;
-  padding: 14px 20px; border-bottom: 1px solid var(--c-divide);
-}
-.evc-detail-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
-.evc-detail-stat-n { font-size: 18px; font-weight: 700; color: var(--c-txt); line-height: 1; }
-.evc-detail-stat-lbl { font-size: 10px; font-weight: 600; color: var(--c-txt-3); text-transform: uppercase; letter-spacing: 0.4px; }
-.evc-detail-stat-sep { width: 0.8px; height: 28px; background: var(--c-track); flex-shrink: 0; }
-
-.evc-drawer-block { padding: 14px 20px; border-bottom: 1px solid var(--c-divide); }
-.evc-drawer-block:last-of-type { border-bottom: none; }
-.evc-block-lbl {
-  font-size: 10px; font-weight: 700; color: var(--c-txt-3);
-  text-transform: uppercase; letter-spacing: 0.6px; margin: 0 0 10px;
-}
-.evc-detail-none { font-size: 13px; color: var(--c-txt-3); font-style: italic; }
-
-/* Checkpoints list */
-.evc-cp-list { display: flex; flex-direction: column; gap: 6px; }
-.evc-cp-item {
-  display: flex; align-items: center; gap: 7px;
-  font-size: 13px; color: var(--c-txt); font-weight: 500;
+.evc-paper-lede {
+  margin: 0;
+  font-size: 14px;
+  color: #6b645c;
+  line-height: 1.55;
+  max-width: 34ch;
 }
 
-/* Attendees list */
-.evc-att-list { display: flex; flex-direction: column; gap: 0; }
-.evc-att-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 0; border-bottom: 1px solid var(--c-muted);
+@media (max-width: 980px) {
+  .evc-split { flex-direction: column; }
+  .evc-editor, .evc-preview { width: 100%; flex-basis: auto; }
+  .evc-editor { border-right: none; border-bottom: 1px solid #f0f0f2; max-height: 46vh; }
+  .evc-preview { min-height: 54vh; }
+  .evc-item-acts { opacity: 1; pointer-events: auto; }
 }
-.evc-att-row:last-of-type { border-bottom: none; }
-.evc-att-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; flex-shrink: 0;
-}
-.evc-att-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.evc-att-name  { font-size: 12px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.evc-att-phone { font-size: 11px; color: var(--c-txt-2); }
-.evc-att-card-status { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
-.evc-att-ready   { background: rgba(52,211,153,0.12);  color: #34d399; }
-.evc-att-pending { background: rgba(255,159,10,0.12); color: #7A4500; }
-.evc-att-more { font-size: 12px; color: var(--c-txt-2); margin: 8px 0 0; padding: 0; }
-
-.evc-drawer-added { font-size: 12px; color: var(--c-txt-3); margin: 0; padding: 4px 20px 0; }
-
-/* ══ Transitions ══ */
-.evc-fade-enter-active, .evc-fade-leave-active { transition: opacity 200ms ease; }
-.evc-fade-enter-from,   .evc-fade-leave-to     { opacity: 0; }
-.evc-slide-enter-active, .evc-slide-leave-active { transition: transform 260ms ease; }
-.evc-slide-enter-from,   .evc-slide-leave-to     { transform: translateX(100%); }
-
-/* Spin */
-.evc-spin { animation: evc-spin-anim 1.1s linear infinite; }
-@keyframes evc-spin-anim { to { transform: rotate(360deg); } }
-
-/* ── Responsive ── */
 @media (max-width: 900px) {
-  /* 4-column stat grid overflows at medium widths — switch to 2x2 */
-  .evc-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; min-width: 0; }
-  .evc-stat-card { min-width: 0; overflow: hidden; }
-  .evc-stat-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  /* Panel header: title + acts wrap */
-  .evc-panel-hd { flex-wrap: wrap; gap: 8px; }
-  .evc-panel-acts { width: 100%; flex-wrap: nowrap; align-items: center; gap: 6px; }
-  .evc-filter-chips { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
-  .evc-filter-chips::-webkit-scrollbar { display: none; }
-  .evc-chip { flex-shrink: 0; }
-  .evc-refresh-btn { flex-shrink: 0; }
-  .evc-new-btn { flex-shrink: 0; white-space: nowrap; }
-}
-
-@media (max-width: 640px) {
-  .evc-root { padding: 12px 14px 20px; gap: 12px; }
-
-  /* Stat cards: column layout so long labels don't get squished */
-  .evc-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; min-width: 0; }
-  .evc-stat-card { min-width: 0; overflow: hidden; padding: 12px; gap: 6px; flex-direction: column; align-items: flex-start; }
-  .evc-stat-icon { width: 32px; height: 32px; flex-shrink: 0; }
-  .evc-stat-val  { font-size: 22px; }
-  .evc-stat-body { gap: 2px; min-width: 0; width: 100%; }
-  .evc-stat-lbl  { font-size: 10px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  /* Panel header: title + acts wrap */
-  .evc-panel-hd { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
-  .evc-panel-title { font-size: 17px; }
-  .evc-search-wrap { width: 100%; min-width: 0; }
-  .evc-search { min-width: 0; max-width: 100%; width: 100%; font-size: 13px; }
-
-  /* Chips + action buttons: single nowrap row — chips scroll, buttons stay anchored right */
-  .evc-panel-acts { flex-wrap: nowrap; gap: 6px; width: 100%; align-items: center; margin-left: 0; }
-  .evc-filter-chips { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
-  .evc-filter-chips::-webkit-scrollbar { display: none; }
-  .evc-chip { flex-shrink: 0; }
-  .evc-refresh-btn { flex-shrink: 0; }
-  .evc-new-btn { flex-shrink: 0; white-space: nowrap; padding: 7px 12px; font-size: 12px; }
-
-  /* Card grid: 2 columns */
-  .evc-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .evc-panel-hd { height: auto; flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
+  .evc-search-wrap { flex: 1 1 100%; margin: 8px 0 0; order: 8; }
+  .evc-hd-sep { display: none; }
+  .evc-toolbar2, .evc-resume-banner { padding-left: 16px; padding-right: 16px; }
+  .evc-resume-banner { margin-left: 16px; margin-right: 16px; }
+  .evc-editor { padding: 16px; }
 }
 </style>

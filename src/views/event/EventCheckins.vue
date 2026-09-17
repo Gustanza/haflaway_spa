@@ -1,239 +1,155 @@
 ﻿<template>
   <div class="ec-root">
 
-    <!-- ══ Stats ══ -->
-    <div class="ec-stats">
-      <div class="ec-stat-card">
-        <div class="ec-stat-icon ec-stat-icon--purple">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    <div class="ec-sticky-head">
+      <div class="ec-panel-hd">
+        <button type="button" class="ec-hd-burger" title="Menu" @click="navDrawer.open()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
+        </button>
+        <div class="ec-hd-sep" />
+        <div class="ec-hd-badge" @click="$router.push('/events')" title="All Events">
+          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="ec-hd-brand-logo" />
+          <span v-else class="ec-hd-brand-script">.joy</span>
         </div>
-        <div class="ec-stat-body">
-          <span class="ec-stat-lbl">Total</span>
-          <span class="ec-stat-val">{{ checkinStats.total }}</span>
+        <div class="ec-hd-sep" />
+        <div class="ec-hd-title-group">
+          <h1 class="ec-hub-title">Check-ins</h1>
+          <span class="ec-hub-count">{{ attendees.length }}</span>
+        </div>
+
+        <div class="ec-search-wrap">
+          <svg class="ec-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input v-model="searchQ" class="ec-search" placeholder="Filter by name" />
+          <button v-if="searchQ" type="button" class="ec-search-clear" @click="searchQ = ''" aria-label="Clear">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <span v-else class="ec-search-filter" title="Filter">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+              <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+              <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+            </svg>
+          </span>
+        </div>
+
+        <button type="button" class="ec-ghost-btn" @click="loadData" :disabled="loading">
+          <svg :class="{ 'ec-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          Refresh
+        </button>
+        <button type="button" class="ec-hd-gear" title="Settings" @click="$router.push(`/event/${eventId}/settings`)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="ec-toolbar2">
+        <button
+          v-for="f in STATUS_FILTERS" :key="f.val" type="button"
+          class="ec-tb2-btn" :class="{ 'ec-tb2-btn--active': statusFilter === f.val }"
+          @click="statusFilter = f.val; currentPage = 1"
+        >
+          <span class="ec-tb2-lbl">
+            {{ f.label }}
+            <span class="ec-tb2-cnt">{{ statusCount(f.val) }}</span>
+          </span>
+        </button>
+        <div class="ec-tb2-divider" />
+        <div v-if="checkpoints.length" class="ec-cp-wrap" v-click-outside="() => showCpMenu = false">
+          <button type="button" class="ec-tb2-btn" :class="{ 'ec-tb2-btn--active': cpFilter !== null }" @click="showCpMenu = !showCpMenu">
+            <span class="ec-tb2-lbl">
+              {{ cpFilter !== null ? (checkpoints.find(c => c.id === cpFilter)?.name ?? 'Checkpoint') : 'Checkpoints' }}
+              <span v-if="cpFilter === null" class="ec-tb2-cnt">{{ checkpoints.length }}</span>
+            </span>
+            <svg class="ec-tb2-chev" :class="{ 'ec-tb2-chev--open': showCpMenu }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div v-if="showCpMenu" class="ec-cp-menu">
+            <button type="button" class="ec-cp-item" :class="{ 'ec-cp-item--on': cpFilter === null }"
+              @click="cpFilter = null; showCpMenu = false; currentPage = 1">All checkpoints</button>
+            <button v-for="cp in checkpoints" :key="cp.id" type="button"
+              class="ec-cp-item" :class="{ 'ec-cp-item--on': cpFilter === cp.id }"
+              @click="cpFilter = cp.id; showCpMenu = false; currentPage = 1">{{ cp.name }}</button>
+          </div>
         </div>
       </div>
 
-      <div class="ec-stat-card ec-stat-card--link" :class="{ 'ec-stat-card--active': statusFilter === 'checked' }"
-        @click="statusFilter = statusFilter === 'checked' ? 'all' : 'checked'; currentPage = 1">
-        <div class="ec-stat-icon ec-stat-icon--green">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-            <polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-        </div>
-        <div class="ec-stat-body">
-          <span class="ec-stat-lbl">Checked In</span>
-          <span class="ec-stat-val">{{ checkinStats.checked }}</span>
-        </div>
-      </div>
-
-      <div class="ec-stat-card ec-stat-card--link" :class="{ 'ec-stat-card--active': statusFilter === 'partial' }"
-        @click="statusFilter = statusFilter === 'partial' ? 'all' : 'partial'; currentPage = 1">
-        <div class="ec-stat-icon ec-stat-icon--orange">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-        </div>
-        <div class="ec-stat-body">
-          <span class="ec-stat-lbl">Partial</span>
-          <span class="ec-stat-val">{{ checkinStats.partial }}</span>
-        </div>
-      </div>
-
-      <div class="ec-stat-card ec-stat-card--link" :class="{ 'ec-stat-card--active': statusFilter === 'none' }"
-        @click="statusFilter = statusFilter === 'none' ? 'all' : 'none'; currentPage = 1">
-        <div class="ec-stat-icon ec-stat-icon--red">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="8" y1="12" x2="16" y2="12"/>
-          </svg>
-        </div>
-        <div class="ec-stat-body">
-          <span class="ec-stat-lbl">Not Checked</span>
-          <span class="ec-stat-val">{{ checkinStats.none }}</span>
-        </div>
+      <div class="ec-row-grid ec-col-head" v-if="!loading && pagedList.length">
+        <span class="ec-col-avatar" />
+        <button type="button" class="ec-col-btn" @click="toggleSort('name')">
+          Name
+          <svg class="ec-sort-icon" :class="{ 'ec-sort-icon--active': sortKey === 'name', 'ec-sort-icon--desc': sortKey === 'name' && sortDir === 'desc' }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <span class="ec-col-lbl">Phone</span>
+        <span class="ec-col-lbl">Type</span>
+        <button type="button" class="ec-col-btn" @click="toggleSort('status')">
+          Status
+          <svg class="ec-sort-icon" :class="{ 'ec-sort-icon--active': sortKey === 'status', 'ec-sort-icon--desc': sortKey === 'status' && sortDir === 'desc' }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <span class="ec-col-lbl">Slots</span>
+        <button type="button" class="ec-col-btn" @click="toggleSort('date')">
+          Added
+          <svg class="ec-sort-icon" :class="{ 'ec-sort-icon--active': sortKey === 'date', 'ec-sort-icon--desc': sortKey === 'date' && sortDir === 'desc' }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
       </div>
     </div>
 
-    <div class="ec-panel">
-
-      <!-- ══ Panel Header ══ -->
-      <div class="ec-panel-hd">
-        <h2 class="ec-panel-title">Check-ins</h2>
-
-        <div class="ec-panel-acts">
-          <!-- Expanded search state -->
-          <template v-if="searchOpen">
-            <div class="ec-search-expanded ec-search-wrap">
-              <svg class="ec-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input ref="searchInputRef" v-model="searchQ" class="ec-search"
-                placeholder="Search by name or phone…"
-                @keydown.escape="closeSearch" />
-              <button v-if="searchQ" class="ec-search-clear" @click="searchQ = ''">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-            <button class="ec-search-cancel" @click="closeSearch">Cancel</button>
-          </template>
-
-          <!-- Normal state -->
-          <template v-else>
-            <button class="ec-search-pill" :class="{ 'ec-search-pill--active': searchQ }" @click="openSearch">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              Search
-            </button>
-
-            <!-- Status filter chips -->
-            <div class="ec-filter-chips">
-              <button v-for="f in STATUS_FILTERS" :key="f.val"
-                class="ec-chip" :class="{ 'ec-chip--active': statusFilter === f.val }"
-                @click="statusFilter = f.val; currentPage = 1">
-                {{ f.label }}
-                <span class="ec-chip-cnt">{{ statusCount(f.val) }}</span>
-              </button>
-            </div>
-
-            <!-- Checkpoint filter -->
-            <div v-if="checkpoints.length > 0" class="ec-cp-wrap" v-click-outside="() => showCpMenu = false">
-              <button class="ec-cp-btn" :class="{ 'ec-cp-btn--active': cpFilter !== null }" @click="showCpMenu = !showCpMenu">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                </svg>
-                {{ cpFilter !== null ? (checkpoints.find(c => c.id === cpFilter)?.name ?? 'Checkpoint') : 'All Checkpoints' }}
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <div v-if="showCpMenu" class="ec-cp-menu">
-                <button class="ec-cp-item" :class="{ 'ec-cp-item--on': cpFilter === null }"
-                  @click="cpFilter = null; showCpMenu = false; currentPage = 1">
-                  All Checkpoints
-                </button>
-                <button v-for="cp in checkpoints" :key="cp.id"
-                  class="ec-cp-item" :class="{ 'ec-cp-item--on': cpFilter === cp.id }"
-                  @click="cpFilter = cp.id; showCpMenu = false; currentPage = 1">
-                  {{ cp.name }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Refresh -->
-            <button class="ec-refresh-btn" @click="loadData" :disabled="loading"
-              :title="loading ? 'Loading…' : 'Refresh'">
-              <svg :class="{ 'ec-spin': loading }" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-            </button>
-          </template>
+    <div class="ec-table-wrap">
+      <div v-if="loading && !attendees.length" class="ec-list">
+        <div v-for="n in 8" :key="n" class="ec-row-grid ec-row ec-row--sk">
+          <div class="ec-sk-circle" />
+          <div class="ec-sk-bar ec-sk-bar--lg" />
+          <div class="ec-sk-bar ec-sk-bar--md" />
+          <div class="ec-sk-bar ec-sk-bar--sm" />
+          <div class="ec-sk-bar ec-sk-bar--sm" />
+          <div class="ec-sk-bar ec-sk-bar--sm" />
+          <div class="ec-sk-bar ec-sk-bar--sm" />
         </div>
       </div>
 
-      <!-- ══ Card List ══ -->
-      <div class="ec-table-wrap">
-      <div class="ec-list">
+      <div v-else-if="!pagedList.length" class="ec-empty">
+        <p class="ec-empty-kicker">The door</p>
+        <h2 class="ec-empty-title">{{ searchQ || statusFilter !== 'all' ? 'Nobody here' : 'Still quiet' }}</h2>
+        <p class="ec-empty-lede">{{ searchQ || statusFilter !== 'all' ? 'Try another search or filter.' : 'Guests appear here as they check in — tap a name to mark a slot.' }}</p>
+      </div>
 
-        <!-- Loading skeletons -->
-        <template v-if="loading">
-          <div v-for="n in 6" :key="n" class="ec-card ec-card--sk">
-            <div class="ec-card-av-wrap">
-              <div class="ec-sk-circle"/>
-            </div>
-            <div class="ec-card-info">
-              <div class="ec-sk-bar ec-sk-bar--lg"/>
-              <div class="ec-sk-bar ec-sk-bar--sm" style="margin-top:4px"/>
-            </div>
-            <div class="ec-card-badges">
-              <div class="ec-sk-bar ec-sk-bar--sm"/>
-              <div class="ec-sk-bar ec-sk-bar--sm"/>
-            </div>
-            <div class="ec-card-date">
-              <div class="ec-sk-bar ec-sk-bar--sm"/>
-            </div>
-          </div>
-        </template>
-
-        <!-- Empty state -->
-        <div v-else-if="!pagedList.length" class="ec-list-empty">
-          No attendees found
-        </div>
-
-        <!-- Attendee cards -->
-        <div v-else v-for="att in pagedList" :key="att.id"
-          class="ec-card"
-          :class="{
-            'ec-card--checked-in': statusOf(att) === 'checked',
-            'ec-card--pending':    statusOf(att) === 'partial',
-            'ec-card--absent':     statusOf(att) === 'none',
-          }"
-          @click="openDetail(att)">
-
-          <!-- Avatar -->
+      <div v-else class="ec-list">
+        <button
+          v-for="att in pagedList" :key="att.id" type="button"
+          class="ec-row-grid ec-row"
+          @click="openDetail(att)"
+        >
           <div class="ec-card-av-wrap">
-            <div class="ec-card-avatar"
-              :style="{ background: avatarBg(att.fullName), color: avatarColor(att.fullName) }">
+            <div class="ec-card-avatar" :style="{ background: avatarBg(att.fullName), color: avatarColor(att.fullName) }">
               {{ initials(att.fullName) }}
             </div>
-            <span class="ec-card-dot"
-              :class="{
-                'ec-card-dot--checked': statusOf(att) === 'checked',
-                'ec-card-dot--partial': statusOf(att) === 'partial',
-                'ec-card-dot--none':    statusOf(att) === 'none',
-                'ec-card-dot--nocard':  statusOf(att) === 'nocard',
-              }"/>
           </div>
-
-          <!-- Identity -->
-          <div class="ec-card-info">
-            <span class="ec-card-name">{{ att.fullName }}</span>
-            <span class="ec-card-meta">{{ att.phone || '—' }}</span>
-          </div>
-
-          <!-- Badges -->
-          <div class="ec-card-badges">
-            <!-- Type -->
-            <span class="ec-type-badge" :class="`ec-type--${getKardType(att)}`">
-              {{ typeLabels[getKardType(att)] }}
-            </span>
-            <!-- Status -->
-            <span class="ec-badge"
-              :class="{
-                'ec-badge--checked-in': statusOf(att) === 'checked',
-                'ec-badge--pending':    statusOf(att) === 'partial',
-                'ec-badge--absent':     statusOf(att) === 'none',
-                'ec-badge--default':    statusOf(att) === 'nocard',
-              }">
-              {{ statusLabel(att) }}
-            </span>
-            <!-- Slots fraction -->
-            <span v-if="(att.checkinStatus ?? []).length" class="ec-badge ec-badge--default ec-badge--slots">
-              <span class="ec-slots-checked">{{ checkedSlots(att) }}</span>
-              <span class="ec-slots-sep">/</span>
-              <span class="ec-slots-total">{{ att.checkinStatus.length }}</span>
-            </span>
-          </div>
-
-          <!-- Date -->
-          <div class="ec-card-date">{{ formatDate(att.createdAt) }}</div>
-        </div>
-
+          <span class="ec-card-name" :title="att.fullName">{{ att.fullName }}</span>
+          <span class="ec-card-meta">{{ att.phone || '—' }}</span>
+          <span class="ec-type-badge">{{ typeLabels[getKardType(att)] }}</span>
+          <span class="ec-badge" :class="{
+            'ec-badge--checked-in': statusOf(att) === 'checked',
+            'ec-badge--pending':    statusOf(att) === 'partial',
+            'ec-badge--absent':     statusOf(att) === 'none',
+            'ec-badge--default':    statusOf(att) === 'nocard',
+          }">{{ statusLabel(att) }}</span>
+          <span class="ec-slots-cell">
+            <template v-if="(att.checkinStatus ?? []).length">{{ checkedSlots(att) }}/{{ att.checkinStatus.length }}</template>
+            <template v-else>—</template>
+          </span>
+          <span class="ec-card-date">{{ formatDate(att.createdAt) }}</span>
+        </button>
       </div>
 
-      <!-- ── Paginator ── -->
       <div class="ec-table-footer">
         <span class="ec-range-lbl">
           {{ filteredList.length
@@ -242,43 +158,29 @@
           }} of {{ filteredList.length }}
           <template v-if="statusFilter !== 'all'">
             ·
-            <button class="ec-filter-clear" @click="statusFilter = 'all'; currentPage = 1">
+            <button type="button" class="ec-filter-clear" @click="statusFilter = 'all'; currentPage = 1">
               {{ STATUS_FILTERS.find(f => f.val === statusFilter)?.label }} ×
             </button>
           </template>
         </span>
         <div class="ec-paginator" :class="{ 'ec-paginator--disabled': totalPages <= 1 }">
-          <!-- Prev -->
-          <button class="ec-page-btn ec-page-btn--nav"
-            :disabled="currentPage === 1 || totalPages <= 1" @click="goToPage(currentPage - 1)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <button type="button" class="ec-page-btn" :disabled="currentPage === 1 || totalPages <= 1" @click="goToPage(currentPage - 1)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <!-- Page numbers -->
           <template v-for="p in pageNumbers" :key="String(p)">
             <span v-if="p === '…'" class="ec-page-ellipsis">…</span>
-            <button v-else class="ec-page-btn"
-              :class="{ 'ec-page-btn--active': currentPage === p }"
-              :disabled="totalPages <= 1"
-              @click="goToPage(p)">
-              {{ p }}
-            </button>
+            <button v-else type="button" class="ec-page-btn" :class="{ 'ec-page-btn--active': currentPage === p }" :disabled="totalPages <= 1" @click="goToPage(p)">{{ p }}</button>
           </template>
-          <!-- Next -->
-          <button class="ec-page-btn ec-page-btn--nav"
-            :disabled="currentPage === totalPages || totalPages <= 1" @click="goToPage(currentPage + 1)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <button type="button" class="ec-page-btn" :disabled="currentPage === totalPages || totalPages <= 1" @click="goToPage(currentPage + 1)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
       </div>
     </div>
-    </div><!-- /ec-panel -->
 
-    <!-- ══ Detail Drawer ══ -->
     <Teleport to="body">
       <Transition name="ec-fade">
-        <div v-if="selectedAtt" class="ec-overlay" @click.self="closeDetail">
+        <div v-if="selectedAtt" class="ec-joy-overlay" @click.self="closeDetail">
           <Transition name="ec-slide">
             <div class="ec-drawer" v-if="selectedAtt">
 
@@ -392,14 +294,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { db } from '../../firebase'
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore'
+import { useOrg } from '../../composables/useOrg.js'
+import { useNavDrawer } from '../../composables/useNavDrawer.js'
 
 const props = defineProps({ event: Object, eventId: String })
 const route  = useRoute()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
+const { brandName, brandLogoUrl } = useOrg()
+const navDrawer = useNavDrawer()
 
 // ── Custom directive ───────────────────────────────────────────────────────────
 const vClickOutside = {
@@ -428,10 +334,7 @@ const checkpoints = ref([])
 const loading     = ref(false)
 
 const searchQ      = ref('')
-const searchOpen   = ref(false)
-const searchInputRef = ref(null)
-function openSearch() { searchOpen.value = true; nextTick(() => searchInputRef.value?.focus()) }
-function closeSearch() { searchOpen.value = false; searchQ.value = '' }
+watch(searchQ, () => { currentPage.value = 1 })
 const statusFilter = ref('all')
 const cpFilter     = ref(null)
 const showCpMenu   = ref(false)
@@ -460,7 +363,18 @@ async function loadData() {
   }
 }
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  window.addEventListener('keydown', onKey)
+})
+onUnmounted(() => window.removeEventListener('keydown', onKey))
+
+function onKey(e) {
+  if (e.key === 'Escape') {
+    if (selectedAtt.value) closeDetail()
+    else if (searchQ.value) searchQ.value = ''
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getKardType(att) {
@@ -513,6 +427,7 @@ function statusScore(att) {
 function toggleSort(key) {
   if (sortKey.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   else { sortKey.value = key; sortDir.value = 'asc' }
+  currentPage.value = 1
 }
 
 function formatDate(ts) {
@@ -529,9 +444,8 @@ function initials(name) {
 }
 
 const AVATAR_COLORS = [
-  ['#D4E8C2','#3A6B1A'], ['#C2D8E8','#1A4B6B'], ['#E8D4C2','#6B3A1A'],
-  ['#D4C2E8','#3A1A6B'], ['#E8C2D4','#6B1A3A'], ['#C2E8D4','#1A6B3A'],
-  ['#E8E4C2','#6B5A1A'], ['#C2E8E8','#1A6B6B'],
+  ['#f3f4f6', '#374151'], ['#e5e7eb', '#1f2937'], ['#f1f5f9', '#334155'],
+  ['#eeeef0', '#111827'], ['#e9eaee', '#4b5563'], ['#f8fafc', '#1f2937'],
 ]
 function avatarBg(name)    { return AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length][0] }
 function avatarColor(name) { return AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length][1] }
@@ -671,509 +585,327 @@ async function toggleSlotGeneric(att, slotIndex) {
 </script>
 
 <style scoped>
-/* ══ Root layout ══ */
 .ec-root {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px 24px 24px;
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-muted:  #3a3a3a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-  --c-divide: #2a2a2a;
-  --c-arrow:  #3a3a3a;
-  transition: background 300ms ease;
+  background: #ffffff;
+  color: #1f2937;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
-
-/* ══ Panel ══ */
-.ec-panel {
-  display: flex; flex-direction: column;
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 16px; overflow: hidden;
-  transition: background 300ms ease, border-color 300ms ease;
+.ec-sticky-head {
+  position: sticky; top: 0; z-index: 20; background: #ffffff;
 }
 .ec-panel-hd {
-  display: flex; align-items: center; flex-wrap: wrap;
-  padding: 14px 20px; border-bottom: 1px solid var(--c-border); gap: 10px;
-}
-.ec-panel-title {
-  font-size: 19px; font-weight: 700; color: var(--c-txt); margin: 0; letter-spacing: -0.3px; white-space: nowrap;
-}
-.ec-panel-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; margin-left: auto; }
-
-/* Search */
-.ec-search-wrap {
-  position: relative;
   display: flex;
   align-items: center;
-  min-width: 160px;
-  max-width: 280px;
+  height: 92px;
+  padding: 0 36px;
+  gap: 14px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f3f5;
 }
-.ec-search-icon { position: absolute; left: 10px; pointer-events: none; flex-shrink: 0; }
-.ec-search {
-  width: 100%;
-  padding: 8px 32px;
-  border: 1px solid var(--c-border);
-  border-radius: 10px;
-  font-size: 13px;
-  font-family: inherit;
-  outline: none;
-  background: var(--c-bg);
-  color: var(--c-txt);
-  transition: border-color 150ms, box-shadow 150ms;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-.ec-search:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); background: var(--c-bg); }
-.ec-search-clear {
-  position: absolute; right: 8px;
-  background: none; border: none; cursor: pointer; color: var(--c-txt-2); padding: 2px;
+.ec-hd-burger {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 1px solid #e5e7eb; border-radius: 50%; background: #fff;
+  color: #4b5563; cursor: pointer; padding: 0;
   display: flex; align-items: center; justify-content: center;
 }
-.ec-search-clear:hover { color: var(--c-txt); }
-
-/* Search pill */
-.ec-search-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border-radius: 20px;
-  border: 1px solid var(--c-border); background: var(--c-bg);
-  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
-  cursor: pointer; transition: all 140ms; font-family: inherit;
+.ec-hd-burger:hover { background: #f8fafc; color: #18181b; border-color: #d1d5db; }
+.ec-hd-sep { width: 1px; height: 16px; background: #e5e7eb; flex-shrink: 0; margin: 0 4px; }
+.ec-hd-badge {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e5e7eb;
+  overflow: hidden; background: #fff; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
-.ec-search-pill:hover { background: var(--c-bg); color: var(--c-txt-2); }
-.ec-search-pill--active { color: #f0ece6; border-color: rgba(240,236,230,0.2); background: rgba(240,236,230,0.06); }
-
-/* Expanded search */
-.ec-search-expanded { flex: 1; min-width: 160px; position: relative; display: flex; align-items: center; }
-
-/* Cancel button */
-.ec-search-cancel {
-  flex-shrink: 0; padding: 7px 2px; border: none; background: none;
-  font-size: 13px; font-weight: 500; color: var(--c-txt-2); cursor: pointer;
-  font-family: inherit; transition: color 130ms;
+.ec-hd-brand-logo { width: 100%; height: 100%; object-fit: cover; }
+.ec-hd-brand-script {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic; font-size: 18px; font-weight: 700;
+  color: #111827; letter-spacing: -0.04em; line-height: 1;
 }
-.ec-search-cancel:hover { color: var(--c-txt); }
-
-/* Filter chips */
-.ec-filter-chips { display: flex; gap: 4px; }
-.ec-chip {
-  padding: 6px 12px; border-radius: 20px;
-  border: 1px solid var(--c-border); background: var(--c-bg);
-  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
-  cursor: pointer; transition: all 140ms; font-family: inherit;
+.ec-hd-title-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ec-hub-title {
+  margin: 0; font-size: 22px; font-weight: 600; color: #18181b; letter-spacing: -0.015em; white-space: nowrap;
 }
-.ec-chip:hover { background: var(--c-bg); color: var(--c-txt-2); }
-.ec-chip--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: var(--c-txt); font-weight: 600; }
-.ec-chip-cnt {
-  display: inline-flex; min-width: 18px; padding: 1px 5px;
-  background: var(--c-bg); border-radius: 10px;
-  font-size: 11px; font-weight: 600; color: var(--c-txt-2); margin-left: 5px;
+.ec-hub-count {
+  font-size: 12.5px; font-weight: 600; color: #4b5563;
+  background: #f1f3f5; border-radius: 9999px; padding: 2px 10px;
 }
-.ec-chip--active .ec-chip-cnt { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.75); }
+.ec-search-wrap {
+  position: relative; display: flex; align-items: center;
+  flex: 1 1 0; margin: 0 20px; min-width: 220px;
+}
+.ec-search-icon { position: absolute; left: 16px; color: #9ca3af; pointer-events: none; }
+.ec-search {
+  width: 100%; height: 44px; padding: 0 48px 0 44px;
+  background: #f3f4f6; border: none; border-radius: 9999px;
+  font-size: 15px; color: #111827; outline: none; font-family: inherit;
+}
+.ec-search:focus { background: #eeeeef; }
+.ec-search::placeholder { color: #9ca3af; font-weight: 400; }
+.ec-search-clear {
+  position: absolute; right: 10px; width: 32px; height: 32px;
+  border: none; background: none; color: #9ca3af;
+  cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+}
+.ec-search-clear:hover { color: #111827; }
+.ec-search-filter {
+  position: absolute; right: 8px; width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid #e5e7eb; border-radius: 50%; background: #fff; color: #6b7280;
+}
+.ec-ghost-btn {
+  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+  height: 38px; padding: 0 18px; border-radius: 9999px;
+  border: 1px solid #e5e7eb; background: #fff; color: #374151;
+  font-size: 13.5px; font-weight: 500; font-family: inherit; cursor: pointer;
+}
+.ec-ghost-btn:hover { background: #f8fafc; color: #111827; border-color: #d1d5db; }
+.ec-ghost-btn:disabled { opacity: 0.45; cursor: default; }
+.ec-hd-gear {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.ec-hd-gear:hover { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; }
 
-/* Checkpoint dropdown */
+.ec-toolbar2 {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 36px; border-bottom: 1px solid #f1f3f5; background: #fff;
+}
+.ec-tb2-btn {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 34px; padding: 6px 14px;
+  border: 1px solid #e2e8f0; border-radius: 9999px; background: #fff;
+  cursor: pointer; font-family: inherit;
+}
+.ec-tb2-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+.ec-tb2-btn--active { background: #f1f5f9; border-color: #cbd5e1; }
+.ec-tb2-lbl { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #475569; white-space: nowrap; }
+.ec-tb2-btn--active .ec-tb2-lbl { color: #0f172a; font-weight: 600; }
+.ec-tb2-cnt {
+  min-width: 18px; padding: 1px 6px; border-radius: 9999px;
+  background: #f1f5f9; font-size: 10.5px; font-weight: 700; color: #475569;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.ec-tb2-chev { color: #94a3b8; }
+.ec-tb2-chev--open { transform: rotate(180deg); }
+.ec-tb2-divider { width: 1px; height: 20px; background: #e5e7eb; margin: 0 4px; flex-shrink: 0; }
+
 .ec-cp-wrap { position: relative; }
-.ec-cp-btn {
-  display: flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border-radius: 10px;
-  border: 1px solid var(--c-border); background: var(--c-bg);
-  font-size: 12px; font-weight: 500; color: var(--c-txt-2);
-  cursor: pointer; transition: all 140ms; font-family: inherit;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-.ec-cp-btn:hover { background: var(--c-bg); }
-.ec-cp-btn--active { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.2); color: var(--c-txt); }
 .ec-cp-menu {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 100;
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4); padding: 4px; min-width: 180px;
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.1); padding: 6px; min-width: 200px;
 }
 .ec-cp-item {
   display: block; width: 100%; text-align: left;
-  padding: 8px 12px; border: none; background: none; border-radius: 7px;
-  font-size: 13px; font-family: inherit; color: var(--c-txt); cursor: pointer; transition: background 130ms;
+  padding: 9px 12px; border: none; background: none; border-radius: 10px;
+  font-size: 13px; font-family: inherit; color: #111827; cursor: pointer;
 }
-.ec-cp-item:hover { background: var(--c-bg); }
-.ec-cp-item--on { color: var(--gold); font-weight: 600; background: var(--c-bg); }
+.ec-cp-item:hover { background: #f7f7f8; }
+.ec-cp-item--on { font-weight: 600; background: #f3f4f6; }
 
-/* Refresh button */
-.ec-refresh-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 140ms; flex-shrink: 0;
+.ec-row-grid {
+  display: grid;
+  grid-template-columns: 38px minmax(180px, 2fr) minmax(140px, 1.2fr) 110px 140px 70px 110px;
+  align-items: center; gap: 16px;
 }
-.ec-refresh-btn:hover:not(:disabled) { background: var(--c-bg); color: var(--c-txt); }
-.ec-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ec-col-head {
+  padding: 14px 36px; border-bottom: 1px solid #f1f3f5; background: #fff;
+}
+.ec-col-avatar { width: 38px; }
+.ec-col-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 700; color: #111827; justify-self: start;
+}
+.ec-col-lbl { font-size: 13px; font-weight: 700; color: #111827; }
+.ec-sort-icon { opacity: 0.28; }
+.ec-sort-icon--active { opacity: 1; }
+.ec-sort-icon--desc { transform: rotate(180deg); }
 
-/* ══ Stats ══ */
-.ec-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.ec-stat-card {
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
-  padding: 20px 20px 18px; display: flex; align-items: flex-start; gap: 16px;
-  transition: background 300ms ease, border-color 300ms ease;
-}
-.ec-stat-card--link { cursor: pointer; }
-.ec-stat-card--link:hover { background: var(--c-bg); border-color: #333; }
-.ec-stat-card--active { background: var(--c-bg) !important; border-color: var(--c-muted) !important; }
-.ec-stat-icon {
-  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
-  display: flex; align-items: center; justify-content: center;
-}
-.ec-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
-.ec-stat-icon--green  { background: rgba(52,211,153,0.08);  color: #34d399; }
-.ec-stat-icon--orange { background: rgba(251,146,60,0.08);  color: #fb923c; }
-.ec-stat-icon--red    { background: rgba(252,129,129,0.08); color: #fc8181; }
-.ec-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
-.ec-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.ec-stat-lbl {
-  font-size: 11px; font-weight: 600; color: var(--c-txt-2);
-  text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap;
-}
-.ec-stat-val {
-  font-size: 32px; font-weight: 700; color: var(--c-txt);
-  line-height: 1; letter-spacing: -0.5px;
-}
+.ec-table-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.ec-list { display: flex; flex-direction: column; }
 
-/* ══ Card List ══ */
-.ec-table-wrap {
-  display: flex;
-  flex-direction: column;
-  background: var(--c-bg);
-  border-top: 1px solid var(--c-border);
-  overflow: hidden;
+.ec-empty { padding: 48px 36px; }
+.ec-empty-kicker {
+  margin: 0 0 6px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: #94a3b8;
 }
-
-.ec-list {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 12px 16px; background: var(--c-bg);
+.ec-empty-title {
+  margin: 0 0 10px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 400; font-style: italic; font-size: 28px; color: #1a1a1a; line-height: 1.15;
 }
+.ec-empty-lede { margin: 0; max-width: 40ch; font-size: 14px; color: #64748b; line-height: 1.55; }
 
-.ec-list-empty {
-  padding: 48px 16px;
-  text-align: center;
-  color: var(--c-txt-3);
-  font-size: 13px;
+.ec-row {
+  width: 100%; padding: 12px 36px; border: none; border-bottom: 1px solid #f1f3f5;
+  background: none; cursor: pointer; text-align: left; font-family: inherit;
 }
+.ec-row:hover:not(.ec-row--sk) { background: #f9fafb; }
+.ec-row--sk { pointer-events: none; }
 
-/* Card */
-.ec-card {
-  display: flex; align-items: center; gap: 14px;
-  padding: 13px 16px;
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
-  cursor: pointer;
-  transition: background 300ms ease, border-color 300ms ease, box-shadow 150ms;
-}
-.ec-card:hover:not(.ec-card--sk) { background: var(--c-bg); border-color: #2c2c2c; box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
-.ec-card--sk { pointer-events: none; }
-
-/* Status left-border stripe (applied on top of hover box-shadow via cascade) */
-.ec-card--checked-in { box-shadow: inset 3px 0 0 rgba(48,209,88,0.55); }
-.ec-card--pending    { box-shadow: inset 3px 0 0 rgba(255,159,10,0.55); }
-.ec-card--absent     { box-shadow: inset 3px 0 0 rgba(255,69,58,0.40); }
-.ec-card--checked-in:hover:not(.ec-card--sk) { box-shadow: inset 3px 0 0 rgba(48,209,88,0.55), 0 4px 16px rgba(0,0,0,0.35); }
-.ec-card--pending:hover:not(.ec-card--sk)    { box-shadow: inset 3px 0 0 rgba(255,159,10,0.55), 0 4px 16px rgba(0,0,0,0.35); }
-.ec-card--absent:hover:not(.ec-card--sk)     { box-shadow: inset 3px 0 0 rgba(255,69,58,0.40),  0 4px 16px rgba(0,0,0,0.35); }
-
-/* Avatar */
 .ec-card-av-wrap { position: relative; flex-shrink: 0; }
-.ec-card-avatar  { width: 40px; height: 40px; border-radius: 11px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-.ec-card-dot { position: absolute; bottom: -2px; right: -2px; width: 11px; height: 11px; border-radius: 50%; border: 2.5px solid var(--c-bg); }
-.ec-card-dot--checked { background: #30D158; }
-.ec-card-dot--partial { background: #FF9F0A; }
-.ec-card-dot--none    { background: #6B6B72; }
-.ec-card-dot--nocard  { background: var(--c-muted); }
-
-/* Identity */
-.ec-card-info { display: flex; flex-direction: column; gap: 3px; flex: 0 0 200px; min-width: 0; }
-.ec-card-name { font-size: 13px; font-weight: 600; color: var(--c-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ec-card-meta { font-size: 11px; color: var(--c-txt-3); }
-
-/* Badges zone */
-.ec-card-badges { flex: 1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-
-/* Type badge */
-.ec-type-badge {
-  display: inline-flex; align-items: center;
-  padding: 4px 9px; border-radius: 20px;
-  font-size: 11px; font-weight: 600; white-space: nowrap;
-  border: 1px solid transparent;
+.ec-card-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  font-size: 12px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(0,0,0,0.04);
 }
-.ec-type--invitation   { background: rgb(from var(--gold) r g b / 0.08); color: var(--gold); border-color: rgb(from var(--gold) r g b / 0.18); }
-.ec-type--contribution { background: rgba(52,211,153,0.08);  color: #34d399; border-color: rgba(52,211,153,0.18); }
-.ec-type--contact      { background: rgba(255,255,255,0.04); color: #5A5550; border-color: #222; }
-
-/* Status + generic badge */
-.ec-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 9px; border-radius: 20px;
-  font-size: 11px; font-weight: 600; white-space: nowrap;
-  border: 1px solid transparent;
+.ec-card-name {
+  font-size: 14px; font-weight: 600; color: #111827;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.ec-badge--checked-in { background: rgba(48,209,88,0.10);  color: #1D7A38; border-color: rgba(48,209,88,0.20); }
-.ec-badge--pending    { background: rgba(255,159,10,0.10); color: #B36800; border-color: rgba(255,159,10,0.20); }
-.ec-badge--absent     { background: rgba(255,69,58,0.10);  color: #C41E1E; border-color: rgba(255,69,58,0.20); }
-.ec-badge--default    { background: rgba(255,255,255,0.04); color: var(--c-txt-3); border-color: #222; }
-.ec-badge--slots      { font-variant-numeric: tabular-nums; }
+.ec-card-meta { font-size: 13.5px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ec-type-badge, .ec-badge {
+  display: inline-flex; align-items: center; justify-self: start;
+  height: 22px; padding: 0 10px; border-radius: 9999px;
+  font-size: 11.5px; font-weight: 600; white-space: nowrap;
+  background: #f3f4f6; color: #4b5563;
+}
+.ec-badge--checked-in { background: #111827; color: #fff; }
+.ec-badge--pending { background: #e9eaee; color: #111827; }
+.ec-badge--absent { background: #f3f4f6; color: #6b7280; }
+.ec-badge--default { background: #f8fafc; color: #94a3b8; }
+.ec-slots-cell { font-size: 13px; font-variant-numeric: tabular-nums; color: #64748b; }
+.ec-card-date { font-size: 13px; color: #94a3b8; white-space: nowrap; }
 
-/* Slots fraction inside badge */
-.ec-slots-checked { font-weight: 700; color: #30D158; }
-.ec-slots-sep     { color: var(--c-txt-3); margin: 0 2px; }
-.ec-slots-total   { color: var(--c-txt-2); }
-
-/* Date */
-.ec-card-date { font-size: 11px; color: var(--c-muted); white-space: nowrap; flex-shrink: 0; text-align: right; }
-
-/* Skeleton */
 @keyframes ec-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.ec-sk-circle { width: 40px; height: 40px; border-radius: 11px; background: var(--c-track); flex-shrink: 0; animation: ec-pulse 1.4s ease-in-out infinite; }
-.ec-sk-bar    { height: 12px; border-radius: 6px; background: var(--c-track); animation: ec-pulse 1.4s ease-in-out infinite; }
+.ec-sk-circle { width: 34px; height: 34px; border-radius: 50%; background: #f1f5f9; animation: ec-pulse 1.4s ease-in-out infinite; }
+.ec-sk-bar { height: 12px; border-radius: 6px; background: #f1f5f9; animation: ec-pulse 1.4s ease-in-out infinite; }
 .ec-sk-bar--lg { width: 140px; }
-.ec-sk-bar--sm { width: 80px; }
+.ec-sk-bar--md { width: 100px; }
+.ec-sk-bar--sm { width: 64px; }
 
-/* ══ Paginator ══ */
 .ec-table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-top: 1px solid var(--c-divide);
-  background: var(--c-bg);
-  gap: 12px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 36px 24px; gap: 12px; flex-wrap: wrap;
 }
-.ec-range-lbl {
-  font-size: 12px;
-  color: var(--c-txt-2);
-  font-weight: 500;
-  white-space: nowrap;
-}
+.ec-range-lbl { font-size: 12.5px; color: #64748b; font-weight: 500; }
 .ec-filter-clear {
-  background: none; border: none; color: var(--gold);
-  font-size: 12px; font-family: inherit; cursor: pointer; padding: 0;
+  background: none; border: none; color: #111827;
+  font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; padding: 0;
 }
-.ec-filter-clear:hover { text-decoration: underline; }
-.ec-paginator { display: flex; align-items: center; gap: 3px; }
+.ec-paginator { display: flex; align-items: center; gap: 4px; }
 .ec-paginator--disabled { opacity: 0.38; pointer-events: none; }
 .ec-page-btn {
-  min-width: 32px;
-  height: 32px;
-  padding: 0 6px;
-  border: 1px solid var(--c-border);
-  border-radius: 8px;
-  background: var(--c-bg);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-txt-2);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 140ms;
+  min-width: 32px; height: 32px; padding: 0 6px;
+  border: none; border-radius: 50%; background: none;
+  font-size: 13px; font-weight: 500; color: #64748b;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
   font-family: inherit;
 }
-.ec-page-btn:hover:not(:disabled):not(.ec-page-btn--active) {
-  background: var(--c-bg);
-  border-color: var(--c-muted);
-  color: var(--c-txt);
-}
-.ec-page-btn--active {
-  background: var(--c-bg);
-  border-color: var(--c-txt);
-  color: #FFFFFF;
-  font-weight: 600;
-  cursor: default;
-}
-.ec-page-btn--nav { color: var(--c-txt-2); }
+.ec-page-btn:hover:not(:disabled):not(.ec-page-btn--active) { background: #f3f4f6; color: #111827; }
+.ec-page-btn--active { background: #111827; color: #fff; font-weight: 600; cursor: default; }
 .ec-page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.ec-page-ellipsis {
-  min-width: 28px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  color: var(--c-txt-3);
-  letter-spacing: 1px;
-}
+.ec-page-ellipsis { min-width: 28px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #94a3b8; }
 
-/* ══ Drawer status badge (ec-sb used in drawer header) ══ */
 .ec-sb {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 22px; padding: 0 10px; border-radius: 9999px;
+  font-size: 11px; font-weight: 600; background: #f3f4f6; color: #4b5563;
 }
-.ec-sb-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.ec-sb--checked { background: rgba(52,211,153,0.12);    color: #34d399; }
-.ec-sb--checked .ec-sb-dot { background: #30D158; }
-.ec-sb--partial { background: rgba(255,159,10,0.12);   color: #9A5A00; }
-.ec-sb--partial .ec-sb-dot { background: #FF9F0A; }
-.ec-sb--none    { background: rgba(255,255,255,0.06);  color: #5A5550; }
-.ec-sb--none    .ec-sb-dot { background: #6B6B72; }
-.ec-sb--nocard  { background: rgba(255,255,255,0.04);  color: var(--c-txt-3); }
-.ec-sb--nocard  .ec-sb-dot { background: #C0BAB2; }
+.ec-sb-dot { width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; }
+.ec-sb--checked { background: #111827; color: #fff; }
+.ec-sb--checked .ec-sb-dot { background: #fff; }
+.ec-sb--partial { background: #e9eaee; color: #111827; }
+.ec-sb--partial .ec-sb-dot { background: #6b7280; }
+.ec-sb--none .ec-sb-dot { background: #9ca3af; }
+.ec-sb--nocard .ec-sb-dot { background: #d1d5db; }
 
-/* ══ Drawer ══ */
-.ec-overlay {
-  position: fixed; inset: 0; z-index: 200;
-  background: var(--overlay-bg);
-}
 .ec-drawer {
   position: fixed; right: 0; top: 0; bottom: 0;
-  width: 360px; background: var(--c-bg);
-  box-shadow: -4px 0 32px rgba(0,0,0,0.5);
+  width: min(400px, 100vw); background: #fff; color: #111827;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.12);
   display: flex; flex-direction: column; overflow-y: auto; z-index: 201;
-  transition: background 300ms ease;
 }
 .ec-drawer-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 1px solid var(--c-divide); flex-shrink: 0;
+  padding: 16px 20px; flex-shrink: 0;
 }
 .ec-drawer-back {
-  display: flex; align-items: center; gap: 5px;
-  padding: 6px 10px; border-radius: 8px;
-  border: none; background: var(--c-bg); color: var(--c-txt-2);
-  font-size: 13px; font-weight: 500; cursor: pointer;
-  transition: all 130ms; font-family: inherit;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 9999px; border: none;
+  background: #f3f4f6; color: #111827;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
-.ec-drawer-back:hover { background: var(--c-track); color: var(--c-txt); }
-
-/* Hero */
+.ec-drawer-back:hover { background: #e5e7eb; }
 .ec-drawer-hero {
   display: flex; flex-direction: column; align-items: center;
-  padding: 24px 20px 20px; gap: 4px;
-  border-bottom: 1px solid var(--c-divide);
+  padding: 8px 24px 24px; gap: 4px; border-bottom: 1px solid #f1f5f9;
 }
 .ec-drawer-avatar {
-  width: 60px; height: 60px; border-radius: 50%;
+  width: 64px; height: 64px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; font-weight: 700; margin-bottom: 8px;
+  font-size: 18px; font-weight: 700; margin-bottom: 10px;
 }
-.ec-drawer-name {
-  font-size: 17px; font-weight: 700; color: var(--c-txt);
-  margin: 0; text-align: center; letter-spacing: -0.2px;
-}
-.ec-drawer-phone { font-size: 13px; color: var(--c-txt-2); margin: 0 0 4px; }
-
-/* Body */
+.ec-drawer-name { font-size: 20px; font-weight: 700; color: #111827; margin: 0; text-align: center; letter-spacing: -0.02em; }
+.ec-drawer-phone { font-size: 13.5px; color: #64748b; margin: 0 0 8px; }
 .ec-drawer-body { display: flex; flex-direction: column; padding: 6px 0 24px; }
-.ec-drawer-block { padding: 16px 20px; }
+.ec-drawer-block { padding: 18px 24px; }
 .ec-block-lbl {
-  font-size: 10px; font-weight: 700; color: var(--c-txt-3);
-  text-transform: uppercase; letter-spacing: 0.6px; margin: 0 0 14px;
+  font-size: 11px; font-weight: 600; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: 0.12em; margin: 0 0 14px;
 }
 .ec-block-lbl-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .ec-block-lbl-row .ec-block-lbl { margin: 0; }
-.ec-slots-summary { font-size: 12px; color: var(--c-txt-2); font-weight: 500; }
-.ec-drawer-added { font-size: 12px; color: var(--c-txt-3); margin: 0; padding: 4px 20px 0; }
-
-/* No card */
+.ec-slots-summary { font-size: 12.5px; color: #64748b; font-weight: 500; }
+.ec-drawer-added { font-size: 12.5px; color: #94a3b8; margin: 0; padding: 4px 24px 0; }
 .ec-no-card {
   display: flex; flex-direction: column; align-items: center;
-  gap: 8px; padding: 24px 0; color: var(--c-txt-3); text-align: center;
+  gap: 8px; padding: 24px 0; color: #94a3b8; text-align: center;
 }
-.ec-no-card p { font-size: 13px; margin: 0; line-height: 1.5; }
-
-/* Slot rows */
-.ec-slot {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--c-divide);
-}
+.ec-no-card p { font-size: 13.5px; margin: 0; line-height: 1.5; }
+.ec-slot { padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
 .ec-slot:last-child { border-bottom: none; }
-.ec-slot-head {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 10px;
-}
-.ec-slot-name { font-size: 13px; font-weight: 600; color: var(--c-txt); }
-.ec-slot-badge {
-  font-size: 10px; font-weight: 700;
-  padding: 2px 8px; border-radius: 20px;
-}
-.ec-slot-badge--on  { background: rgba(52,211,153,0.12);   color: #34d399; }
-.ec-slot-badge--off { background: rgba(255,255,255,0.06); color: var(--c-txt-2); }
-
-/* Checkpoint toggles */
+.ec-slot-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.ec-slot-name { font-size: 14px; font-weight: 600; color: #111827; }
+.ec-slot-badge { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 9999px; }
+.ec-slot-badge--on  { background: #111827; color: #fff; }
+.ec-slot-badge--off { background: #f3f4f6; color: #6b7280; }
 .ec-cp-toggles { display: flex; flex-wrap: wrap; gap: 6px; }
 .ec-cp-toggle {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border-radius: 20px;
-  font-size: 12px; font-weight: 600; font-family: inherit;
-  cursor: pointer; transition: all 160ms; border: none;
+  height: 32px; padding: 0 12px; border-radius: 9999px;
+  font-size: 12.5px; font-weight: 600; font-family: inherit;
+  cursor: pointer; border: 1px solid #e5e7eb;
 }
-.ec-cp-toggle--on  { background: #30D158; color: #fff; box-shadow: 0 2px 8px rgba(48,209,88,0.30); }
-.ec-cp-toggle--off { background: var(--c-bg); color: var(--c-txt-2); }
-.ec-cp-toggle--off:hover:not(:disabled) { background: var(--c-track); color: var(--c-txt); }
-.ec-cp-toggle--on:hover:not(:disabled)  { background: #28BA4E; }
+.ec-cp-toggle--on  { background: #111827; color: #fff; border-color: #111827; }
+.ec-cp-toggle--off { background: #fff; color: #4b5563; }
+.ec-cp-toggle--off:hover:not(:disabled) { border-color: #111827; color: #111827; }
 .ec-cp-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ══ Transitions ══ */
 .ec-fade-enter-active, .ec-fade-leave-active { transition: opacity 200ms ease; }
 .ec-fade-enter-from,   .ec-fade-leave-to     { opacity: 0; }
 .ec-slide-enter-active, .ec-slide-leave-active { transition: transform 260ms ease; }
 .ec-slide-enter-from,   .ec-slide-leave-to     { transform: translateX(100%); }
-
-/* Spin animation */
 .ec-spin { animation: ec-spin-anim 1.1s linear infinite; }
 @keyframes ec-spin-anim { to { transform: rotate(360deg); } }
 
-/* ── Responsive ── */
 @media (max-width: 900px) {
-  .ec-stats { grid-template-columns: repeat(2, 1fr); }
+  .ec-row-grid { grid-template-columns: 38px minmax(140px, 1.4fr) minmax(110px, 1fr) 90px 110px 56px 90px; gap: 10px; }
+  .ec-panel-hd { height: auto; flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
+  .ec-toolbar2, .ec-col-head, .ec-row, .ec-table-footer, .ec-empty { padding-left: 16px; padding-right: 16px; }
+  .ec-search-wrap { flex: 1 1 100%; margin: 8px 0 0; order: 8; max-width: none; }
+  .ec-hd-sep { display: none; }
 }
-@media (max-width: 640px) {
-  .ec-list { padding: 8px 10px; gap: 5px; }
-  .ec-card {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto auto;
-    grid-template-areas: "avatar info date" "avatar badges badges";
-    align-items: start; gap: 3px 12px; padding: 12px 14px;
-  }
-  .ec-card-av-wrap { grid-area: avatar; align-self: start; padding-top: 2px; }
-  .ec-card-info    { grid-area: info; flex: unset; }
-  .ec-card-date    { grid-area: date; align-self: start; padding-top: 2px; }
-  .ec-card-badges  { grid-area: badges; justify-content: flex-start; flex: unset; margin-top: 6px; }
+@media (max-width: 720px) {
+  .ec-col-head { display: none; }
+  .ec-row-grid { grid-template-columns: 38px 1fr auto; }
+  .ec-row > :nth-child(n+4) { display: none; }
+  .ec-card-date { display: block; }
 }
-@media (max-width: 600px) {
-  .ec-root { padding: 12px 14px 20px; gap: 12px; }
+</style>
 
-  /* Stat cards: column layout so labels get full width */
-  .ec-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; min-width: 0; }
-  .ec-stat-card { min-width: 0; overflow: hidden; padding: 12px; gap: 6px; flex-direction: column; align-items: flex-start; }
-  .ec-stat-icon { width: 32px; height: 32px; flex-shrink: 0; }
-  .ec-stat-val  { font-size: 22px; }
-  .ec-stat-val--money { font-size: 16px; }
-  .ec-stat-body { gap: 2px; min-width: 0; width: 100%; }
-  .ec-stat-lbl  { font-size: 10px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  /* Panel header: stack search + chips as full-width rows */
-  .ec-panel-hd { padding: 10px 14px; gap: 8px; }
-  .ec-panel-title { font-size: 17px; }
-  .ec-panel-acts { margin-left: 0; flex: 0 0 100%; flex-direction: column; align-items: stretch; gap: 6px; }
-  .ec-search-expanded { min-width: 0; width: 100%; }
-  .ec-search-wrap { min-width: 0; max-width: 100%; width: 100%; }
-  .ec-search { font-size: 13px; }
-
-  /* Filter chips: scroll horizontally */
-  .ec-filter-chips { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
-  .ec-filter-chips::-webkit-scrollbar { display: none; }
-  .ec-chip { flex-shrink: 0; }
-
-  /* Checkpoint button full width */
-  .ec-cp-wrap { width: 100%; }
-  .ec-cp-btn { width: 100%; justify-content: flex-start; }
+<style>
+html .ec-joy-overlay {
+  position: fixed; inset: 0; z-index: 1600;
+  background: rgba(15, 23, 42, 0.32) !important;
+  backdrop-filter: none !important;
 }
-@media (max-width: 400px) { .ec-card-date { display: none; } }
 </style>

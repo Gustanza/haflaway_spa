@@ -48,12 +48,22 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+html {
+  background: #ffffff;
+  color-scheme: light;
+}
+
 body {
   margin: 0;
-  background: #0a0a0b;
-  color: #f0f0ec;
+  background: #ffffff;
+  color: #1D1D1F;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100%;
+  background: #ffffff;
 }
 
 @layer components {
@@ -214,9 +224,9 @@ body {
 }
 
 body {
-  --ink: #e2e8f0;
-  background: #0a0e1c;
-  color: #e2e8f0;
+  --ink: #1a1a2e;
+  background: #ffffff;
+  color: #1a1a2e;
 }
 
 .bg-mesh {
@@ -235,9 +245,8 @@ body {
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 [data-theme="light"] body {
-  background: #f0f0f8;
+  background: #ffffff;
   color: #1a1a2e;
-  transition: background 300ms ease, color 300ms ease;
 }
 
 /* ── Shared token override on every known component root ── */
@@ -285,20 +294,18 @@ html[data-theme="light"] .os-root {
   /* ── EventLayout layout tokens ── */
   --el-sidebar-bg:  var(--org-sidebar-bg, #ffffff) !important;
   --el-topbar-bg:   var(--org-topbar-bg, rgba(255,255,255,0.92)) !important;
-  --el-content-bg:  var(--org-page-bg, #f0f0f8) !important;
+  --el-content-bg:  var(--org-page-bg, #ffffff) !important;
 
-  /* ── MyEvents layout tokens ── */
-  --me-topbar-bg:   var(--org-topbar-bg, rgba(255,255,255,0.32)) !important;
+  /* ── MyEvents hub ── */
+  --me-topbar-bg:   #ffffff !important;
   --me-controls-bg: #ffffff !important;
   --me-card-bg:     #ffffff !important;
   --me-dropdown-bg: #ffffff !important;
-  --me-page-bg:     var(--org-page-bg, #f0f0f8) !important;
+  --me-page-bg:     #ffffff !important;
 
-  /* ── OrganizationSettings layout tokens ── */
-  --os-page-bg:     var(--org-page-bg, #f0f0f8) !important;
-  /* Matches --me-topbar-bg: a glass capsule needs a light tint, not a near-opaque
-     panel, or the backdrop-filter has nothing to show through. */
-  --os-topbar-bg:   var(--org-topbar-bg, rgba(255,255,255,0.32)) !important;
+  /* ── OrganizationSettings hub ── */
+  --os-page-bg:     #ffffff !important;
+  --os-topbar-bg:   #ffffff !important;
   --os-dropdown-bg: #ffffff !important;
 }
 
@@ -311,7 +318,15 @@ html[data-theme="light"] .eo-root {
   --c-hover: rgba(0,0,0,0.04) !important;
   background: #ffffff !important;
 }
-html[data-theme="light"] .el-content:has(.eo-root) {
+html[data-theme="light"] .el-content:has(.eo-root),
+html[data-theme="light"] .el-content:has(.sch-root),
+html[data-theme="light"] .el-content:has(.eb-root),
+html[data-theme="light"] .el-content:has(.ec-root),
+html[data-theme="light"] .el-content:has(.evc-root),
+html[data-theme="light"] .el-content:has(.eg-root),
+html[data-theme="light"] .el-content:has(.ez-root),
+html[data-theme="light"] .el-content:has(.ep-root),
+html[data-theme="light"] .el-content:has(.es-root) {
   background: #ffffff !important;
 }
 
@@ -441,218 +456,35 @@ html[data-theme="light"] .el-content:has(.eo-root) {
   color: #9ca3af !important;
 }
 
-/* ── MyEvents: flat surface, no decoration — matches el-root. ── */
-[data-theme="light"] .me-root {
-  background-color: var(--org-page-bg, #f0f0f8) !important;
+/* MyEvents hub chrome is authored in MyEvents.vue — do not re-theme with gold/lavender. */
+html[data-theme="light"] .me-root,
+html[data-theme="dark"] .me-root {
+  --me-topbar-bg: #ffffff !important;
+  --me-controls-bg: #ffffff !important;
+  --me-card-bg: #ffffff !important;
+  --me-dropdown-bg: #ffffff !important;
+  --me-page-bg: #ffffff !important;
+  --ink: #111827 !important;
+  --ink-soft: #374151 !important;
+  --ink-muted: #64748b !important;
+  --ink-dim: #94a3b8 !important;
+  --line: #e5e7eb !important;
+  --line-soft: #f1f3f5 !important;
+  --line-strong: #d1d5db !important;
+  --paper-soft: #f8fafc !important;
+  --accent: #111827 !important;
+  --accent-deep: #000000 !important;
+  --accent-soft: #f3f4f6 !important;
+  background: #ffffff !important;
   background-image: none !important;
 }
-/* ── Organization refinements in light ──
-   os-root carries the dark cosmic-nebula radials by default; light mode has to
-   replace that image layer outright, otherwise those dark stops paint over the
-   light page. ── */
-[data-theme="light"] .os-root {
-  background-color: var(--org-page-bg, #f0f0f8) !important;
-  background-image:
-    linear-gradient(160deg, rgba(240,240,248,0.90) 0%, rgba(240,240,248,0.72) 55%, rgba(240,240,248,0.90) 100%),
-    url('./assets/celebration_bg.png') !important;
-  background-size: cover, cover !important;
-  background-position: center, center !important;
-  background-repeat: no-repeat, no-repeat !important;
-  background-attachment: fixed, fixed !important;
-}
-/* The capsule visual lives on the -inner element (the outer one is just the
-   1200px width container and has no border or shadow to restyle). */
-[data-theme="light"] .me-topbar-inner,
-[data-theme="light"] .os-topbar-inner {
-  border-color: #e8e8f4 !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 8px 32px rgba(99,102,241,0.08) !important;
-}
-[data-theme="light"] .me-admin-pill {
-  border-color: #e8e8f4 !important;
-  color: #6b7280 !important;
-}
-[data-theme="light"] .me-admin-pill:hover {
-  background: #f4f4fd !important;
-  color: #1a1a2e !important;
-}
-[data-theme="light"] .me-admin-dropdown {
-  background: #ffffff !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05) !important;
-}
-[data-theme="light"] .me-dropdown-name { color: #1a1a2e !important; }
-[data-theme="light"] .me-dropdown-email { color: #9ca3af !important; }
-[data-theme="light"] .me-dropdown-divider { background: #e8e8f4 !important; }
-[data-theme="light"] .me-dropdown-item { color: #6b7280 !important; }
-[data-theme="light"] .me-dropdown-item:hover { background: #f4f4fd !important; color: #1a1a2e !important; }
-[data-theme="light"] .me-dbal-amount { color: #1a1a2e !important; }
-[data-theme="light"] .me-dbal-amount--loading { color: #9ca3af !important; }
-[data-theme="light"] .me-header { border-bottom-color: #e8e8f4 !important; }
-[data-theme="light"] .me-header-sub { color: #6b7280 !important; text-shadow: none !important; }
-[data-theme="light"] .me-hstat-val { text-shadow: none !important; }
-[data-theme="light"] .me-hstat-label { color: #9ca3af !important; text-shadow: none !important; }
-[data-theme="light"] .me-controls {
-  background: rgba(255,255,255,0.22) !important;
-  border-color: rgba(255,255,255,0.4) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 2px 8px rgba(0,0,0,0.04) !important;
-}
-[data-theme="light"] .me-tab { color: #6b7280 !important; text-shadow: none !important; }
-[data-theme="light"] .me-tab:hover { background: rgba(99,102,241,0.04) !important; color: #1a1a2e !important; }
-[data-theme="light"] .me-tab--active {
-  background: rgb(from var(--gold) r g b / 0.10) !important;
-  color: #7a5a0a !important;
-}
-[data-theme="light"] .me-tab-count { background: #f0f0f8 !important; color: #9ca3af !important; }
-[data-theme="light"] .me-tab-count--active { background: rgb(from var(--gold) r g b / 0.12) !important; color: #8b6a10 !important; }
-[data-theme="light"] .me-fb-select {
-  background: rgba(255,255,255,0.35) !important;
-  border-color: rgba(255,255,255,0.5) !important;
-  color: #4a4a5a !important;
-}
-[data-theme="light"] .me-search-input { color: #1a1a2e !important; }
-[data-theme="light"] .me-search-input::placeholder { color: #9ca3af !important; }
-[data-theme="light"] .me-search-icon-svg { color: #9ca3af !important; }
-[data-theme="light"] .me-status-pill--draft { background: #f0f0f8 !important; color: #6b7280 !important; }
-[data-theme="light"] .me-status-pill--draft .me-status-dot { background: #9ca3af !important; }
-[data-theme="light"] .me-status-pill,
-[data-theme="light"] .me-role-badge { text-shadow: none !important; }
-[data-theme="light"] .me-skeleton {
-  background: linear-gradient(90deg, #f0f0f8 25%, #e8e8f4 50%, #f0f0f8 75%) !important;
-}
-[data-theme="light"] .me-featured,
-[data-theme="light"] .me-row {
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.5), 0 2px 8px rgba(0,0,0,0.05), 0 8px 28px rgba(99,102,241,0.08) !important;
-}
-[data-theme="light"] .me-featured:hover {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 24px rgba(0,0,0,0.06), 0 20px 48px rgba(99,102,241,0.14) !important;
-}
-[data-theme="light"] .me-row:hover {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 24px rgba(0,0,0,0.06), 0 18px 40px rgba(99,102,241,0.12) !important;
-  filter: none !important;
-}
-[data-theme="light"] .me-row--upcoming  { border-left-color: rgb(from var(--gold) r g b / 0.7) !important; }
-[data-theme="light"] .me-row--ongoing   { border-left-color: rgba(22,163,74,0.8) !important; }
-[data-theme="light"] .me-row--completed { border-left-color: rgba(0,0,0,0.10) !important; }
-[data-theme="light"] .me-row-card-col {
-  border-right-color: rgba(0,0,0,0.06) !important;
-  background-image: radial-gradient(rgba(99,102,241,0.04) 1px, transparent 1px) !important;
-}
-[data-theme="light"] .me-row-card-outline { border-color: rgba(0,0,0,0.08) !important; }
-[data-theme="light"] .me-row-card-inner {
-  box-shadow: 4px 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06) !important;
-}
 
-/* ── Featured + row cards in light theme ──
-   Both cards' borders, dividers, meta text and "ticket" pills were tuned as
-   white-on-photo glass (the org's cover photo used to show through the
-   translucent card body). Now that the card sits on a flat --me-card-bg,
-   those white-based accents and the black text-shadows that kept them
-   legible over a photo need to flip to ink-based equivalents, or they read
-   as near-invisible (white hairlines/text) or pointlessly smudged (shadows
-   with nothing dark behind them) on the light surface. ── */
-[data-theme="light"] .me-featured,
-[data-theme="light"] .me-row {
-  border-color: rgba(0,0,0,0.08) !important;
-  border-top-color: rgba(0,0,0,0.10) !important;
-}
-[data-theme="light"] .me-feat-thumb-outline { border-color: rgba(0,0,0,0.10) !important; }
-[data-theme="light"] .me-feat-eyebrow-label,
-[data-theme="light"] .me-feat-cd-month,
-[data-theme="light"] .me-feat-cd-year {
-  color: #6b7280 !important;
-  text-shadow: none !important;
-}
-[data-theme="light"] .me-feat-eyebrow-line,
-[data-theme="light"] .me-feat-progress-track {
-  background: rgba(0,0,0,0.08) !important;
-}
-[data-theme="light"] .me-feat-title,
-[data-theme="light"] .me-row-title,
-[data-theme="light"] .me-row-cd-day {
-  text-shadow: none !important;
-}
-[data-theme="light"] .me-feat-meta-item svg {
-  color: #6b7280 !important;
-  filter: none !important;
-}
-[data-theme="light"] .me-feat-meta-val {
-  color: #374151 !important;
-  text-shadow: none !important;
-}
-[data-theme="light"] .me-feat-cd-ticket,
-[data-theme="light"] .me-row-cd-ticket {
-  background: rgba(0,0,0,0.04) !important;
-  border-color: rgba(0,0,0,0.10) !important;
-  color: #1a1a2e !important;
-  text-shadow: none !important;
-}
-[data-theme="light"] .me-feat-cd-words { color: #9ca3af !important; }
-[data-theme="light"] .me-row-eyebrow-line {
-  background: linear-gradient(90deg, rgb(from var(--gold) r g b / 0.35) 0%, rgba(0,0,0,0.06) 100%) !important;
-}
-[data-theme="light"] .me-row-meta-item {
-  color: #6b7280 !important;
-  text-shadow: none !important;
-}
-[data-theme="light"] .me-row-meta-item svg { filter: none !important; }
-[data-theme="light"] .me-row-cd { border-left-color: rgba(0,0,0,0.08) !important; }
-[data-theme="light"] .me-row-cd-year,
-[data-theme="light"] .me-row-cd-mon {
-  color: #6b7280 !important;
-  text-shadow: none !important;
-}
-[data-theme="light"] .me-role-badge--owner {
-  background: rgb(from var(--gold) r g b / 0.12) !important;
-  border-color: rgb(from var(--gold) r g b / 0.28) !important;
-  color: #7a5a0a !important;
-}
-[data-theme="light"] .me-role-badge--admin {
-  border-color: #e8e8f4 !important;
-  color: #9ca3af !important;
-}
-[data-theme="light"] .me-section-line { background: #e8e8f4 !important; }
-[data-theme="light"] .me-empty {
-  border-color: #dcdcec !important;
-}
-[data-theme="light"] .me-modal {
+/* Organization hub is authored in OrganizationSettings.vue — do not re-theme. */
+html[data-theme="light"] .os-root,
+html[data-theme="dark"] .os-root {
   background: #ffffff !important;
-  border: 1px solid #e8e8f4 !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15) !important;
+  background-image: none !important;
 }
-[data-theme="light"] .me-modal-cancel {
-  background: #f4f4fd !important;
-  color: #6b7280 !important;
-  border-color: #e8e8f4 !important;
-}
-[data-theme="light"] .me-modal-cancel:hover { background: #e8e8f4 !important; }
-[data-theme="light"] .me-status-pill--upcoming { background: #f0f0f8 !important; color: #6b7280 !important; }
-[data-theme="light"] .me-status-pill--completed { background: #f0f0f8 !important; color: #9ca3af !important; }
-[data-theme="light"] .me-hstat-div { background: #e8e8f4 !important; }
-[data-theme="light"] .me-page-btn {
-  background: rgba(255,255,255,0.3) !important;
-  color: #4a4a5a !important;
-  border-color: rgba(255,255,255,0.45) !important;
-}
-[data-theme="light"] .me-page-btn--active {
-  background: var(--gold) !important;
-  color: var(--gold-contrast) !important;
-  border-color: var(--gold) !important;
-}
-[data-theme="light"] .me-page-btn:disabled { opacity: 0.35 !important; }
-[data-theme="light"] .me-aff-strip {
-  background: #ffffff !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04) !important;
-}
-[data-theme="light"] .me-aff-divider { background: #e8e8f4 !important; }
-[data-theme="light"] .me-modal-confirm { background: var(--gold) !important; color: var(--gold-contrast) !important; border-color: var(--gold) !important; }
-[data-theme="light"] .me-aff-stat { background: #ffffff !important; border-color: #e8e8f4 !important; border-top-color: rgb(from var(--gold) r g b / 0.5) !important; }
-[data-theme="light"] .me-aff-com-row { background: #f8f8fd !important; }
-[data-theme="light"] .me-aff-com-row:hover { background: #f0f0f8 !important; }
-[data-theme="light"] .me-aff-com-event { color: #6b7280 !important; }
-[data-theme="light"] .me-aff-com-amount { color: #1a1a2e !important; }
-[data-theme="light"] .me-aff-com-head { color: #6b7280 !important; }
-[data-theme="light"] .me-aff-empty { color: #9ca3af !important; }
 
 /* ── EventOverview panel refinements in light (WithJoy design alignment) ── */
 [data-theme="light"] .eo-pill {
@@ -744,29 +576,11 @@ html[data-theme="light"] .el-content:has(.eo-root) {
 [data-theme="light"] .evc-stat-card:has(.evc-stat-icon--green)  { border-top: 2px solid rgba(48,209,88,0.55) !important; }
 [data-theme="light"] .evc-stat-card:has(.evc-stat-icon--purple) { border-top: 2px solid rgba(167,139,250,0.55) !important; }
 
-/* EventGallery */
-[data-theme="light"] .eg-stat-card:has(.eg-stat-icon--gold)   { border-top: 2px solid rgb(from var(--gold) r g b / 0.55) !important; }
-[data-theme="light"] .eg-stat-card:has(.eg-stat-icon--purple) { border-top: 2px solid rgba(167,139,250,0.55) !important; }
-[data-theme="light"] .eg-stat-card:has(.eg-stat-icon--teal)   { border-top: 2px solid rgba(45,212,191,0.55) !important; }
-[data-theme="light"] .eg-stat-card:has(.eg-stat-icon--blue)   { border-top: 2px solid rgba(96,165,250,0.55) !important; }
-
-/* EventPayments */
-[data-theme="light"] .ep-stat-card:has(.ep-stat-icon--gold)   { border-top: 2px solid rgb(from var(--gold) r g b / 0.55) !important; }
-[data-theme="light"] .ep-stat-card:has(.ep-stat-icon--purple) { border-top: 2px solid rgba(167,139,250,0.55) !important; }
-[data-theme="light"] .ep-stat-card:has(.ep-stat-icon--teal)   { border-top: 2px solid rgba(45,212,191,0.55) !important; }
-[data-theme="light"] .ep-stat-card:has(.ep-stat-icon--blue)   { border-top: 2px solid rgba(96,165,250,0.55) !important; }
-
 /* EventTeam */
 [data-theme="light"] .et-stat-card:has(.et-stat-icon--gold)   { border-top: 2px solid rgb(from var(--gold) r g b / 0.55) !important; }
 [data-theme="light"] .et-stat-card:has(.et-stat-icon--purple) { border-top: 2px solid rgba(167,139,250,0.55) !important; }
 [data-theme="light"] .et-stat-card:has(.et-stat-icon--teal)   { border-top: 2px solid rgba(45,212,191,0.55) !important; }
 [data-theme="light"] .et-stat-card:has(.et-stat-icon--blue)   { border-top: 2px solid rgba(96,165,250,0.55) !important; }
-
-/* EventZawadi (Gifts of Love) */
-[data-theme="light"] .ez-stat-card:has(.ez-stat-icon--gold)   { border-top: 2px solid rgb(from var(--gold) r g b / 0.55) !important; }
-[data-theme="light"] .ez-stat-card:has(.ez-stat-icon--purple) { border-top: 2px solid rgba(167,139,250,0.55) !important; }
-[data-theme="light"] .ez-stat-card:has(.ez-stat-icon--teal)   { border-top: 2px solid rgba(45,212,191,0.55) !important; }
-[data-theme="light"] .ez-stat-card:has(.ez-stat-icon--blue)   { border-top: 2px solid rgba(96,165,250,0.55) !important; }
 
 /* EventCampaigns (Bulk Messages) */
 [data-theme="light"] .em-stat-card:has(.em-stat-icon--gold)   { border-top: 2px solid rgb(from var(--gold) r g b / 0.55) !important; }
@@ -987,37 +801,47 @@ html[data-theme="light"] .el-content:has(.eo-root) {
   border-color: #d1d5db !important;
 }
 
-/* ── Search Bar ── */
+/* ── Search Bar (WithJoy: wide gray pill, sliders on the right) ── */
 [data-theme="light"] .ea-search-inline {
-  flex: 0 1 420px !important;
+  flex: 1 1 0 !important;
+  margin: 0 20px !important;
+  min-width: 220px !important;
+  max-width: none !important;
 }
 [data-theme="light"] .ea-search {
-  background: #f8fafc !important;
-  border: 1px solid #e2e8f0 !important;
+  background: #f3f4f6 !important;
+  border: none !important;
   border-radius: 9999px !important;
-  height: 38px !important;
-  padding: 0 38px !important;
-  font-size: 13.5px !important;
-  color: #1e293b !important;
+  height: 44px !important;
+  padding: 0 48px 0 44px !important;
+  font-size: 15px !important;
+  color: #111827 !important;
   box-shadow: none !important;
-  transition: all 140ms ease !important;
 }
 [data-theme="light"] .ea-search:focus {
-  background: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.03) !important;
+  background: #eeeeef !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 [data-theme="light"] .ea-search::placeholder {
-  color: #94a3b8 !important;
+  color: #9ca3af !important;
   font-weight: 400 !important;
 }
 [data-theme="light"] .ea-search-icon {
-  stroke: #94a3b8 !important;
-  left: 14px !important;
+  color: #9ca3af !important;
+  stroke: #9ca3af !important;
+  left: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
 }
 [data-theme="light"] .ea-search-filter {
-  color: #94a3b8 !important;
-  right: 14px !important;
+  width: 32px !important;
+  height: 32px !important;
+  right: 8px !important;
+  color: #6b7280 !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 50% !important;
 }
 
 /* ── Secondary Toolbar (WithJoy filter pills) ── */
@@ -1299,40 +1123,6 @@ html[data-theme="light"] .el-content:has(.eo-root) {
   font-weight: 600 !important;
 }
 
-/* ── EventPayments card refinements in light ── */
-[data-theme="light"] .ep-card {
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(99,102,241,0.05) !important;
-  border-color: #e8e8f4 !important;
-}
-[data-theme="light"] .ep-card:hover:not(.ep-card--sk) {
-  background: #f8f8fd !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 4px 16px rgba(99,102,241,0.10) !important;
-}
-[data-theme="light"] .ep-search-pill {
-  background: #f4f4fd !important;
-  border-color: #e8e8f4 !important;
-  color: #6b7280 !important;
-}
-[data-theme="light"] .ep-search-pill:hover {
-  background: #ffffff !important;
-  color: #1a1a2e !important;
-}
-[data-theme="light"] .ep-page-btn {
-  background: #f4f4fd !important;
-  border-color: #e8e8f4 !important;
-  color: #6b7280 !important;
-}
-[data-theme="light"] .ep-page-btn:hover:not(:disabled):not(.ep-page-btn--active) {
-  background: #ffffff !important;
-  color: #1a1a2e !important;
-}
-[data-theme="light"] .ep-page-btn--active {
-  background: rgb(from var(--gold) r g b / 0.10) !important;
-  border-color: rgb(from var(--gold) r g b / 0.3) !important;
-  color: #7a5a0a !important;
-}
-
 /* ── Coming soon card in light ── */
 html[data-theme="light"] .cs-root {
   --c-bg:     #ffffff !important;
@@ -1343,80 +1133,11 @@ html[data-theme="light"] .cs-root {
   --c-hover:  #f4f4fd !important;
 }
 
-/* ─────────────────────────────────────────────
-   CREATE EVENT — light mode
-───────────────────────────────────────────── */
-[data-theme="light"] .ce-root { background: var(--org-page-bg, #f0f0f8) !important; }
-[data-theme="light"] .ce-nav {
-  background: rgba(255,255,255,0.92) !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 1px 0 #e8e8f4, 0 4px 16px rgba(0,0,0,0.04) !important;
-}
-[data-theme="light"] .ce-brand-name { color: #1a1a2e !important; }
-[data-theme="light"] .ce-sep { color: #d1d5db !important; }
-[data-theme="light"] .ce-crumb { color: #6b7280 !important; }
-[data-theme="light"] .ce-crumb--page,
-[data-theme="light"] .ce-crumb--page:hover { color: #1a1a2e !important; }
-[data-theme="light"] .ce-avatar-pill { border-color: #e8e8f4 !important; }
-[data-theme="light"] .ce-avatar-label { color: #6b7280 !important; }
-[data-theme="light"] .ce-section {
+/* Create Event / Edit Event hub is authored in the SFCs — do not re-theme with gold/lavender. */
+html[data-theme="light"] .ce-root,
+html[data-theme="dark"] .ce-root {
   background: #ffffff !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(99,102,241,0.04) !important;
 }
-[data-theme="light"] .ce-section-label { color: #6b7280 !important; }
-[data-theme="light"] .ce-label { color: #6b7280 !important; }
-[data-theme="light"] .ce-optional { color: #9ca3af !important; }
-[data-theme="light"] .ce-input,
-[data-theme="light"] .ce-textarea {
-  background: #eeeef8 !important;
-  border: 1.5px solid #c4c4e0 !important;
-  color: #1a1a2e !important;
-  box-shadow: inset 0 1px 3px rgba(99,102,241,0.07) !important;
-}
-[data-theme="light"] .ce-input::placeholder,
-[data-theme="light"] .ce-textarea::placeholder { color: #a0a0bc !important; }
-[data-theme="light"] .ce-input:focus,
-[data-theme="light"] .ce-textarea:focus {
-  background: #ffffff !important;
-  border: 1.5px solid var(--gold) !important;
-  box-shadow: 0 0 0 3px rgb(from var(--gold) r g b / 0.15) !important;
-}
-[data-theme="light"] .ce-select-btn {
-  background: #eeeef8 !important;
-  border: 1.5px solid #c4c4e0 !important;
-  color: #1a1a2e !important;
-  box-shadow: inset 0 1px 3px rgba(99,102,241,0.07) !important;
-}
-[data-theme="light"] .ce-select-btn--empty { color: #9ca3af !important; }
-[data-theme="light"] .ce-radio-opt {
-  background: #f4f4fd !important;
-  border-color: #e8e8f4 !important;
-  color: #6b7280 !important;
-}
-[data-theme="light"] .ce-thumb-drop {
-  background: #f4f4fd !important;
-  border-color: #d1d5db !important;
-}
-[data-theme="light"] .ce-thumb-drop--has { border-color: #e8e8f4 !important; }
-[data-theme="light"] .ce-thumb-hint { color: #6b7280 !important; }
-[data-theme="light"] .ce-thumb-sub { color: #9ca3af !important; }
-[data-theme="light"] .ce-cancel-btn {
-  border-color: #e8e8f4 !important;
-  color: #6b7280 !important;
-}
-[data-theme="light"] .ce-cancel-btn:hover { background: #f4f4fd !important; }
-[data-theme="light"] .ce-modal {
-  background: #ffffff !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.12), 0 2px 12px rgba(0,0,0,0.07) !important;
-}
-[data-theme="light"] .ce-modal-head { border-color: #e8e8f4 !important; }
-[data-theme="light"] .ce-modal-title { color: #1a1a2e !important; }
-[data-theme="light"] .ce-modal-close { color: #6b7280 !important; }
-[data-theme="light"] .ce-modal-loading { color: #6b7280 !important; }
-[data-theme="light"] .ce-modal-item { color: #1a1a2e !important; }
-[data-theme="light"] .ce-modal-item:hover { background: #f4f4fd !important; }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    LIGHT THEME — EVENT SUB-VIEW SURFACE & ELEMENT OVERRIDES
@@ -1678,6 +1399,19 @@ html[data-theme="light"] .cs-root {
 }
 [data-theme="light"] .em-drawer.em-drawer--composer .em-browse-tpl-btn:hover {
   opacity: 0.75 !important;
+}
+
+[data-theme="light"] .em-drawer.em-drawer--composer .em-tpl-item,
+[data-theme="light"] .em-drawer.em-drawer--composer .em-tpl-item--active,
+[data-theme="light"] .em-drawer.em-drawer--composer .em-tpl-list .em-tpl-item,
+[data-theme="light"] .em-drawer.em-drawer--composer .em-tpl-list .em-tpl-item--active {
+  height: 46px !important;
+  min-height: 46px !important;
+  padding: 0 16px !important;
+  border-radius: 9999px !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
 }
 
 [data-theme="light"] .em-drawer.em-drawer--composer .em-msg-missing-warn {
@@ -2100,62 +1834,63 @@ html[data-theme="light"] .cs-root {
 [data-theme="dark"] .em-tpl-edit-cancel { background: #252525 !important; border-color: #333 !important; }
 [data-theme="dark"] .em-tpl-edit-cancel:hover { background: #2e2e2e !important; }
 
-/* Campaign create/edit dialog — light (teleported, no .em-root ancestor → vars undefined) */
-[data-theme="light"] .em-dialog {
+/* Campaign create/edit dialog — light (teleported, no .em-root ancestor → vars undefined).
+   Skip .em-dialog--joy, which matches the composer / Select Guests chrome. */
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) {
   background: #ffffff !important;
   border-color: #e8e8f4 !important;
   box-shadow: 0 8px 40px rgba(0,0,0,0.12), 0 2px 12px rgba(0,0,0,0.07) !important;
 }
-[data-theme="light"] .em-dialog-header   { border-color: #e8e8f4 !important; }
-[data-theme="light"] .em-dialog-footer   { border-color: #e8e8f4 !important; }
-[data-theme="light"] .em-dialog-title    { color: #1a1a2e !important; }
-[data-theme="light"] .em-dialog-lbl      { color: #6b7280 !important; }
-[data-theme="light"] .em-dialog-input {
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-header   { border-color: #e8e8f4 !important; }
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-footer   { border-color: #e8e8f4 !important; }
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-title    { color: #1a1a2e !important; }
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-lbl      { color: #6b7280 !important; }
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-input {
   background: #eeeef8 !important;
   border: 1.5px solid #c4c4e0 !important;
   color: #1a1a2e !important;
   box-shadow: inset 0 1px 3px rgba(99,102,241,0.07) !important;
 }
-[data-theme="light"] .em-dialog-input:focus {
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-input:focus {
   background: #ffffff !important;
   border: 1.5px solid var(--gold) !important;
   box-shadow: 0 0 0 3px rgb(from var(--gold) r g b / 0.15) !important;
 }
-[data-theme="light"] .em-dialog-input::placeholder { color: #a0a0bc !important; }
-[data-theme="light"] .em-dialog-textarea {
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-input::placeholder { color: #a0a0bc !important; }
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-textarea {
   background: #eeeef8 !important;
   border: 1.5px solid #c4c4e0 !important;
   color: #1a1a2e !important;
   box-shadow: inset 0 1px 3px rgba(99,102,241,0.07) !important;
 }
-[data-theme="light"] .em-dialog-textarea:focus {
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-textarea:focus {
   background: #ffffff !important;
   border: 1.5px solid var(--gold) !important;
   box-shadow: 0 0 0 3px rgb(from var(--gold) r g b / 0.15) !important;
 }
-[data-theme="light"] .em-dialog-textarea::placeholder { color: #a0a0bc !important; }
-[data-theme="light"] .em-dialog-type-btn {
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-textarea::placeholder { color: #a0a0bc !important; }
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-type-btn {
   background: #f4f4fd !important;
   border-color: #e8e8f4 !important;
   color: #374151 !important;
 }
-[data-theme="light"] .em-dialog-type-btn--on {
+[data-theme="light"] .em-dialog:not(.em-dialog--joy) .em-dialog-type-btn--on {
   background: rgb(from var(--gold) r g b / 0.08) !important;
   border-color: rgb(from var(--gold) r g b / 0.45) !important;
   color: #7a5a0a !important;
 }
 
 /* Campaign create/edit dialog — dark elevation */
-[data-theme="dark"] .em-dialog {
+[data-theme="dark"] .em-dialog:not(.em-dialog--joy) {
   background: #1c1c1e !important;
   border-color: #2a2a35 !important;
   box-shadow: 0 24px 64px rgba(0,0,0,0.70) !important;
 }
-[data-theme="dark"] .em-dialog-input     { background: #111111 !important; border-color: #2a2a2a !important; }
-[data-theme="dark"] .em-dialog-textarea  { background: #111111 !important; border-color: #2a2a2a !important; }
-[data-theme="dark"] .em-dialog-type-btn  { background: #111111 !important; border-color: #2a2a2a !important; }
-[data-theme="dark"] .em-dialog-header,
-[data-theme="dark"] .em-dialog-footer    { border-color: #2a2a35 !important; }
+[data-theme="dark"] .em-dialog:not(.em-dialog--joy) .em-dialog-input     { background: #111111 !important; border-color: #2a2a2a !important; }
+[data-theme="dark"] .em-dialog:not(.em-dialog--joy) .em-dialog-textarea  { background: #111111 !important; border-color: #2a2a2a !important; }
+[data-theme="dark"] .em-dialog:not(.em-dialog--joy) .em-dialog-type-btn  { background: #111111 !important; border-color: #2a2a2a !important; }
+[data-theme="dark"] .em-dialog:not(.em-dialog--joy) .em-dialog-header,
+[data-theme="dark"] .em-dialog:not(.em-dialog--joy) .em-dialog-footer    { border-color: #2a2a35 !important; }
 
 /* Global template picker panel — elevate surface */
 [data-theme="dark"] .em-tpk-panel {
@@ -2168,260 +1903,15 @@ html[data-theme="light"] .cs-root {
 [data-theme="dark"] .em-tpk-badge  { background: #252525 !important; }
 [data-theme="dark"] .em-tpk-card   { background: #111111 !important; border-color: #2a2a2a !important; }
 
-/* ─── EventCheckins (.ec-root) ─── */
+/* EventCheckins hub chrome is authored in EventCheckins.vue — do not re-theme it here. */
 
-/* Card hover */
-[data-theme="light"] .ec-card:hover:not(.ec-card--sk) {
-  box-shadow: 0 4px 16px rgba(99,102,241,0.08) !important;
-  border-color: #dcdcec !important;
-}
+/* EventCards hub chrome is authored in EventCards.vue — do not re-theme it here. */
 
-/* Active filter chip */
-[data-theme="light"] .ec-chip--active {
-  background: rgba(99,102,241,0.08) !important;
-  border-color: rgba(99,102,241,0.16) !important;
-  color: #1a1a2e !important;
-}
-[data-theme="light"] .ec-chip--active .ec-chip-cnt {
-  background: rgba(99,102,241,0.08) !important;
-  color: #6366f1 !important;
-}
-[data-theme="light"] .ec-chip-cnt { background: #f0f0f8 !important; }
+/* EventGallery hub chrome is authored in EventGallery.vue — do not re-theme it here. */
 
-/* Checkpoint dropdown */
-[data-theme="light"] .ec-cp-btn { box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important; }
-[data-theme="light"] .ec-cp-btn--active {
-  background: rgba(99,102,241,0.06) !important;
-  border-color: rgba(99,102,241,0.14) !important;
-  color: #1a1a2e !important;
-}
-[data-theme="light"] .ec-cp-menu {
-  background: #ffffff !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important;
-}
-[data-theme="light"] .ec-cp-item:hover { background: #f4f4fd !important; }
-[data-theme="light"] .ec-cp-item--on   { background: #f4f4fd !important; }
+/* EventZawadi hub chrome is authored in EventZawadi.vue — do not re-theme it here. */
 
-/* Search box */
-[data-theme="light"] .ec-search { box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important; }
-
-/* Stat card active */
-[data-theme="light"] .ec-stat-card--active {
-  background: #f0f0f8 !important;
-  border-color: #dcdcec !important;
-}
-
-/* Default badge (hardcoded #222 border) */
-[data-theme="light"] .ec-badge--default {
-  background: #f0f0f8 !important;
-  color: #9ca3af !important;
-  border-color: #e8e8f4 !important;
-}
-
-/* Contact type badge */
-[data-theme="light"] .ec-type--contact {
-  background: #f0f0f8 !important;
-  color: #6b7280 !important;
-  border-color: #e8e8f4 !important;
-}
-
-/* Active page button */
-[data-theme="light"] .ec-page-btn--active {
-  background: #f0f0f8 !important;
-  border-color: #dcdcec !important;
-  color: #1a1a2e !important;
-}
-
-/* Overlay / drawer */
-[data-theme="light"] .ec-drawer  { box-shadow: -4px 0 32px rgba(0,0,0,0.10) !important; }
-[data-theme="light"] .ec-drawer-back:hover { background: #f4f4fd !important; color: #1a1a2e !important; }
-
-/* Slot badge off */
-[data-theme="light"] .ec-slot-badge--off {
-  background: #f0f0f8 !important;
-  color: #9ca3af !important;
-}
-
-/* Status badges in drawer */
-[data-theme="light"] .ec-sb--none   { background: #f0f0f8 !important; color: #9ca3af !important; }
-[data-theme="light"] .ec-sb--nocard { background: #f4f4fd !important; color: #9ca3af !important; }
-
-/* Checkpoint toggle off */
-[data-theme="light"] .ec-cp-toggle--off { background: #f0f0f8 !important; color: #6b7280 !important; }
-[data-theme="light"] .ec-cp-toggle--off:hover:not(:disabled) { background: #e8e8f4 !important; color: #1a1a2e !important; }
-
-/* Search pill active */
-[data-theme="light"] .ec-search-pill--active {
-  color: #1a1a2e !important;
-  border-color: #dcdcec !important;
-  background: #f0f0f8 !important;
-}
-
-/* ─── EventCards (.evc-root) ─── */
-
-/* Subtle shadows */
-[data-theme="light"] .evc-search { box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important; }
-[data-theme="light"] .evc-refresh-btn { box-shadow: none !important; }
-
-/* Action buttons */
-[data-theme="light"] .evc-action-btn {
-  background: #f4f4fd !important;
-  border-color: #e8e8f4 !important;
-}
-[data-theme="light"] .evc-action-btn:hover {
-  background: #e8e8f4 !important;
-  color: #1a1a2e !important;
-}
-
-/* Overlay / drawer */
-[data-theme="light"] .evc-drawer  { box-shadow: -4px 0 32px rgba(0,0,0,0.10) !important; }
-
-/* Active chip */
-[data-theme="light"] .evc-chip--active {
-  background: rgba(99,102,241,0.08) !important;
-  border-color: rgba(99,102,241,0.16) !important;
-  color: #1a1a2e !important;
-}
-[data-theme="light"] .evc-chip--active .evc-chip-cnt {
-  background: rgba(99,102,241,0.08) !important;
-  color: #6366f1 !important;
-}
-
-/* Attendee pending badge */
-[data-theme="light"] .evc-att-pending {
-  background: rgba(255,159,10,0.08) !important;
-  color: #92400e !important;
-}
-
-/* Empty CTA */
-[data-theme="light"] .evc-empty-cta       { background: #f0f0f8 !important; color: #1a1a2e !important; }
-[data-theme="light"] .evc-empty-cta:hover { background: #e8e8f4 !important; }
-
-/* Drawer edit button */
-[data-theme="light"] .evc-drawer-edit-btn {
-  background: #f4f4fd !important;
-  border-color: #e8e8f4 !important;
-}
-
-/* ─── EventGallery (.eg-root) ─── */
-
-/* Panel / list tray / modal */
-[data-theme="light"] .eg-panel     { background: #ffffff !important; }
-[data-theme="light"] .eg-list-wrap { background: #f4f4fd !important; }
-[data-theme="light"] .eg-modal {
-  background: #ffffff !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.12) !important;
-}
-
-/* Refresh + back buttons (hardcoded #0d0d0d bg) */
-[data-theme="light"] .eg-refresh-btn {
-  background: #f4f4fd !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: none !important;
-}
-[data-theme="light"] .eg-refresh-btn:hover:not(:disabled) { background: #e8e8f4 !important; color: #1a1a2e !important; }
-[data-theme="light"] .eg-back-btn          { background: #f4f4fd !important; border-color: #e8e8f4 !important; }
-[data-theme="light"] .eg-back-btn:hover    { background: #e8e8f4 !important; color: #1a1a2e !important; }
-
-/* Folder tile hardcoded #2A2825 */
-[data-theme="light"] .eg-folder-tile {
-  background: linear-gradient(145deg, #f4f4fd 0%, #eaeaf4 100%) !important;
-  border-color: #e8e8f4 !important;
-}
-
-/* Empty CTA hardcoded #1a2236 */
-[data-theme="light"] .eg-empty-cta       { background: #f4f4fd !important; color: #1a1a2e !important; border-color: #e8e8f4 !important; }
-[data-theme="light"] .eg-empty-cta:hover { background: #e8e8f4 !important; }
-
-/* Add menu hardcoded #0d0d0d */
-[data-theme="light"] .eg-add-menu {
-  background: #ffffff !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important;
-}
-[data-theme="light"] .eg-add-menu-item:hover { background: #f4f4fd !important; }
-
-/* Upload progress bar */
-[data-theme="light"] .eg-upload-bar-wrap { background: #e8e8f4 !important; }
-
-/* Search pill active */
-[data-theme="light"] .eg-search-pill--active {
-  background: #f0f0f8 !important;
-  border-color: #dcdcec !important;
-  color: #1a1a2e !important;
-}
-
-/* Tile delete confirm overlay */
-[data-theme="light"] .eg-tile-confirm {
-  background: rgba(255,255,255,0.92) !important;
-  border-radius: 9px !important;
-}
-[data-theme="light"] .eg-tile-yes { background: rgba(255,59,48,0.10) !important; border-color: rgba(255,59,48,0.22) !important; }
-[data-theme="light"] .eg-tile-no  { background: #f4f4fd !important; border-color: #e8e8f4 !important; color: #6b7280 !important; }
-[data-theme="light"] .eg-tile-no:hover { background: #e8e8f4 !important; }
-
-/* Folder delete confirm */
-[data-theme="light"] .eg-fc-confirm { background: rgba(255,255,255,0.92) !important; }
-[data-theme="light"] .eg-del-no { background: #f4f4fd !important; border-color: #e8e8f4 !important; color: #6b7280 !important; }
-
-/* Empty tile slot */
-[data-theme="light"] .eg-tile-empty {
-  background: #f4f4fd !important;
-  border-color: #e8e8f4 !important;
-}
-
-/* ─── EventZawadi (.ez-root) ─── */
-
-/* Panel / table area */
-[data-theme="light"] .ez-panel      { background: #ffffff !important; }
-[data-theme="light"] .ez-table-area { background: #f4f4fd !important; }
-
-/* Refresh / action buttons (hardcoded #0d0d0d) */
-[data-theme="light"] .ez-refresh-btn,
-[data-theme="light"] .ez-action-btn {
-  background: #f4f4fd !important;
-  border-color: #e8e8f4 !important;
-}
-[data-theme="light"] .ez-refresh-btn:hover:not(:disabled),
-[data-theme="light"] .ez-action-btn:hover {
-  background: #e8e8f4 !important;
-  color: #1a1a2e !important;
-}
-
-/* Empty state */
-[data-theme="light"] .ez-empty { background: #f8f8fd !important; border-color: #e8e8f4 !important; }
-[data-theme="light"] .ez-empty-cta:hover { background: #f4f4fd !important; }
-
-/* Item card shadows */
-[data-theme="light"] .ez-item-card       { box-shadow: 0 1px 4px rgba(99,102,241,0.06) !important; }
-[data-theme="light"] .ez-item-card:hover { box-shadow: 0 3px 14px rgba(99,102,241,0.10) !important; border-color: #dcdcec !important; }
-
-/* Drawer overlay */
-
-/* Delete confirm no button */
-[data-theme="light"] .ez-del-no         { background: #f4f4fd !important; border-color: #e8e8f4 !important; color: #6b7280 !important; }
-[data-theme="light"] .ez-del-no:hover   { background: #e8e8f4 !important; }
-
-/* Drawer */
-[data-theme="light"] .ez-drawer { box-shadow: -4px 0 32px rgba(0,0,0,0.10) !important; }
-[data-theme="light"] .ez-drawer-edit-btn,
-[data-theme="light"] .ez-drawer-close-btn {
-  background: #f4f4fd !important;
-  border-color: #e8e8f4 !important;
-}
-[data-theme="light"] .ez-drawer-edit-btn:hover,
-[data-theme="light"] .ez-drawer-close-btn:hover {
-  background: #e8e8f4 !important;
-  color: #1a1a2e !important;
-}
-
-/* Modal (hardcoded #0d0d0d) */
-[data-theme="light"] .ez-modal {
-  background: #ffffff !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.12) !important;
-}
+/* EventPayments hub chrome is authored in EventPayments.vue — do not re-theme it here. */
 
 /* ─── EventTeam (.et-root) ─── */
 
@@ -2459,62 +1949,7 @@ html[data-theme="light"] .cs-root {
 [data-theme="light"] .et-del-no     { background: #f4f4fd !important; border-color: #e8e8f4 !important; color: #6b7280 !important; }
 [data-theme="light"] .et-del-no:hover { background: #e8e8f4 !important; }
 
-/* ─── EventSettings (.es-root) ─── */
-
-/* Draft status dot (dark gradient) */
-[data-theme="light"] .es-status--draft                { background: rgb(from var(--gold) r g b / 0.08) !important; color: #7a5a0a !important; }
-[data-theme="light"] .es-status--draft .es-status-dot { background: #e0c070 !important; }
-
-/* Event tile / accent bar dark gradient */
-[data-theme="light"] .es-tile-bg,
-[data-theme="light"] .es-event-tile-bg {
-  background: linear-gradient(180deg, #f0f0f8 0%, #e8e8f4 100%) !important;
-}
-[data-theme="light"] .es-accent-bar       { background: linear-gradient(180deg, #e8e8f4 0%, #dcdcec 100%) !important; }
-[data-theme="light"] .es-accent-bar--red  { background: #FF3B30 !important; }
-
-/* Action row hover */
-[data-theme="light"] .es-action-row:hover { background: #f4f4fd !important; }
-
-/* Radio option */
-[data-theme="light"] .es-radio-opt:hover  { background: #f4f4fd !important; }
-[data-theme="light"] .es-radio-opt--on    { background: rgb(from var(--gold) r g b / 0.04) !important; }
-
-/* Modal / dialog */
-[data-theme="light"] .es-modal {
-  background: #ffffff !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.12) !important;
-}
-[data-theme="light"] .es-modal-close,
-[data-theme="light"] .es-modal-cancel   { background: #f4f4fd !important; color: #6b7280 !important; border-color: #e8e8f4 !important; }
-[data-theme="light"] .es-modal-close:hover,
-[data-theme="light"] .es-modal-cancel:hover { background: #e8e8f4 !important; }
-
-[data-theme="light"] .es-dialog {
-  background: #ffffff !important;
-  border-color: #e8e8f4 !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.12) !important;
-}
-[data-theme="light"] .es-dialog-cancel       { background: #f4f4fd !important; color: #6b7280 !important; border-color: #e8e8f4 !important; }
-[data-theme="light"] .es-dialog-cancel:hover { background: #e8e8f4 !important; }
-
-/* Inline save */
-[data-theme="light"] .es-inline-save             { background: rgb(from var(--gold) r g b / 0.08) !important; color: #7a5a0a !important; }
-[data-theme="light"] .es-inline-save:hover:not(:disabled) { background: rgb(from var(--gold) r g b / 0.16) !important; }
-
-/* Textarea / input focus */
-[data-theme="light"] .es-textarea:focus,
-[data-theme="light"] .es-input:focus { background: #ffffff !important; }
-
-/* Suggestion active */
-[data-theme="light"] .es-suggestion--active { background: #f4f4fd !important; }
-
-/* Location link hover */
-[data-theme="light"] .es-loc-link:hover { background: #f4f4fd !important; }
-
-/* Modal save button */
-[data-theme="light"] .es-modal-save { background: var(--gold) !important; color: var(--gold-contrast) !important; }
+/* EventSettings hub chrome is authored in EventSettings.vue — do not re-theme it here. */
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    EventAttendees — modal, drawer, vue-tel-input, dropzone
@@ -2794,6 +2229,17 @@ html[data-theme="light"] .cs-root {
   border-color: rgb(from var(--gold) r g b / 0.5) !important;
   color: var(--gold) !important;
 }
+[data-theme="dark"] .em-dialog--joy .em-send-ch-btn {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #64748b !important;
+}
+[data-theme="dark"] .em-dialog--joy .em-send-ch-btn--wsp,
+[data-theme="dark"] .em-dialog--joy .em-send-ch-btn--sms {
+  background: #ffffff !important;
+  border-color: transparent !important;
+  color: #111827 !important;
+}
 
 /* Status / recipient chips: elevate */
 [data-theme="dark"] .em-recip-chip { background: #111111 !important; border-color: #2a2a2a !important; }
@@ -2821,25 +2267,6 @@ html[data-theme="light"] .cs-root {
 [data-theme="dark"] .em-expd-fmt-btn   { background: #111111 !important; border-color: #2a2a2a !important; }
 [data-theme="dark"] .em-expd-close     { background: #252525 !important; border-color: #333 !important; }
 [data-theme="dark"] .em-expd-close:hover { background: #303030 !important; }
-
-/* EventGallery modal surface — hardcoded #0d0d0d */
-[data-theme="light"] .eg-modal {
-  background: #ffffff !important;
-  border: 1px solid #e8e8f4 !important;
-}
-
-/* EventZawadi modal surface — hardcoded #0d0d0d */
-[data-theme="light"] .ez-modal {
-  background: #ffffff !important;
-}
-
-/* EditEvent modal — hardcoded dark */
-[data-theme="light"] .ce-modal {
-  background: #ffffff !important;
-  border-color: #e8e8f4 !important;
-}
-[data-theme="light"] .ce-modal-head   { border-color: #e8e8f4 !important; }
-[data-theme="light"] .ce-modal-title  { color: #1a1a2e !important; }
 
 /* Search / Groups pill — match Import button tone */
 [data-theme="dark"] .ea-type-trigger {

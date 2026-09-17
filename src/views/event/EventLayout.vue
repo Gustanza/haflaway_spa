@@ -221,7 +221,7 @@ const event = ref(null)
 // showMobileNav is shared (not a local ref) so hub-chrome pages — which hide
 // this component's own hamburger — can open the same drawer via their own button.
 const { isOpen: showMobileNav } = useNavDrawer()
-const isHubRoute = computed(() => ['EventOverview', 'EventAttendees', 'EventCampaigns'].includes(route.name))
+const isHubRoute = computed(() => ['EventOverview', 'EventAttendees', 'EventCampaigns', 'EventInvitations', 'EventSchedule', 'EventBudget', 'EventCheckins', 'EventCards', 'EventGallery', 'EventZawadi', 'EventPayments', 'EventSettings'].includes(route.name))
 
 watch(() => route.path, () => { showMobileNav.value = false })
 
@@ -297,13 +297,6 @@ const navSections = [
         </svg>`,
       },
       {
-        label: 'Contact List',
-        to: 'contacts',
-        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>`,
-      },
-      {
         label: 'Invitations',
         to: 'invitations',
         icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -367,20 +360,19 @@ const navSections = [
     title: 'Event Details',
     items: [
       {
+        label: 'Schedule',
+        to: 'schedule',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+        </svg>`,
+      },
+      {
         label: 'Gallery',
         to: 'gallery',
         icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="3"/>
           <circle cx="8.5" cy="8.5" r="1.5"/>
           <polyline points="21 15 16 10 5 21"/>
-        </svg>`,
-      },
-      {
-        label: 'Team',
-        to: 'team',
-        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
-          <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
         </svg>`,
       },
       {
@@ -472,7 +464,7 @@ onMounted(async () => {
      surface color itself via --org-*-bg, set in useOrg.js's watchEffect) ── */
   --el-sidebar-bg: var(--org-sidebar-bg, #111111);
   --el-topbar-bg:  var(--org-topbar-bg, rgba(7,7,7,0.92));
-  --el-content-bg: var(--org-page-bg, #070707);
+  --el-content-bg: var(--org-page-bg, #ffffff);
 
   display: flex;
   height: 100vh;

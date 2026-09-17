@@ -4,10 +4,12 @@
     <!-- ── Sticky topbar ── -->
     <nav class="os-topbar">
       <div class="os-topbar-inner">
-        <div class="os-brand" @click="router.push('/events')">
-          <img :src="brandLogoUrl" class="os-brand-logo" />
-          <span class="os-brand-name">{{ brandName }}</span>
+        <div class="os-brand" @click="router.push('/events')" title="All Events">
+          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="os-brand-logo" />
+          <span v-else class="os-brand-script">.joy</span>
         </div>
+        <div class="os-hd-sep" />
+        <h1 class="os-hub-title">Organization</h1>
         <div class="os-topbar-right">
           <div class="os-admin-wrap" ref="adminWrapRef">
             <button class="os-admin-pill" @click="showAdminDropdown = !showAdminDropdown">
@@ -70,16 +72,10 @@
 
    <div class="os-page">
 
-    <!-- ══ Page header ══ -->
-    <div class="os-page-header">
-      <h1 class="os-page-title">Organization</h1>
-      <p class="os-page-sub">Manage your workspace's branding, team, and archive.</p>
-    </div>
-
     <!-- ══ Loading ══ -->
     <div v-if="loading" class="os-empty">
       <svg class="os-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-        stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
+        stroke="#9ca3af" stroke-width="2.2" stroke-linecap="round">
         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
       </svg>
       <p>Loading organizations…</p>
@@ -90,7 +86,7 @@
       <!-- ══ No orgs yet ══ -->
       <div v-if="!orgs.length" class="os-panel os-create-panel">
         <div class="os-empty-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af"
             stroke-width="1.4" stroke-linecap="round">
             <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
           </svg>
@@ -113,8 +109,16 @@
 
       <template v-else>
 
+        <div class="os-tabs" role="tablist">
+          <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'orgs' }" @click="activeTab = 'orgs'">Organizations</button>
+          <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'branding' }" @click="activeTab = 'branding'">Branding</button>
+          <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'sender' }" @click="activeTab = 'sender'">Sender IDs</button>
+          <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'smsProviders' }" @click="activeTab = 'smsProviders'">SMS Providers</button>
+          <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'team' }" @click="activeTab = 'team'">Team</button>
+        </div>
+
         <!-- ══ Org switcher ══ -->
-        <div class="os-panel">
+        <div v-show="activeTab === 'orgs'" class="os-panel">
           <div class="os-panel-hd">
             <h2 class="os-panel-title">Your Organizations</h2>
           </div>
@@ -176,10 +180,10 @@
           </div>
         </div>
 
-        <div class="os-grid" v-if="activeOrg">
+        <div v-if="activeOrg" v-show="activeTab !== 'orgs'" class="os-stack">
 
           <!-- ══ Branding panel ══ -->
-          <div class="os-panel">
+          <div v-show="activeTab === 'branding'" class="os-panel">
             <div class="os-panel-hd">
               <h2 class="os-panel-title">Branding</h2>
               <span v-if="!isOwner" class="os-readonly-badge">Read only</span>
@@ -197,48 +201,60 @@
                 <span>Custom branding isn't enabled for this organization yet — contact support to turn it on.</span>
               </div>
 
-              <div class="os-brand-row">
-                <div class="os-image-picker" :class="{ 'os-image-picker--disabled': !canEditBranding }" @click="canEditBranding && logoInput.click()">
-                  <img v-if="activeOrg.logoUrl" :src="activeOrg.logoUrl" class="os-image-preview" />
-                  <span v-else class="os-image-placeholder">Logo</span>
-                  <div v-if="uploadingLogo" class="os-image-overlay">
-                    <svg class="os-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
-                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                    </svg>
+              <div class="os-identity">
+                <div class="os-identity-art">
+                  <div class="os-image-picker" :class="{ 'os-image-picker--disabled': !canEditBranding }" @click="canEditBranding && logoInput.click()">
+                    <img v-if="activeOrg.logoUrl" :src="activeOrg.logoUrl" class="os-image-preview" />
+                    <span v-else class="os-image-placeholder">Logo</span>
+                    <div v-if="uploadingLogo" class="os-image-overlay">
+                      <svg class="os-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                      </svg>
+                    </div>
+                    <input ref="logoInput" type="file" accept="image/*" class="os-hidden" @change="e => onImageChange(e, 'logoUrl')" />
                   </div>
-                  <input ref="logoInput" type="file" accept="image/*" class="os-hidden" @change="e => onImageChange(e, 'logoUrl')" />
+                  <span class="os-image-cap">Logo</span>
                 </div>
-                <div class="os-image-picker os-image-picker--small" :class="{ 'os-image-picker--disabled': !canEditBranding }" @click="canEditBranding && faviconInput.click()">
-                  <img v-if="activeOrg.faviconUrl" :src="activeOrg.faviconUrl" class="os-image-preview" />
-                  <span v-else class="os-image-placeholder">Favicon</span>
-                  <div v-if="uploadingFavicon" class="os-image-overlay">
-                    <svg class="os-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
-                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                    </svg>
+                <div class="os-identity-art">
+                  <div class="os-image-picker os-image-picker--small" :class="{ 'os-image-picker--disabled': !canEditBranding }" @click="canEditBranding && faviconInput.click()">
+                    <img v-if="activeOrg.faviconUrl" :src="activeOrg.faviconUrl" class="os-image-preview" />
+                    <span v-else class="os-image-placeholder">Icon</span>
+                    <div v-if="uploadingFavicon" class="os-image-overlay">
+                      <svg class="os-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                      </svg>
+                    </div>
+                    <input ref="faviconInput" type="file" accept="image/*" class="os-hidden" @change="e => onImageChange(e, 'faviconUrl')" />
                   </div>
-                  <input ref="faviconInput" type="file" accept="image/*" class="os-hidden" @change="e => onImageChange(e, 'faviconUrl')" />
+                  <span class="os-image-cap">Favicon</span>
+                </div>
+                <div class="os-field os-identity-name">
+                  <label class="os-field-label os-field-label--flush">Organization Name</label>
+                  <input
+                    v-model="nameDraft"
+                    class="os-input"
+                    type="text"
+                    :disabled="!canEditBranding"
+                    placeholder="Organization name"
+                  />
                 </div>
               </div>
 
-              <label class="os-field-label">Organization Name</label>
-              <input
-                v-model="nameDraft"
-                class="os-input"
-                type="text"
-                :disabled="!canEditBranding"
-                placeholder="Organization name"
-              />
-
-              <label class="os-field-label">Primary Color</label>
-              <div class="os-color-row">
-                <input v-model="accentDraft" type="color" class="os-color-input" :disabled="!canEditBranding" />
-                <span class="os-color-value">{{ accentDraft }}</span>
-              </div>
-
-              <label class="os-field-label">Secondary Color</label>
-              <div class="os-color-row">
-                <input v-model="secondaryDraft" type="color" class="os-color-input" :disabled="!canEditBranding" />
-                <span class="os-color-value">{{ secondaryDraft }}</span>
+              <div class="os-color-grid">
+                <div class="os-field">
+                  <label class="os-field-label os-field-label--flush">Primary Color</label>
+                  <div class="os-color-row">
+                    <input v-model="accentDraft" type="color" class="os-color-input" :disabled="!canEditBranding" />
+                    <span class="os-color-value">{{ accentDraft }}</span>
+                  </div>
+                </div>
+                <div class="os-field">
+                  <label class="os-field-label os-field-label--flush">Secondary Color</label>
+                  <div class="os-color-row">
+                    <input v-model="secondaryDraft" type="color" class="os-color-input" :disabled="!canEditBranding" />
+                    <span class="os-color-value">{{ secondaryDraft }}</span>
+                  </div>
+                </div>
               </div>
 
               <div class="os-advanced-hd">
@@ -298,7 +314,7 @@
           </div>
 
           <!-- ══ SMS Sender IDs panel ══ -->
-          <div class="os-panel">
+          <div v-show="activeTab === 'sender'" class="os-panel">
             <div class="os-panel-hd">
               <h2 class="os-panel-title">SMS Sender IDs</h2>
               <span v-if="!isOwner" class="os-readonly-badge">Read only</span>
@@ -397,8 +413,112 @@
             </div>
           </div>
 
+          <!-- ══ SMS Providers panel ══ -->
+          <div v-show="activeTab === 'smsProviders'" class="os-panel">
+            <div class="os-panel-hd">
+              <h2 class="os-panel-title">SMS Providers</h2>
+              <span v-if="!isOwner" class="os-readonly-badge">Read only</span>
+            </div>
+            <div class="os-panel-body">
+
+              <span class="os-advanced-hint">
+                Bring your own smtz or wasambazie account for this organization's SMS. Leave either
+                one unset and it sends through the shared Haflaway account instead.
+              </span>
+
+              <div v-if="!isOwner" class="os-archived-banner">
+                <span>Only the organization owner can view or change SMS provider credentials.</span>
+              </div>
+
+              <template v-else>
+                <!-- ── smtz ── -->
+                <div class="os-provider-card">
+                  <div class="os-provider-hd">
+                    <span class="os-provider-name">smtz</span>
+                    <span class="os-sid-chip" :class="smsCredentialsStatus.smtz?.configured ? 'os-sid-chip--approved' : 'os-sid-chip--revoked'">
+                      {{ smsCredentialsStatus.smtz?.configured ? 'Configured' : 'Using shared default' }}
+                    </span>
+                  </div>
+                  <div class="os-field">
+                    <label class="os-field-label os-field-label--flush">API key</label>
+                    <input
+                      v-model="smtzApiKeyDraft"
+                      class="os-input"
+                      type="password"
+                      autocomplete="off"
+                      placeholder="Paste smtz API key…"
+                      :disabled="!activeOrg || activeOrg.archived || savingProvider === 'smtz'"
+                    />
+                  </div>
+                  <div class="os-save-row">
+                    <button
+                      class="os-primary-btn os-save-btn"
+                      :disabled="!activeOrg || activeOrg.archived || savingProvider === 'smtz' || !smtzApiKeyDraft.trim()"
+                      @click="saveProviderCredentials('smtz')"
+                    >{{ savingProvider === 'smtz' ? 'Saving…' : 'Save' }}</button>
+                    <button
+                      v-if="smsCredentialsStatus.smtz?.configured"
+                      class="os-secondary-btn"
+                      :disabled="!activeOrg || activeOrg.archived || clearingProvider === 'smtz'"
+                      @click="clearProviderCredentials('smtz')"
+                    >{{ clearingProvider === 'smtz' ? 'Resetting…' : 'Reset to default' }}</button>
+                    <span v-if="providerStatus.smtz === 'success'" class="os-save-status os-save-status--ok">✓ Saved</span>
+                    <span v-else-if="providerStatus.smtz === 'error'" class="os-save-status os-save-status--err">{{ providerError.smtz || 'Failed to save. Try again.' }}</span>
+                  </div>
+                </div>
+
+                <!-- ── wasambazie ── -->
+                <div class="os-provider-card">
+                  <div class="os-provider-hd">
+                    <span class="os-provider-name">wasambazie</span>
+                    <span class="os-sid-chip" :class="smsCredentialsStatus.wasambazie?.configured ? 'os-sid-chip--approved' : 'os-sid-chip--revoked'">
+                      {{ smsCredentialsStatus.wasambazie?.configured ? 'Configured' : 'Using shared default' }}
+                    </span>
+                  </div>
+                  <div class="os-field">
+                    <label class="os-field-label os-field-label--flush">Public key</label>
+                    <input
+                      v-model="wasambaziePublicKeyDraft"
+                      class="os-input"
+                      type="password"
+                      autocomplete="off"
+                      placeholder="Paste wasambazie public key…"
+                      :disabled="!activeOrg || activeOrg.archived || savingProvider === 'wasambazie'"
+                    />
+                  </div>
+                  <div class="os-field">
+                    <label class="os-field-label os-field-label--flush">Secret key</label>
+                    <input
+                      v-model="wasambazieSecretKeyDraft"
+                      class="os-input"
+                      type="password"
+                      autocomplete="off"
+                      placeholder="Paste wasambazie secret key…"
+                      :disabled="!activeOrg || activeOrg.archived || savingProvider === 'wasambazie'"
+                    />
+                  </div>
+                  <div class="os-save-row">
+                    <button
+                      class="os-primary-btn os-save-btn"
+                      :disabled="!activeOrg || activeOrg.archived || savingProvider === 'wasambazie' || !wasambaziePublicKeyDraft.trim() || !wasambazieSecretKeyDraft.trim()"
+                      @click="saveProviderCredentials('wasambazie')"
+                    >{{ savingProvider === 'wasambazie' ? 'Saving…' : 'Save' }}</button>
+                    <button
+                      v-if="smsCredentialsStatus.wasambazie?.configured"
+                      class="os-secondary-btn"
+                      :disabled="!activeOrg || activeOrg.archived || clearingProvider === 'wasambazie'"
+                      @click="clearProviderCredentials('wasambazie')"
+                    >{{ clearingProvider === 'wasambazie' ? 'Resetting…' : 'Reset to default' }}</button>
+                    <span v-if="providerStatus.wasambazie === 'success'" class="os-save-status os-save-status--ok">✓ Saved</span>
+                    <span v-else-if="providerStatus.wasambazie === 'error'" class="os-save-status os-save-status--err">{{ providerError.wasambazie || 'Failed to save. Try again.' }}</span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
           <!-- ══ Team panel ══ -->
-          <div class="os-panel">
+          <div v-show="activeTab === 'team'" class="os-panel">
             <div class="os-panel-hd">
               <h2 class="os-panel-title">Team</h2>
               <span class="os-section-cnt">{{ memberProfiles.length }}</span>
@@ -531,6 +651,7 @@ const {
   archiveOrg, unarchiveOrg, leaveOrg, memberCan, setMemberPermission,
   senderIds, defaultSenderId, activeSenderId, hasCustomSenderId,
   requestSenderId, setDefaultSenderId,
+  smsCredentialsStatus, loadSmsCredentialsStatus, setSmsCredentials, clearSmsCredentials,
 } = useOrg()
 
 const activeOrgsList = computed(() => orgs.value.filter(o => !o.archived))
@@ -566,6 +687,7 @@ async function logout() {
 onMounted(() => document.addEventListener('click', onClickOutside))
 onUnmounted(() => document.removeEventListener('click', onClickOutside))
 const showArchived = ref(false)
+const activeTab = ref('branding')
 
 // ── Create org ───────────────────────────────────────────────────────────────
 const newOrgName = ref('')
@@ -577,6 +699,7 @@ async function handleCreateOrg() {
   try {
     await createOrg(newOrgName.value.trim())
     newOrgName.value = ''
+    activeTab.value = 'branding'
   } finally {
     creatingOrg.value = false
   }
@@ -684,6 +807,72 @@ async function submitSenderIdRequest() {
     senderIdError.value = e?.message || 'Could not send that request. Try again.'
   } finally {
     requestingSenderId.value = false
+  }
+}
+
+// ── SMS provider credentials (smtz / wasambazie) ─────────────────────────────
+const smtzApiKeyDraft = ref('')
+const wasambaziePublicKeyDraft = ref('')
+const wasambazieSecretKeyDraft = ref('')
+const savingProvider = ref(null) // null | 'smtz' | 'wasambazie'
+const clearingProvider = ref(null)
+const providerStatus = ref({ smtz: '', wasambazie: '' }) // '' | 'success' | 'error'
+const providerError = ref({ smtz: '', wasambazie: '' })
+let providerStatusTimers = { smtz: null, wasambazie: null }
+
+// Status (configured or not) is fetched on demand, not via a live listener —
+// the secret values themselves never come back to the client once saved, so
+// there's nothing to subscribe to beyond this boolean.
+watch(() => activeOrg.value?.id, (orgId) => {
+  smtzApiKeyDraft.value = ''
+  wasambaziePublicKeyDraft.value = ''
+  wasambazieSecretKeyDraft.value = ''
+  providerStatus.value = { smtz: '', wasambazie: '' }
+  providerError.value = { smtz: '', wasambazie: '' }
+  if (orgId && isOwner.value) loadSmsCredentialsStatus(orgId)
+}, { immediate: true })
+
+function flashProviderStatus(provider, kind) {
+  clearTimeout(providerStatusTimers[provider])
+  providerStatus.value = { ...providerStatus.value, [provider]: kind }
+  providerStatusTimers[provider] = setTimeout(() => {
+    providerStatus.value = { ...providerStatus.value, [provider]: '' }
+  }, 3000)
+}
+
+async function saveProviderCredentials(provider) {
+  if (!activeOrg.value || savingProvider.value) return
+  const credentials = provider === 'smtz'
+    ? { apiKey: smtzApiKeyDraft.value.trim() }
+    : { publicKey: wasambaziePublicKeyDraft.value.trim(), secretKey: wasambazieSecretKeyDraft.value.trim() }
+
+  savingProvider.value = provider
+  providerError.value = { ...providerError.value, [provider]: '' }
+  try {
+    await setSmsCredentials(activeOrg.value.id, provider, credentials)
+    if (provider === 'smtz') smtzApiKeyDraft.value = ''
+    else { wasambaziePublicKeyDraft.value = ''; wasambazieSecretKeyDraft.value = '' }
+    flashProviderStatus(provider, 'success')
+  } catch (e) {
+    providerError.value = { ...providerError.value, [provider]: e?.message || 'Failed to save. Try again.' }
+    flashProviderStatus(provider, 'error')
+  } finally {
+    savingProvider.value = null
+  }
+}
+
+async function clearProviderCredentials(provider) {
+  if (!activeOrg.value || clearingProvider.value) return
+  clearingProvider.value = provider
+  providerError.value = { ...providerError.value, [provider]: '' }
+  try {
+    await clearSmsCredentials(activeOrg.value.id, provider)
+    flashProviderStatus(provider, 'success')
+  } catch (e) {
+    providerError.value = { ...providerError.value, [provider]: e?.message || 'Failed to reset. Try again.' }
+    flashProviderStatus(provider, 'error')
+  } finally {
+    clearingProvider.value = null
   }
 }
 
@@ -871,326 +1060,162 @@ function avatarStyle(u) {
 </script>
 
 <style scoped>
+
 .os-root {
   min-height: 100vh;
-  /* --os-page-bg follows the same indirection as --me-page-bg/--el-content-bg
-     (see style.css's light-theme override block) so light mode can flip the
-     default fallback without stomping on an org's custom page color. The old
-     "transparent" fallback here let the body's slightly-blue #0a0e1c show
-     through instead of the app's actual neutral near-black page background. */
-  --os-page-bg: var(--org-page-bg, #040308);
-  /* flow-root establishes a BFC so the topbar's 16px top margin is contained
-     here rather than collapsing through the root and exposing a flat band at
-     the very top edge. */
-  display: flow-root;
-  background-color: var(--os-page-bg);
-  /* Cosmic nebula base — same three radials as .me-root, so "/" and this screen
-     sit on one continuous backdrop. Light theme replaces the image layer
-     wholesale (see style.css). */
-  background-image:
-    radial-gradient(circle at 80% 20%, rgba(201,168,76,0.08) 0%, transparent 50%),
-    radial-gradient(circle at 20% 80%, rgba(6,182,212,0.04) 0%, transparent 40%),
-    radial-gradient(140% 120% at 50% 100%, #090815 0%, #030206 100%);
-  position: relative;
-  overflow: clip; /* clip orb overflow */
-  z-index: 1;     /* stacking context so the z-index:-1 orbs stay above the base */
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
-  transition: background 300ms ease;
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-
-  /* Topbar tokens — same dark defaults as MyEvents.vue's .me-root, so the
-     topbar here matches "/" exactly (light mode is covered by the shared
-     override block in style.css, which already targets .os-root). */
-  --ink:        #f0f0ec;
-  --ink-soft:   #d8d4cd;
-  --ink-muted:  #888;
-  --ink-dim:    #555;
-  --line:       #242424;
-  --line-soft:  #1e1e1e;
-  --line-strong:#2a2a2a;
-  --paper-soft: #141414;
-  --emerald:    #30D158;
-  --emerald-soft: rgba(48,209,88,0.12);
-  --os-topbar-bg:   var(--org-topbar-bg, rgba(14,14,18,0.28));
-  --os-dropdown-bg: #141414;
-}
-
-/* ── Animated ambient glow — two slow liquid orbs drifting behind everything.
-   `screen` blending keeps them additive over the nebula instead of muddying it.
-   Identical to .me-root's so both screens read as one lit space. ── */
-.os-root::before,
-.os-root::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(140px);
-  opacity: 0.85;
-  mix-blend-mode: screen;
-  pointer-events: none;
-  z-index: -1;
-  will-change: transform, border-radius;
-}
-.os-root::before {
-  top: -15%;
-  left: -5%;
-  width: 60vw;
-  height: 60vw;
-  background: radial-gradient(circle,
-    rgba(6,182,212,0.22) 0%,
-    rgba(124,58,237,0.08) 55%,
-    transparent 100%);
-  animation: os-float-aurora-indigo 26s infinite alternate ease-in-out;
-}
-.os-root::after {
-  bottom: -15%;
-  right: -10%;
-  width: 55vw;
-  height: 55vw;
-  background: radial-gradient(circle,
-    rgba(236,72,153,0.18) 0%,
-    rgba(201,168,76,0.05) 60%,
-    transparent 100%);
-  animation: os-float-aurora-gold 30s infinite alternate ease-in-out;
-}
-
-/* The border-radius morph is what makes them read as liquid rather than as a
-   blurred circle sliding around. */
-@keyframes os-float-aurora-indigo {
-  0%   { transform: translate(0, 0) scale(1) rotate(0deg);           border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
-  33%  { transform: translate(8vw, 6vh) scale(1.15) rotate(120deg);  border-radius: 60% 40% 50% 50% / 50% 60% 40% 60%; }
-  66%  { transform: translate(-4vw, 10vh) scale(0.9) rotate(240deg); border-radius: 50% 60% 40% 60% / 60% 40% 60% 40%; }
-  100% { transform: translate(0, 0) scale(1) rotate(360deg);         border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
-}
-@keyframes os-float-aurora-gold {
-  0%   { transform: translate(0, 0) scale(1) rotate(0deg);              border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%; }
-  33%  { transform: translate(-10vw, -12vh) scale(1.2) rotate(-120deg); border-radius: 30% 70% 60% 40% / 60% 40% 60% 40%; }
-  66%  { transform: translate(6vw, 4vh) scale(0.95) rotate(-240deg);    border-radius: 60% 40% 50% 50% / 40% 60% 40% 60%; }
-  100% { transform: translate(0, 0) scale(1) rotate(-360deg);           border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .os-root::before,
-  .os-root::after { animation: none; }
-}
-
-.os-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 28px 32px 64px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  background: #ffffff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #111827;
+  --os-page-bg: #ffffff;
+  --c-bg: #ffffff;
+  --c-border: #e5e7eb;
+  --c-track: #f3f4f6;
+  --c-txt: #111827;
+  --c-txt-2: #64748b;
+  --c-txt-3: #94a3b8;
+  --ink: #111827;
+  --ink-soft: #374151;
+  --ink-muted: #64748b;
+  --ink-dim: #94a3b8;
+  --line: #e5e7eb;
+  --line-soft: #f1f3f5;
+  --line-strong: #d1d5db;
+  --paper-soft: #f8fafc;
+  --emerald: #059669;
+  --emerald-soft: #ecfdf5;
+  --os-topbar-bg: #ffffff;
+  --os-dropdown-bg: #ffffff;
 }
+.os-root::before,
+.os-root::after { display: none; }
 
-.os-page-header { display: flex; flex-direction: column; gap: 5px; padding-bottom: 4px; }
-.os-page-title {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 32px;
-  font-weight: 400;
-  letter-spacing: -0.4px;
-  color: var(--c-txt);
-  line-height: 1;
+.os-page {
+  max-width: none;
+  width: 100%;
   margin: 0;
-}
-.os-page-sub { font-size: 13px; color: var(--c-txt-2); margin: 0; }
-
-/* ── Topbar — floats as a rounded glass capsule, aligned to the same 1200px
-   content column as .os-page so its edges line up with the panels below. The
-   outer element is just the width container; the capsule visual lives on
-   .os-topbar-inner. Mirrors MyEvents.vue's .me-topbar. ── */
-.os-topbar {
-  position: sticky;
-  top: 16px;
-  z-index: 100;
-  max-width: 1200px;
-  margin: 16px auto 0;
-  padding: 0 32px;
+  padding: 0 0 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   box-sizing: border-box;
 }
+.os-tabs {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 36px; border-bottom: 1px solid #f1f3f5; background: #fff;
+}
+.os-tab {
+  min-height: 34px; padding: 6px 14px;
+  border: 1px solid #e2e8f0; border-radius: 9999px; background: #fff;
+  color: #475569; font-family: inherit; font-size: 13px; font-weight: 500;
+  cursor: pointer; white-space: nowrap;
+}
+.os-tab:hover { background: #f8fafc; border-color: #cbd5e1; }
+.os-tab--on { background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; font-weight: 600; }
+.os-stack { display: flex; flex-direction: column; padding: 20px 36px 0; }
+.os-page > .os-panel,
+.os-page > .os-empty { margin: 20px 36px 0; }
+.os-page-header { display: none; }
+
+.os-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background: #fff;
+}
 .os-topbar-inner {
-  padding: 12px 24px;
+  height: 92px;
+  padding: 0 36px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-radius: 28px;
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%),
-    var(--os-topbar-bg);
-  backdrop-filter: blur(36px) saturate(190%);
-  -webkit-backdrop-filter: blur(36px) saturate(190%);
-  border: 1px solid rgba(255,255,255,0.16);
-  /* Top inset = light catching the upper lip of the glass; bottom inset = the
-     shaded underside. Both are what sell it as a physical surface. */
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.18),
-    inset 0 -1px 0 rgba(0,0,0,0.22),
-    0 8px 32px rgba(0,0,0,0.35),
-    0 20px 48px -12px rgba(0,0,0,0.4);
-  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 14px;
+  border-radius: 0;
+  background: #fff;
+  border: none;
+  border-bottom: 1px solid #f1f3f5;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .os-topbar-inner:hover {
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.03) 100%),
-    var(--os-topbar-bg);
-  border-color: rgba(255,255,255,0.22);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.22),
-    inset 0 -1px 0 rgba(0,0,0,0.22),
-    0 12px 40px rgba(0,0,0,0.45);
+  background: #fff;
+  border-color: #f1f3f5;
+  box-shadow: none;
 }
-/* The brand is the element that yields when the topbar runs out of room: it
-   truncates first (org names are arbitrary length), then drops out entirely at
-   the 640px breakpoint. Everything to its right is a control with a job. */
-.os-brand { display: flex; align-items: center; gap: 8px; cursor: pointer; min-width: 0; }
-.os-brand-logo { width: 20px; height: 20px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
-.os-brand-name {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 20px;
-  font-weight: 400;
-  color: var(--org-topbar-text, var(--ink));
-  letter-spacing: -0.1px;
+.os-hd-sep { width: 1px; height: 16px; background: #e5e7eb; flex-shrink: 0; margin: 0 4px; }
+.os-hub-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #18181b;
+  letter-spacing: -0.015em;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-family: inherit;
 }
-
-.os-topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.os-hub-sub { display: none; }
+.os-brand {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e5e7eb;
+  overflow: hidden; background: #fff; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; min-width: 34px; gap: 0;
+}
+.os-brand-logo { width: 100%; height: 100%; border-radius: 0; object-fit: cover; }
+.os-brand-script {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic; font-size: 18px; font-weight: 700;
+  color: #111827; letter-spacing: -0.04em; line-height: 1;
+}
+.os-brand-name { display: none; }
+.os-topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; margin-left: auto; }
 
 .os-admin-wrap { position: relative; }
 .os-admin-pill {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 12px 6px 14px;
-  border-radius: 20px;
-  border: 1px solid var(--line-strong);
-  background: transparent;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--ink-muted);
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 130ms, color 130ms;
+  display: flex; align-items: center; gap: 7px;
+  height: 40px; padding: 0 14px 0 12px;
+  border-radius: 9999px; border: 1px solid #e5e7eb; background: #fff;
+  font-size: 13px; font-weight: 500; color: #374151;
+  cursor: pointer; font-family: inherit;
 }
-.os-admin-pill:hover { background: var(--paper-soft); color: var(--ink); }
-.os-admin-chevron {
-  color: var(--ink-dim);
-  transition: transform 180ms ease;
-  flex-shrink: 0;
-}
+.os-admin-pill:hover { background: #f8fafc; color: #111827; border-color: #d1d5db; }
+.os-admin-chevron { color: #94a3b8; transition: transform 180ms ease; flex-shrink: 0; }
 .os-admin-chevron--open { transform: rotate(180deg); }
-/* Ceiling on the label so an unusually long display name can't push the other
-   controls around before the breakpoint ladder gets a chance to act on it. */
-.os-admin-label {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.os-admin-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--emerald);
-  flex-shrink: 0;
-}
+.os-admin-label { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.os-admin-dot { width: 7px; height: 7px; border-radius: 50%; background: #059669; flex-shrink: 0; }
 
 .os-admin-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 210px;
-  background: var(--os-dropdown-bg);
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.35);
-  overflow: hidden;
-  z-index: 200;
-  transition: background 300ms ease, border-color 300ms ease;
+  position: absolute; top: calc(100% + 8px); right: 0; min-width: 210px;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.12); overflow: hidden; z-index: 200;
 }
-.os-dropdown-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-}
+.os-dropdown-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
 .os-dropdown-dot { flex-shrink: 0; }
 .os-dropdown-header-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.os-dropdown-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.os-dropdown-email {
-  font-size: 11.5px;
-  color: var(--ink-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.os-dropdown-divider { height: 1px; background: var(--line); }
+.os-dropdown-name { font-size: 13px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.os-dropdown-email { font-size: 11.5px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.os-dropdown-divider { height: 1px; background: #f1f3f5; }
 .os-dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 11px 16px;
-  background: transparent;
-  border: none;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-muted);
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-  transition: background 120ms, color 120ms;
+  display: flex; align-items: center; gap: 9px; width: 100%; padding: 11px 16px;
+  background: transparent; border: none; font-size: 13px; font-weight: 500;
+  color: #64748b; cursor: pointer; font-family: inherit; text-align: left;
 }
-.os-dropdown-item:hover { background: var(--paper-soft); color: var(--ink); }
-.os-dropdown-item--signout:hover { background: rgba(255,69,58,0.08); color: #FF453A; }
-
-.os-theme-toggle {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  border: 1px solid var(--line-strong);
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 130ms, color 130ms, border-color 130ms, box-shadow 130ms;
-  flex-shrink: 0;
-}
+.os-dropdown-item:hover { background: #f8fafc; color: #111827; }
+.os-dropdown-item--signout:hover { background: #fef2f2; color: #dc2626; }
 
 .os-create-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: var(--gold);
-  color: var(--gold-contrast);
-  border: none;
-  padding: 8px 18px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  /* Never let the label break onto a second line — a squeezed flex item
-     wrapping mid-phrase is what makes the whole bar look mangled. */
-  white-space: nowrap;
-  flex-shrink: 0;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 150ms;
-  letter-spacing: 0.1px;
+  display: flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 20px; border: none; border-radius: 9999px;
+  background: #222; color: #fff; font-size: 13.5px; font-weight: 600;
+  white-space: nowrap; flex-shrink: 0; cursor: pointer; font-family: inherit;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
 }
-.os-create-btn:hover { opacity: 0.88; }
+.os-create-btn:hover { background: #000; opacity: 1; }
 .os-create-label { white-space: nowrap; }
+
 
 /* ── Logout confirm modal ── */
 .os-modal-backdrop {
@@ -1224,29 +1249,21 @@ function avatarStyle(u) {
 }
 .os-modal-body { font-size: 13.5px; color: var(--ink-muted); margin: 0 0 8px; line-height: 1.5; }
 .os-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-.os-modal-cancel {
-  background: transparent;
-  border: 1px solid var(--line-strong);
-  color: var(--ink-muted);
-  padding: 8px 16px;
-  border-radius: 9px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 130ms, color 130ms;
+.os-modal-backdrop { background: rgba(15, 23, 42, 0.32); }
+.os-modal {
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.2);
 }
-.os-modal-cancel:hover { background: var(--paper-soft); color: var(--ink); }
+.os-modal-cancel {
+  background: #fff; border: 1px solid #e5e7eb; color: #111827;
+  height: 40px; padding: 0 18px; border-radius: 9999px;
+  font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.os-modal-cancel:hover { background: #f8fafc; }
 .os-modal-confirm {
-  background: rgba(255,255,255,0.12);
-  color: #e2e8f0;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 9px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
+  background: #dc2626; color: #fff;
+  border: none; height: 40px; padding: 0 18px; border-radius: 9999px;
+  font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
   transition: opacity 130ms;
 }
 .os-modal-confirm:hover { opacity: 0.85; }
@@ -1264,39 +1281,26 @@ function avatarStyle(u) {
 .os-spin { animation: os-spin 0.8s linear infinite; }
 @keyframes os-spin { to { transform: rotate(360deg); } }
 
-.os-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  align-items: start;
+.os-stack {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 36px 0;
 }
-@media (max-width: 860px) {
-  .os-grid { grid-template-columns: 1fr; }
-}
+.os-grid { display: contents; }
 
 .os-panel {
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.05) 0%,
-      rgba(255, 255, 255, 0.01) 100%
-    ),
-    rgba(18, 18, 22, 0.35);
-  backdrop-filter: blur(32px) saturate(190%);
-  -webkit-backdrop-filter: blur(32px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
 }
 .os-panel-hd {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #f1f3f5;
 }
 .os-panel-title {
   font-size: 14px;
@@ -1311,12 +1315,8 @@ function avatarStyle(u) {
   gap: 10px;
 }
 .os-readonly-badge, .os-section-cnt {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--c-txt-3);
-  background: rgba(255,255,255,0.05);
-  border-radius: 20px;
-  padding: 3px 9px;
+  font-size: 11px; font-weight: 600; color: #64748b;
+  background: #f3f4f6; border-radius: 9999px; padding: 3px 9px;
 }
 
 .os-create-panel {
@@ -1333,103 +1333,51 @@ function avatarStyle(u) {
 
 .os-create-row {
   display: flex;
+  align-items: center;
   gap: 10px;
   width: 100%;
-  max-width: 420px;
+  max-width: none;
 }
-.os-create-row--inline { max-width: none; margin-top: 4px; }
-
-.os-input {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  font-size: 13px;
-  color: var(--c-txt);
-  outline: none;
-  font-family: inherit;
-  transition: all 180ms ease;
-}
-.os-input:disabled { opacity: 0.6; cursor: not-allowed; }
-.os-input:focus { border-color: rgb(from var(--gold) r g b / 0.5); background: rgba(255, 255, 255, 0.06); }
+.os-create-row .os-input { min-width: 0; }
+.os-create-row--inline { max-width: none; margin-top: 0; padding-top: 0; }
 
 .os-field-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--c-txt-2);
+  color: #374151;
   margin-top: 6px;
 }
 
 .os-primary-btn {
-  background: var(--gold);
-  color: var(--gold-contrast);
-  border: none;
-  border-radius: 10px;
-  padding: 10px 16px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
+  height: 46px; padding: 0 18px;
+  background: #222; color: #fff; border: none; border-radius: 9999px;
+  font-size: 13.5px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit;
 }
+.os-primary-btn:hover:not(:disabled) { background: #000; }
 .os-primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .os-secondary-btn {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px) saturate(160%);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: var(--c-txt);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 180ms ease;
+  height: 46px; padding: 0 16px;
+  background: #fff; border: 1px solid #e5e7eb; color: #111827;
+  border-radius: 9999px; font-size: 13.5px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; font-family: inherit;
 }
-.os-secondary-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.22);
-}
+.os-secondary-btn:hover:not(:disabled) { background: #f8fafc; border-color: #d1d5db; }
 .os-secondary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .os-save-row { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
 .os-save-btn { align-self: flex-start; margin-top: 0; }
 .os-save-status { font-size: 12px; font-weight: 600; }
-.os-save-status--ok { color: #34d399; }
+.os-save-status--ok { color: #065f46; }
 .os-save-status--err { color: #FF453A; }
 
-.os-switcher { flex-direction: row; flex-wrap: wrap; }
+.os-switcher { flex-direction: row; flex-wrap: wrap; gap: 8px; }
 .os-org-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px) saturate(160%);
-  -webkit-backdrop-filter: blur(10px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  padding: 6px 12px 6px 6px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 180ms ease;
-  /* Org names are arbitrary length — without these a long one makes the chip
-     wider than its wrapping container and overflows the panel. */
-  min-width: 0;
-  max-width: 100%;
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 9999px;
+  padding: 6px 12px 6px 6px; cursor: pointer; font-family: inherit;
+  min-width: 0; max-width: 100%;
 }
-.os-org-chip:hover:not(.os-org-chip--active) {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-.os-org-chip--active {
-  border-color: var(--gold);
-  background: rgb(from var(--gold) r g b / 0.1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
+.os-org-chip:hover:not(.os-org-chip--active) { background: #f8fafc; border-color: #d1d5db; }
+.os-org-chip--active { border-color: #cbd5e1; background: #f1f5f9; }
 .os-org-chip-avatar {
   width: 24px; height: 24px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -1443,11 +1391,11 @@ function avatarStyle(u) {
 }
 .os-owner-badge {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
-  color: var(--gold); background: rgb(from var(--gold) r g b / 0.12); border-radius: 6px; padding: 2px 6px;
+  color: #111827; background: #f3f4f6; border-radius: 9999px; padding: 2px 8px;
 }
 .os-archived-badge {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
-  color: var(--c-txt-3); background: rgba(255,255,255,0.06); border-radius: 6px; padding: 2px 6px;
+  color: #64748b; background: #f3f4f6; border-radius: 9999px; padding: 2px 8px;
 }
 .os-org-chip--archived { opacity: 0.55; }
 .os-org-chip--archived.os-org-chip--active { opacity: 0.85; }
@@ -1478,9 +1426,9 @@ function avatarStyle(u) {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--c-border);
-  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
   padding: 10px 12px;
   font-size: 12px;
   color: var(--c-txt-2);
@@ -1508,18 +1456,33 @@ function avatarStyle(u) {
 }
 .os-danger-btn:hover { text-decoration: underline; }
 
-.os-brand-row { display: flex; gap: 12px; margin-bottom: 6px; }
+.os-identity {
+  display: grid;
+  grid-template-columns: 88px 72px minmax(0, 1fr);
+  align-items: end;
+  gap: 16px;
+}
+.os-identity-art { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.os-image-cap { font-size: 11px; font-weight: 600; color: #64748b; }
+.os-identity-name { min-width: 0; }
+.os-field { display: flex; flex-direction: column; gap: 6px; }
+.os-color-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.os-brand-row { display: none; }
 .os-image-picker {
   width: 88px; height: 88px;
-  border: 1px dashed var(--c-border);
-  border-radius: 14px;
+  border: 1px dashed #d1d5db;
+  border-radius: 16px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  background: rgba(255,255,255,0.02);
+  background: #f8fafc;
 }
-.os-image-picker--small { width: 56px; height: 56px; }
+.os-image-picker--small { width: 72px; height: 72px; border-radius: 16px; }
 .os-image-picker--disabled { cursor: not-allowed; opacity: 0.6; }
 .os-image-preview { width: 100%; height: 100%; object-fit: cover; }
 .os-image-placeholder { font-size: 11px; color: var(--c-txt-3); }
@@ -1530,14 +1493,28 @@ function avatarStyle(u) {
 }
 .os-hidden { display: none; }
 
-.os-color-row { display: flex; align-items: center; gap: 10px; }
-.os-color-input {
-  width: 36px; height: 30px;
-  border: none; border-radius: 8px;
-  background: none; cursor: pointer;
-  padding: 0;
+.os-color-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  background: #fff;
+  box-sizing: border-box;
 }
-.os-color-value { font-size: 12px; color: var(--c-txt-3); font-family: 'JetBrains Mono', monospace; }
+.os-color-input {
+  width: 36px; height: 36px;
+  border: 1px solid #e5e7eb; border-radius: 50%;
+  background: none; cursor: pointer;
+  padding: 0; overflow: hidden;
+  flex-shrink: 0;
+}
+.os-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+.os-color-input::-webkit-color-swatch { border: none; border-radius: 50%; }
+.os-color-value { font-size: 14px; color: #374151; font-family: 'JetBrains Mono', monospace; }
 
 .os-advanced-hd {
   display: flex;
@@ -1566,7 +1543,7 @@ function avatarStyle(u) {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: rgba(255,255,255,0.03);
+  background: #f8fafc;
   border: 1px solid var(--c-border);
   border-radius: 10px;
   padding: 12px 14px;
@@ -1576,7 +1553,7 @@ function avatarStyle(u) {
   font-size: 19px;
   font-weight: 700;
   letter-spacing: 1.2px;
-  color: var(--gold);
+  color: #111827;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .os-sid-current-hint { font-size: 11.5px; color: var(--c-txt-3); line-height: 1.5; }
@@ -1586,7 +1563,7 @@ function avatarStyle(u) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: rgba(255,255,255,0.02);
+  background: #fff;
   border: 1px solid var(--c-border);
   border-radius: 12px;
   padding: 10px 12px;
@@ -1605,11 +1582,11 @@ function avatarStyle(u) {
   font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
   text-transform: uppercase; border-radius: 6px; padding: 3px 7px;
 }
-.os-sid-chip--approved { color: #34d399; background: rgba(52,211,153,0.12); }
+.os-sid-chip--approved { color: #065f46; background: #ecfdf5; }
 .os-sid-chip--pending  { color: #FF9F0A; background: rgba(255,159,10,0.12); }
 .os-sid-chip--rejected { color: #FF453A; background: rgba(255,69,58,0.12); }
-.os-sid-chip--revoked  { color: var(--c-txt-3); background: rgba(255,255,255,0.06); }
-.os-sid-chip--default  { color: var(--gold); background: rgb(from var(--gold) r g b / 0.14); }
+.os-sid-chip--revoked  { color: #64748b; background: #f3f4f6; }
+.os-sid-chip--default  { color: #111827; background: #f3f4f6; }
 
 .os-sid-input {
   text-transform: uppercase;
@@ -1617,8 +1594,25 @@ function avatarStyle(u) {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.os-section-lbl { font-size: 12px; font-weight: 600; color: var(--c-txt-2); margin: 0; }
-.os-search-row { display: flex; gap: 8px; }
+/* ── SMS provider credentials ── */
+.os-provider-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.os-provider-hd { display: flex; align-items: center; gap: 8px; }
+.os-provider-name {
+  font-size: 13px; font-weight: 700; color: var(--c-txt);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.os-section-lbl { font-size: 13px; font-weight: 600; color: #374151; margin: 0; }
+.os-search-row { display: flex; align-items: center; gap: 10px; }
+.os-search-row .os-input { min-width: 0; flex: 1; }
 .os-search-error { font-size: 12px; color: #FF453A; }
 
 .os-member-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
@@ -1626,7 +1620,7 @@ function avatarStyle(u) {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255,255,255,0.02);
+  background: #fff;
   border: 1px solid var(--c-border);
   border-radius: 12px;
   padding: 9px 12px;
@@ -1647,9 +1641,9 @@ function avatarStyle(u) {
 
 .os-already-badge { font-size: 11px; color: var(--c-txt-3); }
 .os-add-btn {
-  background: rgb(from var(--gold) r g b / 0.12); color: var(--gold);
-  border: none; border-radius: 8px; padding: 6px 12px;
-  font-size: 12px; font-weight: 700; cursor: pointer;
+  background: #111827; color: #fff;
+  border: none; border-radius: 9999px; padding: 6px 14px;
+  font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
 }
 .os-add-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .os-remove-btn {
@@ -1666,7 +1660,7 @@ function avatarStyle(u) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255,255,255,0.03);
+  background: #f8fafc;
   border: 1px solid var(--c-border);
   color: var(--c-txt-3);
   border-radius: 20px;
@@ -1680,19 +1674,23 @@ function avatarStyle(u) {
 .os-perm-toggle:disabled { opacity: 0.6; cursor: not-allowed; }
 .os-perm-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-txt-3); flex-shrink: 0; }
 .os-perm-toggle--on {
-  background: rgb(from var(--gold) r g b / 0.12);
-  border-color: rgb(from var(--gold) r g b / 0.35);
-  color: var(--gold);
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
 }
-.os-perm-toggle--on .os-perm-dot { background: var(--gold); }
+.os-perm-toggle--on .os-perm-dot { background: #111827; }
 
 /* ── Responsive topbar ──────────────────────────────────────────────────────
    Same ladder as MyEvents.vue: the bar sheds text in priority order as width
    runs out — wordmark, then the admin pill's label, then the create button's
    label — so controls keep their tap targets instead of being squeezed. ── */
 @media (max-width: 860px) {
-  .os-topbar { padding: 0 20px; }
-  .os-page { padding: 22px 20px 56px; }
+  .os-topbar-inner { height: auto; flex-wrap: wrap; padding: 12px 16px; }
+  .os-hd-sep { display: none; }
+  .os-tabs, .os-stack { padding-left: 16px; padding-right: 16px; }
+  .os-page > .os-panel, .os-page > .os-empty { margin-left: 16px; margin-right: 16px; }
+  .os-identity { grid-template-columns: 88px 72px 1fr; }
+  .os-color-grid { grid-template-columns: 1fr; }
 }
 
 /* Wordmark first — decorative, and the logo still links to /. */
@@ -1701,9 +1699,10 @@ function avatarStyle(u) {
 }
 
 @media (max-width: 640px) {
-  .os-topbar { padding: 0 14px; }
+  .os-topbar { padding: 0; }
   .os-topbar-inner { padding: 12px 16px; }
-  .os-page { padding: 18px 14px 48px; gap: 16px; }
+  .os-page { padding: 16px 16px 48px; gap: 16px; }
+  .os-admin-dropdown { top: 92px; }
   /* The dropdown is right:0-anchored to its trigger, but the trigger isn't the
      rightmost element (theme toggle and create button follow it) — at narrow
      widths that pushed the 210px panel's left edge off-screen. Anchor it to the
@@ -1737,6 +1736,7 @@ function avatarStyle(u) {
     align-items: stretch;
     max-width: none;
   }
+  .os-identity { grid-template-columns: 1fr; justify-items: start; }
 
   /* Avatar + name/email + permission pill + remove button can't share one line
      at this width without squeezing the name to nothing. Let the actions drop
@@ -1772,10 +1772,47 @@ function avatarStyle(u) {
 }
 
 @media (max-width: 400px) {
-  .os-topbar { padding: 0 12px; }
-  .os-topbar-inner { padding: 10px 14px; }
-  .os-page { padding: 14px 12px 40px; }
+  .os-topbar { padding: 0; }
+  .os-topbar-inner { padding: 10px 16px; }
+  .os-page { padding: 12px 16px 40px; }
   .os-page-title { font-size: 24px; }
   .os-page-sub { display: none; }
+}
+</style>
+
+<!--
+  Unscoped, same pattern as EventBudget / EventSchedule: Tailwind Preflight
+  (`padding: 0` on *) wins over scoped `.os-input` and leaves native inputs
+  looking like 20px underlines. `html .os-input` is enough to take them back.
+-->
+<style>
+html .os-input {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  min-height: 46px;
+  padding: 0 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 450;
+  line-height: 1.3;
+  color: #111827;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+html .os-input:disabled { opacity: 0.6; cursor: not-allowed; }
+html .os-input:focus { border-color: #111827; background: #fff; }
+html .os-input::placeholder { color: #94a3b8; }
+html .os-sid-input {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 </style>

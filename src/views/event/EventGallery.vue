@@ -1,563 +1,327 @@
 <template>
   <div class="eg-root">
 
-    <!-- ══════════════════════════════════════════════════════════
-         FOLDER LIST VIEW
-    ═══════════════════════════════════════════════════════════ -->
-    <template v-if="!selectedFolder">
-
-      <!-- Stat cards -->
-      <div class="eg-stats" v-if="!loading || folders.length">
-        <div class="eg-stat-card">
-          <div class="eg-stat-icon eg-stat-icon--purple">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <div class="eg-stat-body">
-            <span class="eg-stat-lbl">Folders</span>
-            <span class="eg-stat-val">{{ folders.length }}</span>
-          </div>
+    <div class="eg-sticky-head">
+      <div class="eg-panel-hd">
+        <button type="button" class="eg-hd-burger" title="Menu" @click="navDrawer.open()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="eg-hd-sep" />
+        <div class="eg-hd-badge" @click="$router.push('/events')" title="All Events">
+          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="eg-hd-brand-logo" />
+          <span v-else class="eg-hd-brand-script">.joy</span>
         </div>
-        <div class="eg-stat-card">
-          <div class="eg-stat-icon eg-stat-icon--blue">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
-            </svg>
-          </div>
-          <div class="eg-stat-body">
-            <span class="eg-stat-lbl">Total Media</span>
-            <span class="eg-stat-val">{{ folders.reduce((s, f) => s + (f.mediaCount ?? 0), 0) }}</span>
-          </div>
-        </div>
-        <div class="eg-stat-card">
-          <div class="eg-stat-icon eg-stat-icon--teal">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-          <div class="eg-stat-body">
-            <span class="eg-stat-lbl">With Content</span>
-            <span class="eg-stat-val">{{ folders.filter(f => (f.mediaCount ?? 0) > 0).length }}</span>
-          </div>
-        </div>
-        <div class="eg-stat-card">
-          <div class="eg-stat-icon eg-stat-icon--gold">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <div class="eg-stat-body">
-            <span class="eg-stat-lbl">Empty</span>
-            <span class="eg-stat-val">{{ folders.filter(f => !(f.mediaCount ?? 0)).length }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Panel -->
-      <div class="eg-panel">
-
-        <!-- Panel header -->
-        <div class="eg-panel-hd">
-          <h2 class="eg-panel-title">Gallery</h2>
-          <div class="eg-panel-acts">
-
-            <!-- Search expanded state -->
-            <template v-if="searchOpen">
-              <div class="eg-search-expanded">
-                <svg class="eg-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                  stroke="#555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                <input
-                  ref="searchInputRef"
-                  v-model="searchQ"
-                  class="eg-search"
-                  placeholder="Search folders…"
-                  @keydown.esc="closeSearch"
-                />
-                <button v-if="searchQ" class="eg-search-clear" @click="searchQ = ''">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.5" stroke-linecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              </div>
-              <button class="eg-search-cancel" @click="closeSearch">Cancel</button>
-            </template>
-
-            <!-- Normal state: all pills/buttons -->
-            <template v-else>
-              <!-- Search pill -->
-              <button
-                class="eg-search-pill"
-                :class="{ 'eg-search-pill--active': searchQ }"
-                @click="openSearch"
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-                Search
-              </button>
-
-              <!-- Refresh button (existing) -->
-              <button class="eg-refresh-btn" @click="loadFolders" :disabled="loading" title="Refresh">
-                <svg :class="{ 'eg-spin': loading }" width="14" height="14" viewBox="0 0 24 24"
-                  fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                </svg>
-              </button>
-
-              <!-- New Folder (primary action, last) -->
-              <button class="eg-new-folder-btn" @click="openCreateFolder">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                  <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
-                </svg>
-                New Folder
-              </button>
-            </template>
-
-          </div>
+        <div class="eg-hd-sep" />
+        <div class="eg-hd-title-group">
+          <h1 class="eg-hub-title">Gallery</h1>
+          <span class="eg-hub-count">{{ folders.length }}</span>
         </div>
 
-        <!-- Panel body -->
-        <div class="eg-panel-body">
-
-          <div v-if="loading" class="eg-empty">
-            <svg class="eg-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-            <p>Loading folders…</p>
-          </div>
-
-          <div v-else-if="!filteredFolders.length" class="eg-empty">
-            <div class="eg-empty-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-                stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-              </svg>
-            </div>
-            <p class="eg-empty-title">{{ searchQ ? 'No folders match' : 'No folders yet' }}</p>
-            <p class="eg-empty-sub">{{ searchQ ? 'Try a different search' : 'Create your first album to organise event photos and videos' }}</p>
-            <button v-if="!searchQ" class="eg-empty-cta" @click="openCreateFolder">New Folder</button>
-          </div>
-
-          <div v-else class="eg-folder-grid">
-            <div v-for="folder in filteredFolders" :key="folder.id"
-              class="eg-folder-card" @click="openFolder(folder)">
-
-              <!-- Thumbnail preview grid -->
-              <div class="eg-fc-thumbs">
-                <template v-if="folder.thumbnails && folder.thumbnails.length">
-                  <div class="eg-fc-thumb-grid">
-                    <div v-for="i in 4" :key="i" class="eg-fc-thumb-cell">
-                      <img v-if="folder.thumbnails[i - 1]"
-                        :src="folder.thumbnails[i - 1].url"
-                        loading="lazy" draggable="false" />
-                    </div>
-                  </div>
-                </template>
-                <template v-else>
-                  <div class="eg-fc-thumb-placeholder">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-                      stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    <span>Empty folder</span>
-                  </div>
-                </template>
-              </div>
-
-              <!-- Card footer -->
-              <div class="eg-fc-body">
-                <p class="eg-fc-name">{{ folder.name }}</p>
-                <p class="eg-fc-meta">
-                  {{ folder.mediaCount ?? 0 }} {{ (folder.mediaCount ?? 0) === 1 ? 'item' : 'items' }}
-                  · {{ formatDate(folder.createdAt) }}
-                </p>
-              </div>
-
-              <!-- Delete button (top-right corner, shown on hover) -->
-              <div class="eg-fc-del-wrap" @click.stop>
-                <template v-if="confirmDeleteFolderId === folder.id">
-                  <div class="eg-fc-del-confirm">
-                    <span>Delete?</span>
-                    <button class="eg-del-yes" @click.stop="deleteFolder(folder)"
-                      :disabled="deletingFolderId === folder.id">
-                      {{ deletingFolderId === folder.id ? '…' : 'Yes' }}
-                    </button>
-                    <button class="eg-del-no" @click.stop="confirmDeleteFolderId = null">No</button>
-                  </div>
-                </template>
-                <button v-else class="eg-fc-del-btn"
-                  @click.stop="confirmDeleteFolderId = folder.id" title="Delete folder">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.2" stroke-linecap="round">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                    <path d="M10 11v6M14 11v6"/>
-                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                  </svg>
-                </button>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-    </template>
-
-    <!-- ══════════════════════════════════════════════════════════
-         FOLDER DETAIL VIEW
-    ═══════════════════════════════════════════════════════════ -->
-    <template v-else>
-
-      <!-- Stat cards for folder detail -->
-      <div class="eg-stats">
-        <div class="eg-stat-card">
-          <div class="eg-stat-icon eg-stat-icon--purple">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
-            </svg>
-          </div>
-          <div class="eg-stat-body">
-            <span class="eg-stat-lbl">Total Items</span>
-            <span class="eg-stat-val">{{ folderMedia.length }}</span>
-          </div>
-        </div>
-        <div class="eg-stat-card">
-          <div class="eg-stat-icon eg-stat-icon--blue">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
-            </svg>
-          </div>
-          <div class="eg-stat-body">
-            <span class="eg-stat-lbl">Photos</span>
-            <span class="eg-stat-val">{{ photoCount }}</span>
-          </div>
-        </div>
-        <div class="eg-stat-card">
-          <div class="eg-stat-icon eg-stat-icon--teal">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="23 7 16 12 23 17 23 7"/>
-              <rect x="1" y="5" width="15" height="14" rx="2"/>
-            </svg>
-          </div>
-          <div class="eg-stat-body">
-            <span class="eg-stat-lbl">Videos</span>
-            <span class="eg-stat-val">{{ videoCount }}</span>
-          </div>
-        </div>
-        <div class="eg-stat-card">
-          <div class="eg-stat-icon eg-stat-icon--gold">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <div class="eg-stat-body">
-            <span class="eg-stat-lbl">In Album</span>
-            <span class="eg-stat-val">{{ folderMedia.length }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Panel -->
-      <div class="eg-panel">
-
-        <!-- Panel header -->
-        <div class="eg-panel-hd">
-          <button class="eg-back-btn" @click="closeFolder">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Folders
-          </button>
-          <h2 class="eg-panel-title">{{ selectedFolder.name }}</h2>
-          <div class="eg-panel-acts">
-            <!-- Add Media dropdown -->
-            <div class="eg-add-wrap">
-              <button class="eg-add-media-btn" @click="addMenuOpen = !addMenuOpen" :disabled="uploading">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Add Media
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <!-- Dropdown backdrop -->
-              <div v-if="addMenuOpen" class="eg-add-backdrop" @click="addMenuOpen = false"/>
-              <div v-if="addMenuOpen" class="eg-add-menu">
-                <button class="eg-add-menu-item" @click="triggerImageUpload">
-                  <div class="eg-add-menu-ico eg-add-menu-ico--photo">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2" stroke-linecap="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2"/>
-                      <circle cx="8.5" cy="8.5" r="1.5"/>
-                      <polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                  </div>
-                  <div class="eg-add-menu-info">
-                    <span class="eg-add-menu-lbl">Photos</span>
-                    <span class="eg-add-menu-sub">Select multiple images</span>
-                  </div>
-                </button>
-                <button class="eg-add-menu-item" @click="triggerVideoUpload">
-                  <div class="eg-add-menu-ico eg-add-menu-ico--video">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2" stroke-linecap="round">
-                      <polygon points="23 7 16 12 23 17 23 7"/>
-                      <rect x="1" y="5" width="15" height="14" rx="2"/>
-                    </svg>
-                  </div>
-                  <div class="eg-add-menu-info">
-                    <span class="eg-add-menu-lbl">Video</span>
-                    <span class="eg-add-menu-sub">Select a video file</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Upload progress banner -->
-        <div v-if="uploading" class="eg-upload-banner">
-          <div class="eg-upload-banner-top">
-            <span class="eg-upload-lbl">Uploading…</span>
-            <div class="eg-upload-count">{{ uploadIndex }} / {{ uploadTotal }}</div>
-            <button class="eg-upload-cancel" @click="cancelUpload">Cancel</button>
-          </div>
-          <div class="eg-upload-track">
-            <div class="eg-upload-fill"
-              :style="{ width: uploadTotal > 0 ? `${((uploadIndex - 1 + uploadProgress) / uploadTotal) * 100}%` : '0%' }"/>
-          </div>
-        </div>
-
-        <!-- Panel body: media grid -->
-        <div class="eg-panel-body">
-
-          <div v-if="loadingMedia" class="eg-empty">
-            <svg class="eg-spin" width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-            <p>Loading media…</p>
-          </div>
-
-          <div v-else-if="!folderMedia.length && !uploading" class="eg-empty">
-            <div class="eg-empty-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-                stroke-width="1.4" stroke-linecap="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <polyline points="21 15 16 10 5 21"/>
-              </svg>
-            </div>
-            <p class="eg-empty-title">This folder is empty</p>
-            <p class="eg-empty-sub">Upload photos or videos to get started</p>
-            <button class="eg-empty-cta" @click="triggerImageUpload">Add Photos</button>
-          </div>
-
-          <div v-else class="eg-media-grid">
-            <div v-for="item in folderMedia" :key="item.id"
-              class="eg-media-tile"
-              @click="confirmDeleteMediaId === item.id ? null : openLightbox(item)">
-
-              <!-- Image -->
-              <img v-if="item.type === 'image'"
-                :src="item.url" class="eg-tile-img"
-                loading="lazy" draggable="false" />
-
-              <!-- Video placeholder -->
-              <div v-else class="eg-tile-video">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#555"
-                  stroke-width="1.5" stroke-linecap="round">
-                  <polygon points="23 7 16 12 23 17 23 7"/>
-                  <rect x="1" y="5" width="15" height="14" rx="2"/>
-                </svg>
-                <div class="eg-tile-video-badge">
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="#C9A84C" stroke="none">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                  </svg>
-                  VIDEO
-                </div>
-              </div>
-
-              <!-- Delete overlay (hover) -->
-              <div class="eg-tile-actions" @click.stop>
-                <template v-if="confirmDeleteMediaId === item.id">
-                  <div class="eg-tile-confirm">
-                    <span>Delete?</span>
-                    <button class="eg-tile-yes"
-                      @click.stop="deleteMedia(item)"
-                      :disabled="deletingMediaId === item.id">
-                      {{ deletingMediaId === item.id ? '…' : 'Yes' }}
-                    </button>
-                    <button class="eg-tile-no" @click.stop="confirmDeleteMediaId = null">No</button>
-                  </div>
-                </template>
-                <template v-else>
-                  <button class="eg-tile-del-btn" @click.stop="confirmDeleteMediaId = item.id"
-                    title="Delete">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2.5" stroke-linecap="round">
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                      <path d="M10 11v6M14 11v6"/>
-                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                    </svg>
-                  </button>
-                </template>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-    </template>
-
-    <!-- ══ Create Folder Modal ══ -->
-    <Teleport to="body">
-      <Transition name="eg-fade">
-        <div v-if="showCreateFolder" class="eg-modal-overlay" @click.self="showCreateFolder = false">
-          <div class="eg-modal">
-            <div class="eg-modal-ico-wrap">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C9A84C"
-                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
-              </svg>
-            </div>
-            <h3 class="eg-modal-title">New Folder</h3>
-            <p class="eg-modal-sub">Give your album a name</p>
-            <input
-              ref="folderNameInputRef"
-              v-model="newFolderName"
-              class="eg-modal-input"
-              placeholder="e.g. Pre-Wedding"
-              @keydown.enter="createFolder"
-              @keydown.esc="showCreateFolder = false"
-            />
-            <div class="eg-modal-actions">
-              <button class="eg-modal-cancel" @click="showCreateFolder = false">Cancel</button>
-              <button class="eg-modal-create" @click="createFolder"
-                :disabled="creatingFolder || !newFolderName.trim()">
-                {{ creatingFolder ? 'Creating…' : 'Create' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
-
-    <!-- ══ Lightbox ══ -->
-    <Teleport to="body">
-      <Transition name="eg-fade">
-        <div v-if="lightboxItem" class="eg-lightbox" @click.self="lightboxItem = null">
-          <button class="eg-lightbox-close" @click="lightboxItem = null">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2.5" stroke-linecap="round">
+        <div class="eg-search-wrap">
+          <svg class="eg-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input v-model="searchQ" class="eg-search" placeholder="Filter albums" />
+          <button v-if="searchQ" type="button" class="eg-search-clear" @click="searchQ = ''" aria-label="Clear">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
-          <img v-if="lightboxItem.type === 'image'"
-            :src="lightboxItem.url" class="eg-lightbox-img" @click.stop />
-          <video v-else
-            :src="lightboxItem.url"
-            class="eg-lightbox-video"
-            controls autoplay @click.stop />
         </div>
-      </Transition>
+
+        <button type="button" class="eg-add-btn" @click="openCreateFolder">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          New Album
+        </button>
+        <button type="button" class="eg-hd-gear" title="Settings" @click="$router.push(`/event/${eventId}/settings`)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="eg-split">
+      <div class="eg-editor">
+        <p class="eg-crumb">Website / Gallery</p>
+
+        <div v-if="loading && !folders.length" class="eg-empty">
+          <p class="eg-empty-kicker">Albums</p>
+          <h2 class="eg-empty-title">Loading…</h2>
+        </div>
+
+        <div v-else-if="!filteredFolders.length" class="eg-empty">
+          <p class="eg-empty-kicker">The album</p>
+          <h2 class="eg-empty-title">{{ searchQ ? 'Nothing matches' : 'Still unwritten' }}</h2>
+          <p class="eg-empty-lede">{{ searchQ ? 'Try another search.' : 'Send-off, pre-wedding, the dance floor — make an album and drop photos on the right.' }}</p>
+          <button v-if="!searchQ" type="button" class="eg-empty-row" @click="openCreateFolder">
+            <span class="eg-empty-plus">+</span>
+            <span class="eg-empty-row-copy">
+              <span class="eg-empty-row-title">New album</span>
+              <span class="eg-empty-row-sub">It opens as a contact sheet on the right</span>
+            </span>
+          </button>
+        </div>
+
+        <div v-else class="eg-list">
+          <div
+            v-for="folder in filteredFolders" :key="folder.id"
+            class="eg-item"
+            :class="{ 'eg-item--on': selectedFolder?.id === folder.id }"
+            @click="openFolder(folder)"
+          >
+            <div class="eg-item-mosaic">
+              <template v-if="folder.thumbnails?.length">
+                <img
+                  v-for="(th, i) in folder.thumbnails.slice(0, 4)"
+                  :key="i"
+                  :src="th.url"
+                  alt=""
+                  class="eg-item-mosaic-cell"
+                  :class="{ 'eg-item-mosaic-cell--hero': i === 0 && folder.thumbnails.length > 1 }"
+                />
+              </template>
+              <div v-else class="eg-item-mosaic-blank">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </div>
+            </div>
+            <div class="eg-item-copy">
+              <span class="eg-item-title">{{ folder.name }}</span>
+              <span class="eg-item-sub">{{ folder.mediaCount ?? 0 }} {{ (folder.mediaCount ?? 0) === 1 ? 'frame' : 'frames' }} · {{ formatDate(folder.createdAt) }}</span>
+            </div>
+            <div class="eg-item-acts" @click.stop>
+              <template v-if="confirmDeleteFolderId === folder.id">
+                <span class="eg-del-lbl">Delete?</span>
+                <button type="button" class="eg-chip-btn eg-chip-btn--danger" @click="deleteFolder(folder)">
+                  {{ deletingFolderId === folder.id ? '…' : 'Yes' }}
+                </button>
+                <button type="button" class="eg-chip-btn" @click="confirmDeleteFolderId = null">No</button>
+              </template>
+              <button v-else type="button" class="eg-chip-btn" @click="confirmDeleteFolderId = folder.id">Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="eg-preview">
+        <div class="eg-preview-bar">
+          <div class="eg-preview-title-wrap">
+            <span class="eg-preview-kicker">Contact sheet</span>
+            <h2 v-if="selectedFolder" class="eg-preview-name">{{ selectedFolder.name }}</h2>
+          </div>
+          <div v-if="selectedFolder" class="eg-preview-acts">
+            <span class="eg-preview-count">{{ folderMedia.length }}</span>
+            <button type="button" class="eg-ghost" :disabled="uploading" @click="triggerImageUpload">Photos</button>
+            <button type="button" class="eg-ghost" :disabled="uploading" @click="triggerVideoUpload">Video</button>
+          </div>
+        </div>
+
+        <div
+          class="eg-preview-stage"
+          :class="{ 'eg-preview-stage--drop': dragOver }"
+          @dragenter.prevent="onDragEnter"
+          @dragover.prevent="onDragEnter"
+          @dragleave="onDragLeave"
+          @drop.prevent="onDrop"
+        >
+          <div v-if="!selectedFolder" class="eg-paper">
+            <p class="eg-paper-kicker">Memories</p>
+            <h2 class="eg-paper-title">Pick an album</h2>
+            <p class="eg-paper-lede">The frames live here — a contact sheet, not a dashboard.</p>
+          </div>
+
+          <div v-else-if="loadingMedia" class="eg-paper">
+            <p class="eg-paper-kicker">{{ selectedFolder.name }}</p>
+            <h2 class="eg-paper-title">Loading…</h2>
+          </div>
+
+          <div v-else-if="!folderMedia.length && !uploading" class="eg-paper">
+            <p class="eg-paper-kicker">{{ selectedFolder.name }}</p>
+            <h2 class="eg-paper-title">Drop them in</h2>
+            <p class="eg-paper-lede">Drag photos onto this page, or add them from the bar. Guests will see this album on the website.</p>
+            <button type="button" class="eg-empty-row" @click="triggerImageUpload">
+              <span class="eg-empty-plus">+</span>
+              <span class="eg-empty-row-copy">
+                <span class="eg-empty-row-title">Add photos</span>
+                <span class="eg-empty-row-sub">Images from this computer</span>
+              </span>
+            </button>
+          </div>
+
+          <div v-else class="eg-wall">
+            <div v-if="uploading" class="eg-upload">
+              <div class="eg-upload-row">
+                <span>Placing frames… {{ uploadIndex }} / {{ uploadTotal }}</span>
+                <button type="button" class="eg-upload-x" @click="cancelUpload">Cancel</button>
+              </div>
+              <div class="eg-upload-track">
+                <div class="eg-upload-fill" :style="{ width: uploadTotal > 0 ? `${((uploadIndex - 1 + uploadProgress) / uploadTotal) * 100}%` : '0%' }"/>
+              </div>
+            </div>
+
+            <button
+              v-for="(item, idx) in folderMedia" :key="item.id"
+              type="button"
+              class="eg-wall-tile"
+              :class="{ 'eg-wall-tile--hero': idx === 0 && folderMedia.length > 2 }"
+              @click="confirmDeleteMediaId === item.id ? null : openLightbox(item)"
+            >
+              <img v-if="item.type === 'image'" :src="item.url" class="eg-wall-img" loading="lazy" draggable="false" alt="" />
+              <div v-else class="eg-wall-video">
+                <span class="eg-wall-play">▶</span>
+                <span class="eg-wall-vid-lbl">Video</span>
+              </div>
+              <div class="eg-wall-acts" @click.stop>
+                <template v-if="confirmDeleteMediaId === item.id">
+                  <span>Delete?</span>
+                  <button type="button" class="eg-chip-btn eg-chip-btn--danger" @click="deleteMedia(item)">
+                    {{ deletingMediaId === item.id ? '…' : 'Yes' }}
+                  </button>
+                  <button type="button" class="eg-chip-btn" @click="confirmDeleteMediaId = null">No</button>
+                </template>
+                <button v-else type="button" class="eg-chip-btn" @click="confirmDeleteMediaId = item.id">Delete</button>
+              </div>
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <Teleport to="body">
+      <div
+        v-if="showCreateFolder"
+        class="eg-joy-overlay"
+        @pointerdown.self="showCreateFolder = false"
+      >
+        <div class="eg-dialog" role="dialog" aria-modal="true" aria-labelledby="eg-dialog-title" @pointerdown.stop>
+          <div class="eg-dialog-hd">
+            <h3 id="eg-dialog-title" class="eg-dialog-title">New album</h3>
+            <button type="button" class="eg-dialog-x" aria-label="Close" @click="showCreateFolder = false">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div class="eg-dialog-body">
+            <p class="eg-dialog-sub">A name guests will recognise — ceremony, dinner, the last dance.</p>
+            <label class="eg-field-label">Album name</label>
+            <input
+              ref="folderNameInputRef"
+              v-model="newFolderName"
+              class="eg-input"
+              placeholder="e.g. Send-off"
+              @keydown.enter="createFolder"
+              @keydown.esc="showCreateFolder = false"
+            />
+          </div>
+          <div class="eg-dialog-foot">
+            <button type="button" class="eg-dialog-cancel" @click="showCreateFolder = false">Cancel</button>
+            <button
+              type="button"
+              class="eg-dialog-save"
+              :disabled="creatingFolder || !newFolderName.trim()"
+              @click="createFolder"
+            >
+              {{ creatingFolder ? 'Creating…' : 'Create' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </Teleport>
 
-    <!-- Hidden file inputs -->
-    <input ref="imageInputRef" type="file" accept="image/*" multiple
-      style="display:none" @change="handleImageFiles" />
-    <input ref="videoInputRef" type="file" accept="video/*"
-      style="display:none" @change="handleVideoFile" />
+    <Teleport to="body">
+      <div v-if="lightboxItem" class="eg-lightbox" @click.self="lightboxItem = null">
+        <button type="button" class="eg-lightbox-close" @click="lightboxItem = null" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <button v-if="lightboxIndex > 0" type="button" class="eg-lightbox-nav eg-lightbox-nav--prev" @click.stop="lightboxStep(-1)" aria-label="Previous">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button v-if="lightboxIndex < folderMedia.length - 1" type="button" class="eg-lightbox-nav eg-lightbox-nav--next" @click.stop="lightboxStep(1)" aria-label="Next">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <img v-if="lightboxItem.type === 'image'" :src="lightboxItem.url" class="eg-lightbox-img" @click.stop alt="" />
+        <video v-else :src="lightboxItem.url" class="eg-lightbox-video" controls autoplay @click.stop />
+      </div>
+    </Teleport>
+
+    <input ref="imageInputRef" type="file" accept="image/*" multiple style="display:none" @change="handleImageFiles" />
+    <input ref="videoInputRef" type="file" accept="video/*" style="display:none" @change="handleVideoFile" />
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, storage, auth } from '../../firebase'
 import {
-  collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, limit,
+  collection, getDocs, addDoc, deleteDoc, doc, query, orderBy,
 } from 'firebase/firestore'
 import {
   ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject,
 } from 'firebase/storage'
+import { useOrg } from '../../composables/useOrg.js'
+import { useNavDrawer } from '../../composables/useNavDrawer.js'
 
 const props   = defineProps({ event: Object, eventId: String })
 const route   = useRoute()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
+const { brandName, brandLogoUrl } = useOrg()
+const navDrawer = useNavDrawer()
 
-// ── State: folders ──────────────────────────────────────────────────────────
 const folders             = ref([])
 const loading             = ref(false)
 const searchQ             = ref('')
-const searchOpen          = ref(false)
-const searchInputRef      = ref(null)
-function openSearch() { searchOpen.value = true; nextTick(() => searchInputRef.value?.focus()) }
-function closeSearch() { searchOpen.value = false; searchQ.value = '' }
 const confirmDeleteFolderId = ref(null)
 const deletingFolderId    = ref(null)
 const totalMediaCount     = ref(0)
 
-// ── State: folder detail ─────────────────────────────────────────────────────
 const selectedFolder      = ref(null)
 const folderMedia         = ref([])
 const loadingMedia        = ref(false)
 const confirmDeleteMediaId = ref(null)
 const deletingMediaId     = ref(null)
 
-// ── State: create folder ─────────────────────────────────────────────────────
 const showCreateFolder    = ref(false)
 const newFolderName       = ref('')
 const creatingFolder      = ref(false)
 const folderNameInputRef  = ref(null)
 
-// ── State: upload ─────────────────────────────────────────────────────────────
 const uploading           = ref(false)
 const uploadProgress      = ref(0)
 const uploadIndex         = ref(0)
 const uploadTotal         = ref(0)
 let   uploadCancelled     = false
 let   currentUploadTask   = null
-const addMenuOpen         = ref(false)
 
-// ── State: add media ──────────────────────────────────────────────────────────
 const imageInputRef       = ref(null)
 const videoInputRef       = ref(null)
-
-// ── State: lightbox ───────────────────────────────────────────────────────────
 const lightboxItem        = ref(null)
+const dragOver            = ref(false)
+let   dragDepth           = 0
 
-// ── Computed ──────────────────────────────────────────────────────────────────
 const filteredFolders = computed(() => {
   const q = searchQ.value.trim().toLowerCase()
   if (!q) return folders.value
   return folders.value.filter(f => f.name.toLowerCase().includes(q))
 })
 
-const photoCount = computed(() => folderMedia.value.filter(m => m.type === 'image').length)
-const videoCount = computed(() => folderMedia.value.filter(m => m.type === 'video').length)
+const lightboxIndex = computed(() => {
+  if (!lightboxItem.value) return -1
+  return folderMedia.value.findIndex(m => m.id === lightboxItem.value.id)
+})
 
-// ── Data loading ──────────────────────────────────────────────────────────────
 async function loadFolders() {
   if (!eventId.value) return
   loading.value = true
@@ -567,7 +331,6 @@ async function loadFolders() {
     )
     const rawFolders = snap.docs.map(d => ({ id: d.id, ...d.data() }))
 
-    // Load media count + first 4 thumbnails per folder in parallel
     const extras = await Promise.all(
       rawFolders.map(async f => {
         const mediaSnap = await getDocs(
@@ -610,23 +373,25 @@ async function loadFolderMedia(folder) {
   }
 }
 
-onMounted(loadFolders)
-
-// ── Folder actions ────────────────────────────────────────────────────────────
 function openFolder(folder) {
-  selectedFolder.value      = folder
+  if (selectedFolder.value?.id === folder.id) return
+  selectedFolder.value        = folder
   confirmDeleteFolderId.value = null
   confirmDeleteMediaId.value  = null
+  lightboxItem.value          = null
   loadFolderMedia(folder)
 }
 
-function closeFolder() {
-  selectedFolder.value      = null
-  folderMedia.value         = []
-  confirmDeleteMediaId.value = null
-  addMenuOpen.value          = false
-  loadFolders()
-}
+watch(filteredFolders, (list) => {
+  if (!list.length) {
+    selectedFolder.value = null
+    folderMedia.value = []
+    return
+  }
+  if (!selectedFolder.value || !list.some(f => f.id === selectedFolder.value.id)) {
+    openFolder(list[0])
+  }
+})
 
 function openCreateFolder() {
   newFolderName.value    = ''
@@ -643,9 +408,11 @@ async function createFolder() {
       collection(db, 'events', eventId.value, 'galleryFolders'),
       { name, createdAt: new Date().toISOString(), createdBy: auth.currentUser?.uid ?? '' }
     )
-    folders.value.push({ id: docRef.id, name, createdAt: new Date().toISOString(), mediaCount: 0, thumbnails: [] })
+    const created = { id: docRef.id, name, createdAt: new Date().toISOString(), mediaCount: 0, thumbnails: [] }
+    folders.value.push(created)
     showCreateFolder.value = false
     newFolderName.value    = ''
+    openFolder(created)
   } catch (e) {
     console.error('Failed to create folder', e)
   } finally {
@@ -657,7 +424,6 @@ async function deleteFolder(folder) {
   if (deletingFolderId.value) return
   deletingFolderId.value = folder.id
   try {
-    // Load + delete all media first
     const mediaSnap = await getDocs(
       collection(db, 'events', eventId.value, 'galleryFolders', folder.id, 'media')
     )
@@ -671,9 +437,13 @@ async function deleteFolder(folder) {
       })
     )
     await deleteDoc(doc(db, 'events', eventId.value, 'galleryFolders', folder.id))
-    folders.value             = folders.value.filter(f => f.id !== folder.id)
+    folders.value = folders.value.filter(f => f.id !== folder.id)
     confirmDeleteFolderId.value = null
-    totalMediaCount.value     = Math.max(0, totalMediaCount.value - mediaSnap.size)
+    totalMediaCount.value = Math.max(0, totalMediaCount.value - mediaSnap.size)
+    if (selectedFolder.value?.id === folder.id) {
+      selectedFolder.value = null
+      folderMedia.value = []
+    }
   } catch (e) {
     console.error('Failed to delete folder', e)
   } finally {
@@ -681,14 +451,11 @@ async function deleteFolder(folder) {
   }
 }
 
-// ── Media upload ──────────────────────────────────────────────────────────────
 function triggerImageUpload() {
-  addMenuOpen.value = false
   imageInputRef.value?.click()
 }
 
 function triggerVideoUpload() {
-  addMenuOpen.value = false
   videoInputRef.value?.click()
 }
 
@@ -706,6 +473,26 @@ function handleVideoFile(e) {
   uploadFiles([file], 'video')
 }
 
+function onDragEnter() {
+  if (!selectedFolder.value) return
+  dragDepth++
+  dragOver.value = true
+}
+function onDragLeave() {
+  dragDepth = Math.max(0, dragDepth - 1)
+  if (dragDepth === 0) dragOver.value = false
+}
+function onDrop(e) {
+  dragDepth = 0
+  dragOver.value = false
+  if (!selectedFolder.value) return
+  const files = Array.from(e.dataTransfer?.files ?? [])
+  const images = files.filter(f => f.type.startsWith('image/'))
+  const videos = files.filter(f => f.type.startsWith('video/'))
+  if (images.length) uploadFiles(images, 'image')
+  else if (videos.length) uploadFiles(videos.slice(0, 1), 'video')
+}
+
 function cancelUpload() {
   uploadCancelled = true
   currentUploadTask?.cancel()
@@ -719,7 +506,6 @@ async function uploadFiles(files, type) {
   uploadProgress.value  = 0
   uploadCancelled       = false
 
-  let uploadedCount = 0
   try {
     for (let i = 0; i < files.length; i++) {
       if (uploadCancelled) break
@@ -755,7 +541,11 @@ async function uploadFiles(files, type) {
       })
       folderMedia.value.unshift({ id: docRef.id, url, storagePath: path, type, uploadedAt: now })
       totalMediaCount.value++
-      uploadedCount++
+      const folder = folders.value.find(f => f.id === selectedFolder.value.id)
+      if (folder) {
+        folder.mediaCount = (folder.mediaCount ?? 0) + 1
+        folder.thumbnails = [{ url, type }, ...(folder.thumbnails ?? [])].slice(0, 4)
+      }
     }
   } catch (e) {
     if (!uploadCancelled) console.error('Upload failed', e)
@@ -769,7 +559,6 @@ async function uploadFiles(files, type) {
   }
 }
 
-// ── Media delete ──────────────────────────────────────────────────────────────
 async function deleteMedia(item) {
   if (deletingMediaId.value) return
   deletingMediaId.value = item.id
@@ -780,9 +569,15 @@ async function deleteMedia(item) {
     await deleteDoc(
       doc(db, 'events', eventId.value, 'galleryFolders', selectedFolder.value.id, 'media', item.id)
     )
-    folderMedia.value         = folderMedia.value.filter(m => m.id !== item.id)
+    folderMedia.value = folderMedia.value.filter(m => m.id !== item.id)
     confirmDeleteMediaId.value = null
-    totalMediaCount.value     = Math.max(0, totalMediaCount.value - 1)
+    totalMediaCount.value = Math.max(0, totalMediaCount.value - 1)
+    const folder = folders.value.find(f => f.id === selectedFolder.value?.id)
+    if (folder) {
+      folder.mediaCount = Math.max(0, (folder.mediaCount ?? 1) - 1)
+      folder.thumbnails = folderMedia.value.slice(0, 4).map(m => ({ url: m.url, type: m.type }))
+    }
+    if (lightboxItem.value?.id === item.id) lightboxItem.value = folderMedia.value[0] ?? null
   } catch (e) {
     console.error('Failed to delete media', e)
   } finally {
@@ -790,12 +585,27 @@ async function deleteMedia(item) {
   }
 }
 
-// ── Lightbox ───────────────────────────────────────────────────────────────────
 function openLightbox(item) {
   lightboxItem.value = item
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+function lightboxStep(dir) {
+  const i = lightboxIndex.value + dir
+  if (i < 0 || i >= folderMedia.value.length) return
+  lightboxItem.value = folderMedia.value[i]
+}
+
+function onKey(e) {
+  if (e.key === 'Escape') {
+    if (lightboxItem.value) lightboxItem.value = null
+    else if (showCreateFolder.value) showCreateFolder.value = false
+    return
+  }
+  if (!lightboxItem.value) return
+  if (e.key === 'ArrowLeft') lightboxStep(-1)
+  if (e.key === 'ArrowRight') lightboxStep(1)
+}
+
 function formatDate(val) {
   if (!val) return '—'
   try {
@@ -803,503 +613,342 @@ function formatDate(val) {
     return d.toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })
   } catch { return '—' }
 }
+
+onMounted(() => {
+  loadFolders()
+  window.addEventListener('keydown', onKey)
+})
+onUnmounted(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <style scoped>
-/* ══ Root ══ */
 .eg-root {
+  min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 20px 24px 24px;
-  gap: 16px;
+  background: #ffffff;
+  color: #1f2937;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --c-bg:     #141414;
-  --c-border: #2a2a2a;
-  --c-track:  #2a2a2a;
-  --c-muted:  #3a3a3a;
-  --c-txt:    #f0f0ec;
-  --c-txt-2:  #888;
-  --c-txt-3:  #555;
-  --c-divide: #2a2a2a;
-  --c-arrow:  #3a3a3a;
-  transition: background 300ms ease;
-}
-
-/* ── Stat cards ── */
-.eg-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.eg-stat-card {
-  background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 12px;
-  padding: 20px 20px 18px; display: flex; align-items: flex-start; gap: 16px;
-  transition: background 300ms ease, border-color 300ms ease;
-}
-.eg-stat-icon {
-  width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; margin-top: 2px;
-  display: flex; align-items: center; justify-content: center;
-}
-.eg-stat-icon--gold   { background: rgb(from var(--gold) r g b / 0.08);  color: var(--gold); }
-.eg-stat-icon--blue   { background: rgba(96,165,250,0.08);  color: #60a5fa; }
-.eg-stat-icon--teal   { background: rgba(45,212,191,0.08);  color: #2dd4bf; }
-.eg-stat-icon--purple { background: rgba(167,139,250,0.08); color: #a78bfa; }
-.eg-stat-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.eg-stat-lbl  { font-size: 11px; color: var(--c-txt-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.6px; text-transform: uppercase; }
-.eg-stat-val  { font-size: 32px; font-weight: 700; color: var(--c-txt); white-space: nowrap; line-height: 1; letter-spacing: -0.5px; }
-
-/* ── Panel ── */
-.eg-panel {
-  display: flex;
-  flex-direction: column;
-  background: #0d0d0d;
-  border: 1px solid var(--c-border);
-  border-radius: 16px;
   overflow: hidden;
-  transition: background 300ms ease, border-color 300ms ease;
 }
+.eg-sticky-head { position: sticky; top: 0; z-index: 20; background: #fff; }
 .eg-panel-hd {
-  display: flex;
-  align-items: center;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--c-divide);
-  gap: 10px;
+  display: flex; align-items: center; height: 92px; padding: 0 36px; gap: 14px;
+  border-bottom: 1px solid #f1f3f5;
 }
-.eg-panel-title {
-  font-size: 19px; font-weight: 700; color: #f0ece6; margin: 0;
-  letter-spacing: -0.3px; white-space: nowrap;
-}
-.eg-panel-acts { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.eg-panel-body { padding: 20px; }
-
-/* New Folder button (gold primary) */
-.eg-new-folder-btn {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--gold); color: var(--gold-contrast); border: none; border-radius: 10px;
-  padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
-  display: flex; align-items: center; gap: 6px;
-  transition: background 150ms; font-family: inherit; flex-shrink: 0;
-}
-.eg-new-folder-btn:hover { background: #d4b560; }
-
-/* Add Media button (gold primary) */
-.eg-add-media-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--gold); color: var(--gold-contrast); border: none; border-radius: 10px;
-  padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
-  transition: background 150ms; font-family: inherit; flex-shrink: 0;
-}
-.eg-add-media-btn:hover:not(:disabled) { background: #d4b560; }
-.eg-add-media-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* Refresh button */
-.eg-refresh-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  border: 1px solid var(--c-border); background: #0d0d0d; color: var(--c-txt-2);
+.eg-hd-burger {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 1px solid #e5e7eb; border-radius: 50%; background: #fff;
+  color: #4b5563; cursor: pointer; padding: 0;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 140ms;
 }
-.eg-refresh-btn:hover:not(:disabled) { background: var(--c-bg); color: var(--c-txt); }
-.eg-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* Back button in detail panel header */
-.eg-back-btn {
-  display: flex; align-items: center; gap: 5px;
-  padding: 7px 12px; border-radius: 10px;
-  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
-  font-size: 13px; font-weight: 500; cursor: pointer;
-  transition: all 130ms; font-family: inherit; flex-shrink: 0;
+.eg-hd-burger:hover { background: #f8fafc; color: #18181b; border-color: #d1d5db; }
+.eg-hd-sep { width: 1px; height: 16px; background: #e5e7eb; flex-shrink: 0; margin: 0 4px; }
+.eg-hd-badge {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e5e7eb;
+  overflow: hidden; background: #fff; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
-.eg-back-btn:hover { background: var(--c-border); color: var(--c-txt); }
-
-/* Search pill */
-.eg-search-pill {
-  display: flex; align-items: center; gap: 6px;
-  padding: 7px 12px; border-radius: 10px;
-  border: 1px solid var(--c-border); background: var(--c-bg);
-  color: var(--c-txt-2); font-size: 12px; font-weight: 500;
-  font-family: inherit; cursor: pointer;
-  transition: all 140ms; white-space: nowrap;
+.eg-hd-brand-logo { width: 100%; height: 100%; object-fit: cover; }
+.eg-hd-brand-script {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic; font-size: 18px; font-weight: 700;
+  color: #111827; letter-spacing: -0.04em; line-height: 1;
 }
-.eg-search-pill:hover { background: var(--c-muted); color: #f0ece6; }
-.eg-search-pill--active { color: #f0ece6; border-color: rgba(240,236,230,0.2); background: rgba(240,236,230,0.06); }
-
-/* Search expanded */
-.eg-search-expanded {
-  flex: 1; min-width: 160px; position: relative;
-  display: flex; align-items: center;
+.eg-hd-title-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.eg-hub-title { margin: 0; font-size: 22px; font-weight: 600; color: #18181b; letter-spacing: -0.015em; white-space: nowrap; }
+.eg-hub-count {
+  font-size: 12.5px; font-weight: 600; color: #4b5563;
+  background: #f1f3f5; border-radius: 9999px; padding: 2px 10px;
 }
-.eg-search-icon { position: absolute; left: 10px; pointer-events: none; }
+.eg-search-wrap {
+  position: relative; display: flex; align-items: center;
+  flex: 1 1 0; margin: 0 20px; min-width: 220px;
+}
+.eg-search-icon { position: absolute; left: 16px; color: #9ca3af; pointer-events: none; }
 .eg-search {
-  width: 100%; padding: 8px 32px;
-  border: 1px solid var(--c-border); border-radius: 10px;
-  font-size: 13px; font-family: inherit; outline: none;
-  background: var(--c-bg); color: var(--c-txt);
-  transition: border-color 150ms, box-shadow 150ms;
+  width: 100%; height: 44px; padding: 0 44px 0 44px;
+  background: #f3f4f6; border: none; border-radius: 9999px;
+  font-size: 15px; color: #111827; outline: none; font-family: inherit;
 }
-.eg-search:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
-.eg-search::placeholder { color: var(--c-txt-3); }
+.eg-search:focus { background: #eeeeef; }
+.eg-search::placeholder { color: #9ca3af; }
 .eg-search-clear {
-  position: absolute; right: 8px;
-  background: none; border: none; cursor: pointer; color: var(--c-txt-2); padding: 2px;
-  display: flex; align-items: center;
+  position: absolute; right: 10px; width: 32px; height: 32px;
+  border: none; background: none; color: #9ca3af; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
 }
-.eg-search-clear:hover { color: var(--c-txt); }
-.eg-search-cancel {
-  flex-shrink: 0; padding: 7px 2px;
-  border: none; background: none;
-  font-size: 13px; font-weight: 500; color: var(--c-txt-2);
-  cursor: pointer; font-family: inherit; transition: color 130ms;
+.eg-add-btn {
+  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+  height: 40px; padding: 0 20px; border: 1px solid #e5e7eb; border-radius: 9999px;
+  background: #fff; color: #111827; font-family: inherit;
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
 }
-.eg-search-cancel:hover { color: #f0ece6; }
+.eg-add-btn:hover { background: #f8fafc; border-color: #d1d5db; }
+.eg-hd-gear {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.eg-hd-gear:hover { background: #f8fafc; color: #0f172a; }
 
-/* ══ Upload banner ══ */
-.eg-upload-banner {
-  flex-shrink: 0; padding: 12px 20px;
-  background: rgb(from var(--gold) r g b / 0.06); border-bottom: 1px solid rgb(from var(--gold) r g b / 0.15);
+.eg-split {
+  flex: 1; display: flex; align-items: stretch; min-height: 0; background: #f7f7f8;
 }
-.eg-upload-banner-top {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+.eg-editor {
+  flex: 0 0 38%;
+  width: 38%;
+  min-width: 280px;
+  background: #fff;
+  border-right: 1px solid #f0f0f2;
+  overflow-y: auto;
+  padding: 22px 28px 48px;
 }
-.eg-upload-lbl   { font-size: 13px; font-weight: 600; color: var(--c-txt); flex: 1; }
-.eg-upload-count { font-size: 12px; color: var(--c-txt-2); }
-.eg-upload-cancel {
-  padding: 4px 10px; border-radius: 7px;
-  border: 1px solid rgba(255,59,48,0.3); background: rgba(255,59,48,0.07); color: #FF453A;
-  font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer;
+.eg-crumb { margin: 0 0 18px; font-size: 12.5px; font-weight: 500; color: #94a3b8; }
+.eg-empty { padding: 8px 2px 0; }
+.eg-empty-kicker {
+  margin: 0 0 6px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: #94a3b8;
 }
-.eg-upload-cancel:hover { background: rgba(255,59,48,0.13); }
-.eg-upload-track {
-  height: 5px; border-radius: 3px; background: var(--c-track); overflow: hidden;
+.eg-empty-title {
+  margin: 0 0 10px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 400; font-style: italic; font-size: 28px; color: #1a1a1a;
 }
-.eg-upload-fill {
-  height: 100%; border-radius: 3px; background: var(--gold);
-  transition: width 200ms linear;
+.eg-empty-lede { margin: 0 0 22px; max-width: 42ch; font-size: 14px; color: #64748b; line-height: 1.55; }
+.eg-empty-row {
+  width: min(420px, 100%); display: flex; align-items: center; gap: 14px;
+  padding: 16px 14px; border: 1px dashed #d1d5db; border-radius: 14px;
+  background: #fafafa; cursor: pointer; text-align: left; font-family: inherit;
 }
+.eg-empty-row:hover { border-color: #c4c4c8; background: #fff; }
+.eg-empty-plus {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #fff; color: #374151; border: 1px solid #e5e7eb;
+  display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+}
+.eg-empty-row-copy { display: flex; flex-direction: column; gap: 2px; }
+.eg-empty-row-title { font-size: 15px; font-weight: 600; color: #111827; }
+.eg-empty-row-sub { font-size: 13px; color: #64748b; }
 
-/* Empty state */
-.eg-empty {
-  display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; min-height: 280px; color: var(--c-txt-3);
-}
-.eg-empty-icon {
-  width: 64px; height: 64px; border-radius: 50%;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--c-border);
-  display: flex; align-items: center; justify-content: center;
-}
-.eg-empty-title { font-size: 15px; font-weight: 600; color: var(--c-txt-2); margin: 0; }
-.eg-empty-sub   { font-size: 13px; color: var(--c-txt-3); margin: 0; text-align: center; max-width: 280px; }
-.eg-empty-cta {
-  margin-top: 6px; padding: 9px 20px; border-radius: 10px;
-  background: rgba(226,232,240,0.12); color: var(--c-txt); font-size: 13px; font-weight: 600;
-  border: none; cursor: pointer; transition: background 140ms; font-family: inherit;
-}
-.eg-empty-cta:hover { background: #1a2236; }
-
-/* ══ Folder grid ══ */
-.eg-folder-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 16px;
-}
-
-.eg-folder-card {
-  background: var(--c-bg);
-  border: 1px solid var(--c-border);
-  border-radius: 16px;
-  overflow: hidden;
+.eg-list { display: flex; flex-direction: column; }
+.eg-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 4px 14px;
+  border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
-  position: relative;
-  transition: box-shadow 160ms, border-color 160ms, transform 160ms, background 300ms ease;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
-.eg-folder-card:hover {
-  box-shadow: 0 4px 18px rgba(0,0,0,0.10);
-  border-color: var(--c-muted);
-  transform: translateY(-1px);
+.eg-item:hover { background: #fafafa; }
+.eg-item--on { background: #f7f7f8; }
+.eg-item-mosaic {
+  width: 64px; height: 64px; flex-shrink: 0;
+  border-radius: 8px; overflow: hidden;
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1px;
+  background: #faf6ef; border: 1px solid #ececec;
 }
-.eg-folder-card:hover .eg-fc-del-btn { opacity: 1; }
+.eg-item-mosaic-cell { width: 100%; height: 100%; object-fit: cover; display: block; }
+.eg-item-mosaic-cell--hero { grid-row: span 2; }
+.eg-item-mosaic:has(img:only-child) img { grid-column: 1 / -1; grid-row: 1 / -1; }
+.eg-item-mosaic-blank {
+  grid-column: 1 / -1; grid-row: 1 / -1;
+  display: flex; align-items: center; justify-content: center; color: #c4b8a8;
+}
+.eg-item-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.eg-item-title { font-size: 15px; font-weight: 600; color: #111827; }
+.eg-item-sub { font-size: 12.5px; color: #64748b; }
+.eg-item-acts { opacity: 0; pointer-events: none; display: flex; gap: 6px; align-items: center; }
+.eg-item:hover .eg-item-acts, .eg-item--on .eg-item-acts { opacity: 1; pointer-events: auto; }
+.eg-del-lbl { font-size: 12px; font-weight: 600; color: #111827; }
+.eg-chip-btn {
+  height: 28px; padding: 0 10px; border-radius: 9999px;
+  border: 1px solid #e5e7eb; background: #fff; color: #374151;
+  font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+}
+.eg-chip-btn:hover { background: #f8fafc; }
+.eg-chip-btn--danger { color: #9f1239; border-color: #fecdd3; }
 
-/* Thumbnail grid */
-.eg-fc-thumbs { width: 100%; aspect-ratio: 4/3; overflow: hidden; }
-
-.eg-fc-thumb-grid {
-  width: 100%; height: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 2px;
-  background: var(--c-track);
+.eg-preview {
+  flex: 1 1 62%; min-width: 0;
+  display: flex; flex-direction: column; background: #f4f4f5;
 }
-.eg-fc-thumb-cell {
-  background: var(--c-track);
-  overflow: hidden;
+.eg-preview-bar {
+  min-height: 56px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 18px; background: #fff; border-bottom: 1px solid #f0f0f2; flex-shrink: 0;
 }
-.eg-fc-thumb-cell img {
-  width: 100%; height: 100%;
-  object-fit: cover; display: block;
+.eg-preview-title-wrap { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.eg-preview-kicker {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8;
 }
-
-.eg-fc-thumb-placeholder {
-  width: 100%; height: 100%;
-  background: linear-gradient(145deg, #F5EDD5 0%, #EDD89A 100%);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 8px;
-}
-.eg-fc-thumb-placeholder span {
-  font-size: 11px; font-weight: 600; color: var(--gold); opacity: 0.7;
-}
-
-/* Card footer */
-.eg-fc-body { padding: 12px 14px 14px; }
-.eg-fc-name {
-  font-size: 14px; font-weight: 700; color: var(--c-txt); margin: 0 0 4px;
+.eg-preview-name {
+  margin: 0; font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 400; font-size: 20px; color: #1a1a1a; letter-spacing: -0.02em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.eg-fc-meta { font-size: 12px; color: var(--c-txt-2); margin: 0; }
-
-/* Delete controls (overlay top-right) */
-.eg-fc-del-wrap {
-  position: absolute; top: 8px; right: 8px;
-  display: flex; align-items: center; gap: 5px;
+.eg-preview-acts { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.eg-preview-count {
+  font-size: 12.5px; font-weight: 600; color: #4b5563;
+  background: #f1f3f5; border-radius: 9999px; padding: 2px 10px;
 }
-.eg-fc-del-btn {
-  opacity: 0; transition: opacity 150ms;
-  width: 28px; height: 28px; border-radius: 8px;
-  background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
-  border: none; color: #fff;
+.eg-ghost {
+  height: 34px; padding: 0 14px; border-radius: 9999px;
+  border: 1px solid #e5e7eb; background: #fff; color: #374151;
+  font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+}
+.eg-ghost:hover:not(:disabled) { background: #f8fafc; }
+.eg-ghost:disabled { opacity: 0.45; cursor: default; }
+
+.eg-preview-stage {
+  flex: 1; min-height: 0; overflow: auto;
+  padding: 24px; position: relative;
+}
+.eg-preview-stage--drop::after {
+  content: 'Drop photos here';
+  position: absolute; inset: 16px;
+  border: 1.5px dashed #c4c4c8; border-radius: 16px;
+  background: rgba(255,255,255,0.72);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
+  font-size: 15px; font-weight: 600; color: #374151;
+  pointer-events: none;
 }
-.eg-fc-del-btn:hover { background: rgba(255,59,48,0.75); }
-.eg-fc-del-confirm {
-  display: flex; align-items: center; gap: 5px;
-  background: rgba(0,0,0,0.65); border-radius: 9px;
-  padding: 5px 8px; backdrop-filter: blur(6px);
+.eg-paper {
+  max-width: 440px; margin: 40px auto 0;
+  background: #FAF6EF; color: #241F18;
+  border-radius: 4px; box-shadow: 0 18px 50px rgba(36, 31, 24, 0.08);
+  padding: 40px 36px 48px;
 }
-.eg-fc-del-confirm span { font-size: 11px; font-weight: 600; color: #FF453A; }
-.eg-del-yes  {
-  padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700;
-  border: 1px solid rgba(255,59,48,0.4); background: rgba(255,59,48,0.22); color: #FF453A;
-  cursor: pointer; font-family: inherit; transition: background 120ms;
+.eg-paper-kicker {
+  margin: 0 0 10px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: #8a8178;
 }
-.eg-del-yes:hover:not(:disabled) { background: rgba(255,59,48,0.38); }
-.eg-del-yes:disabled { opacity: 0.6; cursor: not-allowed; }
-.eg-del-no {
-  padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600;
-  border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.12); color: #fff;
-  cursor: pointer; font-family: inherit; transition: background 120ms;
+.eg-paper-title {
+  margin: 0 0 12px;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 400; font-size: 28px; color: #241F18; line-height: 1.2;
 }
-.eg-del-no:hover { background: rgba(255,255,255,0.22); }
+.eg-paper-lede { margin: 0 0 20px; font-size: 14px; color: #6b645c; line-height: 1.55; max-width: 34ch; }
 
-/* Add media dropdown */
-.eg-add-wrap { position: relative; }
-.eg-add-backdrop {
-  position: fixed; inset: 0; z-index: 49;
-}
-.eg-add-menu {
-  position: absolute; right: 0; top: calc(100% + 6px); z-index: 50;
-  background: #0d0d0d; border: 1px solid var(--c-border); border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-  padding: 8px; min-width: 240px;
-  display: flex; flex-direction: column; gap: 4px;
-}
-.eg-add-menu-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 12px; border-radius: 10px; border: none;
-  background: transparent; cursor: pointer; font-family: inherit;
-  transition: background 120ms; text-align: left;
-}
-.eg-add-menu-item:hover { background: var(--c-bg); }
-.eg-add-menu-ico {
-  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-}
-.eg-add-menu-ico--photo { background: rgba(90,200,250,0.12); color: #0A7EE3; border: 1px solid rgba(90,200,250,0.2); }
-.eg-add-menu-ico--video { background: rgba(255,159,10,0.12); color: #B86B00; border: 1px solid rgba(255,159,10,0.2); }
-.eg-add-menu-info { display: flex; flex-direction: column; gap: 2px; }
-.eg-add-menu-lbl  { font-size: 14px; font-weight: 600; color: var(--c-txt); }
-.eg-add-menu-sub  { font-size: 12px; color: var(--c-txt-2); }
-
-/* ══ Media grid ══ */
-.eg-media-grid {
+.eg-wall {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-auto-rows: 120px;
+  grid-auto-flow: dense;
+  gap: 8px;
 }
+.eg-wall-tile {
+  position: relative; padding: 0; border: none; border-radius: 4px;
+  overflow: hidden; cursor: pointer; background: #e7e2d8;
+}
+.eg-wall-tile--hero { grid-column: span 2; grid-row: span 2; }
+.eg-wall-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.eg-wall-video {
+  width: 100%; height: 100%;
+  background: #ece7dc;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  color: #6b645c;
+}
+.eg-wall-play { font-size: 18px; }
+.eg-wall-vid-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.eg-wall-acts {
+  position: absolute; top: 8px; right: 8px;
+  display: flex; align-items: center; gap: 6px;
+  opacity: 0; pointer-events: none;
+}
+.eg-wall-tile:hover .eg-wall-acts { opacity: 1; pointer-events: auto; }
+.eg-upload {
+  grid-column: 1 / -1;
+  background: #fff; border: 1px solid #f0f0f2; border-radius: 12px; padding: 12px 14px;
+}
+.eg-upload-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #374151; margin-bottom: 8px; }
+.eg-upload-x { border: none; background: none; font-size: 12.5px; font-weight: 600; color: #64748b; cursor: pointer; font-family: inherit; }
+.eg-upload-track { height: 4px; border-radius: 9999px; background: #f1f3f5; overflow: hidden; }
+.eg-upload-fill { height: 100%; background: #111827; width: 0; }
 
-.eg-media-tile {
-  position: relative;
-  aspect-ratio: 1;
-  border-radius: 10px;
+.eg-input {
+  width: 100%; height: 44px; padding: 0 14px; box-sizing: border-box;
+  border: 1px solid #e5e7eb; border-radius: 12px;
+  font-size: 15px; font-family: inherit; color: #111827; outline: none;
+}
+.eg-input:focus { border-color: #d1d5db; }
+
+@media (max-width: 980px) {
+  .eg-split { flex-direction: column; }
+  .eg-editor { width: 100%; flex-basis: auto; max-height: 38vh; border-right: none; border-bottom: 1px solid #f0f0f2; }
+  .eg-preview { min-height: 54vh; }
+  .eg-item-acts { opacity: 1; pointer-events: auto; }
+  .eg-wall-tile--hero { grid-column: span 1; grid-row: span 1; }
+}
+@media (max-width: 900px) {
+  .eg-panel-hd { height: auto; flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
+  .eg-search-wrap { flex: 1 1 100%; margin: 8px 0 0; order: 8; }
+  .eg-hd-sep { display: none; }
+  .eg-editor { padding: 16px; }
+}
+</style>
+
+<style>
+html .eg-joy-overlay {
+  position: fixed; inset: 0; z-index: 1600;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.32) !important;
+  backdrop-filter: none !important;
+}
+html .eg-dialog {
+  width: min(440px, calc(100vw - 32px));
+  background: #fff; color: #111827; border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.2);
   overflow: hidden;
-  cursor: pointer;
-  background: var(--c-track);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
-.eg-media-tile:hover .eg-tile-actions { opacity: 1; }
-
-.eg-tile-img {
-  width: 100%; height: 100%;
-  object-fit: cover; display: block;
-  transition: transform 200ms;
+html .eg-dialog-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 10px 24px;
 }
-.eg-media-tile:hover .eg-tile-img { transform: scale(1.03); }
-
-/* Video placeholder */
-.eg-tile-video {
-  width: 100%; height: 100%;
-  background: #2A2825;
+html .eg-dialog-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: #111827; }
+html .eg-dialog-x {
+  width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: #f8fafc; color: #64748b; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  position: relative;
 }
-.eg-tile-video-badge {
-  position: absolute; bottom: 6px; right: 6px;
-  padding: 3px 6px; border-radius: 5px;
-  background: rgba(0,0,0,0.65);
-  font-size: 8px; font-weight: 800; color: var(--gold); letter-spacing: 0.4px;
-  display: flex; align-items: center; gap: 3px;
+html .eg-dialog-body { padding: 4px 24px 12px; }
+html .eg-dialog-sub { margin: 0 0 18px; font-size: 14px; color: #64748b; line-height: 1.5; }
+html .eg-field-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin: 0 0 8px; }
+html .eg-dialog-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 20px; border-top: 1px solid #f0f0f2;
 }
-
-/* Tile hover actions */
-.eg-tile-actions {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,0.38);
-  display: flex; align-items: flex-start; justify-content: flex-end;
-  padding: 7px; opacity: 0; transition: opacity 160ms;
+html .eg-dialog-cancel {
+  height: 40px; padding: 0 16px; border: none; background: none;
+  font-size: 14px; font-weight: 600; color: #111827; cursor: pointer; font-family: inherit;
 }
-.eg-tile-del-btn {
-  width: 26px; height: 26px; border-radius: 7px;
-  background: rgba(255,59,48,0.85); border: none; color: #fff;
+html .eg-dialog-save {
+  height: 40px; padding: 0 18px; border: 1px solid #e5e7eb; border-radius: 9999px;
+  background: #fff; color: #111827; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+html .eg-dialog-save:disabled { opacity: 0.45; cursor: default; }
+html .eg-lightbox {
+  position: fixed; inset: 0; z-index: 1700;
+  background: rgba(24, 24, 27, 0.92) !important;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: background 120ms;
+  padding: 48px 72px;
 }
-.eg-tile-del-btn:hover { background: #FF3B30; }
-
-/* Delete confirm on tile */
-.eg-tile-confirm {
-  display: flex; align-items: center; gap: 5px;
-  background: rgba(0,0,0,0.70); border-radius: 8px;
-  padding: 5px 8px; backdrop-filter: blur(4px);
-}
-.eg-tile-confirm span { font-size: 11px; font-weight: 600; color: #FF453A; }
-.eg-tile-yes {
-  padding: 3px 9px; border-radius: 6px;
-  background: rgba(255,59,48,0.22); border: 1px solid rgba(255,59,48,0.4);
-  color: #FF453A; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
-}
-.eg-tile-yes:hover:not(:disabled) { background: rgba(255,59,48,0.35); }
-.eg-tile-yes:disabled { opacity: 0.6; cursor: not-allowed; }
-.eg-tile-no {
-  padding: 3px 9px; border-radius: 6px;
-  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
-  color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit;
-}
-.eg-tile-no:hover { background: rgba(255,255,255,0.22); }
-
-/* ══ Create folder modal ══ */
-.eg-modal-overlay {
-  position: fixed; inset: 0; z-index: 300;
-  background: var(--overlay-bg);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px;
-}
-.eg-modal {
-  background: #0d0d0d; border-radius: 20px;
-  padding: 28px 28px 22px;
-  width: 100%; max-width: 360px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
-  display: flex; flex-direction: column; align-items: center; gap: 0;
-  transition: background 300ms ease, border-color 300ms ease;
-}
-.eg-modal-ico-wrap {
-  width: 56px; height: 56px; border-radius: 50%;
-  background: rgba(184,146,77,0.10);
-  border: 1px solid rgb(from var(--gold) r g b / 0.2);
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 14px;
-}
-.eg-modal-title { font-size: 18px; font-weight: 700; color: var(--c-txt); margin: 0 0 5px; }
-.eg-modal-sub   { font-size: 13px; color: var(--c-txt-2); margin: 0 0 18px; }
-.eg-modal-input {
-  width: 100%; padding: 10px 14px;
-  border: 1px solid var(--c-border); border-radius: 10px;
-  font-size: 14px; font-family: inherit; outline: none; color: var(--c-txt);
-  background: var(--c-bg); box-sizing: border-box; margin-bottom: 18px;
-  transition: border-color 150ms, box-shadow 150ms;
-}
-.eg-modal-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,146,77,0.10); }
-.eg-modal-actions {
-  display: flex; gap: 10px; width: 100%;
-  padding-top: 16px; border-top: 1px solid var(--c-divide);
-}
-.eg-modal-cancel {
-  flex: 1; padding: 11px; border-radius: 10px;
-  border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-txt-2);
-  font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
-  transition: background 130ms;
-}
-.eg-modal-cancel:hover { background: var(--c-border); }
-.eg-modal-create {
-  flex: 1; padding: 11px; border-radius: 10px;
-  border: none; background: var(--gold); color: var(--gold-contrast);
-  font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
-  transition: background 130ms;
-}
-.eg-modal-create:hover:not(:disabled) { background: #d4b560; }
-.eg-modal-create:disabled { opacity: 0.45; cursor: not-allowed; }
-
-/* ══ Lightbox ══ */
-.eg-lightbox {
-  position: fixed; inset: 0; z-index: 400;
-  background: rgba(0,0,0,0.92);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px;
-}
-.eg-lightbox-close {
+html .eg-lightbox-close {
   position: absolute; top: 16px; right: 16px;
   width: 36px; height: 36px; border-radius: 50%;
   background: rgba(255,255,255,0.12); border: none; color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: background 140ms; z-index: 1;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
-.eg-lightbox-close:hover { background: rgba(255,255,255,0.22); }
-.eg-lightbox-img {
-  max-width: 100%; max-height: 100%;
-  object-fit: contain; border-radius: 8px;
-  user-select: none;
+html .eg-lightbox-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 40px; height: 40px; border-radius: 50%;
+  border: none; background: rgba(255,255,255,0.12); color: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
-.eg-lightbox-video {
-  max-width: 100%; max-height: 100%;
-  border-radius: 8px; outline: none;
-}
-
-/* ══ Transitions ══ */
-.eg-fade-enter-active, .eg-fade-leave-active { transition: opacity 180ms ease; }
-.eg-fade-enter-from,   .eg-fade-leave-to     { opacity: 0; }
-
-/* Spin */
-.eg-spin { animation: eg-spin-anim 1.1s linear infinite; }
-@keyframes eg-spin-anim { to { transform: rotate(360deg); } }
-
-/* ── Responsive ── */
-@media (max-width: 700px) {
-  .eg-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; min-width: 0; }
-  .eg-root  { padding: 12px 14px 20px; gap: 12px; }
-  .eg-stat-card { min-width: 0; overflow: hidden; padding: 14px 14px 12px; gap: 12px; }
-  .eg-stat-icon { width: 36px; height: 36px; flex-shrink: 0; }
-  .eg-stat-val  { font-size: 24px; }
-  .eg-stat-body { gap: 6px; min-width: 0; }
-  .eg-stat-lbl  { font-size: 10px; letter-spacing: 0; }
-}
-
-@media (max-width: 640px) {
-  /* Panel header toolbar wrapping */
-  .eg-panel-hd { flex-wrap: wrap; gap: 8px; }
-  .eg-panel-title { font-size: 16px; }
-  .eg-search-expanded { min-width: 0; max-width: 100%; }
-  .eg-panel-acts { flex-wrap: wrap; gap: 6px; }
-
-  /* Folder grid: narrower cards on small screens */
-  .eg-folder-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-
-  /* Media grid collapses to 2-3 tight columns */
-  .eg-media-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 4px; }
+html .eg-lightbox-nav--prev { left: 16px; }
+html .eg-lightbox-nav--next { right: 16px; }
+html .eg-lightbox-img, html .eg-lightbox-video {
+  max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;
 }
 </style>

@@ -7,7 +7,7 @@
   },
   "hosting": {
     "public": "dist",
-    "site": "haflaway-f14aa",
+    "site": "staging-haflaway",
     "rewrites": [
       {
         "source": "**",

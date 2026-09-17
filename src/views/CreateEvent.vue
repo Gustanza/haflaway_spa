@@ -4,30 +4,26 @@
     <!-- Nav -->
     <nav class="ce-nav">
       <div class="ce-nav-inner">
-        <div class="ce-nav-left">
-          <div class="ce-brand" @click="$router.push('/events')">
-            <span class="ce-brand-dot" />
-            <span class="ce-brand-name">Haflaway</span>
-          </div>
-          <div class="ce-breadcrumb">
-            <span class="ce-sep">/</span>
-            <span class="ce-crumb" @click="$router.push('/events')">My Events</span>
-            <span class="ce-sep">/</span>
-            <span class="ce-crumb ce-crumb--page">Create Event</span>
-          </div>
+        <div class="ce-brand" @click="$router.push('/events')" title="All Events">
+          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="ce-brand-logo" />
+          <span v-else class="ce-brand-script">.joy</span>
         </div>
+        <div class="ce-hd-sep" />
+        <h1 class="ce-hub-title">Create Event</h1>
+        <button type="button" class="ce-crumb" @click="$router.push('/events')">Events</button>
         <div class="ce-nav-right">
-          <div class="ce-avatar-pill">
-            <div class="ce-avatar-dot" />
-            <span class="ce-avatar-label">Admin</span>
-          </div>
+          <button type="button" class="ce-cancel-btn" @click="$router.push('/events')">Cancel</button>
+          <button type="submit" form="ce-create-form" class="ce-submit-btn" :disabled="saving">
+            <span v-if="saving" class="ce-spinner" />
+            <span v-else>Create Event</span>
+          </button>
         </div>
       </div>
     </nav>
 
     <!-- Form body -->
     <div class="ce-body">
-      <form class="ce-form" @submit.prevent="handleSubmit" novalidate>
+      <form id="ce-create-form" class="ce-form" @submit.prevent="handleSubmit" novalidate>
 
         <!-- Thumbnail -->
         <div class="ce-section">
@@ -41,7 +37,7 @@
           >
             <img v-if="thumbPreview" :src="thumbPreview" class="ce-thumb-preview" />
             <div v-else class="ce-thumb-placeholder">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="3"/>
                 <circle cx="8.5" cy="8.5" r="1.5"/>
                 <polyline points="21 15 16 10 5 21"/>
@@ -127,7 +123,7 @@
                   @keydown.enter.prevent="worshipPlace.cursor.value >= 0 && pickWorship(worshipPlace.suggestions.value[worshipPlace.cursor.value])"
                   @keydown.escape="worshipPlace.clear()"
                 />
-                <svg v-if="worshipPlace.loading.value" class="ce-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                <svg v-if="worshipPlace.loading.value" class="ce-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 <ul v-if="worshipPlace.suggestions.value.length" class="ce-suggestions">
@@ -138,7 +134,7 @@
                     :class="{ 'ce-suggestion--active': i === worshipPlace.cursor.value }"
                     @mousedown.prevent="pickWorship(s)"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                     </svg>
                     <div class="ce-suggestion-text">
@@ -196,7 +192,7 @@
                   @keydown.enter.prevent="venuePlace.cursor.value >= 0 && pickVenue(venuePlace.suggestions.value[venuePlace.cursor.value])"
                   @keydown.escape="venuePlace.clear()"
                 />
-                <svg v-if="venuePlace.loading.value" class="ce-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round">
+                <svg v-if="venuePlace.loading.value" class="ce-search-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
                 <ul v-if="venuePlace.suggestions.value.length" class="ce-suggestions">
@@ -207,7 +203,7 @@
                     :class="{ 'ce-suggestion--active': i === venuePlace.cursor.value }"
                     @mousedown.prevent="pickVenue(s)"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" style="flex-shrink:0">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                     </svg>
                     <div class="ce-suggestion-text">
@@ -378,7 +374,7 @@ import { toStoredEventDate } from '../utils/eventDates.js'
 
 const router = useRouter()
 const uid = auth.currentUser?.uid
-const { activeOrg, canCreateEvents, loading: orgLoading } = useOrg()
+const { activeOrg, canCreateEvents, loading: orgLoading, brandName, brandLogoUrl } = useOrg()
 
 const venuePlace = usePlaceSearch()
 const worshipPlace = usePlaceSearch()
@@ -640,458 +636,271 @@ onMounted(async () => {
 <style scoped>
 .ce-root {
   min-height: 100vh;
-  background: var(--org-page-bg, #0a0e1c);
+  background: #ffffff;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #111827;
 }
 
-/* ── Nav ── */
 .ce-nav {
-  background: rgba(10,14,28,0.88);
-  backdrop-filter: blur(18px);
-  border-bottom: 1px solid #1e2d44;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.3);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: #fff;
+  border-bottom: 1px solid #f1f3f5;
 }
 .ce-nav-inner {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 28px 36px;
+  height: 92px;
+  padding: 0 36px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-.ce-nav-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 14px;
+  max-width: none;
+  margin: 0;
 }
 .ce-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e5e7eb;
+  overflow: hidden; background: #fff; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
 }
-.ce-brand-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--gold);
+.ce-brand-logo { width: 100%; height: 100%; object-fit: cover; }
+.ce-brand-script {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic; font-size: 18px; font-weight: 700;
+  color: #111827; letter-spacing: -0.04em; line-height: 1;
 }
-.ce-brand-name {
-  font-size: 22px;
-  font-weight: 800;
-  color: #e2e8f0;
-  letter-spacing: -0.5px;
-}
-.ce-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ce-sep {
-  font-size: 16px;
-  color: #2a3a52;
-  font-weight: 300;
+.ce-hd-sep { width: 1px; height: 16px; background: #e5e7eb; flex-shrink: 0; margin: 0 4px; }
+.ce-hub-title {
+  margin: 0; font-size: 22px; font-weight: 600; color: #18181b;
+  letter-spacing: -0.015em; white-space: nowrap;
 }
 .ce-crumb {
-  font-size: 15px;
-  font-weight: 500;
-  color: #8892a4;
-  cursor: pointer;
-  transition: color 130ms;
+  background: none; border: none; padding: 0;
+  min-width: 0; flex: 1; text-align: left;
+  font-size: 13.5px; font-weight: 500; color: #64748b;
+  font-family: inherit; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.ce-crumb:hover { color: var(--gold); }
-.ce-crumb--page {
-  font-weight: 600;
-  color: #e2e8f0;
-  cursor: default;
-}
-.ce-crumb--page:hover { color: #e2e8f0; }
-.ce-avatar-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 0.8px solid #1e2d44;
-}
-.ce-avatar-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--gold);
-}
-.ce-avatar-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #8892a4;
-}
+.ce-crumb:hover { color: #111827; }
+.ce-nav-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; margin-left: auto; }
 
-/* ── Form body ── */
 .ce-body {
   max-width: 860px;
   margin: 0 auto;
-  padding: 36px 36px 80px;
+  padding: 28px 36px 80px;
 }
-.ce-form {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
+.ce-form { display: flex; flex-direction: column; gap: 16px; }
 
-/* ── Section ── */
 .ce-section {
-  background: #111827;
-  border: 1px solid #1e2d44;
+  background: #fff;
+  border: 1px solid #e5e7eb;
   border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  padding: 20px 22px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 .ce-section-label {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
-  color: #8892a4;
-  letter-spacing: 0.2px;
+  color: #64748b;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-/* ── Fields grid ── */
 .ce-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
-.ce-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+.ce-field { display: flex; flex-direction: column; gap: 6px; }
 .ce-field--full { grid-column: 1 / -1; }
-.ce-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #8892a4;
-}
-.ce-req { color: var(--gold); }
-.ce-optional { color: #4f617a; font-weight: 400; }
+.ce-label { font-size: 13px; font-weight: 600; color: #374151; }
+.ce-req { color: #991b1b; }
+.ce-optional { color: #94a3b8; font-weight: 400; }
 
 .ce-input,
-.ce-textarea {
-  padding: 10px 13px;
-  border: 0.8px solid #1e2d44;
-  border-radius: 10px;
-  background: #111827;
+.ce-textarea,
+.ce-select-btn {
+  height: 46px;
+  padding: 0 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  background: #fff;
   font-size: 14px;
-  color: #e2e8f0;
+  color: #111827;
   outline: none;
   font-family: inherit;
-  transition: border-color 140ms, box-shadow 140ms;
   box-sizing: border-box;
   width: 100%;
 }
+.ce-textarea {
+  height: auto;
+  min-height: 100px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  resize: vertical;
+  line-height: 1.55;
+}
 .ce-input::placeholder,
-.ce-textarea::placeholder { color: #4f617a; }
+.ce-textarea::placeholder { color: #94a3b8; }
 .ce-input:focus,
-.ce-textarea:focus {
-  border-color: rgb(from var(--gold) r g b / 0.5);
-  box-shadow: 0 0 0 3px rgb(from var(--gold) r g b / 0.10);
-  background: #0d1326;
+.ce-textarea:focus,
+.ce-select-btn:focus {
+  border-color: #111827;
+  box-shadow: none;
+  background: #fff;
 }
-.ce-textarea { resize: vertical; min-height: 100px; }
 .ce-field--error .ce-input,
-.ce-field--error .ce-textarea {
-  border-color: rgba(255,59,48,0.45);
-}
-.ce-field-error {
-  font-size: 11px;
-  color: #FF453A;
-  font-weight: 500;
-}
+.ce-field--error .ce-textarea { border-color: #fca5a5; }
+.ce-field-error { font-size: 11px; color: #dc2626; font-weight: 500; }
 
 .ce-search-wrap { position: relative; }
-.ce-input--search { padding-left: 36px; }
-.ce-search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); pointer-events: none; }
-.ce-search-spin { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); animation: ce-rotate 0.8s linear infinite; }
+.ce-input--search { padding-left: 42px; }
+.ce-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af; }
+.ce-search-spin { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); animation: ce-rotate 0.8s linear infinite; }
 @keyframes ce-rotate { to { transform: translateY(-50%) rotate(360deg); } }
 .ce-suggestions {
   position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 200;
-  background: #111827; border: 1px solid #1e2d44; border-radius: 14px; overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4); list-style: none; margin: 0; padding: 4px;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.12); list-style: none; margin: 0; padding: 4px;
 }
-.ce-suggestion { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background 120ms; }
-.ce-suggestion:hover, .ce-suggestion--active { background: rgba(255,255,255,0.06); }
+.ce-suggestion { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 12px; cursor: pointer; }
+.ce-suggestion:hover, .ce-suggestion--active { background: #f7f7f8; }
 .ce-suggestion-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.ce-suggestion-main { font-size: 13.5px; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ce-suggestion-sub { font-size: 12px; color: #8892a4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ce-map-hint { font-size: 11px; color: var(--gold); font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.ce-suggestion-main { font-size: 13.5px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ce-suggestion-sub { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ce-map-hint { font-size: 11px; color: #64748b; font-weight: 500; }
 
 .ce-subrow { display: flex; gap: 8px; margin-top: 2px; }
 .ce-subfield { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-.ce-sublabel { font-size: 11px; font-weight: 600; color: #4f617a; }
+.ce-sublabel { font-size: 11px; font-weight: 600; color: #64748b; }
 
-.ce-manual-toggle { align-self: flex-start; background: none; border: none; padding: 0; font-size: 11px; color: #4f617a; text-decoration: underline; cursor: pointer; font-family: inherit; transition: color 130ms; }
-.ce-manual-toggle:hover { color: #8892a4; }
-.ce-manual-box { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px dashed #1e2d44; border-radius: 10px; }
-.ce-manual-btn {
-  padding: 8px 12px; border: 0.8px solid #1e2d44; border-radius: 8px; background: #111827;
-  font-size: 12.5px; font-weight: 600; color: #e2e8f0; cursor: pointer; font-family: inherit;
-  transition: border-color 140ms; text-align: left; width: fit-content;
+.ce-manual-toggle {
+  align-self: flex-start; background: none; border: none; padding: 0;
+  font-size: 12px; color: #64748b; text-decoration: underline; cursor: pointer; font-family: inherit;
 }
-.ce-manual-btn:hover:not(:disabled) { border-color: rgb(from var(--gold) r g b / 0.45); }
+.ce-manual-toggle:hover { color: #111827; }
+.ce-manual-box { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px dashed #e5e7eb; border-radius: 14px; }
+.ce-manual-btn {
+  height: 40px; padding: 0 14px; border: 1px solid #e5e7eb; border-radius: 9999px; background: #fff;
+  font-size: 13px; font-weight: 600; color: #111827; cursor: pointer; font-family: inherit;
+  width: fit-content;
+}
+.ce-manual-btn:hover:not(:disabled) { background: #f8fafc; border-color: #d1d5db; }
 .ce-manual-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .ce-manual-link-row { display: flex; gap: 8px; }
-.ce-manual-link-input { flex: 1; padding: 8px 12px; font-size: 12.5px; }
+.ce-manual-link-input { flex: 1; }
 .ce-manual-apply {
-  padding: 8px 16px; border: none; border-radius: 8px; background: var(--gold); color: #FFFFFF;
-  font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 140ms; flex-shrink: 0;
+  height: 46px; padding: 0 18px; border: none; border-radius: 9999px; background: #242424; color: #fff;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; flex-shrink: 0;
 }
-.ce-manual-apply:hover:not(:disabled) { opacity: 0.88; }
+.ce-manual-apply:hover:not(:disabled) { background: #000; }
 .ce-manual-apply:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* Select button */
 .ce-select-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 13px;
-  border: 0.8px solid #1e2d44;
-  border-radius: 10px;
-  background: #111827;
-  font-size: 14px;
-  color: #e2e8f0;
-  cursor: pointer;
-  font-family: inherit;
-  transition: border-color 140ms;
-  text-align: left;
-  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; text-align: left;
 }
-.ce-select-btn--empty { color: #4f617a; }
-.ce-select-btn:hover { border-color: rgb(from var(--gold) r g b / 0.45); }
+.ce-select-btn--empty { color: #94a3b8; }
+.ce-select-btn:hover { border-color: #d1d5db; background: #f8fafc; }
 
-/* Language radio row */
-.ce-radio-row {
-  display: flex;
-  gap: 8px;
-}
+.ce-radio-row { display: flex; gap: 8px; }
 .ce-radio-opt {
-  flex: 1;
-  text-align: center;
-  padding: 9px 12px;
-  border: 0.8px solid #1e2d44;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #8892a4;
-  cursor: pointer;
-  transition: all 130ms;
-  background: #111827;
+  flex: 1; text-align: center;
+  min-height: 40px; display: flex; align-items: center; justify-content: center;
+  padding: 0 12px; border: 1px solid #e2e8f0; border-radius: 9999px;
+  font-size: 13px; font-weight: 500; color: #475569; cursor: pointer;
+  background: #fff;
 }
 .ce-radio-opt--active {
-  background: rgb(from var(--gold) r g b / 0.08);
-  border-color: rgb(from var(--gold) r g b / 0.4);
-  color: var(--gold);
-  font-weight: 600;
+  background: #f1f5f9; border-color: #cbd5e1; color: #0f172a; font-weight: 600;
 }
 
-/* ── Thumbnail drop zone ── */
 .ce-thumb-drop {
-  border: 1.5px dashed #1e2d44;
-  border-radius: 14px;
-  min-height: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  overflow: hidden;
-  transition: border-color 150ms;
-  position: relative;
-  background: #111827;
+  border: 1.5px dashed #d1d5db; border-radius: 16px; min-height: 180px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; overflow: hidden; position: relative; background: #f8fafc;
 }
-.ce-thumb-drop:hover { border-color: rgb(from var(--gold) r g b / 0.5); }
-.ce-thumb-drop--has { border-style: solid; border-color: #1e2d44; }
-.ce-thumb-preview {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  position: absolute;
-  inset: 0;
-}
-.ce-thumb-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 24px;
-}
-.ce-thumb-hint {
-  font-size: 14px;
-  font-weight: 600;
-  color: #8892a4;
-  margin: 0;
-}
-.ce-thumb-sub {
-  font-size: 12px;
-  color: #4f617a;
-  margin: 0;
-}
+.ce-thumb-drop:hover { border-color: #9ca3af; background: #f3f4f6; }
+.ce-thumb-drop--has { border-style: solid; border-color: #e5e7eb; background: #fff; }
+.ce-thumb-preview { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+.ce-thumb-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; }
+.ce-thumb-hint { font-size: 14px; font-weight: 600; color: #374151; margin: 0; }
+.ce-thumb-sub { font-size: 12px; color: #94a3b8; margin: 0; }
 .ce-hidden { display: none; }
 
-/* ── Submit error ── */
 .ce-submit-error {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255,59,48,0.07);
-  border: 0.8px solid rgba(255,59,48,0.2);
-  border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 13px;
-  color: #FF453A;
+  display: flex; align-items: center; gap: 8px;
+  background: #fef2f2; border: 1px solid #fecaca; border-radius: 14px;
+  padding: 12px 16px; font-size: 13px; color: #991b1b;
 }
 
-/* ── Actions ── */
-.ce-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
+.ce-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
 .ce-cancel-btn {
-  padding: 11px 24px;
-  border: 1px solid #2a3a52;
-  border-radius: 10px;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
-  color: #8892a4;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 130ms;
+  height: 40px; padding: 0 18px; border: 1px solid #e5e7eb; border-radius: 9999px;
+  background: #fff; font-size: 13.5px; font-weight: 600; color: #374151;
+  cursor: pointer; font-family: inherit;
 }
-.ce-cancel-btn:hover { background: #1a2236; }
+.ce-cancel-btn:hover { background: #f8fafc; color: #111827; border-color: #d1d5db; }
 .ce-submit-btn {
-  padding: 11px 28px;
-  border: none;
-  border-radius: 10px;
-  background: var(--gold);
-  font-size: 14px;
-  font-weight: 700;
-  color: #FFFFFF;
-  cursor: pointer;
-  font-family: inherit;
-  transition: opacity 140ms;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 140px;
-  justify-content: center;
+  height: 40px; padding: 0 22px; border: none; border-radius: 9999px;
+  background: #222; font-size: 13.5px; font-weight: 600; color: #fff;
+  cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; gap: 8px; min-width: 140px; justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
 }
-.ce-submit-btn:hover:not(:disabled) { opacity: 0.88; }
-.ce-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.ce-submit-btn:hover:not(:disabled) { background: #000; }
+.ce-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .ce-spinner {
-  width: 15px;
-  height: 15px;
-  border: 2px solid rgba(255,255,255,0.35);
-  border-top-color: #FFFFFF;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  width: 15px; height: 15px;
+  border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Modal ── */
 .ce-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 24px;
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.32);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 24px;
 }
 .ce-modal {
-  background: #111827;
-  border: 1px solid #1e2d44;
-  border-radius: 18px;
-  width: 100%;
-  max-width: 400px;
-  max-height: 70vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 4px 8px 0 rgba(0,0,0,0.4);
-  overflow: hidden;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+  width: 100%; max-width: 400px; max-height: 70vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.2); overflow: hidden;
 }
 .ce-modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 20px;
-  border-bottom: 0.8px solid #1e2d44;
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;
 }
-.ce-modal-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #e2e8f0;
-}
+.ce-modal-title { font-size: 16px; font-weight: 700; color: #111827; }
 .ce-modal-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #8892a4;
-  display: flex;
-  align-items: center;
-  padding: 4px;
+  width: 32px; height: 32px; border-radius: 50%; background: none; border: 1px solid #e5e7eb;
+  cursor: pointer; color: #6b7280; display: flex; align-items: center; justify-content: center; padding: 0;
 }
-.ce-modal-list {
-  overflow-y: auto;
-  padding: 10px 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.ce-modal-loading {
-  padding: 20px;
-  text-align: center;
-  color: #8892a4;
-  font-size: 13px;
-}
+.ce-modal-close:hover { background: #f8fafc; color: #111827; }
+.ce-modal-list { overflow-y: auto; padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.ce-modal-loading { padding: 20px; text-align: center; color: #64748b; font-size: 13px; }
 .ce-modal-item {
-  display: flex;
-  align-items: center;
-  padding: 11px 12px;
-  border-radius: 10px;
-  border: none;
-  background: none;
-  font-size: 14px;
-  font-weight: 500;
-  color: #e2e8f0;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  transition: background 120ms;
+  display: flex; align-items: center; padding: 11px 12px; border-radius: 12px;
+  border: none; background: none; font-size: 14px; font-weight: 500; color: #1f2937;
+  cursor: pointer; text-align: left; font-family: inherit;
 }
-.ce-modal-item:hover { background: #1a2236; }
-.ce-modal-item--active {
-  background: rgb(from var(--gold) r g b / 0.08);
-  color: var(--gold);
-  font-weight: 600;
-}
+.ce-modal-item:hover { background: #f7f7f8; }
+.ce-modal-item--active { background: #f3f4f6; color: #111827; font-weight: 600; }
 
-/* Fade transition */
 .fade-enter-active, .fade-leave-active { transition: opacity 180ms; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-/* ── Responsive ── */
 @media (max-width: 600px) {
-  .ce-nav-inner { padding: 20px 16px; }
-  .ce-brand-name { font-size: 18px; }
+  .ce-nav-inner { height: auto; flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
+  .ce-hd-sep { display: none; }
+  .ce-crumb { flex: 1 1 100%; order: 8; }
   .ce-body { padding: 20px 16px 60px; }
   .ce-fields { grid-template-columns: 1fr; }
   .ce-field--full { grid-column: 1; }
   .ce-actions { flex-direction: column-reverse; }
   .ce-cancel-btn, .ce-submit-btn { width: 100%; justify-content: center; }
-  .ce-breadcrumb { display: none; }
+  .ce-nav-right { width: 100%; }
 }
 </style>

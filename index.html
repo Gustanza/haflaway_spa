@@ -5,16 +5,22 @@
     <link rel="icon" type="image/x-icon" href="/src/assets/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Haflaway</title>
+    <meta name="theme-color" content="#ffffff" />
     <script>
-      /* Sets the pre-hydration background before first paint, so neither
-         theme flashes the other's color on load or on overscroll — most
-         routes are the dark admin app, but "/", "/pricing" and "/events"
-         (including guest event pages at "/events/:eventId/:userId") are
-         light pages. */
+      /* Canvas color before first paint. Organizer hub is white paper; guest
+         event pages are ivory; only auth screens stay dark. Elastic overscroll
+         and refresh both reveal html/body, so this must match the page. */
       (function () {
-        var light = location.pathname === '/' || location.pathname === '/pricing' || location.pathname.indexOf('/events') === 0;
-        document.documentElement.style.background = light ? '#FAFAFA' : '#0a0a0b';
-        document.documentElement.style.color = light ? '#1D1D1F' : '#f0f0ec';
+        var p = location.pathname;
+        var dark = p === '/login' || p === '/register' || p === '/select-org';
+        var guest = /^\/events\/[^/]+\/[^/]+/.test(p);
+        var landing = p === '/' || p === '/pricing';
+        var bg = dark ? '#0a0a0b' : guest ? '#FAF6EF' : landing ? '#FAFAFA' : '#ffffff';
+        document.documentElement.style.background = bg;
+        document.documentElement.style.color = dark ? '#f0f0ec' : '#1D1D1F';
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        var theme = document.querySelector('meta[name="theme-color"]');
+        if (theme) theme.setAttribute('content', bg);
       })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">

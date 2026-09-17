@@ -3,9 +3,33 @@
     <!-- ── Sticky topbar ── -->
     <nav class="me-topbar">
       <div class="me-topbar-inner">
-        <div class="me-brand" @click="$router.push('/events')">
-          <img :src="brandLogoUrl" class="me-brand-logo" />
-          <span class="me-brand-name">{{ brandName }}</span>
+        <div class="me-brand" @click="$router.push('/events')" title="All Events">
+          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="me-brand-logo" />
+          <span v-else class="me-brand-script">.joy</span>
+        </div>
+        <div class="me-hd-sep" />
+        <div class="me-hd-title-group">
+          <h1 class="me-hub-title">Events</h1>
+          <span v-if="!loading" class="me-hub-count">{{ events.length }}</span>
+        </div>
+        <div class="me-search-wrap">
+          <svg class="me-search-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="me-search-input"
+            placeholder="Search events"
+            @input="onSearch"
+          />
+          <button v-if="searchQuery" type="button" class="me-search-clear" @click="clearSearch" aria-label="Clear">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
         <div class="me-topbar-right">
           <!-- Wallet balance / top-up — top-level so it works with zero events -->
@@ -328,48 +352,6 @@
           </button>
         </div>
         <div class="me-controls-right">
-          <div class="me-search-wrap">
-            <svg
-              class="me-search-icon-svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              v-model="searchQuery"
-              type="text"
-              class="me-search-input"
-              placeholder="Search events…"
-              @input="onSearch"
-            />
-            <button
-              v-if="searchQuery"
-              class="me-search-clear"
-              @click="clearSearch"
-            >
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.4"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
           <select v-model="activeRole" class="me-fb-select">
             <option v-for="r in roleFilters" :key="r.value" :value="r.value">
               {{ r.label }}
@@ -520,8 +502,7 @@
                the countdown ticket — see .me-featured's grid-template-areas. -->
           <div class="me-feat-top">
             <div class="me-feat-eyebrow">
-              <span class="me-feat-eyebrow-label">FEATURED · NEXT UP</span>
-              <span class="me-feat-eyebrow-sparkle">✦</span>
+              <span class="me-feat-eyebrow-label">Next up</span>
               <span class="me-feat-eyebrow-line" />
             </div>
             <h2 class="me-feat-title">{{ featuredEvent.title }}</h2>
@@ -699,7 +680,7 @@
                       : 'me-role-badge--admin'
                   "
                 >
-                  {{ event.authorId === uid ? "OWNER" : "ADMIN" }}
+                  {{ event.authorId === uid ? "Owner" : "Admin" }}
                 </span>
                 <span class="me-row-eyebrow-spark">✦</span>
                 <span class="me-row-eyebrow-line" />
@@ -1404,21 +1385,7 @@ watch(
   { immediate: true },
 );
 
-// This page has its own always-on Bento Glow theme (.me-root's own tokens,
-// below) rather than following the app-wide dark/light toggle — style.css
-// has a separate, older `[data-theme="light"] .me-root { ... !important }`
-// set of overrides for the other admin views' generic light mode, which
-// would otherwise fight these tokens if the user had ever toggled to light
-// elsewhere in the app. Forcing data-theme away from "light" while mounted
-// keeps those !important rules from ever matching; nothing under
-// [data-theme="dark"] touches .me-root, so this page's own tokens win either
-// way. Restored on unmount so the toggle still works normally on other pages.
-let previousDataTheme = null;
-
 onMounted(() => {
-  previousDataTheme = document.documentElement.getAttribute("data-theme");
-  document.documentElement.setAttribute("data-theme", "dark");
-
   // Filter first: setting it resets currentPage to 1 (see the watcher above),
   // so the page query has to be applied after or it'd get clobbered back to 1.
   const qFilter = route.query.filter;
@@ -1432,119 +1399,122 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  if (previousDataTheme === null) {
-    document.documentElement.removeAttribute("data-theme");
-  } else {
-    document.documentElement.setAttribute("data-theme", previousDataTheme);
-  }
   document.removeEventListener("click", onClickOutside);
   document.removeEventListener("click", onClickOutsideBalance);
 });
 </script>
 
 <style scoped>
-/* ── Tokens — Calm Dark (matches the event dashboard's dark theme: charcoal
-   surfaces one step lighter than the page canvas, hairline borders instead of
-   shadows, gold reserved for money/highlight, emerald for live/positive
-   state). Scoped to .me-root, so this doesn't touch the shared tokens the
-   other ~23 admin views read from style.css. ── */
+/* Hub paper — same language as Guest List / Budget. Org surface colors
+   and the global light-theme gold patches must not paint this page. */
 .me-root {
-  --ink: #f0f0ec;
-  --ink-soft: #d4cfc8;
-  --ink-muted: #888;
-  --ink-dim: #555;
-  --line: #2a2a2a;
-  --line-soft: #1e1e1e;
-  --line-strong: #3a3a3a;
-  --paper-soft: #1a1a1a;
-  --emerald: #34d399;
-  --emerald-soft: rgba(52, 211, 153, 0.12);
-  --accent: #c9a84c;
-  --accent-deep: #a0863d;
-  --accent-soft: rgba(201, 168, 76, 0.14);
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --ink: #111827;
+  --ink-soft: #374151;
+  --ink-muted: #64748b;
+  --ink-dim: #94a3b8;
+  --line: #e5e7eb;
+  --line-soft: #f1f3f5;
+  --line-strong: #d1d5db;
+  --paper-soft: #f8fafc;
+  --emerald: #059669;
+  --emerald-soft: #ecfdf5;
+  --accent: #111827;
+  --accent-deep: #000000;
+  --accent-soft: #f3f4f6;
+  --shadow: none;
+  --shadow-lift: none;
+  --overlay-bg: rgba(15, 23, 42, 0.32);
 
-  /* ── Layout tokens (org can override the surface color itself via
-     --org-*-bg, set in useOrg.js's watchEffect) ── */
-  --me-topbar-bg: var(--org-topbar-bg, #141414);
-  --me-controls-bg: #141414;
-  --me-card-bg: #141414;
-  --me-dropdown-bg: #1a1a1a;
-  --me-page-bg: var(--org-page-bg, #070707);
+  --me-topbar-bg: #ffffff;
+  --me-controls-bg: #ffffff;
+  --me-card-bg: #ffffff;
+  --me-dropdown-bg: #ffffff;
+  --me-page-bg: #ffffff;
 
   min-height: 100vh;
-  /* flow-root establishes a BFC so the topbar's 32px top margin is contained
-     here instead of collapsing through the root and exposing the flat page
-     background as a band at the very top edge. */
-  display: flow-root;
-  background-color: var(--me-page-bg);
-  position: relative;
-
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--ink);
-  transition:
-    background 300ms ease,
-    color 300ms ease;
-  z-index: 1; /* create context */
 }
 
-/* ── Topbar — floats as a rounded glass capsule, aligned to the same 1200px
-   content column as .me-page so its edges line up with the cards below.
-   The outer element is just the width container; the capsule visual lives on
-   .me-topbar-inner. ── */
 .me-topbar {
   position: sticky;
-  top: 32px;
+  top: 0;
   z-index: 100;
-  max-width: 1200px;
-  margin: 32px auto 0;
-  padding: 0 32px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
+  background: #fff;
 }
 .me-topbar-inner {
-  padding: 18px 24px;
+  height: 92px;
+  padding: 0 36px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-radius: 14px;
-  background: var(--me-topbar-bg);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 14px;
+  border-radius: 0;
+  background: #fff;
+  border: none;
+  border-bottom: 1px solid #f1f3f5;
+  box-shadow: none;
 }
 .me-topbar-inner:hover {
-  background: var(--me-topbar-bg);
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-lift);
+  background: #fff;
+  border-color: #f1f3f5;
+  box-shadow: none;
 }
-/* The brand is the element that yields when the topbar runs out of room: it
-   truncates first (org names are arbitrary length), then drops out entirely at
-   the 640px breakpoint. Everything to its right is a control with a job, so
-   those keep their size instead. */
+.me-hd-sep { width: 1px; height: 16px; background: #e5e7eb; flex-shrink: 0; margin: 0 4px; }
+.me-hd-title-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.me-hub-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #18181b;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+.me-hub-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  background: #f1f3f5;
+  border-radius: 9999px;
+  padding: 2px 10px;
+}
 .me-brand {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  background: #fff;
+  flex-shrink: 0;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  min-width: 0;
+  justify-content: center;
+  min-width: 34px;
+  gap: 0;
 }
 .me-brand-logo {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
   object-fit: cover;
 }
-.me-brand-name {
-  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-  font-size: 20px;
+.me-brand-script {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: 18px;
   font-weight: 700;
-  color: var(--org-topbar-text, var(--ink));
-  letter-spacing: -0.1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #111827;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
+.me-brand-name { display: none; }
 .me-bc-sep {
   font-size: 15px;
   color: var(--line-strong);
@@ -1572,25 +1542,26 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 6px 12px;
-  border-radius: 20px;
-  background: var(--me-page-bg);
-  color: var(--ink-soft);
-  letter-spacing: 0.1px;
+  font-size: 13px;
+  font-weight: 500;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  background: #fff;
+  color: #374151;
+  letter-spacing: 0;
   white-space: nowrap;
-  border: 1px solid var(--line);
+  border: 1px solid #e5e7eb;
   cursor: pointer;
   font-family: inherit;
-  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background 130ms, border-color 130ms, color 130ms;
 }
 .me-balance-pill:hover {
-  background: var(--me-card-bg);
-  color: var(--ink);
-  border-color: var(--line-strong);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
+  background: #f8fafc;
+  color: #111827;
+  border-color: #d1d5db;
+  transform: none;
+  box-shadow: none;
 }
 .me-balance-pill:active {
   transform: translateY(0);
@@ -1634,7 +1605,7 @@ onUnmounted(() => {
 .me-tu-balance {
   font-size: 13px;
   font-weight: 700;
-  color: var(--accent);
+  color: #111827;
   white-space: nowrap;
 }
 .me-tu-label {
@@ -1644,25 +1615,25 @@ onUnmounted(() => {
   margin-top: 4px;
 }
 .me-tu-input {
-  padding: 8px 10px;
-  border-radius: 9px;
-  border: 1px solid var(--line);
-  background: var(--me-page-bg);
+  padding: 0 16px;
+  height: 46px;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
   color: var(--ink);
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-family: inherit;
   outline: none;
   width: 100%;
   box-sizing: border-box;
-  transition: all 180ms ease;
 }
 .me-tu-input:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 .me-tu-input:focus {
-  border-color: var(--accent);
-  background: var(--me-card-bg);
+  border-color: #111827;
+  background: #fff;
 }
 .me-tu-phone-row {
   display: flex;
@@ -1671,13 +1642,16 @@ onUnmounted(() => {
 }
 .me-tu-phone-prefix {
   flex-shrink: 0;
-  padding: 8px 8px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--me-page-bg);
-  font-size: 12.5px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  background: #fff;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--ink-soft);
+  color: #64748b;
 }
 .me-tu-phone-input {
   flex: 1;
@@ -1685,21 +1659,21 @@ onUnmounted(() => {
 }
 .me-tu-submit {
   margin-top: 4px;
-  background: var(--accent);
+  background: #242424;
   color: #fff;
   border: none;
-  border-radius: 9px;
-  padding: 9px 12px;
-  font-size: 12.5px;
-  font-weight: 700;
+  border-radius: 9999px;
+  height: 44px;
+  padding: 0 16px;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: all 150ms ease;
-  box-shadow: 0 4px 14px rgb(from var(--accent-deep) r g b / 0.28);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 .me-tu-submit:hover:not(:disabled) {
-  background: var(--accent-deep);
-  transform: translateY(-0.5px);
+  background: #000;
+  transform: none;
 }
 .me-tu-submit:active:not(:disabled) {
   transform: translateY(0);
@@ -1759,23 +1733,23 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 12px 6px 14px;
-  border-radius: 20px;
-  border: 1px solid var(--line);
-  background: var(--me-page-bg);
-  font-size: 12.5px;
+  height: 40px;
+  padding: 0 14px 0 12px;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--ink-soft);
+  color: #374151;
   cursor: pointer;
   font-family: inherit;
-  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .me-admin-pill:hover {
-  background: var(--me-card-bg);
-  color: var(--ink);
-  border-color: var(--line-strong);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
+  background: #f8fafc;
+  color: #111827;
+  border-color: #d1d5db;
+  transform: none;
+  box-shadow: none;
 }
 .me-admin-pill:active {
   transform: translateY(0);
@@ -1895,51 +1869,52 @@ onUnmounted(() => {
 .me-create-btn {
   display: flex;
   align-items: center;
-  gap: 7px;
-  position: relative;
-  background: var(--accent);
+  gap: 8px;
+  height: 40px;
+  background: #222;
   color: #fff;
   border: none;
-  padding: 8px 18px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 700;
+  padding: 0 20px;
+  border-radius: 9999px;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: opacity 140ms, transform 140ms;
-  letter-spacing: 0.1px;
-  /* Never let the label break onto a second line — a squeezed flex item wrapping
-     mid-word is what makes the whole bar look mangled. It holds its size and the
-     brand gives way instead. */
+  letter-spacing: 0;
   white-space: nowrap;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 .me-create-btn:hover {
-  opacity: 0.88;
-  transform: translateY(-1px);
+  background: #000;
+  opacity: 1;
+  transform: none;
 }
 .me-create-btn:active {
-  transform: translateY(0);
+  transform: none;
   opacity: 1;
 }
 .me-create-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgb(from var(--accent) r g b / 0.4);
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.18);
 }
 .me-create-btn--lg {
-  padding: 10px 24px;
+  height: 44px;
+  padding: 0 22px;
   font-size: 14px;
-  border-radius: 14px;
+  border-radius: 9999px;
 }
 
 /* ── Page shell ── */
 .me-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 32px 32px;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 48px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 0;
+  box-sizing: border-box;
 }
 
 /* ── Page header ── */
@@ -1948,22 +1923,22 @@ onUnmounted(() => {
   align-items: flex-end;
   justify-content: space-between;
   gap: 32px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--line);
+  padding: 28px 36px 8px;
+  border-bottom: none;
+}
+.me-greeting {
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #1a1a1a;
+  line-height: 1.15;
+  margin: 0;
 }
 .me-header-copy {
   display: flex;
   flex-direction: column;
   gap: 5px;
-}
-.me-greeting {
-  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--ink);
-  line-height: 1;
-  margin: 0;
 }
 .me-header-sub {
   font-size: 13px;
@@ -2003,7 +1978,7 @@ onUnmounted(() => {
   letter-spacing: -0.2px;
 }
 .me-hstat-val--gold {
-  color: var(--accent);
+  color: #111827;
 }
 .me-hstat-val--green {
   color: var(--emerald);
@@ -2022,58 +1997,59 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  background: var(--me-controls-bg);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 6px 6px 6px 12px;
-  box-shadow: var(--shadow);
-  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  background: #fff;
+  border: none;
+  border-bottom: 1px solid #f1f3f5;
+  border-radius: 0;
+  padding: 10px 36px;
+  box-shadow: none;
 }
 .me-tabs {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .me-tab {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  background: transparent;
+  min-height: 34px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
   font-size: 13px;
   font-weight: 500;
-  color: var(--ink-muted);
+  color: #475569;
   cursor: pointer;
   font-family: inherit;
-  transition: all 180ms ease;
   white-space: nowrap;
 }
 .me-tab:hover {
-  background: var(--me-page-bg);
-  color: var(--ink);
-  transform: translateY(-0.5px);
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  transform: none;
 }
 .me-tab--active {
-  background: var(--me-page-bg);
-  border-color: var(--line);
+  background: #f1f5f9;
+  border-color: #cbd5e1;
   box-shadow: none;
-  color: var(--ink);
+  color: #0f172a;
   font-weight: 600;
 }
 .me-tab-count {
   font-size: 10.5px;
-  font-weight: 600;
-  background: var(--me-page-bg);
-  color: var(--ink-muted);
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
   padding: 1px 6px;
-  border-radius: 6px;
-  transition: all 150ms ease;
+  border-radius: 9999px;
 }
 .me-tab-count--active {
-  background: var(--accent-soft);
-  color: var(--accent-deep);
+  background: #e2e8f0;
+  color: #0f172a;
 }
 .me-controls-right {
   display: flex;
@@ -2185,43 +2161,53 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1;
-  min-width: 160px;
+  flex: 1 1 0;
+  margin: 0 12px 0 8px;
+  min-width: 180px;
 }
 .me-search-icon-svg {
   position: absolute;
-  left: 11px;
-  color: var(--ink-muted);
+  left: 16px;
+  color: #9ca3af;
   pointer-events: none;
   flex-shrink: 0;
 }
 .me-search-input {
   width: 100%;
-  padding: 8px 30px 8px 34px;
+  height: 44px;
+  padding: 0 44px 0 44px;
   border: none;
-  background: transparent;
-  font-size: 13.5px;
-  color: var(--ink);
+  border-radius: 9999px;
+  background: #f3f4f6;
+  font-size: 15px;
+  color: #111827;
   outline: none;
   font-family: inherit;
 }
+.me-search-input:focus {
+  background: #eeeeef;
+}
 .me-search-input::placeholder {
-  color: var(--ink-dim);
+  color: #9ca3af;
+  font-weight: 400;
 }
 .me-search-clear {
   position: absolute;
-  right: 6px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--ink-dim);
+  color: #9ca3af;
   display: flex;
   align-items: center;
-  padding: 2px;
-  transition: color 130ms;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
 }
 .me-search-clear:hover {
-  color: var(--ink-muted);
+  color: #111827;
 }
 .me-fb-divider {
   width: 1px;
@@ -2274,33 +2260,33 @@ onUnmounted(() => {
   color: var(--accent-deep);
 }
 .me-fb-select {
-  padding: 6px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--me-page-bg);
-  font-size: 12.5px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  background: #fff;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--ink-soft);
+  color: #475569;
   font-family: inherit;
   outline: none;
   cursor: pointer;
-  transition: all 180ms ease;
 }
 .me-fb-select option {
-  color: #f0f0ec;
-  background: #141414;
+  color: #111827;
+  background: #fff;
 }
 .me-fb-select:focus {
-  border-color: var(--accent);
-  background: var(--me-card-bg);
+  border-color: #cbd5e1;
+  background: #fff;
 }
 
 /* ── Loading skeletons ── */
 .me-skeleton-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding-top: 8px;
+  gap: 12px;
+  padding: 20px 36px 8px;
 }
 .me-skeleton {
   height: 160px;
@@ -2324,14 +2310,15 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 14px;
+  margin: 24px 36px;
   padding: 80px 20px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 20px;
+  border: 1px dashed #e5e7eb;
+  border-radius: 16px;
 }
 .me-empty-glyph {
   font-size: 32px;
-  color: var(--accent);
-  opacity: 0.6;
+  color: #94a3b8;
+  opacity: 1;
 }
 .me-empty-title {
   font-family: "Plus Jakarta Sans", "Inter", sans-serif;
@@ -2370,12 +2357,12 @@ onUnmounted(() => {
   background: var(--ink-muted);
 }
 .me-status-pill--ongoing {
-  background: var(--accent-soft);
-  border-color: rgb(from var(--accent) r g b / 0.35);
-  color: var(--accent-deep);
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
 }
 .me-status-pill--ongoing .me-status-dot {
-  background: var(--accent);
+  background: #059669;
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
 .me-status-pill--completed {
@@ -2417,9 +2404,9 @@ onUnmounted(() => {
   border-radius: 6px;
 }
 .me-role-badge--owner {
-  background: var(--accent-soft);
-  border: 1px solid rgb(from var(--accent) r g b / 0.35);
-  color: var(--accent-deep);
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #111827;
 }
 .me-role-badge--admin {
   background: var(--me-page-bg);
@@ -2438,19 +2425,20 @@ onUnmounted(() => {
     "thumb bottom cd-bottom";
   column-gap: 24px;
   row-gap: 10px;
+  margin: 20px 36px 0;
   padding: 20px 22px 20px 18px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: none;
   cursor: pointer;
-  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
-  background: var(--me-card-bg);
+  background: #fff;
   overflow: hidden;
 }
 .me-featured:hover {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-lift);
-  transform: translateY(-3px) scale(1.002);
+  border-color: #d1d5db;
+  box-shadow: none;
+  transform: none;
+  background: #fafafa;
 }
 
 /* Kept as a no-op layer (was a light-catch sheen for the old photo-backdrop
@@ -2471,20 +2459,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
 }
-.me-feat-thumb-outline {
-  position: absolute;
-  inset: 6px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  transform: rotate(-2deg);
-  pointer-events: none;
-}
+.me-feat-thumb-outline { display: none; }
 .me-feat-thumb {
   width: 100%;
-  border-radius: 10px;
+  border-radius: 4px;
   overflow: hidden;
-  transform: rotate(1deg);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transform: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   line-height: 0;
 }
 .me-feat-thumb :deep(svg) {
@@ -2513,12 +2494,15 @@ onUnmounted(() => {
   margin-bottom: 14px;
 }
 .me-feat-eyebrow-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--accent-deep);
+  color: #64748b;
   white-space: nowrap;
+}
+.me-feat-eyebrow-sparkle {
+  display: none;
 }
 .me-feat-eyebrow-sparkle {
   color: var(--accent);
@@ -2531,12 +2515,12 @@ onUnmounted(() => {
   background: var(--line);
 }
 .me-feat-title {
-  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
   font-size: 30px;
-  font-weight: 700;
-  color: var(--ink);
+  font-weight: 500;
+  color: #1a1a1a;
   margin: 0 0 16px;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.02em;
   line-height: 1.15;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -2600,29 +2584,25 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  position: relative;
-  background: var(--accent);
+  background: #242424;
   color: #fff;
   border: none;
-  padding: 8px 16px;
-  border-radius: 9px;
-  font-size: 13px;
-  font-weight: 700;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: opacity 140ms, transform 140ms;
 }
 .me-feat-open-btn:hover {
-  opacity: 0.88;
-  transform: translateY(-1px);
-}
-.me-feat-open-btn:active {
-  transform: translateY(0);
+  background: #000;
   opacity: 1;
+  transform: none;
 }
 .me-feat-open-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgb(from var(--accent) r g b / 0.4);
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.18);
 }
 
 /* Featured countdown col — top group, mirrors .me-feat-top's own centering. */
@@ -2669,15 +2649,24 @@ onUnmounted(() => {
   justify-self: end;
   position: relative;
   z-index: 1;
-  background: var(--accent);
-  box-shadow: 0 4px 14px rgb(from var(--accent-deep) r g b / 0.28);
-  border: none;
-  color: #fff;
-  border-radius: 10px;
-  padding: 7px 18px;
+  background: #f3f4f6;
+  box-shadow: none;
+  border: 1px solid #e5e7eb;
+  color: #111827;
+  border-radius: 9999px;
+  padding: 7px 16px;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.me-feat-cd-words {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #64748b;
+  white-space: nowrap;
+  line-height: 1.3;
 }
 .me-feat-cd-num {
   font-size: 22px;
@@ -2685,21 +2674,13 @@ onUnmounted(() => {
   line-height: 1;
   letter-spacing: -0.2px;
 }
-.me-feat-cd-words {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.8);
-  white-space: nowrap;
-  line-height: 1.3;
-}
 
 /* ── Section heading ── */
 .me-section-head {
   display: flex;
   align-items: center;
   gap: 14px;
+  padding: 22px 36px 8px;
 }
 .me-section-line {
   flex: 1;
@@ -2719,8 +2700,8 @@ onUnmounted(() => {
 .me-hanging-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding-top: 4px;
+  gap: 10px;
+  padding: 8px 36px 0;
 }
 
 /* Same glass recipe as .me-featured, so the list reads as one material.
@@ -2733,15 +2714,26 @@ onUnmounted(() => {
   position: relative;
   display: grid;
   grid-template-columns: 118px 1fr 100px;
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  border-left: 4px solid transparent;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
   cursor: pointer;
   overflow: hidden;
   min-height: 124px;
-  background: var(--me-card-bg);
-  box-shadow: var(--shadow);
-  transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  background: #fff;
+  box-shadow: none;
+}
+.me-row:hover {
+  border-color: #d1d5db;
+  box-shadow: none;
+  transform: none;
+  background: #fafafa;
+}
+.me-row--upcoming,
+.me-row--ongoing,
+.me-row--completed,
+.me-row--draft {
+  border-left-color: #e5e7eb;
 }
 /* Kept as a no-op layer (was a light-catch sheen for the old photo-backdrop
    glass card) — Bento Glow's card is a flat solid surface, no scrim needed. */
@@ -2750,23 +2742,6 @@ onUnmounted(() => {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-}
-.me-row:hover {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-lift);
-  transform: translateY(-3px) scale(1.002);
-}
-.me-row--upcoming {
-  border-left-color: var(--accent);
-}
-.me-row--ongoing {
-  border-left-color: var(--emerald);
-}
-.me-row--completed {
-  border-left-color: var(--line-strong);
-}
-.me-row--draft {
-  border-left-color: var(--line);
 }
 
 /* Left: invitation card column */
@@ -2780,30 +2755,20 @@ onUnmounted(() => {
   border-right: 1px solid var(--line);
   overflow: hidden;
 }
-.me-row-card-outline {
-  position: absolute;
-  inset: 8px 5px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  transform: rotate(-2.5deg);
-  pointer-events: none;
-}
+.me-row-card-outline { display: none; }
 .me-row-card-inner {
   position: relative;
   width: 74px;
-  border-radius: 6px;
+  border-radius: 4px;
   overflow: hidden;
-  transform: rotate(1.5deg);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  transform: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   line-height: 0;
   z-index: 1;
-  transition:
-    transform 240ms ease,
-    box-shadow 240ms ease;
 }
 .me-row:hover .me-row-card-inner {
-  transform: rotate(0.3deg) scale(1.06);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  transform: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 .me-row-card-inner :deep(svg) {
   display: block;
@@ -2829,28 +2794,22 @@ onUnmounted(() => {
   margin-bottom: 11px;
 }
 .me-row-eyebrow-spark {
-  font-size: 10px;
-  color: var(--accent);
-  flex-shrink: 0;
+  display: none;
 }
 .me-row-eyebrow-line {
   flex: 1;
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgb(from var(--accent) r g b / 0.35) 0%,
-    var(--line) 100%
-  );
+  background: #f1f3f5;
 }
 
 .me-row-title {
-  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--ink);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #18181b;
   margin: 0 0 10px;
-  letter-spacing: -0.2px;
-  line-height: 1.2;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -2939,14 +2898,14 @@ onUnmounted(() => {
 }
 .me-row-cd-ticket {
   margin-top: 11px;
-  background: var(--accent);
-  border: none;
-  border-radius: 6px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
   padding: 4px 9px;
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  color: #fff;
+  color: #111827;
   text-align: center;
   line-height: 1.3;
   display: flex;
@@ -2955,16 +2914,14 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 .me-row-cd-ticket.me-row-days-pill--live {
-  border-style: solid;
-  border-color: rgb(from var(--emerald) r g b / 0.4);
-  background: var(--emerald-soft);
-  color: var(--emerald);
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #065f46;
 }
 .me-row-cd-ticket.me-row-days-pill--soon {
-  border-style: solid;
-  border-color: rgb(from var(--accent) r g b / 0.35);
-  background: var(--accent-soft);
-  color: var(--accent-deep);
+  border-color: #e5e7eb;
+  background: #f3f4f6;
+  color: #111827;
 }
 .me-row-cd-ticket.me-row-days-pill--past {
   opacity: 0.4;
@@ -2984,7 +2941,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 8px;
+  padding: 16px 36px 8px;
 }
 .me-pagination-info {
   font-size: 13px;
@@ -3002,28 +2959,24 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--me-card-bg);
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  background: #fff;
   font-size: 13px;
   font-weight: 500;
-  color: var(--ink-muted);
+  color: #64748b;
   cursor: pointer;
   font-family: inherit;
-  transition:
-    border-color 130ms,
-    color 130ms,
-    background 130ms;
 }
 .me-page-btn:hover:not(:disabled):not(.me-page-btn--active) {
   border-color: var(--line-strong);
   color: var(--ink);
 }
 .me-page-btn--active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: #111827;
+  border-color: #111827;
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
 }
 .me-page-btn--nav {
   color: var(--ink-dim);
@@ -3044,7 +2997,7 @@ onUnmounted(() => {
 .me-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: var(--overlay-bg);
+  background: rgba(15, 23, 42, 0.32);
   z-index: 200;
   display: flex;
   align-items: center;
@@ -3084,34 +3037,28 @@ onUnmounted(() => {
   justify-content: flex-end;
 }
 .me-modal-cancel {
-  background: transparent;
-  border: 1px solid var(--line-strong);
-  color: var(--ink-muted);
-  padding: 8px 16px;
-  border-radius: 9px;
-  font-size: 13px;
-  font-weight: 500;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  color: #111827;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition:
-    background 130ms,
-    color 130ms;
-}
-.me-modal-cancel:hover {
-  background: var(--me-page-bg);
-  color: var(--ink);
 }
 .me-modal-confirm {
   background: #dc2626;
   color: #fff;
   border: none;
-  padding: 8px 18px;
-  border-radius: 9px;
-  font-size: 13px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: opacity 130ms;
 }
 .me-modal-confirm:hover {
   opacity: 0.85;
@@ -3119,10 +3066,12 @@ onUnmounted(() => {
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .me-controls {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
+  .me-topbar-inner { height: auto; flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
+  .me-hd-sep { display: none; }
+  .me-search-wrap { flex: 1 1 100%; margin: 8px 0 0; order: 8; }
+  .me-tabs, .me-controls { padding-left: 16px; padding-right: 16px; }
+  .me-header, .me-hanging-list, .me-section-head, .me-pagination { padding-left: 16px; padding-right: 16px; }
+  .me-featured { margin-left: 16px; margin-right: 16px; }
   .me-tabs {
     overflow-x: auto;
     scrollbar-width: none;
@@ -3158,15 +3107,15 @@ onUnmounted(() => {
 
 @media (max-width: 860px) {
   .me-page {
-    padding: 24px 20px 60px;
-    gap: 22px;
+    padding: 0 0 48px;
+    gap: 0;
   }
   .me-topbar {
-    padding: 0 20px;
+    padding: 0;
   }
   .me-greeting {
-    font-size: 40px;
-    letter-spacing: -1px;
+    font-size: 26px;
+    letter-spacing: -0.02em;
   }
   /* Featured: thumb (small) + content, no countdown */
   .me-featured {
@@ -3241,17 +3190,17 @@ onUnmounted(() => {
     max-width: none;
   }
   .me-page {
-    padding: 16px 14px 48px;
-    gap: 16px;
+    padding: 0 0 48px;
+    gap: 0;
   }
   .me-topbar {
-    top: 16px;
-    margin-top: 16px;
-    padding: 0 14px;
+    top: 0;
+    margin-top: 0;
+    padding: 0;
   }
   .me-greeting {
-    font-size: 30px;
-    letter-spacing: -0.6px;
+    font-size: 24px;
+    letter-spacing: -0.02em;
   }
   .me-header-sub {
     font-size: 12.5px;
@@ -3485,8 +3434,8 @@ onUnmounted(() => {
     display: none;
   }
   .me-page {
-    padding: 12px 12px 40px;
-    gap: 14px;
+    padding: 0 0 40px;
+    gap: 0;
   }
   .me-greeting {
     font-size: 26px;

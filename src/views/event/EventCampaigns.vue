@@ -32,8 +32,8 @@
         </div>
 
         <div class="em-hd-title-group">
-          <h1 class="em-hub-title">Messaging</h1>
-          <span class="em-hub-badge">MESSAGING+</span>
+          <h1 class="em-hub-title">{{ cardScope ? 'Invitations' : 'Messaging' }}</h1>
+          <span class="em-hub-badge">{{ cardScope ? 'CARDS+' : 'MESSAGING+' }}</span>
         </div>
       </div>
 
@@ -54,9 +54,40 @@
         </button>
         <button class="em-msg-tab" :class="{ 'em-msg-tab--active': msgTab === 'sent' }" @click="goToTab('sent')">
           Sent
-          <span v-if="sentCampaigns.length" class="em-msg-tab-count">{{ sentCampaigns.length }}</span>
+          <span v-if="sentCampaignGroups.length" class="em-msg-tab-count">{{ sentCampaignGroups.length }}</span>
         </button>
       </nav>
+
+      <!-- Ported from EventMessages.vue (the screen this route used to point
+           to) — the only place that could generate/rotate the public
+           "undelivered cards" report link (events/{id}.invitationsReportToken).
+           /invitations-report/:eventId/:token itself was never touched and
+           keeps working for already-issued links; this is what lets one exist
+           to issue in the first place. Card-scope only — it's specifically
+           about card delivery, not general messaging. -->
+      <div v-if="cardScope" class="em-hub-hd-right">
+        <div class="em-report-wrap" v-click-outside="() => reportPopoverOpen = false">
+          <button class="em-report-btn" :class="{ 'em-report-btn--active': reportToken }"
+            title="Share an undelivered-invitations report with your client" @click="reportPopoverOpen = !reportPopoverOpen">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a3 3 0 1 0-2.83-4H15a3 3 0 1 0 .09 4.26L8.91 11.4a3 3 0 1 0 0 1.2l6.18 3.14A3 3 0 1 0 18 8z"/></svg>
+            <span class="em-report-label">Share report</span>
+          </button>
+          <div v-if="reportPopoverOpen" class="em-report-pop">
+            <p class="em-report-pop-label">Public link for guests whose card wasn't delivered</p>
+            <template v-if="reportUrl">
+              <div class="em-report-url">{{ reportUrl }}</div>
+              <div class="em-report-pop-acts">
+                <button class="em-report-regen" @click="regenerateReportLink">Regenerate</button>
+                <button class="em-report-copy" @click="copyReportLink">{{ reportLinkCopied ? 'Copied!' : 'Copy link' }}</button>
+              </div>
+            </template>
+            <template v-else>
+              <p class="em-report-pop-hint">Anyone with this link can see the undelivered list and fix wrong numbers — no login needed.</p>
+              <button class="em-report-copy" @click="generateReportLink">Generate link</button>
+            </template>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ══════════════════════════════════════════════
@@ -69,60 +100,72 @@
         <!-- Create Tab: Withjoy 4 hero tiles + Scheduled preview + Sent preview -->
         <template v-if="msgTab === 'create'">
           <div class="em-msg-section">
-            <h2 class="em-sec-title">Messages</h2>
+            <h2 class="em-sec-title">{{ cardScope ? 'Cards' : 'Messages' }}</h2>
             <div class="em-msg-tiles">
-              <!-- Tile 1: General Message (Email message) -->
-              <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('General Message')">
-                <div class="em-msg-tile-box">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="4" width="20" height="16" rx="2.5"/>
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-                  </svg>
-                </div>
-                <span class="em-msg-tile-label">General Message</span>
-              </button>
+              <template v-if="cardScope">
+                <button v-for="tile in CARD_TILES" :key="tile.purpose" class="em-msg-tile"
+                  :disabled="checkingCardTile !== null" @click="selectCardTile(tile)">
+                  <div class="em-msg-tile-box">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" :stroke="tile.color" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" v-html="tile.icon"/>
+                  </div>
+                  <span class="em-msg-tile-label">{{ tile.label }}</span>
+                </button>
+              </template>
 
-              <!-- Tile 2: RSVP Reminder (RSVP message) -->
-              <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('RSVP Reminder')">
-                <div class="em-msg-tile-box">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 13V6a2.5 2.5 0 0 0-2.5-2.5H4.5A2.5 2.5 0 0 0 2 6v12a2.5 2.5 0 0 0 2.5 2.5h8"/>
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-                    <path d="m16 19 2 2 4-4"/>
-                  </svg>
-                </div>
-                <span class="em-msg-tile-label">RSVP Reminder</span>
-              </button>
+              <template v-else>
+                <!-- Tile 1: General Message (Email message) -->
+                <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('General Message')">
+                  <div class="em-msg-tile-box">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="4" width="20" height="16" rx="2.5"/>
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                    </svg>
+                  </div>
+                  <span class="em-msg-tile-label">General Message</span>
+                </button>
 
-              <!-- Tile 3: Pledge Reminder (Collect contacts / pledge) -->
-              <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('Pledge Reminder')">
-                <div class="em-msg-tile-box">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="4" y="2" width="16" height="20" rx="3"/>
-                    <circle cx="12" cy="10" r="3.5"/>
-                    <path d="M7 18c0-2.8 2.2-5 5-5s5 2.2 5 5"/>
-                    <line x1="2" y1="6" x2="4" y2="6" stroke-linecap="round"/>
-                    <line x1="2" y1="12" x2="4" y2="12" stroke-linecap="round"/>
-                    <line x1="2" y1="18" x2="4" y2="18" stroke-linecap="round"/>
-                  </svg>
-                </div>
-                <span class="em-msg-tile-label">Pledge Reminder</span>
-              </button>
+                <!-- Tile 2: RSVP Reminder (RSVP message) -->
+                <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('RSVP Reminder')">
+                  <div class="em-msg-tile-box">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M22 13V6a2.5 2.5 0 0 0-2.5-2.5H4.5A2.5 2.5 0 0 0 2 6v12a2.5 2.5 0 0 0 2.5 2.5h8"/>
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                      <path d="m16 19 2 2 4-4"/>
+                    </svg>
+                  </div>
+                  <span class="em-msg-tile-label">RSVP Reminder</span>
+                </button>
 
-              <!-- Tile 4: Meeting Reminder (Schedule / hotel) -->
-              <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('Meeting Reminder')">
-                <div class="em-msg-tile-box">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="3"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                    <circle cx="12" cy="15" r="3"/>
-                    <polyline points="12 13.5 12 15 13.5 15"/>
-                  </svg>
-                </div>
-                <span class="em-msg-tile-label">Meeting Reminder</span>
-              </button>
+                <!-- Tile 3: Pledge Reminder (Collect contacts / pledge) -->
+                <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('Pledge Reminder')">
+                  <div class="em-msg-tile-box">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="2" width="16" height="20" rx="3"/>
+                      <circle cx="12" cy="10" r="3.5"/>
+                      <path d="M7 18c0-2.8 2.2-5 5-5s5 2.2 5 5"/>
+                      <line x1="2" y1="6" x2="4" y2="6" stroke-linecap="round"/>
+                      <line x1="2" y1="12" x2="4" y2="12" stroke-linecap="round"/>
+                      <line x1="2" y1="18" x2="4" y2="18" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <span class="em-msg-tile-label">Pledge Reminder</span>
+                </button>
+
+                <!-- Tile 4: Meeting Reminder (Schedule / hotel) -->
+                <button class="em-msg-tile" :disabled="creatingPresetCamp" @click="createPresetCampaign('Meeting Reminder')">
+                  <div class="em-msg-tile-box">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="3"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                      <circle cx="12" cy="15" r="3"/>
+                      <polyline points="12 13.5 12 15 13.5 15"/>
+                    </svg>
+                  </div>
+                  <span class="em-msg-tile-label">Meeting Reminder</span>
+                </button>
+              </template>
             </div>
           </div>
 
@@ -145,8 +188,8 @@
                       <polyline points="12 13.5 12 15 13 15"/>
                     </svg>
                   </div>
-                  <p class="em-empty-text">No scheduled messages</p>
-                  <button class="em-new-pill-btn" @click="createPresetCampaign('General Message')">
+                  <p class="em-empty-text">{{ cardScope ? 'No scheduled sends' : 'No scheduled messages' }}</p>
+                  <button class="em-new-pill-btn" @click="cardScope ? (msgTab = 'create') : createPresetCampaign('General Message')">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     <span>New</span>
                   </button>
@@ -160,21 +203,21 @@
                 <div class="em-sub-card-hd">
                   <div class="em-sub-hd-title-group">
                     <h3 class="em-sub-title">Sent</h3>
-                    <span v-if="sentCampaigns.length" class="em-pill-count">{{ sentCampaigns.length }}</span>
+                    <span v-if="sentCampaignGroups.length" class="em-pill-count">{{ sentCampaignGroups.length }}</span>
                   </div>
-                  <button v-if="sentCampaigns.length > 4" class="em-view-all-btn" @click="msgTab = 'sent'">View All</button>
+                  <button v-if="sentCampaignGroups.length > 4" class="em-view-all-btn" @click="msgTab = 'sent'">View All</button>
                 </div>
                 <div class="em-sub-card-body">
                   <div v-if="loadingCustomCamps" class="em-msg-loading"><p>Loading…</p></div>
-                  <div v-else-if="!sentCampaigns.length" class="em-sub-card-body--center" style="min-height: 180px;">
+                  <div v-else-if="!sentCampaignGroups.length" class="em-sub-card-body--center" style="min-height: 180px;">
                     <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="2" y="4" width="20" height="16" rx="2.5"/>
                       <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
                     </svg>
-                    <p class="em-empty-text">No messages sent yet</p>
+                    <p class="em-empty-text">{{ cardScope ? 'No cards sent yet' : 'No messages sent yet' }}</p>
                   </div>
                   <div v-else class="em-sent-list">
-                    <div v-for="camp in sentCampaigns.slice(0, 4)" :key="camp.id" class="em-sent-item" @click="selectCustomCamp(camp)">
+                    <div v-for="camp in sentCampaignGroups.slice(0, 4)" :key="camp.id" class="em-sent-item" @click="selectCustomCamp(camp)">
                       <div class="em-sent-mail-icon">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                           <rect x="2" y="4" width="20" height="16" rx="2.5"/>
@@ -256,8 +299,8 @@
                   <polyline points="12 13.5 12 15 13 15"/>
                 </svg>
               </div>
-              <p class="em-empty-text">No scheduled messages</p>
-              <button class="em-new-pill-btn" @click="createPresetCampaign('General Message')">
+              <p class="em-empty-text">{{ cardScope ? 'No scheduled sends' : 'No scheduled messages' }}</p>
+              <button class="em-new-pill-btn" @click="cardScope ? (msgTab = 'create') : createPresetCampaign('General Message')">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 <span>New</span>
               </button>
@@ -298,12 +341,12 @@
           </div>
 
           <div v-if="loadingCustomCamps" class="em-msg-loading"><p>Loading…</p></div>
-          <div v-else-if="!sentCampaigns.length" class="em-sub-card-body--center em-sent-empty">
+          <div v-else-if="!sentCampaignGroups.length" class="em-sub-card-body--center em-sent-empty">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="2.5"/>
               <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
             </svg>
-            <p class="em-empty-text">No messages sent yet</p>
+            <p class="em-empty-text">{{ cardScope ? 'No cards sent yet' : 'No messages sent yet' }}</p>
           </div>
           <div v-else-if="!sentTableRows.length" class="em-sub-card-body--center em-sent-empty">
             <p class="em-empty-text">No messages match your search or filter.</p>
@@ -357,7 +400,7 @@
 
         <!-- Breadcrumb -->
         <div class="em-detail-crumbs">
-          <button class="em-crumb-link" @click="backToCampaignList">Messaging</button>
+          <button class="em-crumb-link" @click="backToCampaignList">{{ cardScope ? 'Invitations' : 'Messaging' }}</button>
           <span class="em-crumb-sep">/</span>
           <span class="em-crumb-current">{{ MSG_TAB_LABELS[msgTab] ?? 'Sent' }}</span>
         </div>
@@ -424,6 +467,7 @@
             <span class="em-detail-stat-lbl">Failed</span>
           </div>
         </div>
+
 
         <!-- Toolbar: search + filter -->
         <div class="em-detail-toolbar">
@@ -563,7 +607,7 @@
                       <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                     </svg>
                   </span>
-                  <h2 class="em-drawer-title">Send {{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }} Campaign</h2>
+                  <h2 class="em-drawer-title">Send {{ selectedCustomCamp?.name || 'Campaign' }} via {{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }}</h2>
                 </div>
                 <button class="em-drawer-close" @click="closeSendDrawer" title="Close">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -597,7 +641,7 @@
                   <div class="em-custom-camp-display">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color: var(--cx-muted); flex-shrink: 0;" stroke-width="1.8" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                     {{ selectedCustomCamp?.name }}
-                    <span class="em-custom-camp-type">{{ selectedCustomCamp?.type }}</span>
+                    <span class="em-custom-camp-type">{{ campaignTypeLabel(selectedCustomCamp?.type) }}</span>
                   </div>
                 </div>
 
@@ -616,81 +660,10 @@
                 </div>
 
                 <div class="em-drawer-section">
-                  <p class="em-drawer-section-label">Recipients</p>
-
-                  <!-- Group filter -->
-                  <div v-if="props.event?.labels?.length" class="em-drawer-list-row">
-                    <span class="em-drawer-list-lbl">Group</span>
-                    <select v-model="sendLabelId" class="em-filter-select em-filter-select--drawer">
-                      <option :value="null">All Groups</option>
-                      <option v-for="lbl in props.event.labels" :key="lbl.id" :value="lbl.id">{{ lbl.name }}</option>
-                    </select>
-                  </div>
-
-                  <!-- Status dropdown -->
-                  <div class="em-stat-dd em-recip-dd">
-                    <button ref="recipDdTriggerRef" class="em-stat-dd-trigger"
-                      :style="DRAWER_STATUS_COLORS[sendRecipMode] ? { background: DRAWER_STATUS_COLORS[sendRecipMode].bg, color: DRAWER_STATUS_COLORS[sendRecipMode].fg, borderColor: DRAWER_STATUS_COLORS[sendRecipMode].border } : {}"
-                      @click="toggleRecipDd">
-                      <span class="em-stat-dd-dot" :style="{ background: DRAWER_STATUS_COLORS[sendRecipMode]?.fg ?? '#555' }"/>
-                      <span class="em-stat-dd-label">{{ SEND_STATUS_OPTS.find(o => o.v === sendRecipMode)?.l ?? 'All' }}</span>
-                      <span class="em-stat-dd-n">{{ sendRecipMode === 'all' ? sendRecipPool.length : (sendStatusCounts[sendRecipMode] ?? 0) }}</span>
-                      <svg class="em-stat-dd-chev" :class="{ 'em-stat-dd-chev--open': recipDropOpen }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-                    </button>
-                    <Teleport to="body">
-                      <div v-if="recipDropOpen" ref="recipDdMenuRef" class="em-stat-dd-menu em-stat-dd-menu--float"
-                        :style="{ top: recipDdPos.top + 'px', left: recipDdPos.left + 'px', width: recipDdPos.width + 'px' }">
-                        <button v-for="opt in SEND_STATUS_OPTS" :key="opt.v"
-                          class="em-stat-dd-item" :class="{ 'em-stat-dd-item--on': sendRecipMode === opt.v }"
-                          :style="{ color: DRAWER_STATUS_COLORS[opt.v]?.fg }"
-                          @click="sendRecipMode = opt.v; recipDropOpen = false; drawerPickList = []">
-                          <span class="em-stat-dd-dot" :style="{ background: DRAWER_STATUS_COLORS[opt.v]?.fg ?? '#555' }"/>
-                          <span class="em-stat-dd-n">{{ opt.v === 'all' ? sendRecipPool.length : (sendStatusCounts[opt.v] ?? 0) }}</span>
-                          {{ opt.l }}
-                        </button>
-                      </div>
-                    </Teleport>
-                  </div>
-
-                  <!-- Pick manually -->
-                  <button class="em-pick-toggle-btn" :class="{ 'em-pick-toggle-btn--on': pickOpen || drawerPickList.length }" @click="pickOpen = !pickOpen">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    Pick specific attendees
-                    <span v-if="drawerPickList.length" class="em-chip-cnt em-chip-cnt--gold" style="margin-left:auto">{{ drawerPickList.length }} selected</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-left:auto; transition:transform 200ms" :style="{ transform: pickOpen ? 'rotate(90deg)' : 'rotate(0deg)' }"><polyline points="9 18 15 12 9 6"/></svg>
+                  <p class="em-drawer-section-label">To</p>
+                  <button type="button" class="em-to-btn" :class="{ 'em-to-btn--filled': sendRecipCount }" @click="openRecipModal">
+                    {{ sendRecipCount ? `${sendRecipCount} recipient${sendRecipCount === 1 ? '' : 's'}` : 'Select Recipients' }}
                   </button>
-
-                  <div v-if="pickOpen" class="em-pick-wrap">
-                    <div class="em-pick-toolbar">
-                      <div class="em-pick-search-wrap">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input v-model="drawerPickSearch" class="em-pick-search" placeholder="Search name or phone…" />
-                        <button v-if="drawerPickSearch" class="em-pick-clear" @click="drawerPickSearch = ''">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                      </div>
-                      <button class="em-pick-all-btn" @click="drawerPickSelectAll">
-                        {{ drawerPickFiltered.every(a => drawerPickList.includes(a.id)) && drawerPickFiltered.length ? 'Clear all' : 'Select all' }}
-                      </button>
-                    </div>
-                    <div class="em-pick-list">
-                      <label v-for="att in drawerPickFiltered" :key="att.id" class="em-pick-row" :class="{ 'em-pick-row--on': drawerPickList.includes(att.id) }">
-                        <input type="checkbox" :checked="drawerPickList.includes(att.id)" @change="drawerPickToggle(att)" class="em-pick-cb" />
-                        <div class="em-pick-avatar" :style="{ background: avatarBg(att.fullName), color: avatarFg(att.fullName) }">{{ initials(att.fullName) }}</div>
-                        <div class="em-pick-info">
-                          <span class="em-pick-name">{{ att.fullName }}</span>
-                          <span class="em-pick-phone">{{ att.phone || '—' }}</span>
-                        </div>
-                        <span class="eca-badge" :class="`eca-badge--${getCustomStatus(att, sendChannel) ?? 'unsent'}`">{{ STATUS_LABELS[getCustomStatus(att, sendChannel)] ?? 'Unsent' }}</span>
-                      </label>
-                      <div v-if="!drawerPickFiltered.length" class="em-pick-empty">No attendees found</div>
-                    </div>
-                  </div>
-
-                  <p class="em-recip-hint">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    {{ sendRecipCount }} recipient{{ sendRecipCount !== 1 ? 's' : '' }} will receive this message
-                  </p>
                 </div>
 
                 <div class="em-drawer-section">
@@ -707,13 +680,14 @@
                   </p>
 
                   <template v-if="sendChannel === 'whatsapp'">
-                    <div v-if="!selectedCustomCamp?.whatsappMessage" class="em-msg-missing-warn">
+                    <div v-if="selectedCustomCamp?.kind !== 'card' && !selectedCustomCamp?.whatsappMessage" class="em-msg-missing-warn">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                       <span>No WhatsApp Custom Message set for this campaign — the template's placeholder will be blank. <button class="em-msg-missing-warn-btn" @click="openCampDialog(selectedCustomCamp, 'whatsapp')">Set it now</button> before sending.</span>
                     </div>
                     <div v-if="!loadingTemplates && !templates.length" class="em-tpl-empty">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B5B5BB" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                      No general-campaign WhatsApp templates registered yet.
+                      <span v-if="selectedCustomCamp?.kind === 'card'">No approved WhatsApp template found for {{ campaignTypeLabel(selectedCustomCamp.type) }} ({{ (props.event?.language ?? 'sw').toUpperCase() }}) yet — create one in Message Templates under that category.</span>
+                      <span v-else>No general-campaign WhatsApp templates registered yet.</span>
                     </div>
                     <div v-else class="em-tpl-list">
                       <div v-for="tpl in templates" :key="tpl.id"
@@ -737,6 +711,16 @@
                         <p class="em-tpl-content">{{ selectedCustomCamp.smsMessage }}</p>
                       </div>
                     </div>
+                    <!-- Card campaigns without a custom smsMessage aren't "blank" —
+                         haflaway_server falls back to its own per-purpose default
+                         text (with the card link included) — so this is informational,
+                         not the same warning a plain campaign gets. -->
+                    <div v-else-if="selectedCustomCamp?.kind === 'card'" class="em-tpl-item em-tpl-item--active" style="cursor: default">
+                      <div class="em-tpl-body">
+                        <p class="em-tpl-content">Using the default {{ selectedCustomCamp.name }} text, with the card link included automatically.</p>
+                        <button class="em-msg-missing-warn-btn" @click="openCampDialog(selectedCustomCamp, 'sms')">Customize it</button>
+                      </div>
+                    </div>
                     <div v-else class="em-msg-missing-warn">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                       <span>No SMS message set for this campaign — it will be sent blank. <button class="em-msg-missing-warn-btn" @click="openCampDialog(selectedCustomCamp, 'sms')">Set it now</button> before sending.</span>
@@ -748,7 +732,7 @@
                 <aside class="em-send-preview">
                   <div class="em-preview-card">
                     <div class="em-preview-head">
-                      <span class="em-preview-eyebrow">Preview</span>
+                      <span class="em-preview-eyebrow">Live preview</span>
                       <span class="em-preview-channel" :class="sendChannel === 'whatsapp' ? 'em-preview-channel--wsp' : 'em-preview-channel--sms'">
                         <svg v-if="sendChannel === 'whatsapp'" width="12" height="12" viewBox="0 0 448 512" fill="currentColor"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
                         <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -756,35 +740,88 @@
                       </span>
                     </div>
 
-                    <div class="em-preview-phone">
-                      <div class="em-preview-notch" />
-                      <div class="em-phone-statusbar">
-                        <span class="em-phone-carrier">{{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'Haflaway SMS' }}</span>
-                        <span class="em-phone-time">Today 10:42 AM</span>
+                    <div class="em-preview-collage">
+                      <div class="em-inv em-inv--left" aria-hidden="true">
+                        <span class="em-inv-kicker">Save the Date</span>
+                        <span class="em-inv-names">Our Day</span>
+                        <span class="em-inv-orn">✦</span>
                       </div>
-                      <div class="em-preview-screen">
-                        <div class="em-preview-bubble" :class="{ 'em-preview-bubble--wsp': sendChannel === 'whatsapp' }" v-if="previewParts.length">
-                          <template v-for="(part, i) in previewParts" :key="i">
-                            <span v-if="isVarToken(part)" class="em-preview-token">{{ part }}</span>
-                            <template v-else>{{ part }}</template>
-                          </template>
-                        </div>
-                        <div class="em-preview-empty-state" v-else>
-                          <div class="em-preview-empty-glyph">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                              <line x1="9" y1="10" x2="15" y2="10"/>
-                            </svg>
+                      <div class="em-inv em-inv--right" aria-hidden="true">
+                        <span class="em-inv-kicker">Details</span>
+                        <span class="em-inv-names">RSVP</span>
+                        <span class="em-inv-line" />
+                        <span class="em-inv-date">{{ previewEventDate }}</span>
+                      </div>
+
+                      <div class="em-preview-phone" :class="{ 'em-preview-phone--wsp': sendChannel === 'whatsapp' }">
+                        <div class="em-preview-screen">
+                          <div class="em-phone-osbar">
+                            <span>9:41</span>
+                            <span class="em-phone-island" />
+                            <span class="em-phone-os-icons">
+                              <svg width="28" height="10" viewBox="0 0 28 10" fill="currentColor" aria-hidden="true">
+                                <rect x="0" y="6" width="2.2" height="4" rx="0.4"/>
+                                <rect x="3.4" y="4.5" width="2.2" height="5.5" rx="0.4"/>
+                                <rect x="6.8" y="2.5" width="2.2" height="7.5" rx="0.4"/>
+                                <rect x="10.2" y="0.8" width="2.2" height="9.2" rx="0.4"/>
+                                <path d="M16.2 3.2c1.4-1.3 3.3-1.3 4.6 0" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+                                <path d="M17.4 4.8c.8-.7 1.8-.7 2.6 0" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+                                <circle cx="18.7" cy="7.2" r="0.85"/>
+                                <rect x="22.2" y="2.4" width="5.2" height="5.4" rx="1.1" fill="none" stroke="currentColor" stroke-width="1"/>
+                                <rect x="23" y="3.3" width="3.2" height="3.6" rx="0.4"/>
+                              </svg>
+                            </span>
                           </div>
-                          <p class="em-preview-empty-msg">
-                            {{ sendChannel === 'whatsapp' ? 'Pick a template to preview it here.' : 'Set an SMS message to preview it here.' }}
-                          </p>
-                          <p class="em-preview-empty-hint">Real-time mobile delivery simulation</p>
+
+                          <div class="em-chat-head">
+                            <svg class="em-chat-back" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                            <span class="em-chat-avatar">{{ (brandName || 'H').charAt(0) }}</span>
+                            <div class="em-chat-who">
+                              <span class="em-chat-name">{{ brandName || 'Haflaway' }}</span>
+                              <span class="em-chat-status">{{ sendChannel === 'whatsapp' ? 'online' : 'Text Message' }}</span>
+                            </div>
+                            <svg class="em-chat-tool" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.38 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                          </div>
+
+                          <div class="em-chat-thread">
+                            <span class="em-chat-stamp">Today 10:42 AM</span>
+                            <div class="em-preview-bubble" :class="{ 'em-preview-bubble--wsp': sendChannel === 'whatsapp' }" v-if="previewParts.length">
+                              <p class="em-preview-bubble-text">
+                                <template v-for="(part, i) in previewParts" :key="i">
+                                  <span v-if="isVarToken(part)" class="em-preview-token">{{ part }}</span>
+                                  <template v-else>{{ part }}</template>
+                                </template>
+                              </p>
+                              <span class="em-preview-ticks">
+                                10:42
+                                <svg v-if="sendChannel === 'whatsapp'" width="12" height="8" viewBox="0 0 16 11" fill="none" aria-hidden="true">
+                                  <path d="M1 6.2l2.4 2.5L8.2 3" stroke="#53bdeb" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                  <path d="M5.4 6.2l2.4 2.5L13.8 2.2" stroke="#53bdeb" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                              </span>
+                            </div>
+                            <div class="em-preview-empty-state" v-else>
+                              <div class="em-preview-ghost">
+                                <span /><span /><span />
+                              </div>
+                              <p class="em-preview-empty-msg">
+                                {{ sendChannel === 'whatsapp' ? 'Pick a template and it appears here as a chat.' : 'Set an SMS and it appears here as a text.' }}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div class="em-chat-dock">
+                            <span class="em-chat-plus">+</span>
+                            <span class="em-chat-field">{{ sendChannel === 'whatsapp' ? 'Message' : 'Text Message' }}</span>
+                            <span class="em-chat-mic" />
+                          </div>
                         </div>
+                        <div class="em-phone-home" />
                       </div>
                     </div>
 
                     <div class="em-preview-summary">
+                      <h3 class="em-preview-title">Watch it land on their phone</h3>
                       <p class="em-preview-caption">
                         Going to <strong>{{ sendRecipCount }}</strong> recipient{{ sendRecipCount !== 1 ? 's' : '' }} for <strong>{{ selectedCustomCamp?.name }}</strong>
                       </p>
@@ -816,16 +853,118 @@
       </Transition>
     </Teleport>
 
+    <Teleport to="body">
+      <div v-if="sendProgressOpen" class="em-sp-backdrop">
+        <div class="em-sp" role="dialog" aria-modal="true" aria-labelledby="em-sp-title">
+          <div class="em-sp-orbit" aria-hidden="true">
+            <span /><span /><span />
+          </div>
+          <p class="em-sp-kicker">{{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }}</p>
+          <h3 id="em-sp-title" class="em-sp-title">{{ selectedCustomCamp?.kind === 'card' ? 'Rendering & sending' : 'Sending' }}</h3>
+          <p class="em-sp-sub">{{ selectedCustomCamp?.name || 'Campaign' }}</p>
+          <p class="em-sp-pct">{{ activeSendRun && !activeSendRun.finishedAt ? sendRunPct + '%' : '…' }}</p>
+          <div class="em-sp-track">
+            <div class="em-sp-fill" :class="{ 'em-sp-fill--indeterminate': !activeSendRun || activeSendRun.finishedAt }" :style="activeSendRun && !activeSendRun.finishedAt ? { width: sendRunPct + '%' } : null"/>
+          </div>
+          <p class="em-sp-meta">
+            <template v-if="activeSendRun && !activeSendRun.finishedAt">
+              {{ sendRunProcessed }} of {{ activeSendRun.total }} delivered
+              <span v-if="sendRunFailedCount"> · {{ sendRunFailedCount }} failed</span>
+            </template>
+            <template v-else>This usually takes a moment. Keep this tab open.</template>
+          </p>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="recipModalOpen" class="em-sg-backdrop" @pointerdown.self="onSgBackdropDown">
+        <div class="em-sg" role="dialog" aria-modal="true" aria-labelledby="em-sg-title" @pointerdown.stop>
+          <div class="em-sg-head">
+            <h3 id="em-sg-title" class="em-sg-title">Select Guests</h3>
+            <button type="button" class="em-sg-x" aria-label="Close" @click="closeRecipModal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="em-sg-body">
+            <div class="em-sg-col">
+              <p class="em-sg-note">{{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }} sends need a phone number on the guest list.</p>
+              <div class="em-sg-search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input v-model="recipSearch" class="em-sg-search-input" placeholder="Search by name or group" />
+              </div>
+              <div class="em-sg-scroll">
+                <div class="em-sg-sec-hd">
+                  <span>Status</span>
+                </div>
+                <button
+                  v-for="opt in SEND_STATUS_OPTS" :key="opt.v"
+                  type="button"
+                  class="em-sg-row"
+                  :class="{ 'em-sg-row--active': recipStatusFilter === opt.v }"
+                  @click="chooseStatus(opt.v)">
+                  <span class="em-sg-box" :class="`em-sg-box--${statusStateMap[opt.v] || 'off'}`" />
+                  <span class="em-sg-dot" :style="{ background: SG_STATUS_COLORS[opt.v] }" />
+                  <span class="em-sg-status-lbl">{{ opt.l }}</span>
+                  <span class="em-sg-row-n">{{ sendStatusCounts[opt.v] ?? 0 }}</span>
+                </button>
+
+                <template v-if="recipFilteredGroups.length">
+                  <div class="em-sg-sec-hd">
+                    <span>Groups</span>
+                    <span class="em-sg-sec-n">{{ recipFilteredGroups.length }}</span>
+                  </div>
+                  <button v-for="lbl in recipFilteredGroups" :key="lbl.id" type="button" class="em-sg-row" @click="toggleGroup(lbl.id)">
+                    <span class="em-sg-box" :class="`em-sg-box--${groupStateMap[lbl.id] || 'off'}`" />
+                    <span class="em-sg-tag" :style="{ color: labelFg(lbl), background: labelBg(lbl) }">{{ lbl.name }}</span>
+                    <span class="em-sg-row-n">{{ groupCountMap[lbl.id] || 0 }}</span>
+                  </button>
+                </template>
+                <div class="em-sg-sec-hd em-sg-sec-hd--guests">
+                  <span>Guests</span>
+                  <span class="em-sg-sec-n">{{ recipFilteredGuests.length }}</span>
+                  <button type="button" class="em-sg-select-all" @click="selectAllVisibleGuests">{{ recipVisibleAllSelected ? 'Clear all' : 'Select All' }}</button>
+                </div>
+                <button v-for="att in recipFilteredGuests" :key="att.id" type="button" class="em-sg-row em-sg-row--guest" @click="toggleDraftGuest(att.id)">
+                  <span class="em-sg-box" :class="{ 'em-sg-box--on': recipDraftSet.has(att.id) }" />
+                  <span class="em-sg-avatar" :style="{ background: avatarBg(att.fullName), color: avatarFg(att.fullName) }">{{ initials(att.fullName) }}</span>
+                  <span class="em-sg-guest">
+                    <span class="em-sg-guest-name">{{ att.fullName }}</span>
+                    <span v-if="!att.phone" class="em-sg-guest-warn">Missing phone number</span>
+                  </span>
+                  <span class="em-sg-guest-st" :style="{ color: SG_STATUS_COLORS[guestSendStatus(att)] }">{{ STATUS_LABELS[guestSendStatus(att)] ?? 'Unsent' }}</span>
+                </button>
+                <div v-if="!recipFilteredGuests.length" class="em-sg-empty">No guests found</div>
+              </div>
+            </div>
+            <aside class="em-sg-selected">
+              <p class="em-sg-selected-lbl">Selected &nbsp;<strong>{{ recipDraftIds.length }}</strong></p>
+              <div class="em-sg-selected-list">
+                <p v-for="(att, i) in recipDraftAttendees" :key="att.id" class="em-sg-selected-name">{{ i + 1 }}. {{ att.fullName }}</p>
+              </div>
+            </aside>
+          </div>
+          <div class="em-sg-foot">
+            <button type="button" class="em-sg-link" @click="goEditGuestList">Edit Guest List</button>
+            <div class="em-sg-foot-acts">
+              <button type="button" class="em-sg-cancel" @click="closeRecipModal">Cancel</button>
+              <button type="button" class="em-sg-done" @click="commitRecipModal">Done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- ══════════════════════════════════════════════
          CAMPAIGN CREATE / EDIT DIALOG
          ══════════════════════════════════════════════ -->
     <Teleport to="body">
       <Transition name="em-fade">
-        <div v-if="campDialogOpen" class="em-overlay em-overlay--center" @click.self="campDialogOpen = false">
-          <div class="em-dialog">
-            <div class="em-dialog-header">
-              <h3 class="em-dialog-title">{{ editingCamp ? 'Edit Campaign' : 'New Campaign' }}</h3>
-              <button class="em-drawer-close" @click="campDialogOpen = false">
+        <div v-if="campDialogOpen" class="em-sg-backdrop" @pointerdown.self="campDialogOpen = false">
+          <div class="em-dialog em-dialog--joy" @pointerdown.stop>
+            <div class="em-dialog-header em-sg-head">
+              <h3 class="em-dialog-title em-sg-title">{{ editingCamp ? 'Edit Campaign' : 'New Campaign' }}</h3>
+              <button type="button" class="em-sg-x" aria-label="Close" @click="campDialogOpen = false">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
@@ -836,18 +975,18 @@
               <template v-if="!editingCamp">
                 <label class="em-dialog-lbl" style="margin-top:14px">Type</label>
                 <div class="em-dialog-type-row">
-                  <button class="em-dialog-type-btn" :class="{ 'em-dialog-type-btn--on': campDialogType === 'invitation' }" @click="campDialogType = 'invitation'">Invitation</button>
-                  <button class="em-dialog-type-btn" :class="{ 'em-dialog-type-btn--on': campDialogType === 'contribution' }" @click="campDialogType = 'contribution'">Contribution</button>
-                  <button class="em-dialog-type-btn" :class="{ 'em-dialog-type-btn--on': campDialogType === 'contact' }" @click="campDialogType = 'contact'">Contact</button>
+                  <button type="button" class="em-dialog-type-btn" :class="{ 'em-dialog-type-btn--on': campDialogType === 'invitation' }" @click="campDialogType = 'invitation'">Invitation</button>
+                  <button type="button" class="em-dialog-type-btn" :class="{ 'em-dialog-type-btn--on': campDialogType === 'contribution' }" @click="campDialogType = 'contribution'">Contribution</button>
+                  <button type="button" class="em-dialog-type-btn" :class="{ 'em-dialog-type-btn--on': campDialogType === 'contact' }" @click="campDialogType = 'contact'">Contact</button>
                 </div>
               </template>
               <label class="em-dialog-lbl" style="margin-top:14px">Custom Message</label>
               <div class="em-send-ch-toggle">
-                <button class="em-send-ch-btn" :class="{ 'em-send-ch-btn--wsp': campDialogMsgTab === 'whatsapp' }" @click="campDialogMsgTab = 'whatsapp'">
+                <button type="button" class="em-send-ch-btn" :class="{ 'em-send-ch-btn--wsp': campDialogMsgTab === 'whatsapp' }" @click="campDialogMsgTab = 'whatsapp'">
                   <svg width="14" height="14" viewBox="0 0 448 512" fill="#128C7E"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
                   WhatsApp
                 </button>
-                <button class="em-send-ch-btn" :class="{ 'em-send-ch-btn--sms': campDialogMsgTab === 'sms' }" @click="campDialogMsgTab = 'sms'">
+                <button type="button" class="em-send-ch-btn" :class="{ 'em-send-ch-btn--sms': campDialogMsgTab === 'sms' }" @click="campDialogMsgTab = 'sms'">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                   SMS
                 </button>
@@ -888,8 +1027,8 @@
               </template>
             </div>
             <div class="em-dialog-footer">
-              <button class="em-drawer-cancel" @click="campDialogOpen = false">Cancel</button>
-              <button class="em-drawer-send" :disabled="!campDialogName.trim() || savingCamp" @click="saveCamp">
+              <button type="button" class="em-sg-cancel" @click="campDialogOpen = false">Cancel</button>
+              <button type="button" class="em-sg-done" :disabled="!campDialogName.trim() || savingCamp" @click="saveCamp">
                 <svg v-if="savingCamp" class="em-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                 {{ savingCamp ? 'Saving…' : (editingCamp ? 'Save' : 'Create') }}
               </button>
@@ -907,20 +1046,101 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db, auth } from '../../firebase'
-import { collection, query, orderBy, where, getDocs, addDoc, setDoc, deleteDoc, doc } from 'firebase/firestore'
+import { collection, query, orderBy, where, limit, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore'
 import { useNavDrawer } from '../../composables/useNavDrawer.js'
 import { useOrg } from '../../composables/useOrg.js'
 
-const props = defineProps({ event: Object, eventId: String })
+// cardScope: this same page/component doubles as the Invitations screen
+// (route: 'invitations', see router/index.js) — Create tab shows card
+// purposes instead of message presets, and Drafts/Scheduled/Sent are scoped
+// to kind:'card' campaigns instead of everything else.
+const props = defineProps({ event: Object, eventId: String, cardScope: { type: Boolean, default: false } })
 const route  = useRoute()
 const router = useRouter()
 const navDrawer = useNavDrawer()
 const { brandName, brandLogoUrl } = useOrg()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
 
+// Ported from EventMessages.vue — generates/rotates the public token guests'
+// undelivered-card report link is keyed on (events/{id}.invitationsReportToken).
+// See the header button above for the popover this backs.
+const reportToken       = ref(props.event?.invitationsReportToken ?? '')
+const reportPopoverOpen = ref(false)
+const reportLinkCopied  = ref(false)
+// EventLayout fetches `event` with a one-time getDoc, not onSnapshot, and it
+// starts out null — on a hard navigation straight to this route, the ref
+// above can snapshot before that fetch resolves. Backfill once it arrives,
+// but never clobber a token this tab just generated/regenerated locally.
+watch(() => props.event?.invitationsReportToken, (val) => {
+  if (val && !reportToken.value) reportToken.value = val
+})
+const reportUrl = computed(() => {
+  if (!reportToken.value || !eventId.value) return ''
+  return `${window.location.origin}/invitations-report/${eventId.value}/${reportToken.value}`
+})
+async function generateReportLink() {
+  if (!eventId.value) return
+  const token = crypto.randomUUID()
+  try {
+    await updateDoc(doc(db, 'events', eventId.value), { invitationsReportToken: token })
+    reportToken.value = token
+  } catch (e) { console.error('Failed to generate report link', e) }
+}
+async function regenerateReportLink() {
+  if (!window.confirm("Regenerating invalidates the link you already shared — anyone with the old one loses access. Continue?")) return
+  await generateReportLink()
+}
+async function copyReportLink() {
+  if (!reportUrl.value) return
+  try {
+    await navigator.clipboard.writeText(reportUrl.value)
+    reportLinkCopied.value = true
+    setTimeout(() => { reportLinkCopied.value = false }, 2000)
+  } catch (e) { console.error('Failed to copy report link', e) }
+}
+const vClickOutside = {
+  mounted(el, binding) {
+    el._co = (e) => { if (!el.contains(e.target)) binding.value(e) }
+    document.addEventListener('mousedown', el._co)
+  },
+  unmounted(el) { document.removeEventListener('mousedown', el._co) }
+}
+
 const SMS_URL = 'https://sendsmsaction-frbu33fema-uc.a.run.app'
 const WSP_URL = 'https://sendwhatsappinvitationmessages-frbu33fema-uc.a.run.app'
 const GENERAL_CAMPAIGN_CATEGORY = 'haflaway-general-campaign'
+
+// haflaway_server (standalone VPS backend) — card campaigns (kind:'card')
+// send through here instead of the raw Cloud Function URLs above: it renders
+// each attendee's card on demand (reusing one already rendered) and only then
+// dispatches, still via those same Cloud Functions internally — see that
+// server's src/routes/campaigns.js. Defaults to local dev; set
+// VITE_CARD_SERVER_URL once it's deployed somewhere reachable.
+const CARD_SERVER_URL = import.meta.env.VITE_CARD_SERVER_URL || 'http://localhost:8080'
+
+// Card-send campaigns (kind:'card' — started from the Guest List's Send-a-Card
+// flow) need the SAME purpose-specific WhatsApp template category the
+// Invitations screen already uses (EventMessages.vue's CAMPAIGN_TEMPLATE_CATEGORIES),
+// not the generic one below — those templates are fully pre-authored, unlike
+// the general/bulk ones this composer was originally built for. Matches
+// haflaway_server/src/routes/campaigns.js's WHATSAPP_TEMPLATE_CATEGORY_BY_PURPOSE;
+// thank_you/enclosure are best-guess category names there too (not yet
+// confirmed to have an approved template — see that file's comments).
+const CARD_PURPOSE_WHATSAPP_CATEGORY = {
+  invitation:    'whatsapp-wedding-invitations',
+  save_the_date: 'whatsapp-wedding-save-the-date',
+  thank_you:     'whatsapp-wedding-thank-you',
+  enclosure:     'whatsapp-wedding-enclosure',
+}
+
+// `type` reads as raw snake_case for card-purpose campaigns (save_the_date,
+// thank_you, enclosure) started from the Guest List's Send-a-Card flow —
+// matches the titles CARD_OPTIONS shows there (EventAttendees.vue).
+const CAMPAIGN_TYPE_LABELS = {
+  invitation: 'Invitation', contribution: 'Contribution', contact: 'Contact',
+  save_the_date: 'Save the Date', thank_you: 'Thank You Card', enclosure: 'Enclosure Card',
+}
+function campaignTypeLabel(type) { return CAMPAIGN_TYPE_LABELS[type] ?? type }
 
 // Inline style wins over any stylesheet cascade oddity — used to force the
 // active WhatsApp/SMS tab to render visibly. Sourced from --gold (the live
@@ -1047,6 +1267,35 @@ const draftCampaigns = computed(() =>
     .sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0))
 )
 
+// Card-purpose campaigns are meant to be one per purpose per event — both
+// places that create one (EventAttendees.vue's selectCardOption and this
+// page's selectCardTile) target the same deterministic `card_<purpose>` doc
+// id. Events sent before that dedup existed accumulated separate campaign
+// docs for the same purpose instead, so the Sent list showed one row per
+// historical duplicate ("Invitation" x5) rather than one row per purpose.
+// Group those together here for display. Preset (non-card) campaigns are
+// deliberately NOT grouped — clicking "General Message" again is meant to
+// start a new, separately-composed send, not merge into a prior one.
+const sentCampaignGroups = computed(() => {
+  if (!props.cardScope) return sentCampaigns.value.map(c => ({ ...c, mergedIds: [c.id] }))
+  const byType = new Map()
+  for (const camp of sentCampaigns.value) {
+    const key = camp.type ?? camp.name
+    if (!byType.has(key)) byType.set(key, [])
+    byType.get(key).push(camp)
+  }
+  const groups = []
+  for (const camps of byType.values()) {
+    // Prefer the canonical card_<purpose> doc as the representative — it's
+    // the one every future send already targets — falling back to the most
+    // recently created duplicate for events that predate it entirely.
+    const rep = camps.find(c => c.id === `card_${c.type}`) ??
+      camps.reduce((latest, c) => new Date(c.createdAt ?? 0) > new Date(latest.createdAt ?? 0) ? c : latest)
+    groups.push({ ...rep, mergedIds: camps.map(c => c.id) })
+  }
+  return groups.sort((a, b) => new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0))
+})
+
 // ── Sent tab: per-message-type icon/label + per-campaign send/fail counts ──────
 const PRESET_TYPE_META = {
   'General Message': {
@@ -1075,8 +1324,36 @@ const DEFAULT_TYPE_META = {
   color: '#374151',
   icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
 }
-function messageTypeMeta(camp) { return PRESET_TYPE_META[camp.name] ?? DEFAULT_TYPE_META }
-const SENT_TYPE_OPTIONS = [...Object.keys(PRESET_TYPE_META), 'Custom']
+// Same shape as PRESET_TYPE_META above, keyed by the exact names CARD_TILES
+// (below) creates campaigns with — without this, every card campaign fell
+// through to DEFAULT_TYPE_META ("General"/envelope icon) in the Sent table
+// and the detail heading badge.
+const CARD_TYPE_META = {
+  'Save the Date': {
+    label: 'Save the Date',
+    color: '#0891b2',
+    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2.5"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M12 14.2c-.4-.4-1.1-.4-1.5 0-.4.4-.4 1.1 0 1.5l1.5 1.5 1.5-1.5c.4-.4.4-1.1 0-1.5-.4-.4-1.1-.4-1.5 0z"/></svg>`,
+  },
+  'Invitation': {
+    label: 'Invitation',
+    color: '#f97316',
+    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2.5"/><line x1="8" y1="7" x2="16" y2="7"/><circle cx="12" cy="13" r="2.2"/><path d="M12 15.2v2.3"/></svg>`,
+  },
+  'Thank You Card': {
+    label: 'Thank You',
+    color: '#d946ef',
+    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="3 8 12 14 21 8"/><path d="M3 8l5.5-4h7l5.5 4"/><circle cx="12" cy="14" r="2.2"/><path d="M11 14l.7.7 1.5-1.4"/></svg>`,
+  },
+  'Enclosure Card': {
+    label: 'Enclosure',
+    color: '#8b5cf6',
+    icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="14" height="14" rx="2"/><path d="M3 17V5a2 2 0 0 1 2-2h12"/></svg>`,
+  },
+}
+function messageTypeMeta(camp) { return PRESET_TYPE_META[camp.name] ?? CARD_TYPE_META[camp.name] ?? DEFAULT_TYPE_META }
+const SENT_TYPE_OPTIONS = computed(() =>
+  props.cardScope ? Object.keys(CARD_TYPE_META) : [...Object.keys(PRESET_TYPE_META), 'Custom']
+)
 
 // Every messageIndexes entry that belongs to this campaign, across both
 // channels — a guest can have a whatsapp_ and an sms_ entry for the same
@@ -1089,23 +1366,60 @@ function campaignIndexEntries(att, campId) {
   })
 }
 
+// A selected campaign can be a sentCampaignGroups representative standing in
+// for several merged legacy duplicate docs (see sentCampaignGroups above) —
+// every place that looks up "has this attendee been messaged for this
+// campaign, on this channel" must check every merged id, not just the
+// representative's own. Skipping this would under-report stats on the detail
+// page AND, worse, make the send drawer think an already-sent guest is still
+// "unsent" (because their real send lives under a different merged id),
+// risking a duplicate paid send. Ranked so the most-advanced status across
+// all merged ids wins, mirroring campaignStatsMap's "any sent/delivered/read
+// counts as sent" rule.
+const CUSTOM_STATUS_RANK = { read: 0, delivered: 1, sent: 2, failed: 3 }
+function bestStatusAcrossIds(att, channel, campIds) {
+  let best = null
+  let bestRank = Infinity
+  for (const campId of campIds) {
+    const prefix = `${channel}_${campId}_`
+    const match = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
+    if (!match) continue
+    const s = match.slice(match.lastIndexOf('_') + 1)
+    if (s === 'unsent') continue
+    const rank = CUSTOM_STATUS_RANK[s] ?? CUSTOM_STATUS_RANK.failed
+    if (rank < bestRank) { bestRank = rank; best = s }
+  }
+  return best
+}
+function mergedIdsOf(camp) { return camp?.mergedIds ?? (camp ? [camp.id] : []) }
+
 // Recipients + send/fail counts per sent campaign, for the Sent tab table.
 // A recipient counts as "sent" if any channel reached sent/delivered/read,
-// and "failed" only if every channel attempted for them came back failed.
+// and "failed" if any attempted channel came back failed and none succeeded.
+// NOT `every(s => s === 'failed')` — the onCampaignCreated Cloud Function
+// (functions/campaigns/index.js) stamps every attendee with a
+// `${channel}_${campaignId}_unsent` placeholder for BOTH sms and whatsapp
+// the moment a campaign doc is created, so an attendee sent on only one
+// channel always carries a leftover 'unsent' entry for the other.
+// `every` treated that mixed [failed, unsent] as "not all failed" and
+// silently dropped them from both buckets — real failures undercounted
+// (often down to 0) everywhere this map has ever been read, made obvious
+// once card campaigns started merging several legacy ids together (more
+// merged ids/channels per attendee, near-guaranteeing a stray 'unsent').
 const campaignStatsMap = computed(() => {
   const map = {}
-  for (const camp of sentCampaigns.value) {
+  for (const group of sentCampaignGroups.value) {
     const recipients = []
     let sent = 0, failed = 0
     for (const att of attendees.value) {
-      const entries = campaignIndexEntries(att, camp.id)
+      const entries = group.mergedIds.flatMap(id => campaignIndexEntries(att, id))
       if (!entries.length) continue
       recipients.push(att)
       const statuses = entries.map(idx => idx.slice(idx.lastIndexOf('_') + 1))
       if (statuses.some(s => s === 'sent' || s === 'delivered' || s === 'read')) sent++
-      else if (statuses.every(s => s === 'failed')) failed++
+      else if (statuses.some(s => s === 'failed')) failed++
     }
-    map[camp.id] = { recipients, sent, failed }
+    map[group.id] = { recipients, sent, failed }
   }
   return map
 })
@@ -1118,7 +1432,7 @@ const sentTypeDdMenuRef    = ref(null)
 
 const sentTableRows = computed(() => {
   const q = sentSearchQ.value.trim().toLowerCase()
-  return sentCampaigns.value.filter(camp => {
+  return sentCampaignGroups.value.filter(camp => {
     if (q && !(camp.name ?? '').toLowerCase().includes(q)) return false
     if (sentTypeFilter.value) {
       const isPreset = !!PRESET_TYPE_META[camp.name]
@@ -1160,6 +1474,11 @@ function handleFilterDdOutsideClick(e) {
 }
 onMounted(() => document.addEventListener('mousedown', handleFilterDdOutsideClick))
 onUnmounted(() => document.removeEventListener('mousedown', handleFilterDdOutsideClick))
+onUnmounted(() => stopWatchingSendRun())
+onUnmounted(() => {
+  window.removeEventListener('keydown', onSgKeydown)
+  document.body.style.overflow = ''
+})
 
 async function loadCustomCampaigns() {
   if (!eventId.value) return
@@ -1168,7 +1487,11 @@ async function loadCustomCampaigns() {
     const snap = await getDocs(
       query(collection(db, 'events', eventId.value, 'campaigns'), orderBy('createdAt', 'desc'))
     )
+    // This same list backs both scopes of this page — card sends (Invitations
+    // route) and everything else (Bulk Messages route) — so it's one filter
+    // here rather than two separate queries.
     customCampaigns.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .filter(c => props.cardScope ? c.kind === 'card' : c.kind !== 'card')
     // Restore the drilled-into campaign from the URL (e.g. after a refresh)
     // instead of always landing back on the list.
     if (route.query.campaign && !selectedCustomCamp.value) {
@@ -1277,6 +1600,88 @@ const savingCamp           = ref(false)
 // picking one auto-creates a draft campaign titled after the pick and jumps
 // straight into composing/sending it (mirrors selecting an existing campaign
 // then pressing Send — see selectCustomCamp/openCustomSend below).
+// Same 4 purposes/titles/icons as EventAttendees.vue's CARD_OPTIONS (the
+// Guest List "Send > Card" modal), so this page's tiles read as the same
+// thing rather than a second, slightly-different card picker.
+const CARD_TILES = [
+  {
+    purpose: 'save_the_date', label: 'Save the Date', color: '#0891b2',
+    icon: `<rect x="3" y="4" width="18" height="18" rx="2.5"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M12 14.2c-.4-.4-1.1-.4-1.5 0-.4.4-.4 1.1 0 1.5l1.5 1.5 1.5-1.5c.4-.4.4-1.1 0-1.5-.4-.4-1.1-.4-1.5 0z"/>`,
+  },
+  {
+    purpose: 'invitation', label: 'Invitation', color: '#f97316',
+    icon: `<rect x="5" y="3" width="14" height="18" rx="2.5"/><line x1="8" y1="7" x2="16" y2="7"/><circle cx="12" cy="13" r="2.2"/><path d="M12 15.2v2.3"/>`,
+  },
+  {
+    purpose: 'thank_you', label: 'Thank You Card', color: '#d946ef',
+    icon: `<path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><polyline points="3 8 12 14 21 8"/><path d="M3 8l5.5-4h7l5.5 4"/><circle cx="12" cy="14" r="2.2"/><path d="M11 14l.7.7 1.5-1.4"/>`,
+  },
+  {
+    purpose: 'enclosure', label: 'Enclosure Card', color: '#8b5cf6',
+    icon: `<rect x="7" y="7" width="14" height="14" rx="2"/><path d="M3 17V5a2 2 0 0 1 2-2h12"/>`,
+  },
+]
+const checkingCardTile = ref(null)
+
+// Mirrors EventAttendees.vue's selectCardOption, adapted to act in-page
+// instead of navigating away — this page IS the composer's home, so there's
+// nowhere to deep-link back from. Same deterministic card_<purpose> campaign
+// id (never a fresh addDoc) so a tile here and the Guest List's Send > Card
+// modal always land on the exact same campaign for a given purpose.
+async function selectCardTile(tile) {
+  if (checkingCardTile.value) return
+  checkingCardTile.value = tile.purpose
+  try {
+    const blueprintSnap = await getDocs(query(
+      collection(db, 'events', eventId.value, 'cards'),
+      where('purpose', '==', tile.purpose),
+      limit(1)
+    ))
+    if (blueprintSnap.empty) {
+      // No template yet — same detour EventAttendees.vue's selectCardOption
+      // uses: the Cards tab's empty state points at the Designer, and
+      // origin=invitations tells its "Continue Sending" resume flow to come
+      // back here instead of the Guest List.
+      router.push({
+        path: `/event/${eventId.value}/cards`,
+        query: { filter: tile.purpose, returnToSend: tile.purpose, origin: 'invitations' },
+      })
+      return
+    }
+
+    const campaignRef = doc(db, 'events', eventId.value, 'campaigns', `card_${tile.purpose}`)
+    const campaignSnap = await getDoc(campaignRef)
+    if (!campaignSnap.exists()) {
+      await setDoc(campaignRef, {
+        name: tile.label,
+        type: tile.purpose,
+        kind: 'card',
+        whatsappMessage: null,
+        smsMessage: null,
+        createdAt: new Date().toISOString(),
+        status: 'draft',
+      })
+      const newCamp = {
+        id: campaignRef.id, name: tile.label, type: tile.purpose, kind: 'card',
+        whatsappMessage: null, smsMessage: null, createdAt: new Date().toISOString(), status: 'draft',
+      }
+      customCampaigns.value.unshift(newCamp)
+      selectCustomCamp(newCamp)
+    } else {
+      // Built from this fresh read, not from customCampaigns — that list may
+      // not have finished loading yet (a fast click right after page load),
+      // and preferring a locally-built draft shape over a real, possibly
+      // 'sent' doc would visibly regress its status/content in the drawer.
+      selectCustomCamp({ id: campaignSnap.id, ...campaignSnap.data() })
+    }
+    openCustomSend()
+  } catch (e) {
+    console.error('selectCardTile:', e)
+  } finally {
+    checkingCardTile.value = null
+  }
+}
+
 const PRESET_CAMPAIGNS = ['General Message', 'RSVP Reminder', 'Pledge Reminder', 'Meeting Reminder']
 const creatingPresetCamp = ref(false)
 async function createPresetCampaign(label) {
@@ -1424,48 +1829,44 @@ const detailSearchQ = ref('')
 
 const customFilteredAttendees = computed(() => {
   if (!selectedCustomCamp.value) return []
-  const campId   = selectedCustomCamp.value.id
+  const campIds  = mergedIdsOf(selectedCustomCamp.value)
   const status   = customStatus.value
   const labelId  = customLabelId.value
   const cardType = selectedCustomCamp.value.type
   const q        = detailSearchQ.value.trim().toLowerCase()
 
   return attendees.value.filter(att => {
-    if (!att.cards || att.cards[cardType] == null) return false
+    // Card campaigns render lazily at send time (see sendRecipPool) — an
+    // attendee not having the card yet doesn't mean they're not a candidate.
+    if (selectedCustomCamp.value.kind !== 'card' && (!att.cards || att.cards[cardType] == null)) return false
     if (labelId && !(att.labelIds ?? []).includes(labelId)) return false
     if (q && !(att.fullName ?? '').toLowerCase().includes(q) && !(att.phone ?? '').includes(q)) return false
-    const prefix = `${detailChannel.value}_${campId}_`
-    const match  = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
-    const s      = match ? match.slice(match.lastIndexOf('_') + 1) : null
+    const s = bestStatusAcrossIds(att, detailChannel.value, campIds)
     if (status === 'all') return true
-    if (status === 'unsent') return s === null || s === 'unsent'
+    if (status === 'unsent') return s === null
     return s === status
   })
 })
 
 function getCustomStatus(att, channel = detailChannel.value) {
   if (!selectedCustomCamp.value) return null
-  const prefix = `${channel}_${selectedCustomCamp.value.id}_`
-  const match  = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
-  return match ? match.slice(match.lastIndexOf('_') + 1) : null
+  return bestStatusAcrossIds(att, channel, mergedIdsOf(selectedCustomCamp.value))
 }
 
 const customStatusCounts = computed(() => {
   if (!selectedCustomCamp.value) return { all: 0, unsent: 0, sent: 0, delivered: 0, read: 0, failed: 0 }
-  const campId   = selectedCustomCamp.value.id
+  const campIds  = mergedIdsOf(selectedCustomCamp.value)
   const cardType = selectedCustomCamp.value.type
   const labelId  = customLabelId.value
-  const prefix   = `${detailChannel.value}_${campId}_`
   const base = attendees.value.filter(att => {
-    if (!att.cards || att.cards[cardType] == null) return false
+    if (selectedCustomCamp.value.kind !== 'card' && (!att.cards || att.cards[cardType] == null)) return false
     if (labelId && !(att.labelIds ?? []).includes(labelId)) return false
     return true
   })
   const counts = { all: base.length, unsent: 0, sent: 0, delivered: 0, read: 0, failed: 0 }
   for (const att of base) {
-    const match = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
-    const s = match ? match.slice(match.lastIndexOf('_') + 1) : null
-    if (!s || s === 'unsent') counts.unsent++
+    const s = bestStatusAcrossIds(att, detailChannel.value, campIds)
+    if (!s) counts.unsent++
     else if (counts[s] !== undefined) counts[s]++
   }
   return counts
@@ -1508,8 +1909,16 @@ function detailGoPage(n) { if (n >= 1 && n <= detailTotalPages.value) detailPage
 watch(customFilteredAttendees, () => { detailPage.value = 1 })
 
 // ── Drawer recipient model ────────────────────────────────────────────────────
-const sendRecipMode    = ref('unsent')
-const sendLabelId      = ref(null)
+// null = nothing chosen yet — the safe default. A bulk mode like 'unsent' is
+// a genuinely heavy action (every unsent recipient, no confirmation beyond
+// the Send button itself) and shouldn't be pre-armed just from opening the
+// drawer; the organizer has to actually pick a status (or specific
+// attendees) before sendRecipients below resolves to anyone at all.
+const sendRecipMode    = ref(null)
+// undefined = "not chosen yet" (the safe default, forces a deliberate pick
+// before anyone's included); null = the explicit, deliberate "All Groups"
+// choice — a real option in the dropdown, not the implicit starting state.
+const sendLabelId      = ref(undefined)
 const recipDropOpen    = ref(false)
 // Teleported to <body> — the drawer otherwise clips/dims it via its own
 // overflow and transform, which is what made this dropdown look transparent
@@ -1531,28 +1940,45 @@ function toggleRecipDd() {
 const pickOpen         = ref(false)
 const drawerPickList   = ref([])
 const drawerPickSearch = ref('')
+const recipModalOpen   = ref(false)
+const recipDraftIds    = ref([])
+const recipSearch      = ref('')
+const recipStatusFilter = ref('all')
+const recipDraftSet    = computed(() => new Set(recipDraftIds.value))
 
 const sendRecipPool = computed(() => {
   if (!selectedCustomCamp.value) return []
-  const cardType = selectedCustomCamp.value.type
-  let pool = attendees.value.filter(att => att.cards && att.cards[cardType] != null)
-  if (sendLabelId.value) pool = pool.filter(a => (a.labelIds ?? []).includes(sendLabelId.value))
+  // A card campaign renders on demand server-side at send time (see
+  // executeSend) — anyone explicitly selected is eligible whether or not
+  // they already have a rendered card. The old general/bulk Message flow has
+  // no render step at all, so it still only makes sense for attendees who
+  // already have that card (nothing here would ever produce one).
+  let pool = attendees.value
+  if (selectedCustomCamp.value.kind !== 'card') {
+    const cardType = selectedCustomCamp.value.type
+    pool = pool.filter(att => att.cards && att.cards[cardType] != null)
+  }
   return pool
 })
 
 const sendStatusCounts = computed(() => {
-  if (!selectedCustomCamp.value) return { unsent: 0, sent: 0, delivered: 0, read: 0, failed: 0 }
-  const campId = selectedCustomCamp.value.id
-  const prefix = `${sendChannel.value}_${campId}_`
-  const counts = { unsent: 0, sent: 0, delivered: 0, read: 0, failed: 0 }
-  for (const att of sendRecipPool.value) {
-    const match = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
-    const s = match ? match.slice(match.lastIndexOf('_') + 1) : null
-    if (!s || s === 'unsent') counts.unsent++
+  const counts = { all: 0, unsent: 0, sent: 0, delivered: 0, read: 0, failed: 0 }
+  if (!selectedCustomCamp.value) return counts
+  const campIds = mergedIdsOf(selectedCustomCamp.value)
+  const pool = sendRecipPool.value
+  counts.all = pool.length
+  for (const att of pool) {
+    const s = bestStatusAcrossIds(att, sendChannel.value, campIds)
+    if (!s) counts.unsent++
     else if (counts[s] !== undefined) counts[s]++
   }
   return counts
 })
+
+function guestSendStatus(att) {
+  if (!selectedCustomCamp.value) return 'unsent'
+  return bestStatusAcrossIds(att, sendChannel.value, mergedIdsOf(selectedCustomCamp.value)) || 'unsent'
+}
 
 const drawerPickFiltered = computed(() => {
   const q = drawerPickSearch.value.trim().toLowerCase()
@@ -1563,19 +1989,9 @@ const drawerPickFiltered = computed(() => {
 })
 
 const sendRecipients = computed(() => {
-  if (drawerPickList.value.length) {
-    return sendRecipPool.value.filter(a => drawerPickList.value.includes(a.id))
-  }
-  if (!selectedCustomCamp.value) return []
-  const campId = selectedCustomCamp.value.id
-  const prefix = `${sendChannel.value}_${campId}_`
-  return sendRecipPool.value.filter(att => {
-    const match = (att.messageIndexes ?? []).find(idx => idx.startsWith(prefix))
-    const s = match ? match.slice(match.lastIndexOf('_') + 1) : null
-    if (sendRecipMode.value === 'all') return true
-    if (sendRecipMode.value === 'unsent') return s === null || s === 'unsent'
-    return s === sendRecipMode.value
-  })
+  if (!drawerPickList.value.length) return []
+  const ids = new Set(drawerPickList.value)
+  return sendRecipPool.value.filter(a => ids.has(a.id))
 })
 
 const sendRecipCount = computed(() => sendRecipients.value.length)
@@ -1592,6 +2008,145 @@ function drawerPickSelectAll() {
   else ids.forEach(id => { if (!drawerPickList.value.includes(id)) drawerPickList.value.push(id) })
 }
 
+const recipFilteredGroups = computed(() => {
+  const labels = props.event?.labels ?? []
+  const q = recipSearch.value.trim().toLowerCase()
+  if (!q) return labels
+  return labels.filter(l => (l.name ?? '').toLowerCase().includes(q))
+})
+const recipFilteredGuests = computed(() => {
+  const q = recipSearch.value.trim().toLowerCase()
+  const labels = props.event?.labels ?? []
+  const filter = recipStatusFilter.value
+  return sendRecipPool.value.filter(a => {
+    if (filter !== 'all' && guestSendStatus(a) !== filter) return false
+    if (!q) return true
+    if ((a.fullName ?? '').toLowerCase().includes(q) || (a.phone ?? '').includes(q)) return true
+    return (a.labelIds ?? []).some(id => (labels.find(l => l.id === id)?.name ?? '').toLowerCase().includes(q))
+  })
+})
+const recipDraftAttendees = computed(() => sendRecipPool.value.filter(a => recipDraftSet.value.has(a.id)))
+const recipVisibleAllSelected = computed(() => {
+  const list = recipFilteredGuests.value
+  return list.length > 0 && list.every(a => recipDraftSet.value.has(a.id))
+})
+const groupIdsByLabel = computed(() => {
+  const map = {}
+  for (const a of sendRecipPool.value) {
+    for (const id of a.labelIds ?? []) (map[id] ??= []).push(a.id)
+  }
+  return map
+})
+const groupCountMap = computed(() => {
+  const map = {}
+  for (const [id, ids] of Object.entries(groupIdsByLabel.value)) map[id] = ids.length
+  return map
+})
+const groupStateMap = computed(() => {
+  const selected = recipDraftSet.value
+  const map = {}
+  for (const [labelId, ids] of Object.entries(groupIdsByLabel.value)) {
+    const n = ids.filter(id => selected.has(id)).length
+    map[labelId] = n === 0 ? 'off' : n === ids.length ? 'on' : 'mixed'
+  }
+  return map
+})
+const statusIdsByKey = computed(() => {
+  const map = { all: sendRecipPool.value.map(a => a.id), unsent: [], sent: [], delivered: [], read: [], failed: [] }
+  if (!selectedCustomCamp.value) return map
+  const campIds = mergedIdsOf(selectedCustomCamp.value)
+  for (const att of sendRecipPool.value) {
+    const s = bestStatusAcrossIds(att, sendChannel.value, campIds) || 'unsent'
+    if (map[s]) map[s].push(att.id)
+  }
+  return map
+})
+const statusStateMap = computed(() => {
+  const selected = recipDraftSet.value
+  const map = {}
+  for (const [key, ids] of Object.entries(statusIdsByKey.value)) {
+    if (!ids.length) { map[key] = 'off'; continue }
+    const n = ids.filter(id => selected.has(id)).length
+    map[key] = n === 0 ? 'off' : n === ids.length ? 'on' : 'mixed'
+  }
+  return map
+})
+const SG_STATUS_COLORS = {
+  unsent: '#C9A84C', sent: '#3b82f6', delivered: '#10b981',
+  read: '#0ea5e9', failed: '#ef4444', all: '#64748b',
+}
+function toggleGroup(labelId) {
+  const ids = groupIdsByLabel.value[labelId] ?? []
+  if (groupStateMap.value[labelId] === 'on') {
+    const drop = new Set(ids)
+    recipDraftIds.value = recipDraftIds.value.filter(id => !drop.has(id))
+  } else {
+    recipDraftIds.value = [...new Set([...recipDraftIds.value, ...ids])]
+  }
+}
+function chooseStatus(key) {
+  recipStatusFilter.value = key
+  const ids = statusIdsByKey.value[key] ?? []
+  if (!ids.length) return
+  if (statusStateMap.value[key] === 'on') {
+    const drop = new Set(ids)
+    recipDraftIds.value = recipDraftIds.value.filter(id => !drop.has(id))
+  } else {
+    recipDraftIds.value = [...new Set([...recipDraftIds.value, ...ids])]
+  }
+}
+function toggleDraftGuest(id) {
+  if (recipDraftSet.value.has(id)) recipDraftIds.value = recipDraftIds.value.filter(x => x !== id)
+  else recipDraftIds.value = [...recipDraftIds.value, id]
+}
+function selectAllVisibleGuests() {
+  const ids = recipFilteredGuests.value.map(a => a.id)
+  if (recipVisibleAllSelected.value) {
+    const drop = new Set(ids)
+    recipDraftIds.value = recipDraftIds.value.filter(id => !drop.has(id))
+  } else {
+    recipDraftIds.value = [...new Set([...recipDraftIds.value, ...ids])]
+  }
+}
+function openRecipModal() {
+  recipDraftIds.value = [...drawerPickList.value]
+  recipSearch.value = ''
+  recipStatusFilter.value = 'all'
+  recipModalOpen.value = true
+}
+function closeRecipModal() { recipModalOpen.value = false }
+function commitRecipModal() {
+  drawerPickList.value = [...recipDraftIds.value]
+  recipModalOpen.value = false
+}
+function goEditGuestList() {
+  recipModalOpen.value = false
+  router.push(`/event/${eventId.value}/attendees`)
+}
+function onSgBackdropDown(e) {
+  if (e.target === e.currentTarget) closeRecipModal()
+}
+function onSgKeydown(e) {
+  if (e.key === 'Escape' && recipModalOpen.value) closeRecipModal()
+}
+watch(recipModalOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
+  if (open) window.addEventListener('keydown', onSgKeydown)
+  else window.removeEventListener('keydown', onSgKeydown)
+})
+function labelFg(lbl) {
+  const v = lbl?.colorValue
+  if (!v) return '#475569'
+  if (typeof v === 'string') return v
+  return `rgb(${(v >> 16) & 0xFF},${(v >> 8) & 0xFF},${v & 0xFF})`
+}
+function labelBg(lbl) {
+  const v = lbl?.colorValue
+  if (!v) return '#f1f5f9'
+  if (typeof v === 'string') return v + '22'
+  return `rgba(${(v >> 16) & 0xFF},${(v >> 8) & 0xFF},${v & 0xFF},0.12)`
+}
+
 // ── Send drawer ────────────────────────────────────────────────────────────────
 // Deep-linked in? Then this is open before the first paint. <Transition> does
 // not animate on initial render, so the composer simply *is* the screen from
@@ -1604,6 +2159,28 @@ const selectedTemplate = ref(null)
 const loadingTemplates = ref(false)
 const sending          = ref(false)
 const sendResult       = ref(null)
+// Live progress for a card-campaign send (kind:'card') — haflaway_server
+// responds immediately with a runId and keeps rendering+dispatching in the
+// background, streaming counts into this sendRuns doc as it goes.
+const activeSendRun    = ref(null)
+let unsubSendRun = null
+function stopWatchingSendRun() {
+  if (unsubSendRun) { unsubSendRun(); unsubSendRun = null }
+  activeSendRun.value = null
+}
+const sendRunFailedCount = computed(() => {
+  const c = activeSendRun.value?.counts ?? {}
+  return (c.renderFailed ?? 0) + (c.sendFailed ?? 0)
+})
+const sendRunProcessed = computed(() => (activeSendRun.value?.counts?.sent ?? 0) + sendRunFailedCount.value)
+const sendRunPct = computed(() => {
+  const total = activeSendRun.value?.total ?? 0
+  return total ? Math.min(100, Math.round((sendRunProcessed.value / total) * 100)) : 0
+})
+const sendProgressOpen = computed(() =>
+  sending.value || !!(activeSendRun.value && !activeSendRun.value.finishedAt)
+)
+
 // Set only when this drawer was deep-linked open from elsewhere (e.g. the
 // Guest List "Send" flow) — closing it should then hand the user back to
 // where they came from instead of stranding them on this campaign's detail
@@ -1612,7 +2189,18 @@ const deepLinkReturnTo = ref(deepLinkSend ? (route.query.returnTo ?? null) : nul
 
 const canSend = computed(() => {
   if (sending.value || sendRecipCount.value === 0) return false
-  if (sendChannel.value === 'whatsapp') return !!selectedTemplate.value && !!selectedCustomCamp.value?.whatsappMessage
+  if (sendChannel.value === 'whatsapp') {
+    // Card templates are fully pre-authored (the card image IS the content) —
+    // no separate custom message to fill in, unlike the general/bulk templates
+    // this composer was built for.
+    if (selectedCustomCamp.value?.kind === 'card') return !!selectedTemplate.value
+    return !!selectedTemplate.value && !!selectedCustomCamp.value?.whatsappMessage
+  }
+  // Same exception for SMS: haflaway_server falls back to its own
+  // DEFAULT_SMS_CONTENT_BY_PURPOSE when a card campaign has no smsMessage set
+  // (which is always true unless someone's used "Edit message" to override
+  // it) — it is never actually "sent blank" the way a plain campaign's would be.
+  if (selectedCustomCamp.value?.kind === 'card') return true
   return !!selectedCustomCamp.value?.smsMessage
 })
 
@@ -1626,16 +2214,45 @@ const previewMessage = computed(() => {
 const previewParts = computed(() => previewMessage.value.split(/(\{\{[^}]+\}\})/g).filter(Boolean))
 function isVarToken(part) { return /^\{\{[^}]+\}\}$/.test(part) }
 
-function openCustomSend() {
+const previewEventDate = computed(() => {
+  const d = props.event?.startDate
+  if (!d) return 'The celebration'
+  const date = d.toDate ? d.toDate() : new Date(d)
+  if (Number.isNaN(date.getTime())) return 'The celebration'
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+})
+
+async function openCustomSend() {
   sendCampaign.value = selectedCustomCamp.value.id
   sendChannel.value  = 'sms'
   sendResult.value   = null
-  sendRecipMode.value = 'unsent'
-  sendLabelId.value = null
+  sendRecipMode.value = null
+  sendLabelId.value = undefined
   pickOpen.value = false
   drawerPickList.value = []
   drawerPickSearch.value = ''
   sendDrawerOpen.value = true
+
+  // Resume an in-flight run for this campaign if one exists — e.g. the tab
+  // was closed or the connection dropped mid-send — instead of showing a
+  // blank compose form over a batch that's still actually running
+  // server-side.
+  if (selectedCustomCamp.value?.kind === 'card') {
+    try {
+      const runsCol = collection(db, 'events', eventId.value, 'campaigns', sendCampaign.value, 'sendRuns')
+      const snap = await getDocs(query(runsCol, where('finishedAt', '==', null), limit(1)))
+      if (!snap.empty) {
+        const run = snap.docs[0]
+        sendChannel.value = run.data().channel ?? sendChannel.value
+        sending.value = true
+        watchSendRun(run.id)
+        return
+      }
+    } catch (e) {
+      console.error('Failed to check for an in-flight send run', e)
+    }
+  }
+
   loadSendTemplates()
 }
 
@@ -1646,6 +2263,9 @@ function onChannelChange(ch) {
 }
 
 function closeSendDrawer() {
+  // Stop listening — the server-side run (if any) keeps going and still marks
+  // the campaign 'sent' on its own; this only drops this tab's live updates.
+  stopWatchingSendRun()
   // The deep link is spent either way — otherwise an in-flight campaigns fetch
   // that lands after this close would walk back in and re-open the composer.
   deepLinkPending = false
@@ -1684,12 +2304,18 @@ async function loadSendTemplates() {
   templates.value = []
   selectedTemplate.value = null
   try {
-    // WhatsApp templates are pre-approved and admin-managed (read only here) —
-    // only ones tagged for general/bulk campaigns are eligible, never the
-    // invitation-lifecycle categories used by the Invitations screen.
+    // WhatsApp templates are pre-approved and admin-managed (read only here).
+    // A card-send campaign (kind:'card') needs its purpose's own
+    // invitation-lifecycle category — same one the Invitations screen uses —
+    // since those templates are fully pre-authored with the card baked in.
+    // Anything else (the plain Message flow) stays on the general/bulk
+    // category this composer was originally built for.
     const lang = props.event?.language ?? 'sw'
+    const category = selectedCustomCamp.value?.kind === 'card'
+      ? (CARD_PURPOSE_WHATSAPP_CATEGORY[selectedCustomCamp.value.type] ?? GENERAL_CAMPAIGN_CATEGORY)
+      : GENERAL_CAMPAIGN_CATEGORY
     const snap = await getDocs(
-      query(collection(db, 'messageTemplates'), where('category', '==', GENERAL_CAMPAIGN_CATEGORY), where('language', '==', lang))
+      query(collection(db, 'messageTemplates'), where('category', '==', category), where('language', '==', lang))
     )
     templates.value = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.active !== false)
     if (templates.value.length === 1) selectedTemplate.value = templates.value[0]
@@ -1702,6 +2328,10 @@ async function loadSendTemplates() {
 
 async function executeSend() {
   if (!canSend.value) return
+  if (selectedCustomCamp.value?.kind === 'card') {
+    await executeCardSend()
+    return
+  }
   sending.value = true
   sendResult.value = null
   try {
@@ -1714,7 +2344,14 @@ async function executeSend() {
       : { content: selectedCustomCamp.value.smsMessage, type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipients.value.map(a => a.id), kardType }
     const res  = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${user.uid}` }, body: JSON.stringify(body) })
     const data = await res.json()
-    sendResult.value = { ok: data.status === true, message: data.message ?? (data.status ? 'Done.' : 'Request failed.') }
+    // The Cloud Function only aggregates counts into `data.message` ("Action
+    // completed with 1 failure(s)…") — the actual per-recipient reason lives
+    // in `data.details.failures[]` and was otherwise silently dropped here,
+    // leaving no way to tell why a send failed short of reading function logs.
+    let message = data.message ?? (data.status ? 'Done.' : 'Request failed.')
+    const reasons = (data.details?.failures ?? []).map(f => f.error || f.reason).filter(Boolean)
+    if (reasons.length) message += ' — ' + [...new Set(reasons)].slice(0, 3).join('; ')
+    sendResult.value = { ok: data.status === true, message }
     if (data.status) {
       await load()
       drawerPickList.value = []
@@ -1736,6 +2373,78 @@ async function executeSend() {
   } finally {
     sending.value = false
   }
+}
+
+// Card campaigns (kind:'card') go through haflaway_server instead: it renders
+// each attendee's card on demand (reusing one already rendered, per its lazy-
+// cache design) and only then dispatches — so every explicitly selected
+// recipient is eligible here regardless of whether they already have a card,
+// unlike the old Cloud-Function path above which required one to already exist.
+// The endpoint responds immediately with a runId and keeps going in the
+// background; watchSendRun() below picks up live progress from Firestore.
+async function executeCardSend() {
+  sending.value = true
+  sendResult.value = null
+  stopWatchingSendRun()
+  try {
+    const user = auth.currentUser
+    if (!user) throw new Error('Not authenticated')
+    const idToken = await user.getIdToken()
+    const attendeeIds = sendRecipients.value.map(a => a.id)
+    const body = { attendeeIds, channel: sendChannel.value, purpose: selectedCustomCamp.value.type }
+    // Pass the template the user actually picked through rather than letting
+    // the server pick one on its own (it'd otherwise just take whichever
+    // approved template comes back first for this purpose/language).
+    if (sendChannel.value === 'whatsapp') body.templateId = selectedTemplate.value?.id
+
+    const res = await fetch(`${CARD_SERVER_URL}/events/${eventId.value}/campaigns/${sendCampaign.value}/send`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    if (!data.ok) throw new Error(data.message || `Request failed (HTTP ${res.status}).`)
+    watchSendRun(data.runId)
+  } catch (e) {
+    sendResult.value = { ok: false, message: e.message }
+    sending.value = false
+  }
+}
+
+function watchSendRun(runId) {
+  const runRef = doc(db, 'events', eventId.value, 'campaigns', sendCampaign.value, 'sendRuns', runId)
+  unsubSendRun = onSnapshot(runRef, (snap) => {
+    const run = snap.data()
+    if (!run) return
+    activeSendRun.value = run
+    if (!run.finishedAt) return
+
+    stopWatchingSendRun()
+    sending.value = false
+    const counts = run.counts ?? {}
+    const ok = (counts.sent ?? 0) > 0
+    let message = `${counts.sent ?? 0} sent, ${counts.renderFailed ?? 0} failed to render, ${counts.sendFailed ?? 0} failed to send (of ${run.total ?? 0}).`
+    const reasons = Object.values(run.results ?? {}).map(r => r.error).filter(Boolean)
+    if (reasons.length) message += ' — ' + [...new Set(reasons)].slice(0, 3).join('; ')
+    sendResult.value = { ok, message }
+
+    load()
+    drawerPickList.value = []
+    if (ok) {
+      // The server itself already writes the campaign doc's status:'sent'
+      // once at least one recipient goes through — just reflect that locally.
+      selectedCustomCamp.value = { ...selectedCustomCamp.value, status: 'sent' }
+      const idx = customCampaigns.value.findIndex(c => c.id === sendCampaign.value)
+      if (idx !== -1) customCampaigns.value[idx] = { ...customCampaigns.value[idx], status: 'sent' }
+      msgTab.value = 'sent'
+      router.replace({ query: { ...route.query, tab: 'sent' } })
+    }
+  }, (err) => {
+    console.error('sendRuns listener failed:', err)
+    sendResult.value = { ok: false, message: err.message }
+    sending.value = false
+    stopWatchingSendRun()
+  })
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -1906,6 +2615,93 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   background: #f3f4f6;
   border-radius: 9999px;
   padding: 1px 7px;
+}
+
+.em-hub-hd-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Share-report popover (ported from EventMessages.vue) ── */
+.em-report-wrap {
+  position: relative;
+}
+.em-report-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--c-txt);
+  background: transparent;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.em-report-btn--active {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.em-report-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 300px;
+  background: var(--c-panel, var(--c-bg));
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  padding: 14px;
+}
+.em-report-pop-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--c-txt);
+  margin: 0 0 8px;
+}
+.em-report-pop-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+.em-report-url {
+  font-size: 11.5px;
+  color: #4b5563;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 8px 10px;
+  word-break: break-all;
+  margin-bottom: 10px;
+}
+.em-report-pop-acts {
+  display: flex;
+  gap: 8px;
+}
+.em-report-regen {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  background: transparent;
+  border: 1px solid var(--c-border);
+  border-radius: 7px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.em-report-copy {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--gold);
+  border: none;
+  border-radius: 7px;
+  padding: 6px 10px;
+  cursor: pointer;
+  flex: 1;
 }
 
 /* ── Withjoy Dashboard Canvas ── */
@@ -2683,7 +3479,6 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   transform: translateY(0);
 }
 
-/* ── Withjoy-Style Unified 3-Column Metric Card ── */
 .em-detail-stats {
   display: flex;
   background: #ffffff;
@@ -3090,6 +3885,26 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer  { width: 100%; max-width: 100%; height: 100%; background: #0f0f0f; display: flex; flex-direction: column; box-shadow: none; }
 .em-drawer-header { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 26px 48px; border-bottom: 1px solid var(--c-divide); }
 .em-drawer-header-left { display: flex; align-items: center; gap: 12px; }
+
+.em-send-progress-bar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  padding: 10px 48px; background: rgba(184,146,77,0.08);
+  border-bottom: 1px solid rgba(184,146,77,0.25); color: var(--gold, #b8924d);
+  font-size: 13px;
+}
+.em-send-progress-text { white-space: nowrap; }
+.em-send-progress-track {
+  flex: 1; height: 5px; border-radius: 3px; background: rgba(184,146,77,0.15);
+  overflow: hidden;
+}
+.em-send-progress-fill {
+  height: 100%; background: var(--gold, #b8924d); border-radius: 3px;
+  transition: width 240ms ease;
+}
+@media (max-width: 640px) {
+  .em-send-progress-bar { padding: 10px 16px; flex-wrap: wrap; }
+  .em-send-progress-track { flex-basis: 100%; }
+}
 /* Opens the same shared nav drawer as every other page's hamburger
    (useNavDrawer.js) — it renders as an overlay on top of this composer
    (EventLayout's drawer sits above the standard modal z-index layer, see
@@ -3288,6 +4103,12 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   .em-filter-group-cluster { margin-left: 0; width: 100%; flex-direction: column; align-items: stretch; gap: 8px; }
   .em-filter-group-cluster .em-filter-group { width: 100%; justify-content: space-between; }
   .em-status-filter-dd { flex: 1; min-width: 0; }
+  /* Collapse to icon-only so it doesn't compete with brand+title+tabs for
+     space in an already-tight header row (matches EventMessages.vue's
+     equivalent .em-act-label fallback for the same button). */
+  .em-report-btn { padding: 7px 8px; gap: 0; }
+  .em-report-label { display: none; }
+  .em-report-pop { right: -8px; }
 }
 
 
@@ -3300,6 +4121,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   transition: border-color 130ms, background 130ms; font-family: inherit;
 }
 .em-stat-dd-trigger:hover { border-color: var(--gold); }
+.em-stat-dd-trigger--unset { border-style: dashed; color: var(--c-txt-2, #9ca3af); }
 .em-stat-dd-dot   { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .em-stat-dd-label { flex: 1; text-align: left; }
 .em-stat-dd-n     { font-size: 12px; font-weight: 700; color: inherit; opacity: 0.85; }
@@ -3378,22 +4200,22 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
    - Fixed header and footer rails that seamlessly frame the workspace.
    ══════════════════════════════════════════════════════════════════════════ */
 .em-drawer--composer {
-  --cx-ground:     #f8f9fa;
+  --cx-ground:     #f8f8f9;
   --cx-card:       #ffffff;
-  --cx-line:       #eef0f3;
-  --cx-shadow:     0 20px 48px -12px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.02);
-  --cx-label:      #18181b;
+  --cx-line:       #f0f0f2;
+  --cx-shadow:     0 1px 2px rgba(0, 0, 0, 0.02);
+  --cx-label:      #1a1a1a;
   --cx-muted:      #64748b;
   --cx-faint:      #94a3b8;
   --cx-field:      #ffffff;
-  --cx-field-line: #e2e8f0;
-  --cx-track:      #f1f3f5;
+  --cx-field-line: #e5e7eb;
+  --cx-track:      #e9eaee;
   --cx-seg-bg:     #ffffff;
-  --cx-seg-fg:     #18181b;
-  --cx-seg-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --cx-cta:        #18181b;
+  --cx-seg-fg:     #1e293b;
+  --cx-seg-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  --cx-cta:        #242424;
   --cx-cta-fg:     #ffffff;
-  --cx-cta-hover:  #27272a;
+  --cx-cta-hover:  #000000;
 }
 
 [data-theme="dark"] .em-drawer--composer {
@@ -3433,7 +4255,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   height: 64px !important;
   padding: 0 36px !important;
   background: var(--cx-card) !important;
-  border-bottom: 1px solid #f1f3f5 !important;
+  border-bottom: 1px solid #f0f0f2 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -3442,6 +4264,108 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-bar {
+  padding: 0 36px !important;
+  background: #fafaf9 !important;
+  border-bottom: 1px solid #f0f0f2 !important;
+  color: #111827 !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-inner {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 32px !important;
+  max-width: 1160px !important;
+  margin: 0 auto !important;
+  padding: 16px 0 18px !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-kicker {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  color: #94a3b8 !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-title {
+  margin: 0 !important;
+  font-family: 'Cormorant Garamond', 'Playfair Display', Didot, Georgia, serif !important;
+  font-size: 22px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  color: #111827 !important;
+  line-height: 1.2 !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-meta {
+  margin: 4px 0 0 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-pct {
+  display: inline-flex !important;
+  align-items: center !important;
+  height: 20px !important;
+  padding: 0 8px !important;
+  border-radius: 9999px !important;
+  background: #111827 !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-fail {
+  color: #b45309 !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-meter {
+  flex: 1 1 280px !important;
+  max-width: 420px !important;
+  padding-bottom: 6px !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-track {
+  height: 3px !important;
+  border-radius: 9999px !important;
+  background: #e8e8ea !important;
+  overflow: hidden !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-fill {
+  height: 100% !important;
+  border-radius: 9999px !important;
+  background: #111827 !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: width 280ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-send-progress-fill::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent) !important;
+  animation: em-send-sheen 1.6s ease-in-out infinite !important;
+}
+@keyframes em-send-sheen {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+@media (max-width: 720px) {
+  .em-drawer.em-drawer--composer .em-send-progress-inner {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .em-drawer.em-drawer--composer .em-send-progress-meter {
+    max-width: none !important;
+    flex-basis: auto !important;
+  }
 }
 .em-drawer.em-drawer--composer .em-drawer-burger {
   width: 36px !important;
@@ -3463,11 +4387,17 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   display: none !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-title {
-  font-size: 18px !important;
-  font-weight: 600 !important;
-  color: var(--cx-label) !important;
-  letter-spacing: -0.015em !important;
+  font-family: 'Cormorant Garamond', 'Playfair Display', Didot, Georgia, serif !important;
+  font-size: 22px !important;
+  font-weight: 500 !important;
+  color: #1a1a1a !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  line-height: 1.15 !important;
   margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-close {
   width: 36px !important;
@@ -3520,13 +4450,13 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 
 /* ── Left Pane (Form / Editor): Clean Canvas ── */
 .em-drawer.em-drawer--composer .em-send-form {
-  flex: 0 0 54% !important;
-  max-width: 54% !important;
+  flex: 1 1 auto !important;
+  max-width: none !important;
   min-width: 380px !important;
   height: 100% !important;
   overflow-y: auto !important;
-  background: var(--cx-card) !important;
-  padding: 40px 48px 64px 48px !important;
+  background: #ffffff !important;
+  padding: 40px 36px 64px 48px !important;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -3591,21 +4521,21 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 
 /* ── Campaign Field (WithJoy-style sleek input) ── */
 .em-drawer.em-drawer--composer .em-custom-camp-display {
-  padding: 12px 16px !important;
-  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  border-radius: 9999px !important;
   background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  color: #18181b !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
+  border: 1px solid #e5e7eb !important;
+  color: #374151 !important;
+  font-size: 13.5px !important;
+  font-weight: 450 !important;
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
-  transition: border-color 150ms ease !important;
+  transition: border-color 130ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-custom-camp-display:hover {
-  border-color: #cbd5e1 !important;
+  border-color: #d1d5db !important;
 }
 .em-drawer.em-drawer--composer .em-custom-camp-type {
   font-size: 10.5px !important;
@@ -3621,23 +4551,24 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 
 /* ── Channel: Segmented Switch (matches WithJoy) ── */
 .em-drawer.em-drawer--composer .em-send-ch-toggle {
-  background: #f1f3f5 !important;
+  background: #e9eaee !important;
   border-radius: 9999px !important;
-  padding: 4px !important;
-  display: flex !important;
-  gap: 3px !important;
-  border: 1px solid rgba(0, 0, 0, 0.03) !important;
+  padding: 3px !important;
+  display: inline-flex !important;
+  width: 100% !important;
+  gap: 2px !important;
+  border: none !important;
 }
 .em-drawer.em-drawer--composer .em-send-ch-btn {
   flex: 1 1 0 !important;
-  height: 38px !important;
+  height: 36px !important;
   border: none !important;
   border-radius: 9999px !important;
   background: transparent !important;
   box-shadow: none !important;
   font-size: 13.5px !important;
   font-weight: 500 !important;
-  color: #6b7280 !important;
+  color: #64748b !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -3651,12 +4582,74 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer.em-drawer--composer .em-send-ch-btn--wsp,
 .em-drawer.em-drawer--composer .em-send-ch-btn--sms {
   background: #ffffff !important;
-  color: #18181b !important;
+  color: #1e293b !important;
   font-weight: 600 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* ── Recipients ── */
+.em-drawer.em-drawer--composer .em-to-btn {
+  width: 100% !important;
+  height: 46px !important;
+  border-radius: 9999px !important;
+  border: 1.5px solid #111827 !important;
+  background: #ffffff !important;
+  color: #111827 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+  cursor: pointer !important;
+}
+.em-drawer.em-drawer--composer .em-to-btn:hover { background: #f8fafc !important; }
+.em-drawer.em-drawer--composer .em-to-btn--filled {
+  background: #111827 !important;
+  color: #ffffff !important;
+}
+
+/* ── Recipients: paired filters, then optional people picker ── */
+.em-drawer.em-drawer--composer .em-recip-hd {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin: 0 0 10px !important;
+}
+.em-drawer.em-drawer--composer .em-recip-hd .em-drawer-section-label {
+  margin: 0 !important;
+}
+.em-drawer.em-drawer--composer .em-recip-count {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 9999px !important;
+  padding: 3px 10px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+.em-drawer.em-drawer--composer .em-recip-filters {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px 12px !important;
+}
+.em-drawer.em-drawer--composer .em-recip-filters--solo {
+  grid-template-columns: 1fr !important;
+}
+.em-drawer.em-drawer--composer .em-recip-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+}
+.em-drawer.em-drawer--composer .em-recip-field-lbl {
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  color: #6b7280 !important;
+  letter-spacing: 0.01em !important;
+}
+.em-drawer.em-drawer--composer .em-recip-dd {
+  margin-bottom: 0 !important;
+  width: 100% !important;
+}
 .em-drawer.em-drawer--composer .em-drawer-list-row {
   display: flex !important;
   align-items: center !important;
@@ -3672,47 +4665,50 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   min-width: 50px !important;
 }
 .em-drawer.em-drawer--composer .em-filter-select--drawer {
-  flex: 1 !important;
-  height: 42px !important;
+  flex: none !important;
+  width: 100% !important;
+  height: 38px !important;
   padding: 0 36px 0 14px !important;
-  border-radius: 10px !important;
-  font-size: 13.5px !important;
-  font-weight: 500 !important;
+  border-radius: 9999px !important;
+  font-size: 13px !important;
+  font-weight: 450 !important;
   background-color: #ffffff !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important;
   background-position: right 14px center !important;
   appearance: none !important;
-  border: 1px solid #e2e8f0 !important;
-  color: #18181b !important;
+  border: 1px solid #e5e7eb !important;
+  color: #374151 !important;
   cursor: pointer !important;
-  transition: border-color 150ms ease !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  transition: border-color 130ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-filter-select--drawer:hover {
-  border-color: #cbd5e1 !important;
+  border-color: #d1d5db !important;
 }
 .em-drawer.em-drawer--composer .em-filter-select--drawer:focus {
-  border-color: #18181b !important;
+  border-color: #d1d5db !important;
   outline: none !important;
 }
 
 .em-drawer.em-drawer--composer .em-stat-dd-trigger {
-  height: 44px !important;
-  padding: 0 16px !important;
-  border-radius: 10px !important;
-  font-size: 13.5px !important;
-  font-weight: 500 !important;
+  height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 9999px !important;
+  font-size: 13px !important;
+  font-weight: 450 !important;
   background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  color: #18181b !important;
+  border: 1px solid #e5e7eb !important;
+  color: #374151 !important;
   display: flex !important;
   align-items: center !important;
   width: 100% !important;
   cursor: pointer !important;
-  transition: all 150ms ease !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  transition: all 130ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-stat-dd-trigger:hover {
-  border-color: #cbd5e1 !important;
+  border-color: #d1d5db !important;
 }
 .em-drawer.em-drawer--composer .em-stat-dd-dot {
   width: 8px !important;
@@ -3722,9 +4718,12 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   flex-shrink: 0 !important;
 }
 .em-drawer.em-drawer--composer .em-stat-dd-label {
-  color: #18181b !important;
-  font-size: 13.5px !important;
-  font-weight: 500 !important;
+  color: #374151 !important;
+  font-size: 13px !important;
+  font-weight: 450 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 .em-drawer.em-drawer--composer .em-stat-dd-n {
   margin-left: auto !important;
@@ -3742,67 +4741,107 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 }
 
 /* ── "Pick specific attendees" Pill Button (Signature WithJoy look) ── */
-.em-drawer.em-drawer--composer .em-pick-toggle-btn {
-  margin-top: 10px !important;
-  height: 44px !important;
-  width: 100% !important;
-  border-radius: 9999px !important;
-  border: 1.5px solid #e2e8f0 !important;
-  background: #ffffff !important;
-  color: #18181b !important;
-  font-size: 13.5px !important;
+.em-drawer.em-drawer--composer .em-recip-or {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 16px 0 8px !important;
+  color: #94a3b8 !important;
+  font-size: 11px !important;
   font-weight: 600 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+}
+.em-drawer.em-drawer--composer .em-recip-or::before,
+.em-drawer.em-drawer--composer .em-recip-or::after {
+  content: '' !important;
+  flex: 1 !important;
+  height: 1px !important;
+  background: #f0f0f2 !important;
+}
+.em-drawer.em-drawer--composer .em-pick-toggle-btn {
+  margin-top: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: #374151 !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  padding: 0 20px !important;
+  padding: 8px 2px !important;
   cursor: pointer !important;
-  transition: all 160ms ease !important;
+  box-shadow: none !important;
+  transition: color 130ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-pick-toggle-btn:hover {
-  border-color: #cbd5e1 !important;
-  background: #f8fafc !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  color: #111827 !important;
 }
 .em-drawer.em-drawer--composer .em-pick-toggle-btn--on {
-  border-color: #18181b !important;
-  background: #f8fafc !important;
+  border-color: transparent !important;
+  background: transparent !important;
+}
+.em-drawer.em-drawer--composer .em-pick-toggle-copy {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 8px !important;
+  flex: 1 !important;
+  text-align: left !important;
+}
+.em-drawer.em-drawer--composer .em-pick-toggle-copy em {
+  font-style: normal !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: #94a3b8 !important;
+}
+.em-drawer.em-drawer--composer .em-pick-chev {
+  margin-left: auto !important;
+  color: #9ca3af !important;
+  transition: transform 200ms ease !important;
+  flex-shrink: 0 !important;
 }
 .em-drawer.em-drawer--composer .em-pick-toggle-btn .em-chip-cnt {
-  font-size: 11.5px !important;
+  font-size: 11px !important;
   font-weight: 600 !important;
   padding: 2px 8px !important;
   border-radius: 9999px !important;
-  background: #18181b !important;
-  color: #ffffff !important;
+  background: #ffffff !important;
+  color: #374151 !important;
+  border: 1px solid #e5e7eb !important;
 }
 .em-drawer.em-drawer--composer .em-recip-hint {
-  margin-top: 10px !important;
+  margin-top: 8px !important;
   font-size: 12.5px !important;
-  color: #6b7280 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
+  color: #94a3b8 !important;
+  display: block !important;
 }
 .em-drawer.em-drawer--composer .em-pick-wrap {
   margin-top: 10px !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 14px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
   background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
 }
 .em-drawer.em-drawer--composer .em-pick-toolbar {
   padding: 10px 14px !important;
-  background: #f8fafc !important;
-  border-bottom: 1px solid #e2e8f0 !important;
+  background: #f8f8f9 !important;
+  border-bottom: 1px solid #f0f0f2 !important;
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
 }
 .em-drawer.em-drawer--composer .em-pick-search-wrap {
-  height: 36px !important;
+  height: 32px !important;
   border-radius: 9999px !important;
   background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid #e5e7eb !important;
   flex: 1 !important;
   padding: 0 12px !important;
   display: flex !important;
@@ -3832,24 +4871,78 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   text-decoration: underline !important;
 }
 .em-drawer.em-drawer--composer .em-tpl-item {
-  padding: 14px 16px !important;
-  border-radius: 12px !important;
-  background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  padding: 0 16px !important;
   margin-bottom: 8px !important;
-  transition: all 150ms ease !important;
+  border-radius: 9999px !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  transition: all 130ms ease !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-list .em-tpl-item {
+  margin-bottom: 0 !important;
 }
 .em-drawer.em-drawer--composer .em-tpl-item:hover {
-  border-color: #cbd5e1 !important;
+  border-color: #d1d5db !important;
 }
 .em-drawer.em-drawer--composer .em-tpl-item--active {
-  border-color: #18181b !important;
-  box-shadow: 0 0 0 1px #18181b !important;
+  border-color: #d1d5db !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  background: #ffffff !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-radio {
+  width: 15px !important;
+  height: 15px !important;
+  margin-top: 0 !important;
+  border: 1.5px solid #d1d5db !important;
+  background: #ffffff !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-item--active .em-tpl-radio {
+  border-color: #111827 !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-radio-dot {
+  width: 7px !important;
+  height: 7px !important;
+  background: #111827 !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-body {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
 }
 .em-drawer.em-drawer--composer .em-tpl-content {
-  font-size: 14px !important;
-  line-height: 1.55 !important;
-  color: #18181b !important;
+  font-size: 13.5px !important;
+  font-weight: 450 !important;
+  line-height: 1.3 !important;
+  color: #374151 !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-meta {
+  flex-shrink: 0 !important;
+  margin: 0 0 0 auto !important;
+  padding: 3px 9px !important;
+  border-radius: 9999px !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
 }
 .em-drawer.em-drawer--composer .em-msg-missing-warn {
   border: 1px solid #fef08a !important;
@@ -3885,18 +4978,18 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 
 /* ── Right Pane (Preview Stage): Soft Neutral Canvas Holding ONE Floating Card ── */
 .em-drawer.em-drawer--composer .em-send-preview {
-  flex: 0 0 46% !important;
-  max-width: 46% !important;
+  flex: 0 0 45% !important;
+  max-width: 45% !important;
   min-width: 0 !important;
   height: 100% !important;
   overflow-y: auto !important;
-  background: #f8f9fa !important;
-  border-left: 1px solid #f1f3f5 !important;
+  background: #f8f8f9 !important;
+  border-left: 1px solid #f0f0f2 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
-  justify-content: flex-start !important;
-  padding: 44px 36px 60px !important;
+  justify-content: center !important;
+  padding: 40px 48px 48px !important;
   position: static !important;
   top: 0 !important;
   scrollbar-width: thin !important;
@@ -3910,24 +5003,26 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   border-radius: 9999px !important;
 }
 
-/* ── The Single Elevated Preview Card ── */
+/* ── Preview stage: collage + phone, same language as EventOverview ── */
 .em-drawer.em-drawer--composer .em-preview-card {
   width: 100% !important;
-  max-width: 440px !important;
-  background: #ffffff !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  border-radius: 20px !important;
-  box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.02) !important;
-  padding: 24px 22px !important;
+  max-width: 400px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 18px !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 .em-drawer.em-drawer--composer .em-preview-head {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  padding-bottom: 8px !important;
+  width: 100% !important;
+  padding-bottom: 0 !important;
   border-bottom: none !important;
 }
 .em-drawer.em-drawer--composer .em-preview-eyebrow {
@@ -3955,81 +5050,392 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   color: #059669 !important;
 }
 
-/* ── Live Message Mockup Screen ── */
-.em-drawer.em-drawer--composer .em-preview-phone {
-  background: #f1f3f5 !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 22px !important;
-  padding: 18px 16px 20px !important;
-  min-height: 280px !important;
+.em-drawer.em-drawer--composer .em-preview-collage {
+  position: relative !important;
+  width: 100% !important;
+  height: 430px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.em-drawer.em-drawer--composer .em-inv {
+  position: absolute !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: flex-end !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04) !important;
+  pointer-events: none !important;
+}
+.em-drawer.em-drawer--composer .em-inv--left {
+  width: 118px !important;
+  height: 162px !important;
+  left: 2% !important;
+  top: 58px !important;
+  background: #faf7f2 !important;
+  border: 1px solid #efe8db !important;
+  color: #5c4d43 !important;
+  transform: rotate(-10deg) !important;
+  z-index: 1 !important;
+}
+.em-drawer.em-drawer--composer .em-inv--right {
+  width: 110px !important;
+  height: 150px !important;
+  right: 2% !important;
+  top: 78px !important;
+  background: #fff5f6 !important;
+  border: 1px solid #fee8eb !important;
+  color: #4a2e35 !important;
+  transform: rotate(11deg) !important;
+  z-index: 1 !important;
+}
+.em-drawer.em-drawer--composer .em-inv-kicker {
+  font-size: 7.5px !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  opacity: 0.7 !important;
+}
+.em-drawer.em-drawer--composer .em-inv-names {
+  font-family: 'Playfair Display', Georgia, serif !important;
+  font-size: 15px !important;
+  font-style: italic !important;
+  line-height: 1.1 !important;
+}
+.em-drawer.em-drawer--composer .em-inv-orn { font-size: 12px !important; opacity: 0.45 !important; }
+.em-drawer.em-drawer--composer .em-inv-line {
+  width: 28px !important;
+  height: 1px !important;
+  background: rgba(74, 46, 53, 0.22) !important;
+  margin: 3px 0 !important;
+}
+.em-drawer.em-drawer--composer .em-inv-date {
+  font-size: 8.5px !important;
+  letter-spacing: 0.04em !important;
+  opacity: 0.7 !important;
+}
+
+.em-drawer.em-drawer--composer .em-preview-phone {
   position: relative !important;
-}
-.em-drawer.em-drawer--composer .em-preview-notch {
-  width: 44px !important;
-  height: 4.5px !important;
-  border-radius: 9999px !important;
-  background: #cbd5e1 !important;
-  margin: 0 auto 16px auto !important;
-  flex-shrink: 0 !important;
-}
-.em-drawer.em-drawer--composer .em-phone-statusbar {
+  z-index: 4 !important;
+  width: 198px !important;
+  max-width: 198px !important;
+  margin: 0 auto !important;
+  background: #18181b !important;
+  border: none !important;
+  border-radius: 28px !important;
+  padding: 7px 6px 10px !important;
+  min-height: 392px !important;
+  height: 392px !important;
   display: flex !important;
-  justify-content: space-between !important;
-  margin-bottom: 24px !important;
-  padding: 0 4px !important;
-  font-size: 11px !important;
-  font-weight: 500 !important;
-  color: #94a3b8 !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22), 0 2px 0 rgba(255,255,255,0.08) inset !important;
 }
 .em-drawer.em-drawer--composer .em-preview-screen {
   display: flex !important;
   flex-direction: column !important;
-  justify-content: flex-end !important;
+  justify-content: flex-start !important;
   flex: 1 !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  border-radius: 22px !important;
+  background: #f2f2f7 !important;
+  padding: 0 !important;
+  color: #1c1c1e !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+.em-drawer.em-drawer--composer .em-preview-phone--wsp .em-preview-screen {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255,255,255,0.55), transparent 28%),
+    linear-gradient(180deg, #efe7dc 0%, #e8dfd2 100%) !important;
+}
+.em-drawer.em-drawer--composer .em-phone-osbar {
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr !important;
+  align-items: center !important;
+  height: 22px !important;
+  padding: 6px 10px 0 !important;
+  font-size: 9px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.02em !important;
+  color: #1c1c1e !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+.em-drawer.em-drawer--composer .em-preview-phone--wsp .em-phone-osbar { color: #111b21 !important; }
+.em-drawer.em-drawer--composer .em-phone-osbar > span:first-child { justify-self: start !important; padding-left: 4px !important; }
+.em-drawer.em-drawer--composer .em-phone-os-icons { justify-self: end !important; display: flex !important; }
+.em-drawer.em-drawer--composer .em-phone-island {
+  width: 58px !important;
+  height: 14px !important;
+  border-radius: 999px !important;
+  background: #18181b !important;
+  justify-self: center !important;
+}
+.em-drawer.em-drawer--composer .em-chat-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px 8px 8px !important;
+  flex-shrink: 0 !important;
+  border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+  background: rgba(255,255,255,0.72) !important;
+}
+.em-drawer.em-drawer--composer .em-preview-phone--wsp .em-chat-head {
+  background: #075e54 !important;
+  border-bottom: none !important;
+  color: #ffffff !important;
+}
+.em-drawer.em-drawer--composer .em-chat-back,
+.em-drawer.em-drawer--composer .em-chat-tool { flex-shrink: 0 !important; color: #007aff !important; }
+.em-drawer.em-drawer--composer .em-preview-phone--wsp .em-chat-back,
+.em-drawer.em-drawer--composer .em-preview-phone--wsp .em-chat-tool { color: #ffffff !important; }
+.em-drawer.em-drawer--composer .em-chat-avatar {
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #c9a84c, #8b6b2e) !important;
+  color: #fff !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+.em-drawer.em-drawer--composer .em-chat-who {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  line-height: 1.15 !important;
+}
+.em-drawer.em-drawer--composer .em-chat-name {
+  font-size: 10.5px !important;
+  font-weight: 650 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.em-drawer.em-drawer--composer .em-chat-status {
+  font-size: 8px !important;
+  opacity: 0.62 !important;
+  font-weight: 500 !important;
+}
+.em-drawer.em-drawer--composer .em-chat-thread {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  padding: 10px 8px 8px !important;
+  gap: 6px !important;
+}
+.em-drawer.em-drawer--composer .em-chat-stamp {
+  align-self: center !important;
+  font-size: 8px !important;
+  font-weight: 600 !important;
+  color: #8e8e93 !important;
+  background: rgba(255,255,255,0.7) !important;
+  padding: 2px 7px !important;
+  border-radius: 999px !important;
+  margin-bottom: 4px !important;
+}
+.em-drawer.em-drawer--composer .em-preview-phone--wsp .em-chat-stamp {
+  background: rgba(225, 219, 207, 0.92) !important;
+  color: #54656f !important;
 }
 .em-drawer.em-drawer--composer .em-preview-bubble {
   background: #007aff !important;
   color: #ffffff !important;
-  border-radius: 18px 18px 4px 18px !important;
-  padding: 10px 15px !important;
-  font-size: 13.5px !important;
-  line-height: 1.45 !important;
+  border-radius: 16px 16px 5px 16px !important;
+  padding: 7px 9px 5px !important;
+  font-size: 11px !important;
+  line-height: 1.4 !important;
   max-width: 88% !important;
   margin-left: auto !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: none !important;
   word-break: break-word !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
 }
 .em-drawer.em-drawer--composer .em-preview-bubble--wsp {
   background: #d9fdd3 !important;
   color: #111b21 !important;
-  border-radius: 14px 14px 2px 14px !important;
-  padding: 10px 14px !important;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 8px 8px 2px 8px !important;
+  padding: 6px 8px 4px !important;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.08) !important;
+}
+.em-drawer.em-drawer--composer .em-preview-bubble-text {
+  margin: 0 !important;
+  white-space: pre-wrap !important;
+}
+.em-drawer.em-drawer--composer .em-preview-ticks {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 3px !important;
+  font-size: 8px !important;
+  opacity: 0.78 !important;
+  font-weight: 500 !important;
 }
 .em-drawer.em-drawer--composer .em-preview-token {
   background: rgba(255, 255, 255, 0.24) !important;
-  color: #ffffff !important;
-  padding: 1px 6px !important;
-  border-radius: 4px !important;
+  color: inherit !important;
+  padding: 0 4px !important;
+  border-radius: 3px !important;
   font-weight: 600 !important;
 }
 .em-drawer.em-drawer--composer .em-preview-bubble--wsp .em-preview-token {
   background: rgba(0, 0, 0, 0.06) !important;
   color: #075e54 !important;
 }
+.em-drawer.em-drawer--composer .em-chat-dock {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 8px 10px !important;
+  flex-shrink: 0 !important;
+}
+.em-drawer.em-drawer--composer .em-chat-plus {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  border: 1.4px solid #8e8e93 !important;
+  color: #8e8e93 !important;
+  font-size: 12px !important;
+  line-height: 15px !important;
+  text-align: center !important;
+  font-weight: 500 !important;
+}
+.em-drawer.em-drawer--composer .em-preview-phone--wsp .em-chat-plus {
+  border-color: #54656f !important;
+  color: #54656f !important;
+}
+.em-drawer.em-drawer--composer .em-chat-field {
+  flex: 1 !important;
+  height: 22px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  background: #ffffff !important;
+  font-size: 9px !important;
+  color: #8e8e93 !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 10px !important;
+}
+.em-drawer.em-drawer--composer .em-chat-mic {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  background: #007aff !important;
+}
+.em-drawer.em-drawer--composer .em-preview-phone--wsp .em-chat-mic { background: #00a884 !important; }
+.em-drawer.em-drawer--composer .em-phone-home {
+  width: 72px !important;
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: #3f3f46 !important;
+  margin: 7px auto 0 !important;
+  flex-shrink: 0 !important;
+}
+.em-drawer.em-drawer--composer .em-preview-summary {
+  text-align: center !important;
+  margin-top: 10px !important;
+}
+.em-drawer.em-drawer--composer .em-preview-title {
+  margin: 0 0 8px !important;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif !important;
+  font-weight: 600 !important;
+  font-size: 22px !important;
+  color: #1a1a1a !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.01em !important;
+}
 .em-drawer.em-drawer--composer .em-preview-caption {
   font-size: 13px !important;
   color: #64748b !important;
   text-align: center !important;
-  margin: 14px 0 0 !important;
-  line-height: 1.5 !important;
+  margin: 0 auto !important;
+  line-height: 1.55 !important;
+  max-width: 34ch !important;
 }
 .em-drawer.em-drawer--composer .em-preview-caption strong {
-  color: #0f172a !important;
+  color: #1a1a1a !important;
   font-weight: 600 !important;
+}
+.em-drawer.em-drawer--composer .em-preview-empty-state {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+  flex: 1 !important;
+  justify-content: flex-end !important;
+  text-align: right !important;
+  padding: 4px 0 2px !important;
+}
+.em-drawer.em-drawer--composer .em-preview-ghost {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 5px !important;
+  width: 78% !important;
+}
+.em-drawer.em-drawer--composer .em-preview-ghost span {
+  display: block !important;
+  height: 10px !important;
+  border-radius: 8px !important;
+  background: rgba(0,0,0,0.06) !important;
+  width: 100% !important;
+}
+.em-drawer.em-drawer--composer .em-preview-ghost span:nth-child(2) { width: 72% !important; }
+.em-drawer.em-drawer--composer .em-preview-ghost span:nth-child(3) { width: 44% !important; }
+.em-drawer.em-drawer--composer .em-preview-empty-msg {
+  margin: 0 !important;
+  font-size: 9.5px !important;
+  line-height: 1.4 !important;
+  color: #8a8178 !important;
+  text-align: right !important;
+  max-width: 88% !important;
+}
+.em-drawer.em-drawer--composer .eca-badge--unsent,
+.em-drawer.em-drawer--composer .eca-badge--draft {
+  background: #ffffff !important;
+  color: #6b7280 !important;
+  border-color: #e5e7eb !important;
+}
+.em-drawer.em-drawer--composer .em-pick-all-btn {
+  height: 32px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #ffffff !important;
+  color: #4b5563 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+}
+.em-drawer.em-drawer--composer .em-pick-all-btn:hover {
+  border-color: #d1d5db !important;
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+.em-drawer.em-drawer--composer .em-pick-row {
+  border-bottom-color: #f0f0f2 !important;
+}
+.em-drawer.em-drawer--composer .em-pick-row:hover {
+  background: #f7f7f8 !important;
+}
+.em-drawer.em-drawer--composer .em-pick-row--on {
+  background: #f7f7f8 !important;
+}
+.em-drawer.em-drawer--composer .em-pick-name {
+  color: #1a1a1a !important;
+}
+.em-drawer.em-drawer--composer .em-pick-phone {
+  color: #6b7280 !important;
 }
 
 /* ── Fixed Bottom Footer Rail: Clean WithJoy Actions ── */
@@ -4038,7 +5444,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   height: 72px !important;
   padding: 0 48px !important;
   background: #ffffff !important;
-  border-top: 1px solid #f1f3f5 !important;
+  border-top: 1px solid #f0f0f2 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
@@ -4056,18 +5462,19 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   height: 44px !important;
   padding: 0 24px !important;
   border-radius: 9999px !important;
-  border: 1.5px solid #e2e8f0 !important;
+  border: 1px solid #e5e7eb !important;
   background: #ffffff !important;
   color: #374151 !important;
   font-size: 14px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
   transition: all 150ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-cancel:hover {
-  border-color: #cbd5e1 !important;
+  border-color: #d1d5db !important;
   color: #111827 !important;
-  background: #f8fafc !important;
+  background: #f9fafb !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-send {
   flex: 0 0 auto !important;
@@ -4075,7 +5482,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   padding: 0 32px !important;
   border-radius: 9999px !important;
   border: none !important;
-  background: #18181b !important;
+  background: #242424 !important;
   color: #ffffff !important;
   font-size: 14px !important;
   font-weight: 600 !important;
@@ -4087,9 +5494,9 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   transition: all 160ms ease !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-send:hover:not(:disabled) {
-  background: #27272a !important;
+  background: #000000 !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16) !important;
 }
 .em-drawer.em-drawer--composer .em-drawer-send:disabled {
   background: #f1f3f5 !important;
@@ -4121,10 +5528,19 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
     flex: 1 1 auto !important;
     max-width: 100% !important;
     border-left: none !important;
-    border-top: 1px solid #f1f3f5 !important;
+    border-top: 1px solid #f0f0f2 !important;
     height: auto !important;
     overflow-y: visible !important;
     padding: 32px 20px 48px !important;
+  }
+  .em-drawer.em-drawer--composer .em-inv {
+    display: none !important;
+  }
+  .em-drawer.em-drawer--composer .em-preview-collage {
+    height: auto !important;
+  }
+  .em-drawer.em-drawer--composer .em-recip-filters {
+    grid-template-columns: 1fr !important;
   }
   .em-drawer.em-drawer--composer .em-drawer-footer {
     padding: 12px 20px !important;
@@ -4136,5 +5552,349 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   .em-drawer.em-drawer--composer .em-drawer-send {
     flex: 2 1 0 !important;
   }
+}
+</style>
+
+<style>
+/* Unscoped: dialogs teleported to <body> */
+.em-sp-backdrop {
+  position: fixed; inset: 0; z-index: 1300;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(8px);
+}
+.em-sp {
+  position: relative;
+  width: min(400px, 100%);
+  padding: 36px 32px 32px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 28px 80px rgba(0,0,0,0.22);
+  text-align: center;
+  overflow: hidden;
+}
+.em-sp-orbit {
+  position: relative;
+  width: 72px; height: 72px;
+  margin: 0 auto 20px;
+}
+.em-sp-orbit span {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: #111827;
+  animation: em-sp-spin 1.1s linear infinite;
+}
+.em-sp-orbit span:nth-child(2) {
+  inset: 8px;
+  border-top-color: #94a3b8;
+  animation-duration: 1.6s;
+  animation-direction: reverse;
+}
+.em-sp-orbit span:nth-child(3) {
+  inset: 18px;
+  border-top-color: #111827;
+  opacity: 0.35;
+  animation-duration: 2.1s;
+}
+@keyframes em-sp-spin {
+  to { transform: rotate(360deg); }
+}
+.em-sp-kicker {
+  margin: 0 0 6px;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: #94a3b8;
+}
+.em-sp-title {
+  margin: 0;
+  font-family: 'Cormorant Garamond', 'Playfair Display', Didot, Georgia, serif;
+  font-size: 28px; font-weight: 500; letter-spacing: 0.01em;
+  color: #111827; line-height: 1.15;
+}
+.em-sp-sub {
+  margin: 6px 0 0;
+  font-size: 14px; font-weight: 500; color: #64748b;
+}
+.em-sp-pct {
+  margin: 22px 0 12px;
+  font-family: 'Cormorant Garamond', 'Playfair Display', Didot, Georgia, serif;
+  font-size: 52px; font-weight: 500; line-height: 1;
+  color: #111827; letter-spacing: -0.03em;
+}
+.em-sp-track {
+  height: 4px; border-radius: 999px;
+  background: #eeeef0; overflow: hidden;
+}
+.em-sp-fill {
+  height: 100%; width: 0;
+  border-radius: 999px; background: #111827;
+  transition: width 280ms ease;
+}
+.em-sp-fill--indeterminate {
+  width: 40% !important;
+  animation: em-sp-indeterminate 1.2s ease-in-out infinite;
+}
+@keyframes em-sp-indeterminate {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(280%); }
+}
+.em-sp-meta {
+  margin: 14px 0 0;
+  font-size: 13px; font-weight: 500; color: #64748b;
+}
+
+html .em-dialog.em-dialog--joy {
+  width: min(440px, 100%) !important;
+  max-width: 95vw !important;
+  max-height: min(640px, 90vh) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.2) !important;
+  color: #111827 !important;
+  overflow: hidden !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-header {
+  padding: 18px 20px 10px 24px !important;
+  border-bottom: none !important;
+  flex-shrink: 0 !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  color: #111827 !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-body {
+  padding: 8px 24px 12px !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-lbl {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  text-transform: none !important;
+  letter-spacing: -0.01em !important;
+  margin-bottom: 8px !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-input,
+html .em-dialog.em-dialog--joy .em-dialog-textarea {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #111827 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+  font-size: 14px !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-input {
+  height: 46px !important;
+  border-radius: 9999px !important;
+  padding: 0 16px !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-textarea {
+  border-radius: 14px !important;
+  padding: 12px 16px !important;
+  min-height: 96px !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-input:focus,
+html .em-dialog.em-dialog--joy .em-dialog-textarea:focus {
+  border-color: #d1d5db !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+  background: #ffffff !important;
+  outline: none !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-input::placeholder,
+html .em-dialog.em-dialog--joy .em-dialog-textarea::placeholder { color: #94a3b8 !important; }
+html .em-dialog.em-dialog--joy .em-dialog-hint { color: #94a3b8 !important; font-size: 12px !important; line-height: 1.45 !important; }
+html .em-dialog.em-dialog--joy .em-send-ch-toggle {
+  background: #e9eaee !important;
+  border-radius: 9999px !important;
+  padding: 3px !important;
+  display: flex !important;
+  gap: 2px !important;
+  border: none !important;
+}
+html .em-dialog.em-dialog--joy .em-send-ch-btn {
+  flex: 1 !important;
+  height: 36px !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+  color: #64748b !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+html .em-dialog.em-dialog--joy .em-send-ch-btn:hover {
+  color: #18181b !important;
+  border: none !important;
+}
+html .em-dialog.em-dialog--joy .em-send-ch-btn--wsp,
+html .em-dialog.em-dialog--joy .em-send-ch-btn--sms {
+  background: #ffffff !important;
+  color: #111827 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
+  border: none !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-type-row { gap: 8px !important; }
+html .em-dialog.em-dialog--joy .em-dialog-type-btn {
+  height: 38px !important;
+  border-radius: 9999px !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #64748b !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-type-btn:hover {
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-type-btn--on {
+  background: #111827 !important;
+  border-color: #111827 !important;
+  color: #ffffff !important;
+}
+html .em-dialog.em-dialog--joy .em-copy-prev-select {
+  height: 32px !important;
+  border-radius: 9999px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #ffffff !important;
+  color: #374151 !important;
+  font-size: 12px !important;
+  color-scheme: light !important;
+}
+html .em-dialog.em-dialog--joy .em-copy-prev-select:hover:not(:disabled) {
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+html .em-dialog.em-dialog--joy .em-dialog-footer {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 14px 20px 18px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  flex-shrink: 0 !important;
+  background: #ffffff !important;
+}
+html .em-dialog.em-dialog--joy .em-sg-done:disabled { opacity: 0.4; cursor: default; }
+
+.em-sg-backdrop {
+  position: fixed; inset: 0; z-index: 1200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.32);
+}
+.em-sg {
+  width: min(720px, 100%);
+  height: min(560px, 100%);
+  display: flex; flex-direction: column;
+  background: #fff; color: #111827;
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.em-sg-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 10px 24px; flex-shrink: 0;
+}
+.em-sg-title { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.em-sg-x {
+  width: 32px; height: 32px; border: none; border-radius: 50%;
+  background: #f8fafc; color: #64748b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.em-sg-x:hover { background: #f1f5f9; color: #111827; }
+.em-sg-body {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) 200px;
+}
+.em-sg-col {
+  min-width: 0; min-height: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+  padding: 4px 8px 0 24px; border-right: 1px solid #f1f5f9;
+}
+.em-sg-note {
+  margin: 0 12px 10px 0; padding: 10px 12px; border-radius: 10px;
+  background: #f8fafc; color: #64748b; font-size: 12.5px; line-height: 1.45;
+}
+.em-sg-search {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  height: 40px; margin: 0 12px 10px 0; padding: 0 14px;
+  border: 1px solid #e5e7eb; border-radius: 9999px; color: #94a3b8; background: #fff;
+}
+.em-sg-search-input {
+  flex: 1; border: none; outline: none; background: none;
+  font-size: 14px; color: #111827; font-family: inherit;
+}
+.em-sg-scroll { flex: 1; min-height: 0; overflow-y: auto; padding-right: 8px; padding-bottom: 12px; overscroll-behavior: contain; }
+.em-sg-sec-hd {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 8px 6px 0; font-size: 13px; font-weight: 700; color: #111827;
+}
+.em-sg-sec-hd--guests { margin-top: 8px; }
+.em-sg-sec-n { font-size: 12px; font-weight: 600; color: #94a3b8; }
+.em-sg-select-all {
+  margin-left: auto; background: none; border: none; padding: 0;
+  font-size: 13px; font-weight: 600; color: #111827; cursor: pointer; font-family: inherit;
+}
+.em-sg-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 8px 8px 0; border: none; background: none;
+  cursor: pointer; font-family: inherit; text-align: left;
+}
+.em-sg-row:hover { background: #fafafa; }
+.em-sg-row--active { background: #f8fafc; }
+.em-sg-box {
+  width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;
+  border: 1.5px solid #d1d5db; background: #fff; box-sizing: border-box;
+}
+.em-sg-box--on { border-color: #111827; background: #111827; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5l3 3 6-6'/%3E%3C/svg%3E"); }
+.em-sg-box--mixed { border-color: #111827; background: #111827; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath stroke='%23fff' stroke-width='2' stroke-linecap='round' d='M4 8h8'/%3E%3C/svg%3E"); }
+.em-sg-tag { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 13px; font-weight: 600; }
+.em-sg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.em-sg-status-lbl { font-size: 14px; font-weight: 500; color: #111827; }
+.em-sg-guest-st { margin-left: auto; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.em-sg-row-n { margin-left: auto; font-size: 12px; font-weight: 600; color: #94a3b8; }
+.em-sg-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.em-sg-guest { min-width: 0; display: flex; flex-direction: column; }
+.em-sg-guest-name { font-size: 14px; font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.em-sg-guest-warn { font-size: 12px; color: #d97706; }
+.em-sg-empty { padding: 20px 0; font-size: 13px; color: #94a3b8; }
+.em-sg-selected { padding: 16px 18px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.em-sg-selected-lbl { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: #64748b; }
+.em-sg-selected-lbl strong { color: #111827; }
+.em-sg-selected-list { overflow-y: auto; min-height: 0; flex: 1; overscroll-behavior: contain; }
+.em-sg-selected-name { margin: 0 0 8px; font-size: 13px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.em-sg-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 20px; border-top: 1px solid #f1f5f9; flex-shrink: 0;
+  position: relative; z-index: 2; background: #fff;
+}
+.em-sg-link { background: none; border: none; padding: 0; font-size: 14px; font-weight: 600; color: #111827; cursor: pointer; font-family: inherit; }
+.em-sg-foot-acts { display: flex; align-items: center; gap: 10px; }
+.em-sg-cancel {
+  height: 40px; padding: 0 18px; border: none; background: none;
+  font-size: 14px; font-weight: 600; color: #111827; cursor: pointer; font-family: inherit;
+}
+.em-sg-done {
+  height: 40px; padding: 0 22px; border: none; border-radius: 9999px;
+  background: #111827; color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+@media (max-width: 640px) {
+  .em-sg-body { grid-template-columns: 1fr; }
+  .em-sg-selected { display: none; }
+  .em-sg-col { border-right: none; padding-right: 16px; }
 }
 </style>

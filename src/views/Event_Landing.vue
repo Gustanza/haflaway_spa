@@ -716,6 +716,34 @@ const scheduleItems = computed(() => {
     const arr = Array.isArray(eventData.value?.schedule) ? [...eventData.value.schedule] : [];
     return arr.sort((a, b) => new Date(a.time) - new Date(b.time));
 });
+const scheduleByDay = computed(() => {
+    const groups = [];
+    const map = new Map();
+    const locale = (i18n[lang.value] ?? i18n.sw).locale;
+    for (const item of scheduleItems.value) {
+        const d = item.time ? new Date(item.time) : null;
+        const key = d && !isNaN(d) ? `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` : 'undated';
+        if (!map.has(key)) {
+            const g = {
+                key,
+                label: d && !isNaN(d)
+                    ? d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
+                    : '',
+                items: [],
+            };
+            map.set(key, g);
+            groups.push(g);
+        }
+        map.get(key).items.push(item);
+    }
+    return groups;
+});
+function fmtTimeRange(item) {
+    const start = fmtTime(item.time);
+    const end = fmtTime(item.endTime);
+    if (start && end) return `${start} to ${end}`;
+    return start;
+}
 const programmeExpanded = ref(false);
 const contacts = computed(() => eventData.value?.contacts ?? []);
 
@@ -1243,25 +1271,23 @@ const toggleLike = async (item) => {
                 <section v-if="scheduleItems.length" class="el-programme reveal">
                     <p class="el-eyebrow el-eyebrow-center">{{ t('programmeEyebrow') }}</p>
                     <h2 class="el-section-title">{{ t('programmeTitle') }}</h2>
-                    <div class="el-htimeline" :class="{ 'el-htimeline--expanded': programmeExpanded }">
+                    <section v-for="day in scheduleByDay" :key="day.key" class="el-prog-day">
+                        <h3 v-if="day.label" class="el-prog-day-lbl">{{ day.label }}</h3>
                         <div
-                            v-for="(item, idx) in scheduleItems"
+                            v-for="(item, idx) in day.items"
                             :key="item.id"
-                            class="el-htimeline-item"
-                            :class="{ 'el-htimeline-item--first': idx === 0, 'el-htimeline-item--last': idx === scheduleItems.length - 1 }"
+                            class="el-prog-item"
+                            :class="{ 'el-prog-item--last': idx === day.items.length - 1 }"
                         >
-                            <div class="el-htimeline-dot-row">
-                                <div class="el-htimeline-connector"></div>
-                                <span class="el-htimeline-dot"></span>
+                            <div class="el-prog-rail" aria-hidden="true"><span /></div>
+                            <div class="el-prog-body">
+                                <p v-if="item.time" class="el-prog-when">{{ fmtTimeRange(item) }}</p>
+                                <h3 class="el-prog-title">{{ item.title }}</h3>
+                                <p v-if="item.location" class="el-prog-loc">{{ item.location }}</p>
+                                <p v-if="item.description" class="el-prog-desc">{{ item.description }}</p>
                             </div>
-                            <span v-if="item.time" class="el-htimeline-time">{{ fmtTime(item.time) }}</span>
-                            <h3 class="el-htimeline-title">{{ item.title }}</h3>
-                            <p class="el-htimeline-desc">{{ item.description }}</p>
                         </div>
-                    </div>
-                    <button v-if="scheduleItems.length > 4" class="el-prog-more" @click="programmeExpanded = !programmeExpanded">
-                        {{ programmeExpanded ? t('showLessItems') : t('showMoreItems') }}
-                    </button>
+                    </section>
                 </section>
 
                 <!-- Food & Beverages -->
@@ -2539,7 +2565,74 @@ const toggleLike = async (item) => {
 }
 
 /* ── Programme timeline ───────────────────────────────────────────────────── */
-.el-programme { padding-bottom: 44px; }
+.el-programme { padding-bottom: 44px; max-width: 640px; margin: 0 auto; }
+.el-prog-day { margin-bottom: 28px; }
+.el-prog-day-lbl {
+    margin: 0 0 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    color: var(--el-gold-dark);
+}
+.el-prog-item {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 16px;
+}
+.el-prog-rail {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+.el-prog-rail::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: -8px;
+    width: 1px;
+    background: rgba(156, 127, 50, .35);
+}
+.el-prog-item--last .el-prog-rail::before { display: none; }
+.el-prog-rail span {
+    position: relative;
+    z-index: 1;
+    width: 9px;
+    height: 9px;
+    margin-top: 5px;
+    border-radius: 50%;
+    background: var(--el-ivory);
+    border: 1.5px solid var(--el-gold-dark);
+}
+.el-prog-body { padding-bottom: 24px; }
+.el-prog-when {
+    margin: 0 0 4px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--el-text-light);
+}
+.el-prog-title {
+    margin: 0;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem;
+    font-weight: 400;
+    color: var(--el-text-main);
+    line-height: 1.25;
+}
+.el-prog-loc {
+    margin: 6px 0 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--el-gold-dark);
+}
+.el-prog-desc {
+    margin: 8px 0 0;
+    font-size: 14px;
+    color: var(--el-text-light);
+    line-height: 1.55;
+}
 .el-htimeline {
     display: flex;
     align-items: flex-start;
