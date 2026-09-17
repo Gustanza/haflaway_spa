@@ -439,7 +439,7 @@
           </span>
 
           <!-- Date -->
-          <span class="ea-card-date">{{ formatDate(att.createdAt) }}</span>
+          <span class="ea-card-date">{{ formatDateTime(att.createdAt) }}</span>
 
           <!-- Row action buttons (shown on hover or when pending) -->
           <div class="ea-card-actions" @click.stop>
@@ -2254,6 +2254,14 @@ function formatDate(iso) {
   return d.toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function formatDateTime(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  const datePart = d.toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })
+  const timePart = d.toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })
+  return `${datePart}, ${timePart}`
+}
+
 function formatMoney(n) {
   if (!n) return 'TZS 0'
   return 'TZS ' + Number(n).toLocaleString()
@@ -2663,7 +2671,6 @@ async function createPresetCampaign(label) {
   try {
     const docRef = await addDoc(collection(db, 'events', eventId.value, 'campaigns'), {
       name: label,
-      type: 'invitation',
       whatsappMessage: null,
       smsMessage: null,
       createdAt: new Date().toISOString(),
@@ -5227,6 +5234,16 @@ function setImportPayment(attendeeId, amount) {
 .ea-send-card-item:hover .ea-send-card-chev {
   color: #18181b;
   transform: translateX(2px);
+}
+.ea-send-card-item--disabled { opacity: 0.5; pointer-events: none; }
+.ea-send-card-spinner {
+  color: #9ca3af;
+  flex-shrink: 0;
+  animation: ea-spin 700ms linear infinite;
+}
+@keyframes ea-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 .ea-send-opts {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
