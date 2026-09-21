@@ -251,7 +251,6 @@ body {
 
 /* ── Shared token override on every known component root ── */
 html[data-theme="light"] .el-root,
-html[data-theme="light"] .me-root,
 html[data-theme="light"] .eo-root,
 html[data-theme="light"] .eb-root,
 html[data-theme="light"] .ea-root,
@@ -471,10 +470,10 @@ html[data-theme="dark"] .me-root {
   --line: #e5e7eb !important;
   --line-soft: #f1f3f5 !important;
   --line-strong: #d1d5db !important;
-  --paper-soft: #f8fafc !important;
+  --paper-soft: #f7f7f8 !important;
   --accent: #111827 !important;
   --accent-deep: #000000 !important;
-  --accent-soft: #f3f4f6 !important;
+  --accent-soft: #f7f7f8 !important;
   background: #ffffff !important;
   background-image: none !important;
 }

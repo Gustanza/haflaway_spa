@@ -1415,12 +1415,12 @@ onUnmounted(() => {
   --line: #e5e7eb;
   --line-soft: #f1f3f5;
   --line-strong: #d1d5db;
-  --paper-soft: #f8fafc;
+  --paper-soft: #f7f7f8;
   --emerald: #059669;
   --emerald-soft: #ecfdf5;
   --accent: #111827;
   --accent-deep: #000000;
-  --accent-soft: #f3f4f6;
+  --accent-soft: #f7f7f8;
   --shadow: none;
   --shadow-lift: none;
   --overlay-bg: rgba(15, 23, 42, 0.32);
@@ -1480,9 +1480,10 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 600;
   color: #4b5563;
-  background: #f1f3f5;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 9999px;
-  padding: 2px 10px;
+  padding: 1px 10px;
 }
 .me-brand {
   width: 34px;
@@ -1557,7 +1558,7 @@ onUnmounted(() => {
   transition: background 130ms, border-color 130ms, color 130ms;
 }
 .me-balance-pill:hover {
-  background: #f8fafc;
+  background: #f9fafb;
   color: #111827;
   border-color: #d1d5db;
   transform: none;
@@ -1583,7 +1584,7 @@ onUnmounted(() => {
   background: var(--me-dropdown-bg);
   border: 1px solid var(--line);
   border-radius: 16px;
-  box-shadow: var(--shadow-lift);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -1745,7 +1746,7 @@ onUnmounted(() => {
   font-family: inherit;
 }
 .me-admin-pill:hover {
-  background: #f8fafc;
+  background: #f9fafb;
   color: #111827;
   border-color: #d1d5db;
   transform: none;
@@ -1779,7 +1780,7 @@ onUnmounted(() => {
   background: var(--me-dropdown-bg);
   border: 1px solid var(--line);
   border-radius: 16px;
-  box-shadow: var(--shadow-lift);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   z-index: 200;
   transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -1837,7 +1838,7 @@ onUnmounted(() => {
     color 120ms;
 }
 .me-dropdown-item:hover {
-  background: var(--me-page-bg);
+  background: #f7f7f8;
   color: var(--ink);
 }
 .me-dropdown-item--signout:hover {
@@ -1915,6 +1916,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 0;
   box-sizing: border-box;
+  background: #ffffff;
 }
 
 /* ── Page header ── */
@@ -2017,39 +2019,39 @@ onUnmounted(() => {
   min-height: 34px;
   padding: 6px 14px;
   border-radius: 9999px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: #374151;
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 .me-tab:hover {
-  background: #f8fafc;
-  color: #0f172a;
-  border-color: #cbd5e1;
+  background: #f9fafb;
+  color: #111827;
+  border-color: #d1d5db;
   transform: none;
 }
 .me-tab--active {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  background: #f7f7f8;
+  border-color: #e5e7eb;
   box-shadow: none;
-  color: #0f172a;
+  color: #111827;
   font-weight: 600;
 }
 .me-tab-count {
   font-size: 10.5px;
   font-weight: 700;
-  background: #f1f5f9;
-  color: #475569;
-  padding: 1px 6px;
-  border-radius: 9999px;
+  background: transparent;
+  color: #6b7280;
+  padding: 0;
 }
 .me-tab-count--active {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: transparent;
+  color: #111827;
 }
 .me-controls-right {
   display: flex;
@@ -2176,16 +2178,18 @@ onUnmounted(() => {
   width: 100%;
   height: 44px;
   padding: 0 44px 0 44px;
-  border: none;
+  border: 1px solid #e5e7eb;
   border-radius: 9999px;
-  background: #f3f4f6;
+  background: #ffffff;
   font-size: 15px;
   color: #111827;
   outline: none;
   font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 .me-search-input:focus {
-  background: #eeeeef;
+  background: #ffffff;
+  border-color: #d1d5db;
 }
 .me-search-input::placeholder {
   color: #9ca3af;
@@ -2262,23 +2266,28 @@ onUnmounted(() => {
 .me-fb-select {
   height: 34px;
   padding: 0 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
   border-radius: 9999px;
-  background: #fff;
+  background: #ffffff;
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: #374151;
   font-family: inherit;
   outline: none;
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 .me-fb-select option {
   color: #111827;
   background: #fff;
 }
+.me-fb-select:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
 .me-fb-select:focus {
-  border-color: #cbd5e1;
-  background: #fff;
+  border-color: #d1d5db;
+  background: #ffffff;
 }
 
 /* ── Loading skeletons ── */
@@ -2404,7 +2413,7 @@ onUnmounted(() => {
   border-radius: 6px;
 }
 .me-role-badge--owner {
-  background: #f3f4f6;
+  background: #ffffff;
   border: 1px solid #e5e7eb;
   color: #111827;
 }
@@ -2438,7 +2447,7 @@ onUnmounted(() => {
   border-color: #d1d5db;
   box-shadow: none;
   transform: none;
-  background: #fafafa;
+  background: #f7f7f8;
 }
 
 /* Kept as a no-op layer (was a light-catch sheen for the old photo-backdrop
@@ -2649,8 +2658,8 @@ onUnmounted(() => {
   justify-self: end;
   position: relative;
   z-index: 1;
-  background: #f3f4f6;
-  box-shadow: none;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
   border: 1px solid #e5e7eb;
   color: #111827;
   border-radius: 9999px;
@@ -2727,7 +2736,7 @@ onUnmounted(() => {
   border-color: #d1d5db;
   box-shadow: none;
   transform: none;
-  background: #fafafa;
+  background: #f7f7f8;
 }
 .me-row--upcoming,
 .me-row--ongoing,
@@ -2898,7 +2907,7 @@ onUnmounted(() => {
 }
 .me-row-cd-ticket {
   margin-top: 11px;
-  background: #f3f4f6;
+  background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 9999px;
   padding: 4px 9px;
@@ -2920,7 +2929,7 @@ onUnmounted(() => {
 }
 .me-row-cd-ticket.me-row-days-pill--soon {
   border-color: #e5e7eb;
-  background: #f3f4f6;
+  background: #ffffff;
   color: #111827;
 }
 .me-row-cd-ticket.me-row-days-pill--past {
@@ -2969,8 +2978,9 @@ onUnmounted(() => {
   font-family: inherit;
 }
 .me-page-btn:hover:not(:disabled):not(.me-page-btn--active) {
-  border-color: var(--line-strong);
+  border-color: #d1d5db;
   color: var(--ink);
+  background: #f9fafb;
 }
 .me-page-btn--active {
   background: #111827;

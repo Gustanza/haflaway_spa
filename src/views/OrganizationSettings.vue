@@ -111,9 +111,10 @@
 
         <div class="os-tabs" role="tablist">
           <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'orgs' }" @click="activeTab = 'orgs'">Organizations</button>
-          <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'branding' }" @click="activeTab = 'branding'">Branding</button>
-          <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'sender' }" @click="activeTab = 'sender'">Sender IDs</button>
-          <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'smsProviders' }" @click="activeTab = 'smsProviders'">SMS Providers</button>
+          <template v-if="isBrandingApproved">
+            <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'branding' }" @click="activeTab = 'branding'">Branding</button>
+            <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'messaging' }" @click="activeTab = 'messaging'">Messaging Providers</button>
+          </template>
           <button type="button" class="os-tab" :class="{ 'os-tab--on': activeTab === 'team' }" @click="activeTab = 'team'">Team</button>
         </div>
 
@@ -122,7 +123,13 @@
           <div class="os-panel-hd">
             <h2 class="os-panel-title">Your Organizations</h2>
           </div>
-          <div class="os-panel-body os-switcher">
+          <div class="os-panel-body">
+            <!-- Branding/Messaging Providers tabs are hidden above until approved —
+                 tell the owner why rather than leaving a silent gap. -->
+            <div v-if="isOwner && !isBrandingApproved" class="os-archived-banner">
+              <span>Branding and Messaging Providers unlock once Haflaway approves this organization — contact support.</span>
+            </div>
+            <div class="os-switcher">
             <button
               v-for="org in activeOrgsList"
               :key="org.id"
@@ -137,6 +144,7 @@
               <span class="os-org-chip-name">{{ org.name }}</span>
               <span v-if="org.ownerId === currentUser?.uid" class="os-owner-badge">Owner</span>
             </button>
+            </div>
           </div>
 
           <div class="os-panel-body os-create-row os-create-row--inline">
@@ -183,7 +191,7 @@
         <div v-if="activeOrg" v-show="activeTab !== 'orgs'" class="os-stack">
 
           <!-- ══ Branding panel ══ -->
-          <div v-show="activeTab === 'branding'" class="os-panel">
+          <div v-show="activeTab === 'branding' && isBrandingApproved" class="os-panel">
             <div class="os-panel-hd">
               <h2 class="os-panel-title">Branding</h2>
               <span v-if="!isOwner" class="os-readonly-badge">Read only</span>
@@ -313,121 +321,24 @@
             </div>
           </div>
 
-          <!-- ══ SMS Sender IDs panel ══ -->
-          <div v-show="activeTab === 'sender'" class="os-panel">
+          <!-- ══ Messaging Providers panel ══ -->
+          <div v-show="activeTab === 'messaging' && isBrandingApproved" class="os-panel">
             <div class="os-panel-hd">
-              <h2 class="os-panel-title">SMS Sender IDs</h2>
-              <span v-if="!isOwner" class="os-readonly-badge">Read only</span>
-              <span v-else-if="senderIds.length" class="os-section-cnt">{{ senderIds.length }}</span>
-            </div>
-            <div class="os-panel-body">
-
-              <!-- What guests see right now -->
-              <div class="os-sid-current">
-                <span class="os-sid-current-lbl">
-                  {{ hasCustomSenderId ? 'Events send from this by default' : 'Your guests currently see messages from' }}
-                </span>
-                <span class="os-sid-current-val">{{ activeSenderId }}</span>
-                <span v-if="!hasCustomSenderId" class="os-sid-current-hint">
-                  the shared Haflaway sender — used by every organization without an approved ID of its own
-                </span>
-                <span v-else class="os-sid-current-hint">
-                  Any event can pick a different approved ID in its own settings.
-                </span>
-              </div>
-
-              <!-- The org's IDs -->
-              <div v-if="senderIds.length" class="os-sid-list">
-                <div
-                  v-for="sid in sortedSenderIds"
-                  :key="sid.id"
-                  class="os-sid-row"
-                  :class="{ 'os-sid-row--muted': sid.status === 'revoked' || sid.status === 'rejected' }"
-                >
-                  <div class="os-sid-row-main">
-                    <span class="os-sid-row-val">{{ sid.value }}</span>
-                    <span class="os-sid-chip" :class="`os-sid-chip--${sid.status}`">
-                      {{ sidStatusLabel(sid.status) }}
-                    </span>
-                    <span v-if="sid.value === defaultSenderId" class="os-sid-chip os-sid-chip--default">Default</span>
-                  </div>
-
-                  <p v-if="sid.rejectionReason" class="os-sid-row-note">{{ sid.rejectionReason }}</p>
-                  <p v-else-if="sid.status === 'pending'" class="os-sid-row-note">
-                    With our team for review — networks have to register it first, so this usually takes a few working days.
-                  </p>
-
-                  <div v-if="isOwner && !activeOrg.archived" class="os-sid-row-actions">
-                    <button
-                      v-if="sid.status === 'approved' && sid.value !== defaultSenderId"
-                      class="os-secondary-btn os-sid-mini-btn"
-                      :disabled="defaultingSenderId === sid.value"
-                      @click="makeDefault(sid.value)"
-                    >{{ defaultingSenderId === sid.value ? 'Setting…' : 'Make default' }}</button>
-                    <button
-                      v-if="sid.status === 'rejected' || sid.status === 'revoked'"
-                      class="os-secondary-btn os-sid-mini-btn"
-                      :disabled="requestingSenderId"
-                      @click="senderIdDraft = sid.value; submitSenderIdRequest()"
-                    >Request again</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Request form -->
-              <template v-if="isOwner && !activeOrg.archived">
-                <label class="os-field-label">
-                  {{ senderIds.length ? 'Request another sender ID' : 'Request your own sender ID' }}
-                </label>
-                <div class="os-search-row">
-                  <input
-                    v-model="senderIdDraft"
-                    class="os-input os-sid-input"
-                    type="text"
-                    :maxlength="SENDER_ID_MAX"
-                    placeholder="e.g. GUSTANZA"
-                    :disabled="requestingSenderId"
-                    @input="senderIdError = ''"
-                    @keydown.enter="submitSenderIdRequest"
-                  />
-                  <button
-                    class="os-primary-btn"
-                    :disabled="requestingSenderId || !senderIdDraft.trim()"
-                    @click="submitSenderIdRequest"
-                  >{{ requestingSenderId ? 'Sending…' : 'Request' }}</button>
-                </div>
-                <span class="os-advanced-hint">
-                  3–{{ SENDER_ID_MAX }} letters and numbers, no spaces, can't start with a number.
-                  It's shown in place of a phone number on every SMS your events send.
-                </span>
-                <span v-if="senderIdError" class="os-search-error">{{ senderIdError }}</span>
-                <span v-if="senderIdSuccess" class="os-save-status os-save-status--ok">✓ Request sent for review</span>
-                <span v-if="!hasCustomSenderId && !senderIds.length" class="os-advanced-hint">
-                  Your first approved ID automatically becomes the default.
-                </span>
-              </template>
-
-              <div v-else-if="activeOrg.archived" class="os-archived-banner">
-                <span>Unarchive this organization to request a sender ID.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- ══ SMS Providers panel ══ -->
-          <div v-show="activeTab === 'smsProviders'" class="os-panel">
-            <div class="os-panel-hd">
-              <h2 class="os-panel-title">SMS Providers</h2>
+              <h2 class="os-panel-title">Messaging Providers</h2>
               <span v-if="!isOwner" class="os-readonly-badge">Read only</span>
             </div>
             <div class="os-panel-body">
 
               <span class="os-advanced-hint">
                 Bring your own smtz or wasambazie account for this organization's SMS. Leave either
-                one unset and it sends through the shared Haflaway account instead.
+                one unset and it sends through the shared Haflaway account instead. Once an account
+                is plugged in, add the sender IDs you registered with it yourself — no review needed,
+                since it's your own account. Unplug it and this organization falls straight back to
+                sending as HAFLAWAY.
               </span>
 
               <div v-if="!isOwner" class="os-archived-banner">
-                <span>Only the organization owner can view or change SMS provider credentials.</span>
+                <span>Only the organization owner can view or change messaging provider credentials.</span>
               </div>
 
               <template v-else>
@@ -464,6 +375,46 @@
                     >{{ clearingProvider === 'smtz' ? 'Resetting…' : 'Reset to default' }}</button>
                     <span v-if="providerStatus.smtz === 'success'" class="os-save-status os-save-status--ok">✓ Saved</span>
                     <span v-else-if="providerStatus.smtz === 'error'" class="os-save-status os-save-status--err">{{ providerError.smtz || 'Failed to save. Try again.' }}</span>
+                  </div>
+
+                  <!-- ── smtz sender IDs — self-service, only once smtz is configured ── -->
+                  <div v-if="smsCredentialsStatus.smtz?.configured" class="os-sid-mini">
+                    <label class="os-field-label os-field-label--flush">Sender IDs</label>
+                    <div v-if="smsCredentialsStatus.smtz.senderIds.length" class="os-sid-mini-list">
+                      <span v-for="sid in smsCredentialsStatus.smtz.senderIds" :key="sid" class="os-sid-mini-chip">
+                        {{ sid }}
+                        <span v-if="sid === smsCredentialsStatus.smtz.defaultSenderId" class="os-sid-mini-default">Default</span>
+                        <button
+                          type="button"
+                          class="os-sid-mini-remove"
+                          :disabled="!activeOrg || activeOrg.archived || removingSenderId === `smtz:${sid}`"
+                          title="Remove"
+                          @click="handleRemoveSenderId('smtz', sid)"
+                        >×</button>
+                      </span>
+                    </div>
+                    <div class="os-search-row">
+                      <input
+                        v-model="senderIdDrafts.smtz"
+                        class="os-input os-sid-input"
+                        type="text"
+                        :maxlength="SENDER_ID_MAX"
+                        placeholder="e.g. GUSTANZA"
+                        :disabled="!activeOrg || activeOrg.archived || addingSenderId === 'smtz'"
+                        @input="senderIdErrors.smtz = ''"
+                        @keydown.enter="handleAddSenderId('smtz')"
+                      />
+                      <button
+                        class="os-secondary-btn"
+                        :disabled="!activeOrg || activeOrg.archived || addingSenderId === 'smtz' || !senderIdDrafts.smtz.trim()"
+                        @click="handleAddSenderId('smtz')"
+                      >{{ addingSenderId === 'smtz' ? 'Adding…' : 'Add' }}</button>
+                    </div>
+                    <span v-if="senderIdErrors.smtz" class="os-search-error">{{ senderIdErrors.smtz }}</span>
+                    <span v-else class="os-advanced-hint">
+                      Register it with smtz on your own account first, then add it here — 3–{{ SENDER_ID_MAX }}
+                      letters and numbers, no spaces, can't start with a number.
+                    </span>
                   </div>
                 </div>
 
@@ -511,6 +462,46 @@
                     >{{ clearingProvider === 'wasambazie' ? 'Resetting…' : 'Reset to default' }}</button>
                     <span v-if="providerStatus.wasambazie === 'success'" class="os-save-status os-save-status--ok">✓ Saved</span>
                     <span v-else-if="providerStatus.wasambazie === 'error'" class="os-save-status os-save-status--err">{{ providerError.wasambazie || 'Failed to save. Try again.' }}</span>
+                  </div>
+
+                  <!-- ── wasambazie sender IDs — self-service, only once wasambazie is configured ── -->
+                  <div v-if="smsCredentialsStatus.wasambazie?.configured" class="os-sid-mini">
+                    <label class="os-field-label os-field-label--flush">Sender IDs</label>
+                    <div v-if="smsCredentialsStatus.wasambazie.senderIds.length" class="os-sid-mini-list">
+                      <span v-for="sid in smsCredentialsStatus.wasambazie.senderIds" :key="sid" class="os-sid-mini-chip">
+                        {{ sid }}
+                        <span v-if="sid === smsCredentialsStatus.wasambazie.defaultSenderId" class="os-sid-mini-default">Default</span>
+                        <button
+                          type="button"
+                          class="os-sid-mini-remove"
+                          :disabled="!activeOrg || activeOrg.archived || removingSenderId === `wasambazie:${sid}`"
+                          title="Remove"
+                          @click="handleRemoveSenderId('wasambazie', sid)"
+                        >×</button>
+                      </span>
+                    </div>
+                    <div class="os-search-row">
+                      <input
+                        v-model="senderIdDrafts.wasambazie"
+                        class="os-input os-sid-input"
+                        type="text"
+                        :maxlength="SENDER_ID_MAX"
+                        placeholder="e.g. GUSTANZA"
+                        :disabled="!activeOrg || activeOrg.archived || addingSenderId === 'wasambazie'"
+                        @input="senderIdErrors.wasambazie = ''"
+                        @keydown.enter="handleAddSenderId('wasambazie')"
+                      />
+                      <button
+                        class="os-secondary-btn"
+                        :disabled="!activeOrg || activeOrg.archived || addingSenderId === 'wasambazie' || !senderIdDrafts.wasambazie.trim()"
+                        @click="handleAddSenderId('wasambazie')"
+                      >{{ addingSenderId === 'wasambazie' ? 'Adding…' : 'Add' }}</button>
+                    </div>
+                    <span v-if="senderIdErrors.wasambazie" class="os-search-error">{{ senderIdErrors.wasambazie }}</span>
+                    <span v-else class="os-advanced-hint">
+                      Register it with wasambazie on your own account first, then add it here — 3–{{ SENDER_ID_MAX }}
+                      letters and numbers, no spaces, can't start with a number.
+                    </span>
                   </div>
                 </div>
               </template>
@@ -641,7 +632,7 @@ import {
   doc, getDoc, getDocs, collection, query, where, limit,
 } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { useOrg, contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY, DEFAULT_SENDER_ID } from '../composables/useOrg.js'
+import { useOrg, contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY } from '../composables/useOrg.js'
 
 const router = useRouter()
 
@@ -649,9 +640,8 @@ const {
   currentUser, orgs, activeOrg, isOwner, isBrandingApproved, brandName, brandLogoUrl, loading,
   setActiveOrg, createOrg, updateBranding, addMember, removeMember,
   archiveOrg, unarchiveOrg, leaveOrg, memberCan, setMemberPermission,
-  senderIds, defaultSenderId, activeSenderId, hasCustomSenderId,
-  requestSenderId, setDefaultSenderId,
   smsCredentialsStatus, loadSmsCredentialsStatus, setSmsCredentials, clearSmsCredentials,
+  addSenderId, removeSenderId,
 } = useOrg()
 
 const activeOrgsList = computed(() => orgs.value.filter(o => !o.archived))
@@ -687,7 +677,19 @@ async function logout() {
 onMounted(() => document.addEventListener('click', onClickOutside))
 onUnmounted(() => document.removeEventListener('click', onClickOutside))
 const showArchived = ref(false)
-const activeTab = ref('branding')
+const activeTab = ref('orgs')
+
+// Branding/Messaging Providers tabs only exist once the active org is
+// approved (see the os-tabs template above) — a fresh org starts
+// unapproved, and switching to a different unapproved org while sitting on
+// one of these tabs would otherwise leave activeTab pointing at a button
+// that no longer renders. Bounce back to Organizations rather than leaving
+// a blank tab strip with nothing marked active.
+watch([activeOrg, isBrandingApproved], () => {
+  if (!isBrandingApproved.value && (activeTab.value === 'branding' || activeTab.value === 'messaging')) {
+    activeTab.value = 'orgs'
+  }
+})
 
 // ── Create org ───────────────────────────────────────────────────────────────
 const newOrgName = ref('')
@@ -699,7 +701,7 @@ async function handleCreateOrg() {
   try {
     await createOrg(newOrgName.value.trim())
     newOrgName.value = ''
-    activeTab.value = 'branding'
+    activeTab.value = 'orgs'
   } finally {
     creatingOrg.value = false
   }
@@ -743,70 +745,48 @@ async function handleLeave() {
   }
 }
 
-// ── SMS sender IDs ───────────────────────────────────────────────────────────
+// ── SMS provider sender IDs (self-service, per-provider) ─────────────────────
 const SENDER_ID_MAX = 11
-const senderIdDraft = ref('')
-const senderIdError = ref('')
-const senderIdSuccess = ref(false)
-const requestingSenderId = ref(false)
-const defaultingSenderId = ref(null)
-
-const SID_STATUS_LABELS = {
-  pending:  'Pending review',
-  approved: 'Approved',
-  rejected: 'Not approved',
-  revoked:  'Removed',
-}
-const sidStatusLabel = (s) => SID_STATUS_LABELS[s] ?? s
-
-// Usable IDs first, then the ones that are only history — an owner scanning
-// this list cares about what can send today, not what once could.
-const SID_ORDER = { approved: 0, pending: 1, rejected: 2, revoked: 3 }
-const sortedSenderIds = computed(() =>
-  [...senderIds.value].sort((a, b) =>
-    (SID_ORDER[a.status] ?? 9) - (SID_ORDER[b.status] ?? 9) ||
-    String(a.value).localeCompare(String(b.value))
-  )
-)
-
-async function makeDefault(value) {
-  if (defaultingSenderId.value || !activeOrg.value) return
-  defaultingSenderId.value = value
-  senderIdError.value = ''
-  try {
-    await setDefaultSenderId(activeOrg.value.id, value)
-  } catch (e) {
-    senderIdError.value = e?.message || 'Could not change the default. Try again.'
-  } finally {
-    defaultingSenderId.value = null
-  }
-}
+const senderIdDrafts = ref({ smtz: '', wasambazie: '' })
+const senderIdErrors = ref({ smtz: '', wasambazie: '' })
+const addingSenderId = ref(null)   // null | 'smtz' | 'wasambazie'
+const removingSenderId = ref(null) // null | 'smtz:VALUE' | 'wasambazie:VALUE'
 
 // Switching orgs must not carry one org's draft (or another's error) over.
 watch(() => activeOrg.value?.id, () => {
-  senderIdDraft.value = ''
-  senderIdError.value = ''
-  senderIdSuccess.value = false
+  senderIdDrafts.value = { smtz: '', wasambazie: '' }
+  senderIdErrors.value = { smtz: '', wasambazie: '' }
 })
 
-async function submitSenderIdRequest() {
-  if (requestingSenderId.value || !activeOrg.value) return
-  const value = senderIdDraft.value.trim()
+async function handleAddSenderId(provider) {
+  if (addingSenderId.value || !activeOrg.value) return
+  const value = senderIdDrafts.value[provider].trim()
   if (!value) return
 
-  requestingSenderId.value = true
-  senderIdError.value = ''
-  senderIdSuccess.value = false
+  addingSenderId.value = provider
+  senderIdErrors.value = { ...senderIdErrors.value, [provider]: '' }
   try {
-    await requestSenderId(activeOrg.value.id, value)
-    senderIdDraft.value = ''
-    senderIdSuccess.value = true
+    await addSenderId(activeOrg.value.id, provider, value)
+    senderIdDrafts.value = { ...senderIdDrafts.value, [provider]: '' }
   } catch (e) {
-    // The callable re-validates and returns the human-readable rule it failed,
+    // The route re-validates and returns the human-readable rule it failed,
     // so surface its message rather than a generic failure line.
-    senderIdError.value = e?.message || 'Could not send that request. Try again.'
+    senderIdErrors.value = { ...senderIdErrors.value, [provider]: e?.message || 'Could not add that sender ID. Try again.' }
   } finally {
-    requestingSenderId.value = false
+    addingSenderId.value = null
+  }
+}
+
+async function handleRemoveSenderId(provider, value) {
+  const key = `${provider}:${value}`
+  if (removingSenderId.value || !activeOrg.value) return
+  removingSenderId.value = key
+  try {
+    await removeSenderId(activeOrg.value.id, provider, value)
+  } catch (e) {
+    senderIdErrors.value = { ...senderIdErrors.value, [provider]: e?.message || 'Could not remove that sender ID. Try again.' }
+  } finally {
+    removingSenderId.value = null
   }
 }
 
@@ -822,14 +802,16 @@ let providerStatusTimers = { smtz: null, wasambazie: null }
 
 // Status (configured or not) is fetched on demand, not via a live listener —
 // the secret values themselves never come back to the client once saved, so
-// there's nothing to subscribe to beyond this boolean.
+// there's nothing to subscribe to beyond this boolean. Loaded for every
+// member, not just the owner: EventSettings.vue's sender-ID picker needs the
+// (non-secret) sender-ID pool this returns too.
 watch(() => activeOrg.value?.id, (orgId) => {
   smtzApiKeyDraft.value = ''
   wasambaziePublicKeyDraft.value = ''
   wasambazieSecretKeyDraft.value = ''
   providerStatus.value = { smtz: '', wasambazie: '' }
   providerError.value = { smtz: '', wasambazie: '' }
-  if (orgId && isOwner.value) loadSmsCredentialsStatus(orgId)
+  if (orgId) loadSmsCredentialsStatus(orgId)
 }, { immediate: true })
 
 function flashProviderStatus(provider, kind) {
@@ -1539,60 +1521,61 @@ function avatarStyle(u) {
 .os-toggle-row input[type="checkbox"] { cursor: pointer; }
 
 /* ── SMS sender ID ── */
-.os-sid-current {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: #f8fafc;
-  border: 1px solid var(--c-border);
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-.os-sid-current-lbl  { font-size: 11.5px; color: var(--c-txt-3); }
-.os-sid-current-val {
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  color: #111827;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-.os-sid-current-hint { font-size: 11.5px; color: var(--c-txt-3); line-height: 1.5; }
-
-.os-sid-list { display: flex; flex-direction: column; gap: 8px; }
-.os-sid-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: #fff;
-  border: 1px solid var(--c-border);
-  border-radius: 12px;
-  padding: 10px 12px;
-}
-.os-sid-row--muted { opacity: 0.7; }
-.os-sid-row-main { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.os-sid-row-val {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 15px; font-weight: 700; letter-spacing: 1px; color: var(--c-txt);
-}
-.os-sid-row-note { font-size: 11.5px; color: var(--c-txt-3); margin: 0; line-height: 1.5; }
-.os-sid-row-actions { display: flex; gap: 8px; }
-.os-sid-mini-btn { padding: 5px 10px; font-size: 11.5px; align-self: flex-start; }
-
 .os-sid-chip {
   font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
   text-transform: uppercase; border-radius: 6px; padding: 3px 7px;
 }
 .os-sid-chip--approved { color: #065f46; background: #ecfdf5; }
-.os-sid-chip--pending  { color: #FF9F0A; background: rgba(255,159,10,0.12); }
-.os-sid-chip--rejected { color: #FF453A; background: rgba(255,69,58,0.12); }
 .os-sid-chip--revoked  { color: #64748b; background: #f3f4f6; }
-.os-sid-chip--default  { color: #111827; background: #f3f4f6; }
 
 .os-sid-input {
   text-transform: uppercase;
   letter-spacing: 1px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+
+/* ── Self-service sender IDs, nested inside a provider card ── */
+.os-sid-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--c-border);
+}
+.os-sid-mini-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.os-sid-mini-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid var(--c-border);
+  border-radius: 9999px;
+  padding: 4px 6px 4px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--c-txt);
+}
+.os-sid-mini-default {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #065f46;
+  background: #ecfdf5;
+  border-radius: 6px;
+  padding: 2px 5px;
+}
+.os-sid-mini-remove {
+  width: 16px; height: 16px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 50%; background: transparent;
+  color: var(--c-txt-3); font-size: 14px; line-height: 1; cursor: pointer;
+  font-family: inherit; padding: 0;
+}
+.os-sid-mini-remove:hover { background: #fef2f2; color: #dc2626; }
 
 /* ── SMS provider credentials ── */
 .os-provider-card {

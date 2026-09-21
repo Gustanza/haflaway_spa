@@ -1,7 +1,6 @@
 import { ref, computed, watchEffect } from 'vue'
-import { auth, db, functions } from '../firebase'
+import { auth, db } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
-import { httpsCallable } from 'firebase/functions'
 import {
   collection, doc, getDoc, updateDoc, addDoc,
   query, where, onSnapshot, arrayUnion, arrayRemove, serverTimestamp, deleteField,
@@ -16,6 +15,23 @@ const DEFAULT_SENDER_ID = 'HAFLAWAY'
 const DEFAULT_FAVICON = '/src/assets/favicon.ico'
 const DEFAULT_ACCENT = '#C9A84C'
 const DEFAULT_SECONDARY = '#3B82F6'
+
+// Same env var / fallback EventCampaigns.vue uses to reach haflaway_server —
+// set VITE_CARD_SERVER_URL once it's deployed somewhere reachable.
+const CARD_SERVER_URL = import.meta.env.VITE_CARD_SERVER_URL || 'http://localhost:8080'
+
+async function callOrgServer(path, options = {}) {
+  const user = auth.currentUser
+  if (!user) throw new Error('Not authenticated')
+  const idToken = await user.getIdToken()
+  const res = await fetch(`${CARD_SERVER_URL}${path}`, {
+    ...options,
+    headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json', ...options.headers },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!data.ok) throw new Error(data.message || `Request failed (HTTP ${res.status}).`)
+  return data
+}
 
 // Perceptual luminance (WCAG relative luminance) → pick black or white text
 // so any org-chosen color (including dark ones) stays legible.
@@ -107,104 +123,103 @@ const isBrandingApproved = computed(() => activeOrg.value?.brandingApproved === 
 const brandName = computed(() => (isBrandingApproved.value && activeOrg.value?.name) || DEFAULT_NAME)
 const brandLogoUrl = computed(() => (isBrandingApproved.value && activeOrg.value?.logoUrl) || DEFAULT_LOGO_URL)
 
-// ── SMS sender IDs ──────────────────────────────────────────────────────────
-// An org owns a set of these, one document each under organizations/{id}/senderIds,
-// keyed by the value itself: { value, status, isDefault, requestedAt/By,
-// reviewedAt/By, approvedAt, rejectionReason }. Status is pending | approved |
-// rejected | revoked.
-const senderIds = ref([])
-let unsubSenderIds = null
-
-// Scoped to whichever org is active — switching orgs tears the old listener
-// down so a stale org's IDs can never show under a different one.
-watchEffect(() => {
-  const orgId = activeOrg.value?.id
-  if (unsubSenderIds) { unsubSenderIds(); unsubSenderIds = null }
-  if (!orgId) { senderIds.value = []; return }
-
-  unsubSenderIds = onSnapshot(
-    collection(db, 'organizations', orgId, 'senderIds'),
-    snap => { senderIds.value = snap.docs.map(d => ({ id: d.id, ...d.data() })) },
-    () => { senderIds.value = [] },
-  )
-})
-
-const approvedSenderIds = computed(() => senderIds.value.filter(s => s.status === 'approved'))
-const pendingSenderIds  = computed(() => senderIds.value.filter(s => s.status === 'pending'))
-
-// Mirrors sortForDefault() in functions/utils/senderId.js — oldest approved
-// first, value as tiebreak — so the "(default)" the UI marks is the same one
-// the dispatch path would actually choose when nothing is flagged.
-function sortForDefault(list) {
-  const ms = (v) => {
-    if (!v) return Number.MAX_SAFE_INTEGER
-    if (typeof v.toMillis === 'function') return v.toMillis()
-    const p = Date.parse(v)
-    return Number.isNaN(p) ? Number.MAX_SAFE_INTEGER : p
-  }
-  return [...list].sort((a, b) =>
-    (ms(a.approvedAt) - ms(b.approvedAt)) || String(a.value).localeCompare(String(b.value))
-  )
-}
-
-// The org's effective default — the flagged one, else the deterministic pick.
-const defaultSenderId = computed(() => {
-  const approved = approvedSenderIds.value
-  if (!approved.length) return null
-  return (approved.find(s => s.isDefault === true) ?? sortForDefault(approved)[0]).value
-})
-
-// What an event sends as when it hasn't pinned one of its own.
-const activeSenderId = computed(() => defaultSenderId.value || DEFAULT_SENDER_ID)
-const hasCustomSenderId = computed(() => activeSenderId.value !== DEFAULT_SENDER_ID)
-
-// Owner-only, enforced server-side. The callables also re-validate, so the
-// client-side checks in the forms are a convenience, not the guard.
-async function requestSenderId(orgId, senderId) {
-  const res = await httpsCallable(functions, 'requestOrgSenderId')({ orgId, senderId })
-  return res.data
-}
-async function setDefaultSenderId(orgId, senderId) {
-  const res = await httpsCallable(functions, 'setOrgDefaultSenderId')({ orgId, senderId })
-  return res.data
-}
-// senderId null/'' clears the pin so the event follows the org default.
-async function setEventSenderId(eventId, senderId) {
-  const res = await httpsCallable(functions, 'setEventSenderId')({ eventId, senderId })
-  return res.data
-}
-
-// ── SMS provider credentials (smtz / wasambazie) ────────────────────────────
+// ── SMS provider credentials (smtz / wasambazie) + their sender IDs ────────
 // Per-organization override for the two providers whose credentials aren't
-// baked into env vars shared by every org (see functions/organizations/
-// smsCredentials.js and haflaway_server's resolveOrgSmsCredentials). Only
-// ever holds `{ configured, updatedAt }` per provider — the actual secret
-// values never round-trip back to the client once saved.
+// baked into env vars shared by every org (see haflaway_server's
+// organizations/smsCredentials.js and dispatch/sms.js's
+// resolveOrgSmsCredentials). Each provider's status also carries its own
+// self-service sender-ID pool — a sender ID only means something against the
+// provider account it was registered with, so it lives and dies with that
+// provider's credentials rather than as an org-wide, staff-reviewed pool like
+// before. An org still on Haflaway's shared account has no pool at all and
+// always sends as HAFLAWAY. `configured` is all that's ever exposed about
+// the credentials themselves — the actual secret values never round-trip
+// back to the client once saved.
 const smsCredentialsStatus = ref({ smtz: null, wasambazie: null })
+// Whichever provider Haflaway currently routes SMS through platform-wide —
+// an org's sender-ID pool only has any effect while its provider is this one.
+const activeSmsProvider = ref(null)
 
-// Not a live listener (unlike senderIds) — status comes from a callable, not
-// a Firestore read, so the panel that shows it re-fetches on demand (tab
-// open / org switch) rather than subscribing.
+// Not a live listener — status comes from haflaway_server, not a Firestore
+// read, so this re-fetches on demand (tab open / org switch) rather than
+// subscribing. Loads for every member (not just the owner): EventSettings'
+// sender-ID picker needs `approvedSenderIds`/`defaultSenderId` below even for
+// a non-owner viewing their own event.
 async function loadSmsCredentialsStatus(orgId) {
-  if (!orgId) { smsCredentialsStatus.value = { smtz: null, wasambazie: null }; return smsCredentialsStatus.value }
-  const res = await httpsCallable(functions, 'getOrgSmsCredentialsStatus')({ orgId })
-  smsCredentialsStatus.value = res.data
-  return res.data
+  if (!orgId) {
+    smsCredentialsStatus.value = { smtz: null, wasambazie: null }
+    activeSmsProvider.value = null
+    return smsCredentialsStatus.value
+  }
+  const { smtz, wasambazie, activeProvider } = await callOrgServer(`/organizations/${orgId}/sms-credentials/status`)
+  smsCredentialsStatus.value = { smtz, wasambazie }
+  activeSmsProvider.value = activeProvider ?? null
+  return smsCredentialsStatus.value
 }
 
-// Owner-only, enforced server-side. `credentials` is `{ apiKey }` for smtz or
-// `{ publicKey, secretKey }` for wasambazie.
+// The sender-ID pool that's actually live right now — the active provider's,
+// if the org has configured that provider's own credentials. Shaped as
+// {id, value} pairs to match the old approved-sender-ID list EventSettings.vue
+// already renders.
+const approvedSenderIds = computed(() => {
+  const entry = activeSmsProvider.value && smsCredentialsStatus.value[activeSmsProvider.value]
+  if (!entry?.configured) return []
+  return (entry.senderIds ?? []).map(value => ({ id: value, value }))
+})
+const defaultSenderId = computed(() => {
+  const entry = activeSmsProvider.value && smsCredentialsStatus.value[activeSmsProvider.value]
+  return (entry?.configured && entry.defaultSenderId) || null
+})
+
+// Owner-only self-service — the org registered this directly with the
+// provider on their own account, so there's nothing for Haflaway to review.
+// Requires that provider's credentials to already be configured.
+async function addSenderId(orgId, provider, senderId) {
+  const data = await callOrgServer(`/organizations/${orgId}/sms-credentials/${provider}/sender-ids`, {
+    method: 'POST',
+    body: JSON.stringify({ senderId }),
+  })
+  await loadSmsCredentialsStatus(orgId)
+  return data
+}
+async function removeSenderId(orgId, provider, senderId) {
+  const data = await callOrgServer(`/organizations/${orgId}/sms-credentials/${provider}/sender-ids/${encodeURIComponent(senderId)}`, {
+    method: 'DELETE',
+  })
+  await loadSmsCredentialsStatus(orgId)
+  return data
+}
+
+// Pins one event to a specific sender ID from the org's currently-active
+// provider pool, or clears the pin (senderId null/'') so it follows the org
+// default. Server-side so an event can only ever name an ID its own org
+// actually owns.
+async function setEventSenderId(eventId, senderId) {
+  return callOrgServer(`/events/${eventId}/sender-id`, {
+    method: 'POST',
+    body: JSON.stringify({ senderId }),
+  })
+}
+
+// Owner-only, enforced server-side (requireOrgOwner in haflaway_server).
+// `credentials` is `{ apiKey }` for smtz or `{ publicKey, secretKey }` for
+// wasambazie — the org's own account, created directly with that provider,
+// so its SMS bills to them instead of Haflaway's shared account.
 async function setSmsCredentials(orgId, provider, credentials) {
-  const res = await httpsCallable(functions, 'setOrgSmsCredentials')({ orgId, provider, credentials })
+  const data = await callOrgServer(`/organizations/${orgId}/sms-credentials`, {
+    method: 'POST',
+    body: JSON.stringify({ provider, credentials }),
+  })
   await loadSmsCredentialsStatus(orgId)
-  return res.data
+  return data
 }
 
-// Drops the org's override so dispatch falls back to the platform default.
+// Drops the org's override so dispatch falls back to the platform default —
+// the org's very next SMS send bills to Haflaway's shared account again.
 async function clearSmsCredentials(orgId, provider) {
-  const res = await httpsCallable(functions, 'clearOrgSmsCredentials')({ orgId, provider })
+  const data = await callOrgServer(`/organizations/${orgId}/sms-credentials/${provider}`, { method: 'DELETE' })
   await loadSmsCredentialsStatus(orgId)
-  return res.data
+  return data
 }
 
 // Per-member capabilities live in the org's `memberPerms` map, keyed by uid:
@@ -351,19 +366,16 @@ export function useOrg() {
     isBrandingApproved,
     brandName,
     brandLogoUrl,
-    senderIds,
     approvedSenderIds,
-    pendingSenderIds,
     defaultSenderId,
-    activeSenderId,
-    hasCustomSenderId,
-    requestSenderId,
-    setDefaultSenderId,
     setEventSenderId,
     smsCredentialsStatus,
+    activeSmsProvider,
     loadSmsCredentialsStatus,
     setSmsCredentials,
     clearSmsCredentials,
+    addSenderId,
+    removeSenderId,
     canCreateEvents,
     memberCan,
     setMemberPermission,

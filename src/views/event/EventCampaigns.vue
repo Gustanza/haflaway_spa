@@ -625,17 +625,6 @@
                 </div>
                 <div v-else class="em-drawer-grid">
                 <div class="em-send-form">
-                <div v-if="sendResult" class="em-send-result"
-                  :class="sendResult.ok ? 'em-send-result--ok' : 'em-send-result--err'">
-                  <svg v-if="sendResult.ok" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  <div>
-                    <p class="em-result-title">{{ sendResult.ok ? 'Messages sent!' : 'Something went wrong' }}</p>
-                    <p class="em-result-msg">{{ sendResult.message }}</p>
-                  </div>
-                  <button class="em-result-dismiss" @click="sendResult = null">Dismiss</button>
-                </div>
-
                 <div class="em-drawer-section">
                   <p class="em-drawer-section-label">Campaign</p>
                   <div class="em-custom-camp-display">
@@ -886,25 +875,58 @@
     </Teleport>
 
     <Teleport to="body">
-      <div v-if="sendProgressOpen" class="em-sp-backdrop">
+      <div v-if="sendModalOpen" class="em-sp-backdrop">
         <div class="em-sp" role="dialog" aria-modal="true" aria-labelledby="em-sp-title">
-          <div class="em-sp-orbit" aria-hidden="true">
-            <span /><span /><span />
-          </div>
-          <p class="em-sp-kicker">{{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }}</p>
-          <h3 id="em-sp-title" class="em-sp-title">{{ selectedCustomCamp?.kind === 'card' ? 'Rendering & sending' : 'Sending' }}</h3>
-          <p class="em-sp-sub">{{ selectedCustomCamp?.name || 'Campaign' }}</p>
-          <p class="em-sp-pct">{{ activeSendRun && !activeSendRun.finishedAt ? sendRunPct + '%' : '…' }}</p>
-          <div class="em-sp-track">
-            <div class="em-sp-fill" :class="{ 'em-sp-fill--indeterminate': !activeSendRun || activeSendRun.finishedAt }" :style="activeSendRun && !activeSendRun.finishedAt ? { width: sendRunPct + '%' } : null"/>
-          </div>
-          <p class="em-sp-meta">
-            <template v-if="activeSendRun && !activeSendRun.finishedAt">
-              {{ sendRunProcessed }} of {{ activeSendRun.total }} delivered
-              <span v-if="sendRunFailedCount"> · {{ sendRunFailedCount }} failed</span>
-            </template>
-            <template v-else>This usually takes a moment. Keep this tab open.</template>
-          </p>
+          <template v-if="!sendResult">
+            <div class="em-sp-orbit" aria-hidden="true">
+              <span /><span /><span />
+            </div>
+            <p class="em-sp-kicker">{{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }}</p>
+            <h3 id="em-sp-title" class="em-sp-title">{{ selectedCustomCamp?.kind === 'card' ? 'Rendering & sending' : 'Sending' }}</h3>
+            <p class="em-sp-sub">{{ selectedCustomCamp?.name || 'Campaign' }}</p>
+            <p class="em-sp-pct">{{ activeSendRun && !activeSendRun.finishedAt ? sendRunPct + '%' : '…' }}</p>
+            <div class="em-sp-track">
+              <div class="em-sp-fill" :class="{ 'em-sp-fill--indeterminate': !activeSendRun || activeSendRun.finishedAt }" :style="activeSendRun && !activeSendRun.finishedAt ? { width: sendRunPct + '%' } : null"/>
+            </div>
+            <p class="em-sp-meta">
+              <template v-if="activeSendRun && !activeSendRun.finishedAt">
+                {{ sendRunProcessed }} of {{ activeSendRun.total }} delivered
+                <span v-if="sendRunFailedCount"> · {{ sendRunFailedCount }} failed</span>
+              </template>
+              <template v-else>This usually takes a moment. Keep this tab open.</template>
+            </p>
+          </template>
+
+          <template v-else>
+            <div class="em-sp-result-icon" :class="sendResult.ok ? 'em-sp-result-icon--ok' : 'em-sp-result-icon--err'" aria-hidden="true">
+              <svg v-if="sendResult.ok" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg v-else width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <p class="em-sp-kicker">{{ sendChannel === 'whatsapp' ? 'WhatsApp' : 'SMS' }}</p>
+            <h3 id="em-sp-title" class="em-sp-title">{{ sendResult.ok ? 'Messages sent!' : 'Something went wrong' }}</h3>
+            <p class="em-sp-sub">{{ selectedCustomCamp?.name || 'Campaign' }}</p>
+
+            <div v-if="sendResult.counts" class="em-sp-stats">
+              <div class="em-sp-stat">
+                <span class="em-sp-stat-num em-sp-stat-num--ok">{{ sendResult.counts.sent }}</span>
+                <span class="em-sp-stat-label">Sent</span>
+              </div>
+              <div class="em-sp-stat-div" aria-hidden="true" />
+              <div class="em-sp-stat">
+                <span class="em-sp-stat-num" :class="sendResult.counts.renderFailed ? 'em-sp-stat-num--warn' : 'em-sp-stat-num--muted'">{{ sendResult.counts.renderFailed }}</span>
+                <span class="em-sp-stat-label">Render failed</span>
+              </div>
+              <div class="em-sp-stat-div" aria-hidden="true" />
+              <div class="em-sp-stat">
+                <span class="em-sp-stat-num" :class="sendResult.counts.sendFailed ? 'em-sp-stat-num--err' : 'em-sp-stat-num--muted'">{{ sendResult.counts.sendFailed }}</span>
+                <span class="em-sp-stat-label">Send failed</span>
+              </div>
+            </div>
+            <p v-if="sendResult.counts" class="em-sp-total">of {{ sendResult.counts.total }} recipient{{ sendResult.counts.total === 1 ? '' : 's' }}</p>
+
+            <p v-if="sendResult.message" class="em-sp-meta em-sp-meta--result">{{ sendResult.message }}</p>
+            <button type="button" class="em-sp-done-btn" @click="sendResult = null">Done</button>
+          </template>
         </div>
       </div>
     </Teleport>
@@ -1138,7 +1160,6 @@ const vClickOutside = {
   unmounted(el) { document.removeEventListener('mousedown', el._co) }
 }
 
-const SMS_URL = 'https://sendsmsaction-frbu33fema-uc.a.run.app'
 const WSP_URL = 'https://sendwhatsappinvitationmessages-frbu33fema-uc.a.run.app'
 const GENERAL_CAMPAIGN_CATEGORY = 'haflaway-general-campaign'
 
@@ -1988,17 +2009,14 @@ const recipDraftSet    = computed(() => new Set(recipDraftIds.value))
 
 const sendRecipPool = computed(() => {
   if (!selectedCustomCamp.value) return []
-  // A card campaign renders on demand server-side at send time (see
-  // executeSend) — anyone explicitly selected is eligible whether or not
-  // they already have a rendered card. The old general/bulk Message flow has
-  // no render step at all, so it still only makes sense for attendees who
-  // already have that card (nothing here would ever produce one).
-  let pool = attendees.value
-  if (selectedCustomCamp.value.kind !== 'card') {
-    const cardType = selectedCustomCamp.value.type
-    pool = pool.filter(att => att.cards && att.cards[cardType] != null)
-  }
-  return pool
+  // Every send path now either renders a card on demand server-side at
+  // send time (kind:'card', or a cardPurpose campaign — see executeSend)
+  // or sends genuinely card-less plain text (the Pledge/RSVP/Meeting/
+  // General Reminder presets — see executeSendPlainSms / routes/
+  // campaigns.js's purpose-optional handling). Neither case requires an
+  // attendee to already have some unrelated card pre-rendered, so there's
+  // nothing left to filter the pool by here.
+  return attendees.value
 })
 
 const sendStatusCounts = computed(() => {
@@ -2220,6 +2238,11 @@ const sendRunPct = computed(() => {
 const sendProgressOpen = computed(() =>
   sending.value || !!(activeSendRun.value && !activeSendRun.value.finishedAt)
 )
+// Keeps the same modal open once a send finishes instead of dropping straight
+// back to the drawer underneath — the result (sendResult) is rendered as a
+// second state inside that modal (see the em-sp Teleport below) rather than
+// as a separate inline banner in the drawer body.
+const sendModalOpen = computed(() => sendProgressOpen.value || !!sendResult.value)
 
 // Set only when this drawer was deep-linked open from elsewhere (e.g. the
 // Guest List "Send" flow) — closing it should then hand the user back to
@@ -2407,6 +2430,17 @@ async function executeSend() {
     await executeCardSend()
     return
   }
+  // A plain SMS blast (no cardPurpose) now goes through haflaway_server too
+  // — same as executeCardSend/executeSendCard — so it gets the org-aware
+  // provider/credential resolution and self-service sender IDs instead of
+  // always sending through Haflaway's shared account via the legacy
+  // sendSMSAction Cloud Function. WhatsApp's card-less path stays on that
+  // legacy function below — there's no BYO-credential concept for WhatsApp,
+  // so there was nothing to fix there.
+  if (!selectedCustomCamp.value?.cardPurpose && sendChannel.value === 'sms') {
+    await executeSendPlainSms()
+    return
+  }
   sending.value = true
   sendResult.value = null
   try {
@@ -2414,21 +2448,13 @@ async function executeSend() {
       await executeSendCard()
       return
     }
+    // Only WhatsApp with no cardPurpose can reach here — the SMS case was
+    // routed to executeSendPlainSms() above, and executeSendCard() handles
+    // any cardPurpose campaign on either channel.
     const user = auth.currentUser
     if (!user) throw new Error('Not authenticated')
-    // Sourced from cardPurpose, not the campaign's own `type` — a manually
-    // -typed reminder campaign (or a legacy doc from before cardPurpose
-    // existed) has a real `type` but must never get a card attached; only
-    // the canonical per-purpose campaigns should, and those never reach this
-    // branch at all (see the cardPurpose check above). This is always null
-    // here in practice — kept explicit rather than a bare `null` so the
-    // invariant stays visible if that ever changes.
-    const kardType = selectedCustomCamp.value?.cardPurpose ?? null
-    const url = sendChannel.value === 'whatsapp' ? WSP_URL : SMS_URL
-    const body = sendChannel.value === 'whatsapp'
-      ? { templateId: selectedTemplate.value.id, type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipients.value.map(a => a.id), kardType }
-      : { content: selectedCustomCamp.value.smsMessage, type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipients.value.map(a => a.id), kardType }
-    const res  = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${user.uid}` }, body: JSON.stringify(body) })
+    const body = { templateId: selectedTemplate.value.id, type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipients.value.map(a => a.id), kardType: null }
+    const res  = await fetch(WSP_URL, { method: 'POST', headers: { Authorization: `Bearer ${user.uid}` }, body: JSON.stringify(body) })
     const data = await res.json()
     // The Cloud Function only aggregates counts into `data.message` ("Action
     // completed with 1 failure(s)…") — the actual per-recipient reason lives
@@ -2457,6 +2483,43 @@ async function executeSend() {
   } catch (e) {
     sendResult.value = { ok: false, message: e.message }
   } finally {
+    sending.value = false
+  }
+}
+
+// A plain SMS text blast — no card, no purpose, message comes straight from
+// the campaign doc's own smsMessage field. Same haflaway_server endpoint as
+// executeCardSend, just with no `purpose` in the body, which tells the
+// server to skip card rendering entirely (see routes/campaigns.js).
+async function executeSendPlainSms() {
+  sending.value = true
+  sendResult.value = null
+  stopWatchingSendRun()
+  try {
+    const user = auth.currentUser
+    if (!user) throw new Error('Not authenticated')
+    const idToken = await user.getIdToken()
+    const body = { attendeeIds: sendRecipients.value.map(a => a.id), channel: 'sms' }
+
+    const res = await fetch(`${CARD_SERVER_URL}/events/${eventId.value}/campaigns/${sendCampaign.value}/send`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    if (res.status === 409 && data.runId) {
+      watchSendRun(data.runId)
+      return
+    }
+    if (!res.ok || !data.ok) {
+      sendResult.value = { ok: false, message: data.message ?? `Request failed (${res.status}).` }
+      sending.value = false
+      return
+    }
+    watchSendRun(data.runId)
+    drawerPickList.value = []
+  } catch (e) {
+    sendResult.value = { ok: false, message: e.message }
     sending.value = false
   }
 }
@@ -2509,10 +2572,16 @@ function watchSendRun(runId) {
     sending.value = false
     const counts = run.counts ?? {}
     const ok = (counts.sent ?? 0) > 0
-    let message = `${counts.sent ?? 0} sent, ${counts.renderFailed ?? 0} failed to render, ${counts.sendFailed ?? 0} failed to send (of ${run.total ?? 0}).`
+    // Counts drive the stat tiles in the result modal (em-sp-stats below);
+    // `message` is now just the optional per-recipient failure reasons, not
+    // the whole sentence — the tiles say the numbers, this only adds why.
     const reasons = Object.values(run.results ?? {}).map(r => r.error).filter(Boolean)
-    if (reasons.length) message += ' — ' + [...new Set(reasons)].slice(0, 3).join('; ')
-    sendResult.value = { ok, message }
+    const message = reasons.length ? [...new Set(reasons)].slice(0, 3).join('; ') : ''
+    sendResult.value = {
+      ok,
+      message,
+      counts: { sent: counts.sent ?? 0, renderFailed: counts.renderFailed ?? 0, sendFailed: counts.sendFailed ?? 0, total: run.total ?? 0 },
+    }
 
     load()
     drawerPickList.value = []
@@ -4009,13 +4078,6 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer-body  { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 44px 48px 60px; }
 .em-drawer-grid { width: 100%; max-width: 1160px; display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 56px; align-items: start; }
 .em-send-form { min-width: 0; }
-.em-send-result { flex-shrink: 0; display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; margin-bottom: 18px; border-radius: 10px; font-size: 13px; }
-.em-send-result--ok  { background: rgba(52,211,153,0.08); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
-.em-send-result--err { background: rgba(255,69,58,0.08);  color: #fc8181; border: 1px solid rgba(255,69,58,0.2); }
-.em-result-title { font-weight: 700; margin: 0 0 2px; }
-.em-result-msg   { margin: 0; opacity: 0.8; }
-.em-result-dismiss { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 12px; opacity: 0.7; color: inherit; flex-shrink: 0; }
-.em-result-dismiss:hover { opacity: 1; }
 .em-drawer-section {
   padding: 24px; margin-bottom: 20px; border-radius: 18px;
   background: rgba(255,255,255,0.025); border: 1px solid var(--c-divide);
@@ -4598,25 +4660,6 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-}
-
-/* ── Result Alert Banner ── */
-.em-drawer.em-drawer--composer .em-send-result {
-  border-radius: 12px !important;
-  padding: 14px 16px !important;
-  margin-bottom: 24px !important;
-  font-size: 13.5px !important;
-  line-height: 1.5 !important;
-}
-.em-drawer.em-drawer--composer .em-send-result--ok {
-  background: #ecfdf5 !important;
-  border: 1px solid #a7f3d0 !important;
-  color: #065f46 !important;
-}
-.em-drawer.em-drawer--composer .em-send-result--err {
-  background: #fef2f2 !important;
-  border: 1px solid #fecaca !important;
-  color: #991b1b !important;
 }
 
 /* ── Campaign Field (WithJoy-style sleek input) ── */
@@ -5743,6 +5786,77 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-sp-meta {
   margin: 14px 0 0;
   font-size: 13px; font-weight: 500; color: #64748b;
+}
+.em-sp-meta--result {
+  line-height: 1.5;
+}
+.em-sp-result-icon {
+  width: 56px; height: 56px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.em-sp-result-icon--ok {
+  background: #ecfdf5;
+  color: #059669;
+}
+.em-sp-result-icon--err {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.em-sp-stats {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 18px;
+  margin: 24px 0 0;
+  padding: 16px 8px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #eef1f5;
+}
+.em-sp-stat {
+  flex: 1;
+  min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.em-sp-stat-div {
+  width: 1px;
+  align-self: center;
+  height: 34px;
+  background: #e2e8f0;
+}
+.em-sp-stat-num {
+  font-family: 'Cormorant Garamond', 'Playfair Display', Didot, Georgia, serif;
+  font-size: 26px; font-weight: 600; line-height: 1;
+  letter-spacing: -0.02em;
+}
+.em-sp-stat-num--ok    { color: #059669; }
+.em-sp-stat-num--warn  { color: #d97706; }
+.em-sp-stat-num--err   { color: #dc2626; }
+.em-sp-stat-num--muted { color: #cbd5e1; }
+.em-sp-stat-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.em-sp-total {
+  margin: 10px 0 0;
+  font-size: 12px; font-weight: 500; color: #94a3b8;
+}
+.em-sp-done-btn {
+  margin-top: 24px;
+  width: 100%;
+  padding: 12px 20px;
+  border: none; border-radius: 12px;
+  background: #111827; color: #fff;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.em-sp-done-btn:hover {
+  background: #1f2937;
 }
 
 html .em-dialog.em-dialog--joy {
