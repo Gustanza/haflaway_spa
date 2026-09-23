@@ -171,6 +171,87 @@ const defaultSenderId = computed(() => {
   return (entry?.configured && entry.defaultSenderId) || null
 })
 
+// ── Twilio WhatsApp credentials + org's own approved template mapping ──────
+// An org's own Twilio account (own WhatsApp-enabled sender, own Meta-approved
+// Content Templates) so their WhatsApp sends bill to that account instead of
+// Haflaway's shared one — the same BYO pattern as smtz/wasambazie above, but
+// a template's contentSid only exists inside the Twilio account it was
+// approved in, so credentials and templates are managed together here.
+// `configured` and the template list are the only things ever exposed —
+// secret values never round-trip back to the client once saved.
+const twilioCredentialsStatus = ref({ configured: false, updatedAt: null, templates: [], brandingApproved: false })
+
+// The fixed message-purpose taxonomy WhatsApp campaigns send through —
+// mirrors server/src/dispatch/whatsappTemplateCategories.js. Kept in sync by
+// hand since the SPA and haflaway_server don't share a module tree.
+const WHATSAPP_TEMPLATE_CATEGORIES = [
+  { purpose: 'invitation', category: 'whatsapp-wedding-invitations', label: 'Invitation' },
+  { purpose: 'save_the_date', category: 'whatsapp-wedding-save-the-date', label: 'Save the date' },
+  { purpose: 'thank_you', category: 'whatsapp-wedding-thank-you', label: 'Thank you' },
+  { purpose: 'enclosure', category: 'whatsapp-wedding-enclosure', label: 'Enclosure' },
+]
+const WHATSAPP_TEMPLATE_LANGUAGES = [
+  { value: 'sw', label: 'Swahili' },
+  { value: 'en', label: 'English' },
+]
+
+async function loadTwilioCredentialsStatus(orgId) {
+  if (!orgId) {
+    twilioCredentialsStatus.value = { configured: false, updatedAt: null, templates: [], brandingApproved: false }
+    return twilioCredentialsStatus.value
+  }
+  const { configured, updatedAt, templates, brandingApproved } = await callOrgServer(`/organizations/${orgId}/twilio-credentials/status`)
+  twilioCredentialsStatus.value = { configured, updatedAt, templates: templates ?? [], brandingApproved }
+  return twilioCredentialsStatus.value
+}
+
+// Owner-only, enforced server-side. `credentials` is
+// { accountSid, apiKeySid, apiKeySecret, whatsappSender } — a Twilio API Key
+// scoped to the org's own account, not the raw Account SID + Auth Token.
+async function setTwilioCredentials(orgId, credentials) {
+  const data = await callOrgServer(`/organizations/${orgId}/twilio-credentials`, {
+    method: 'POST',
+    body: JSON.stringify({ credentials }),
+  })
+  await loadTwilioCredentialsStatus(orgId)
+  return data
+}
+
+// Also wipes every template registered against these credentials server-side
+// — the org's very next WhatsApp send bills to Haflaway's shared account again.
+async function clearTwilioCredentials(orgId) {
+  const data = await callOrgServer(`/organizations/${orgId}/twilio-credentials`, { method: 'DELETE' })
+  await loadTwilioCredentialsStatus(orgId)
+  return data
+}
+
+async function setWhatsAppTemplate(orgId, category, language, contentSid) {
+  const data = await callOrgServer(`/organizations/${orgId}/whatsapp-templates`, {
+    method: 'POST',
+    body: JSON.stringify({ category, language, contentSid }),
+  })
+  await loadTwilioCredentialsStatus(orgId)
+  return data
+}
+
+async function removeWhatsAppTemplate(orgId, category, language) {
+  const data = await callOrgServer(`/organizations/${orgId}/whatsapp-templates/${encodeURIComponent(category)}/${encodeURIComponent(language)}`, {
+    method: 'DELETE',
+  })
+  await loadTwilioCredentialsStatus(orgId)
+  return data
+}
+
+// Self-check only — sends a synthetic test message using the org's own
+// credentials and its own registered contentSid, bypassing branding approval
+// and billing entirely (see the server route). Never touches a real guest.
+async function testSendWhatsAppTemplate(orgId, category, language, to) {
+  return callOrgServer(`/organizations/${orgId}/whatsapp-templates/${encodeURIComponent(category)}/${encodeURIComponent(language)}/test-send`, {
+    method: 'POST',
+    body: JSON.stringify({ to }),
+  })
+}
+
 // Owner-only self-service — the org registered this directly with the
 // provider on their own account, so there's nothing for Haflaway to review.
 // Requires that provider's credentials to already be configured.
@@ -376,6 +457,13 @@ export function useOrg() {
     clearSmsCredentials,
     addSenderId,
     removeSenderId,
+    twilioCredentialsStatus,
+    loadTwilioCredentialsStatus,
+    setTwilioCredentials,
+    clearTwilioCredentials,
+    setWhatsAppTemplate,
+    removeWhatsAppTemplate,
+    testSendWhatsAppTemplate,
     canCreateEvents,
     memberCan,
     setMemberPermission,
@@ -391,4 +479,4 @@ export function useOrg() {
   }
 }
 
-export { contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY, DEFAULT_SENDER_ID }
+export { contrastColor, DEFAULT_ACCENT, DEFAULT_SECONDARY, DEFAULT_SENDER_ID, WHATSAPP_TEMPLATE_CATEGORIES, WHATSAPP_TEMPLATE_LANGUAGES }

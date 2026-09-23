@@ -713,14 +713,15 @@
                     <div v-else class="em-tpl-list">
                       <div v-for="tpl in templates" :key="tpl.id"
                         class="em-tpl-item"
-                        :class="{ 'em-tpl-item--active': selectedTemplate?.id === tpl.id }"
+                        :class="{ 'em-tpl-item--active': selectedTemplate?.id === tpl.id, 'em-tpl-item--own': tpl.own }"
                         @click="selectedTemplate = tpl">
                         <div class="em-tpl-radio">
                           <div class="em-tpl-radio-dot" v-if="selectedTemplate?.id === tpl.id" />
                         </div>
                         <div class="em-tpl-body">
                           <p class="em-tpl-content">{{ tpl.content }}</p>
-                          <p v-if="tpl.language" class="em-tpl-meta">{{ tpl.language.toUpperCase() }}</p>
+                          <p v-if="tpl.own" class="em-tpl-meta em-tpl-meta--own">YOUR TWILIO</p>
+                          <p v-else-if="tpl.language" class="em-tpl-meta">{{ tpl.language.toUpperCase() }}</p>
                         </div>
                       </div>
                     </div>
@@ -1112,7 +1113,7 @@ const props = defineProps({ event: Object, eventId: String, cardScope: { type: B
 const route  = useRoute()
 const router = useRouter()
 const navDrawer = useNavDrawer()
-const { brandName, brandLogoUrl } = useOrg()
+const { brandName, brandLogoUrl, twilioCredentialsStatus, loadTwilioCredentialsStatus } = useOrg()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
 
 // Ported from EventMessages.vue — generates/rotates the public token guests'
@@ -2374,13 +2375,48 @@ async function loadSendTemplates() {
     // Anything else (the plain Message flow) stays on the general/bulk
     // category this composer was originally built for.
     const lang = props.event?.language ?? 'sw'
-    const category = selectedCustomCamp.value?.kind === 'card'
+    const isCard = selectedCustomCamp.value?.kind === 'card'
+    const category = isCard
       ? (CARD_PURPOSE_WHATSAPP_CATEGORY[selectedCustomCamp.value.type] ?? GENERAL_CAMPAIGN_CATEGORY)
       : GENERAL_CAMPAIGN_CATEGORY
-    const snap = await getDocs(
-      query(collection(db, 'messageTemplates'), where('category', '==', category), where('language', '==', lang))
-    )
-    templates.value = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.active !== false)
+
+    const [snap] = await Promise.all([
+      getDocs(query(collection(db, 'messageTemplates'), where('category', '==', category), where('language', '==', lang))),
+      // Loaded fresh per drawer-open (not cached) so a credential/approval
+      // change on the Organization screen is reflected the next time this
+      // drawer opens, same as smsCredentialsStatus elsewhere.
+      props.event?.orgId ? loadTwilioCredentialsStatus(props.event.orgId) : Promise.resolve(),
+    ])
+    const globalTpls = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.active !== false)
+
+    // If this org has its own approved Twilio credentials AND a template
+    // registered for this exact category+language, surface it as an extra,
+    // clearly-marked option — picking it sends `templateId` as that
+    // contentSid, which haflaway_server's campaigns.js matches against the
+    // org's own registration to decide whether to send through the org's
+    // Twilio account instead of Haflaway's shared one. This is purely a UI
+    // convenience for surfacing the choice; the server re-derives the match
+    // itself rather than trusting a flag from here.
+    const ownTpl = isCard && twilioCredentialsStatus.value.brandingApproved
+      ? twilioCredentialsStatus.value.templates.find(t => t.category === category && t.language === lang)
+      : null
+    // Once this org has its own approved template for this exact
+    // category+language, its own account is the only sensible choice for it
+    // — same "org's own always wins" precedent as the SMS provider
+    // resolution (resolveEffectiveProvider). Haflaway's shared-library
+    // options for this category+language are hidden rather than offered
+    // alongside it, so there's no ambiguity about which account a send
+    // actually goes out on.
+    if (ownTpl) {
+      templates.value = [{
+        id: ownTpl.contentSid,
+        content: `Your own ${campaignTypeLabel(selectedCustomCamp.value.type)} template — sent via your Twilio account`,
+        language: lang,
+        own: true,
+      }]
+    } else {
+      templates.value = globalTpls
+    }
     if (templates.value.length === 1) selectedTemplate.value = templates.value[0]
   } catch (e) {
     console.error('Failed to load templates', e)
@@ -4118,10 +4154,12 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-tpl-item    { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-bg); cursor: pointer; transition: all 130ms; }
 .em-tpl-item:hover { border-color: var(--gold); }
 .em-tpl-item--active { border-color: rgba(226,232,240,0.2); background: rgba(226,232,240,0.06); }
+.em-tpl-item--own { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.05); }
 .em-tpl-radio   { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--gold); flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; }
 .em-tpl-radio-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
 .em-tpl-body    { flex: 1; min-width: 0; }
 .em-tpl-content { font-size: 13px; color: var(--c-txt); margin: 0 0 4px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.em-tpl-meta--own { background: rgba(16,185,129,0.14) !important; color: #059669 !important; }
 
 .em-send-run { margin-top: 14px; padding: 12px; border-radius: 10px; border: 1px solid var(--c-border); background: var(--c-bg); }
 .em-send-run-title { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: var(--c-txt); margin: 0 0 8px; }
@@ -5043,6 +5081,10 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
   background: #ffffff !important;
 }
+.em-drawer.em-drawer--composer .em-tpl-item--own {
+  border-color: rgba(16,185,129,0.45) !important;
+  background: rgba(16,185,129,0.05) !important;
+}
 .em-drawer.em-drawer--composer .em-tpl-radio {
   width: 15px !important;
   height: 15px !important;
@@ -5086,6 +5128,10 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   font-weight: 700 !important;
   letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
+}
+.em-drawer.em-drawer--composer .em-tpl-meta--own {
+  background: rgba(16,185,129,0.14) !important;
+  color: #059669 !important;
 }
 .em-drawer.em-drawer--composer .em-msg-missing-warn {
   border: 1px solid #fef08a !important;
