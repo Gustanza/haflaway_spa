@@ -74,7 +74,7 @@
     <div v-if="templateDrawerOpen" class="os-modal-backdrop os-tpl-backdrop" @click.self="closeTemplateDrawer">
       <div class="os-tpl-drawer">
         <div class="os-tpl-drawer-hd">
-          <span class="os-modal-title">{{ editingTemplateKey ? 'Edit template' : 'Add template' }}</span>
+          <span class="os-modal-title">{{ editingTemplate ? 'Edit template' : 'Add template' }}</span>
           <button class="os-tpl-drawer-close" @click="closeTemplateDrawer">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -83,24 +83,41 @@
         </div>
 
         <div class="os-tpl-drawer-body">
+          <div class="os-field">
+            <label class="os-field-label os-field-label--flush">Name</label>
+            <input v-model="templateForm.name" class="os-input" placeholder="e.g. Wedding Invitation (Swahili)" autocomplete="off" />
+          </div>
+
+          <div class="os-field">
+            <label class="os-field-label os-field-label--flush">
+              Display text <span class="os-label-opt">(what organizers see in the send picker)</span>
+            </label>
+            <input v-model="templateForm.content" class="os-input" placeholder="e.g. EN: Wedding Invitation" autocomplete="off" />
+          </div>
+
           <div class="os-field-row">
             <div class="os-field">
               <label class="os-field-label os-field-label--flush">Category</label>
-              <select v-model="templateForm.purpose" class="os-input" :disabled="!!editingTemplateKey">
+              <select v-model="templateForm.purpose" class="os-input">
                 <option v-for="c in WHATSAPP_TEMPLATE_CATEGORIES" :key="c.purpose" :value="c.purpose">{{ c.label }}</option>
               </select>
             </div>
             <div class="os-field">
               <label class="os-field-label os-field-label--flush">Language</label>
-              <select v-model="templateForm.language" class="os-input" :disabled="!!editingTemplateKey">
+              <select v-model="templateForm.language" class="os-input">
                 <option v-for="l in WHATSAPP_TEMPLATE_LANGUAGES" :key="l.value" :value="l.value">{{ l.label }}</option>
               </select>
             </div>
           </div>
 
+          <span v-if="templateSlotChanged" class="os-advanced-hint">
+            Saving moves this template to {{ categoryLabelFor(selectedTemplateCategory) }} · {{ languageLabelFor(templateForm.language) }}.
+            Make sure its Content SID is approved for that message type and language.
+          </span>
+
           <div class="os-tpl-hint-box">
             <span class="os-tpl-hint-label">Content variables expected by the sender</span>
-            <p class="os-tpl-hint-text">{{ WHATSAPP_VARIABLE_HINT }}</p>
+            <p class="os-tpl-hint-text">{{ selectedTemplateVars }}</p>
           </div>
 
           <div class="os-field">
@@ -117,6 +134,27 @@
             </p>
           </div>
 
+          <div class="os-field">
+            <label class="os-field-label os-field-label--flush">
+              Notes <span class="os-label-opt">(optional — approved copy, submission notes, etc.)</span>
+            </label>
+            <textarea
+              v-model="templateForm.notes"
+              class="os-input os-textarea"
+              rows="5"
+              placeholder="Paste the approved template body here for reference, or leave notes for your team."
+              autocomplete="off"
+            />
+          </div>
+
+          <label class="os-tpl-toggle-card">
+            <span class="os-tpl-toggle-text">
+              <span class="os-tpl-toggle-label">Active</span>
+              <span class="os-advanced-hint">When off, this message type can't be sent through your account until you turn it back on — nothing goes out through Haflaway's instead. "Test send" still works.</span>
+            </span>
+            <input v-model="templateForm.active" type="checkbox" />
+          </label>
+
           <span v-if="templateFormError" class="os-search-error">{{ templateFormError }}</span>
         </div>
 
@@ -124,9 +162,9 @@
           <button class="os-modal-cancel" @click="closeTemplateDrawer">Cancel</button>
           <button
             class="os-primary-btn"
-            :disabled="savingTemplate || !templateForm.contentSid.trim()"
+            :disabled="savingTemplate || !templateForm.name.trim() || !templateForm.content.trim() || !templateForm.contentSid.trim()"
             @click="saveTemplateDrawer"
-          >{{ savingTemplate ? 'Saving…' : (editingTemplateKey ? 'Save changes' : 'Add template') }}</button>
+          >{{ savingTemplate ? 'Saving…' : (editingTemplate ? 'Save changes' : 'Add template') }}</button>
         </div>
       </div>
     </div>
@@ -391,12 +429,26 @@
             <div class="os-panel-body">
 
               <span class="os-advanced-hint">
-                Bring your own smtz or wasambazie account for this organization's SMS. Leave either
-                one unset and it sends through the shared Haflaway account instead. Once an account
-                is plugged in, add the sender IDs you registered with it yourself — no review needed,
-                since it's your own account. Unplug it and this organization falls straight back to
-                sending as HAFLAWAY.
+                Bring your own smtz or wasambazie account for SMS, and your own Twilio account for
+                WhatsApp. Saving them here doesn't switch anything on by itself — Haflaway switches
+                this organization onto its own accounts once they're set up. From then on, messages
+                only ever go out through your own accounts: if something's missing, the send is
+                stopped rather than going out through Haflaway's.
               </span>
+
+              <!-- ── Which account each channel actually sends on (staff-set switch) ── -->
+              <div class="os-acct-list">
+                <div v-for="row in accountRows" :key="row.channel" class="os-acct-row" :class="{ 'os-acct-row--warn': row.problem }">
+                  <div class="os-acct-main">
+                    <span class="os-acct-channel">{{ row.label }}</span>
+                    <span class="os-sid-chip" :class="row.mode === 'own' ? 'os-sid-chip--approved' : 'os-sid-chip--revoked'">
+                      {{ row.mode === 'own' ? 'Your own account' : "Haflaway's account" }}
+                    </span>
+                  </div>
+                  <span class="os-advanced-hint">{{ row.detail }}</span>
+                  <span v-if="row.problem" class="os-acct-problem">{{ row.problem }}</span>
+                </div>
+              </div>
 
               <div v-if="!isOwner" class="os-archived-banner">
                 <span>Only the organization owner can view or change messaging provider credentials.</span>
@@ -408,7 +460,7 @@
                   <div class="os-provider-hd">
                     <span class="os-provider-name">smtz</span>
                     <span class="os-sid-chip" :class="smsCredentialsStatus.smtz?.configured ? 'os-sid-chip--approved' : 'os-sid-chip--revoked'">
-                      {{ smsCredentialsStatus.smtz?.configured ? 'Configured' : 'Using shared default' }}
+                      {{ smsCredentialsStatus.smtz?.configured ? 'Configured' : 'Not configured' }}
                     </span>
                   </div>
                   <div class="os-field">
@@ -484,7 +536,7 @@
                   <div class="os-provider-hd">
                     <span class="os-provider-name">wasambazie</span>
                     <span class="os-sid-chip" :class="smsCredentialsStatus.wasambazie?.configured ? 'os-sid-chip--approved' : 'os-sid-chip--revoked'">
-                      {{ smsCredentialsStatus.wasambazie?.configured ? 'Configured' : 'Using shared default' }}
+                      {{ smsCredentialsStatus.wasambazie?.configured ? 'Configured' : 'Not configured' }}
                     </span>
                   </div>
                   <div class="os-field">
@@ -571,7 +623,7 @@
                   <div class="os-provider-hd">
                     <span class="os-provider-name">Twilio (WhatsApp)</span>
                     <span class="os-sid-chip" :class="twilioCredentialsStatus.configured ? 'os-sid-chip--approved' : 'os-sid-chip--revoked'">
-                      {{ twilioCredentialsStatus.configured ? 'Configured' : 'Using shared default' }}
+                      {{ twilioCredentialsStatus.configured ? 'Configured' : 'Not configured' }}
                     </span>
                   </div>
                   <span class="os-advanced-hint">
@@ -579,54 +631,29 @@
                     organization's WhatsApp messages. Use a Twilio API Key + Secret, not your Account
                     SID's Auth Token — it can be scoped and revoked independently.
                   </span>
-                  <div class="os-field">
-                    <label class="os-field-label os-field-label--flush">Account SID</label>
+                  <div v-for="f in TWILIO_FIELDS" :key="f.key" class="os-field">
+                    <label class="os-field-label os-field-label--flush">
+                      {{ f.label }}
+                      <span v-if="twilioCredentialsStatus.masked?.[f.key]" class="os-saved-tag">✓ Saved</span>
+                    </label>
                     <input
-                      v-model="twilioDraft.accountSid"
+                      v-model="twilioDraft[f.key]"
                       class="os-input"
-                      type="text"
+                      :class="{ 'os-input--saved': twilioCredentialsStatus.masked?.[f.key] }"
+                      :type="f.type"
                       autocomplete="off"
-                      placeholder="AC…"
+                      :placeholder="twilioCredentialsStatus.masked?.[f.key] || f.placeholder"
                       :disabled="!activeOrg || activeOrg.archived || savingTwilio"
                     />
                   </div>
-                  <div class="os-field">
-                    <label class="os-field-label os-field-label--flush">API Key SID</label>
-                    <input
-                      v-model="twilioDraft.apiKeySid"
-                      class="os-input"
-                      type="text"
-                      autocomplete="off"
-                      placeholder="SK…"
-                      :disabled="!activeOrg || activeOrg.archived || savingTwilio"
-                    />
-                  </div>
-                  <div class="os-field">
-                    <label class="os-field-label os-field-label--flush">API Key Secret</label>
-                    <input
-                      v-model="twilioDraft.apiKeySecret"
-                      class="os-input"
-                      type="password"
-                      autocomplete="off"
-                      placeholder="Paste API Key secret…"
-                      :disabled="!activeOrg || activeOrg.archived || savingTwilio"
-                    />
-                  </div>
-                  <div class="os-field">
-                    <label class="os-field-label os-field-label--flush">WhatsApp sender</label>
-                    <input
-                      v-model="twilioDraft.whatsappSender"
-                      class="os-input"
-                      type="text"
-                      autocomplete="off"
-                      placeholder="+255… or a Messaging Service SID"
-                      :disabled="!activeOrg || activeOrg.archived || savingTwilio"
-                    />
-                  </div>
+                  <span v-if="twilioCredentialsStatus.configured" class="os-advanced-hint">
+                    Saved values are hidden for security<template v-if="twilioUpdatedLabel"> · last updated {{ twilioUpdatedLabel }}</template>.
+                    Leave a field blank to keep what's saved, or paste a new value to replace it.
+                  </span>
                   <div class="os-save-row">
                     <button
                       class="os-primary-btn os-save-btn"
-                      :disabled="!activeOrg || activeOrg.archived || savingTwilio || !twilioDraft.accountSid.trim() || !twilioDraft.apiKeySid.trim() || !twilioDraft.apiKeySecret.trim() || !twilioDraft.whatsappSender.trim()"
+                      :disabled="!activeOrg || activeOrg.archived || savingTwilio || !canSaveTwilio"
                       @click="saveTwilioCredentials"
                     >{{ savingTwilio ? 'Saving…' : 'Save' }}</button>
                     <button
@@ -653,8 +680,14 @@
 
                     <div v-if="twilioCredentialsStatus.templates.length" class="os-tpl-table">
                       <div v-for="tpl in twilioCredentialsStatus.templates" :key="`${tpl.category}:${tpl.language}`" class="os-tpl-row">
-                        <div class="os-tpl-row-main" @click="openEditTemplateDrawer(tpl)">
-                          <span class="os-tpl-row-label">{{ categoryLabelFor(tpl.category) }} · {{ languageLabelFor(tpl.language) }}</span>
+                        <div class="os-tpl-row-main" @click="activeOrg && !activeOrg.archived && openEditTemplateDrawer(tpl)">
+                          <span class="os-tpl-row-label">
+                            {{ tpl.name || `${categoryLabelFor(tpl.category)} · ${languageLabelFor(tpl.language)}` }}
+                            <span v-if="tpl.active === false" class="os-sid-chip os-sid-chip--revoked">Inactive</span>
+                          </span>
+                          <span v-if="tpl.name" class="os-tpl-row-meta">{{ categoryLabelFor(tpl.category) }} · {{ languageLabelFor(tpl.language) }}</span>
+                          <span v-if="tpl.content" class="os-tpl-row-meta">{{ tpl.content }}</span>
+                          <span v-else class="os-tpl-row-meta os-tpl-row-meta--warn">No name or display text yet — click to add</span>
                           <span class="os-tpl-row-sid">{{ tpl.contentSid }}</span>
                         </div>
                         <div class="os-tpl-row-actions">
@@ -670,6 +703,12 @@
                             :disabled="testSendingKey === `${tpl.category}:${tpl.language}` || !(testSendTo[`${tpl.category}:${tpl.language}`] || '').trim()"
                             @click="handleTestSend(tpl.category, tpl.language)"
                           >{{ testSendingKey === `${tpl.category}:${tpl.language}` ? 'Sending…' : 'Test send' }}</button>
+                          <button
+                            type="button"
+                            class="os-secondary-btn"
+                            :disabled="!activeOrg || activeOrg.archived"
+                            @click="openEditTemplateDrawer(tpl)"
+                          >Edit</button>
                           <button
                             type="button"
                             class="os-sid-mini-remove"
@@ -824,7 +863,7 @@ const {
   currentUser, orgs, activeOrg, isOwner, isBrandingApproved, brandName, brandLogoUrl, loading,
   setActiveOrg, createOrg, updateBranding, addMember, removeMember,
   archiveOrg, unarchiveOrg, leaveOrg, memberCan, setMemberPermission,
-  smsCredentialsStatus, loadSmsCredentialsStatus, setSmsCredentials, clearSmsCredentials,
+  smsCredentialsStatus, loadSmsCredentialsStatus, setSmsCredentials, clearSmsCredentials, smsMode, activeSmsProvider,
   addSenderId, removeSenderId,
   twilioCredentialsStatus, loadTwilioCredentialsStatus, setTwilioCredentials, clearTwilioCredentials,
   setWhatsAppTemplate, removeWhatsAppTemplate, testSendWhatsAppTemplate,
@@ -1002,6 +1041,22 @@ watch(() => activeOrg.value?.id, (orgId) => {
 
 // ── Twilio WhatsApp credentials + org's own template mapping ─────────────────
 const twilioDraft = ref({ accountSid: '', apiKeySid: '', apiKeySecret: '', whatsappSender: '' })
+const TWILIO_FIELDS = [
+  { key: 'accountSid', label: 'Account SID', type: 'text', placeholder: 'AC…' },
+  { key: 'apiKeySid', label: 'API Key SID', type: 'text', placeholder: 'SK…' },
+  { key: 'apiKeySecret', label: 'API Key Secret', type: 'password', placeholder: 'Paste API Key secret…' },
+  { key: 'whatsappSender', label: 'WhatsApp sender', type: 'text', placeholder: '+255… or a Messaging Service SID' },
+]
+// Once configured, a blank field keeps its saved value server-side, so any
+// one change is enough to save; before that, all four are required.
+const canSaveTwilio = computed(() => {
+  const filled = TWILIO_FIELDS.map(f => !!twilioDraft.value[f.key].trim())
+  return twilioCredentialsStatus.value.configured ? filled.some(Boolean) : filled.every(Boolean)
+})
+const twilioUpdatedLabel = computed(() => {
+  const at = twilioCredentialsStatus.value.updatedAt
+  return at ? new Date(at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : ''
+})
 const savingTwilio = ref(false)
 const clearingTwilio = ref(false)
 const twilioStatus = ref('') // '' | 'success' | 'error'
@@ -1011,11 +1066,19 @@ let twilioStatusTimer = null
 // Variable hint mirrors haflaway_admin_spa's WhatsAppTemplatesView.vue —
 // same schema, since it's the same buildContentVariables() in
 // server/src/dispatch/whatsapp.js regardless of whose Twilio account sends it.
-const WHATSAPP_VARIABLE_HINT = '1 Guest name · 2 Event title · 3 Date · 4 Venue · 5 Time · 6 Card image path · 7 Event/Attendee ID'
+const selectedTemplateVars = computed(() =>
+  WHATSAPP_TEMPLATE_CATEGORIES.find(c => c.purpose === templateForm.value.purpose)?.vars ?? '')
 
 const templateDrawerOpen = ref(false)
-const editingTemplateKey = ref(null) // null (adding) | 'category:language' (editing)
-const templateForm = ref({ purpose: WHATSAPP_TEMPLATE_CATEGORIES[0].purpose, language: 'sw', contentSid: '' })
+const editingTemplate = ref(null) // null (adding) | { category, language } — the entry's current slot (editing)
+const selectedTemplateCategory = computed(() =>
+  WHATSAPP_TEMPLATE_CATEGORIES.find(c => c.purpose === templateForm.value.purpose)?.category)
+// Category/language are the entry's identity server-side, so changing either
+// while editing moves it to that slot (see setTemplate in haflaway_server).
+const templateSlotChanged = computed(() => !!editingTemplate.value && (
+  editingTemplate.value.category !== selectedTemplateCategory.value ||
+  editingTemplate.value.language !== templateForm.value.language))
+const templateForm = ref(freshTemplateForm())
 const savingTemplate = ref(false)
 const templateFormError = ref('')
 const removingTemplate = ref(null) // null | 'category:language'
@@ -1033,24 +1096,39 @@ watch(() => activeOrg.value?.id, (orgId) => {
   if (orgId) loadTwilioCredentialsStatus(orgId)
 }, { immediate: true })
 
+// Same fields as the shared library's form in haflaway_admin_spa's
+// WhatsAppTemplatesView.vue, minus the category list — an org's own template
+// can only fill one of the four purposes dispatch routes to it.
+function freshTemplateForm() {
+  return { purpose: WHATSAPP_TEMPLATE_CATEGORIES[0].purpose, language: 'sw', contentSid: '', name: '', content: '', notes: '', active: true }
+}
+
 function openAddTemplateDrawer() {
-  editingTemplateKey.value = null
-  templateForm.value = { purpose: WHATSAPP_TEMPLATE_CATEGORIES[0].purpose, language: 'sw', contentSid: '' }
+  editingTemplate.value = null
+  templateForm.value = freshTemplateForm()
   templateFormError.value = ''
   templateDrawerOpen.value = true
 }
 
 function openEditTemplateDrawer(tpl) {
-  editingTemplateKey.value = `${tpl.category}:${tpl.language}`
+  editingTemplate.value = { category: tpl.category, language: tpl.language }
   const purpose = WHATSAPP_TEMPLATE_CATEGORIES.find(c => c.category === tpl.category)?.purpose ?? tpl.category
-  templateForm.value = { purpose, language: tpl.language, contentSid: tpl.contentSid }
+  templateForm.value = {
+    purpose,
+    language: tpl.language,
+    contentSid: tpl.contentSid,
+    name: tpl.name ?? '',
+    content: tpl.content ?? '',
+    notes: tpl.notes ?? '',
+    active: tpl.active !== false,
+  }
   templateFormError.value = ''
   templateDrawerOpen.value = true
 }
 
 function closeTemplateDrawer() {
   templateDrawerOpen.value = false
-  editingTemplateKey.value = null
+  editingTemplate.value = null
   templateFormError.value = ''
 }
 
@@ -1088,8 +1166,45 @@ async function saveTwilioCredentials() {
   }
 }
 
+// One row per channel for the status list at the top of Messaging Providers —
+// which account it sends on (the staff-set switch), and, on the org's own
+// account, anything missing that would make haflaway_server refuse the send.
+const accountRows = computed(() => {
+  const sms = smsCredentialsStatus.value
+  const ownSms = ['smtz', 'wasambazie'].filter(p => sms[p]?.configured)
+  const smsProvider = activeSmsProvider.value
+  let smsProblem = ''
+  if (smsMode.value === 'own') {
+    if (!ownSms.length) smsProblem = 'SMS sends are stopped: no smtz or wasambazie credentials are saved below.'
+    else if (!(sms[smsProvider]?.senderIds?.length)) smsProblem = `SMS sends are stopped: add a sender ID to your ${smsProvider} account below.`
+  }
+  const tw = twilioCredentialsStatus.value
+  const activeTemplates = (tw.templates ?? []).filter(t => t.active !== false)
+  let waProblem = ''
+  if (tw.mode === 'own') {
+    if (!tw.configured) waProblem = 'WhatsApp sends are stopped: no Twilio credentials are saved below.'
+    else if (!activeTemplates.length) waProblem = 'WhatsApp sends are stopped until you add an active message template below.'
+  }
+  return [
+    {
+      channel: 'sms', label: 'SMS', mode: smsMode.value, problem: smsProblem,
+      detail: smsMode.value === 'own'
+        ? `Sent only through your own ${smsProvider || 'provider'} account, under your own sender IDs.`
+        : "Sent through Haflaway's account as HAFLAWAY. Credentials saved below aren't used until Haflaway switches you over.",
+    },
+    {
+      channel: 'whatsapp', label: 'WhatsApp', mode: tw.mode, problem: waProblem,
+      detail: tw.mode === 'own'
+        ? 'Sent only through your own Twilio account, using your own templates below — one per message type and language.'
+        : "Sent through Haflaway's Twilio account and templates. Credentials saved below aren't used until Haflaway switches you over.",
+    },
+  ]
+})
+
 async function clearTwilioCredentialsHandler() {
   if (!activeOrg.value || clearingTwilio.value) return
+  if (twilioCredentialsStatus.value.mode === 'own' &&
+      !window.confirm("This organization sends WhatsApp only through its own Twilio account. Removing these credentials stops every WhatsApp send until they're added back — nothing will go out through Haflaway's account instead. Remove them?")) return
   clearingTwilio.value = true
   twilioError.value = ''
   try {
@@ -1106,14 +1221,27 @@ async function clearTwilioCredentialsHandler() {
 async function saveTemplateDrawer() {
   if (savingTemplate.value || !activeOrg.value) return
   const contentSid = templateForm.value.contentSid.trim()
-  if (!contentSid) return
-  const category = WHATSAPP_TEMPLATE_CATEGORIES.find(c => c.purpose === templateForm.value.purpose)?.category
+  const { name, content, notes, active } = templateForm.value
+  if (!contentSid || !name.trim() || !content.trim()) return
+  const category = selectedTemplateCategory.value
   savingTemplate.value = true
   templateFormError.value = ''
   try {
-    // Upsert by (category, language) — editing an existing entry re-saves the
-    // same doc id with a new contentSid, no separate update path needed.
-    await setWhatsAppTemplate(activeOrg.value.id, category, templateForm.value.language, contentSid)
+    // `previous` marks this as an edit of that slot's entry (moved if
+    // category/language changed); without it the server treats it as an add.
+    await setWhatsAppTemplate(activeOrg.value.id, category, templateForm.value.language, contentSid, {
+      name: name.trim(), content: content.trim(), notes: notes.trim(), active,
+      previous: editingTemplate.value,
+    })
+    // A move leaves the old slot empty — drop its test-send draft/result so a
+    // template added there later doesn't inherit them.
+    if (templateSlotChanged.value) {
+      const oldKey = `${editingTemplate.value.category}:${editingTemplate.value.language}`
+      const { [oldKey]: _draft, ...restTo } = testSendTo.value
+      const { [oldKey]: _result, ...restResult } = testSendResult.value
+      testSendTo.value = restTo
+      testSendResult.value = restResult
+    }
     closeTemplateDrawer()
   } catch (e) {
     templateFormError.value = e?.message || 'Could not save that template. Try again.'
@@ -1182,6 +1310,8 @@ async function saveProviderCredentials(provider) {
 
 async function clearProviderCredentials(provider) {
   if (!activeOrg.value || clearingProvider.value) return
+  if (smsMode.value === 'own' &&
+      !window.confirm(`This organization sends SMS only through its own provider account. Removing the ${provider} credentials may stop SMS sends until they're added back — nothing will go out through Haflaway's account instead. Remove them?`)) return
   clearingProvider.value = provider
   providerError.value = { ...providerError.value, [provider]: '' }
   try {
@@ -1740,6 +1870,15 @@ function avatarStyle(u) {
 .os-archived-chevron--open { transform: rotate(90deg); }
 .os-switcher--archived { padding-top: 0; }
 
+.os-acct-list { display: flex; flex-direction: column; gap: 8px; }
+.os-acct-row {
+  display: flex; flex-direction: column; gap: 4px;
+  border: 1px solid var(--c-border); border-radius: 12px; padding: 12px 14px; background: #fff;
+}
+.os-acct-row--warn { border-color: #fcd34d; background: #fffbeb; }
+.os-acct-main { display: flex; align-items: center; gap: 8px; }
+.os-acct-channel { font-size: 13px; font-weight: 700; color: var(--c-txt); }
+.os-acct-problem { font-size: 12px; font-weight: 600; color: #b45309; }
 .os-archived-banner {
   display: flex;
   align-items: center;
@@ -1846,6 +1985,11 @@ function avatarStyle(u) {
 }
 .os-field-label--flush { margin-top: 0; }
 .os-advanced-hint { font-size: 11px; color: var(--c-txt-3); }
+.os-saved-tag {
+  margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; color: #065f46; background: #ecfdf5;
+}
+.os-input--saved::placeholder { color: var(--c-txt); letter-spacing: 0.02em; }
 
 .os-toggle-row {
   display: flex;
@@ -1930,6 +2074,18 @@ function avatarStyle(u) {
   display: flex; flex-direction: column; gap: 2px; cursor: pointer; min-width: 160px; flex: 1;
 }
 .os-tpl-row-label { font-size: 13px; font-weight: 600; color: var(--c-txt); }
+.os-tpl-row-meta { font-size: 12px; color: var(--c-txt-2); }
+.os-tpl-row-meta--warn { color: #b45309; }
+.os-tpl-row-label .os-sid-chip { margin-left: 6px; }
+.os-label-opt { font-weight: 400; color: var(--c-txt-3); font-size: 12px; }
+.os-textarea { height: auto; min-height: 110px; padding-top: 12px; padding-bottom: 12px; border-radius: 14px; resize: vertical; line-height: 1.5; font-family: inherit; }
+.os-tpl-toggle-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  border: 1px solid var(--c-border); border-radius: 12px; padding: 14px 16px; cursor: pointer;
+}
+.os-tpl-toggle-text { display: flex; flex-direction: column; gap: 3px; }
+.os-tpl-toggle-label { font-size: 13px; font-weight: 600; color: var(--c-txt); }
+.os-tpl-toggle-card input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; }
 .os-tpl-row-sid {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--c-txt-3);
 }

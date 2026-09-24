@@ -3,17 +3,22 @@
     <!-- ── Sticky topbar ── -->
     <nav class="me-topbar">
       <div class="me-topbar-inner">
-        <div class="me-brand" @click="$router.push('/events')" title="All Events">
-          <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="brandName" class="me-brand-logo" />
-          <span v-else class="me-brand-script">.joy</span>
+        <div class="me-topbar-left">
+        <div class="me-identity" @click="$router.push('/organization')" :title="orgLabel">
+          <div class="me-brand">
+            <img v-if="brandLogoUrl && !brandLogoUrl.includes('icon-512')" :src="brandLogoUrl" :alt="orgLabel" class="me-brand-logo" />
+            <span v-else class="me-brand-script">.joy</span>
+          </div>
+          <span class="me-org-name">{{ orgLabel }}</span>
         </div>
         <div class="me-hd-sep" />
         <div class="me-hd-title-group">
           <h1 class="me-hub-title">Events</h1>
           <span v-if="!loading" class="me-hub-count">{{ events.length }}</span>
         </div>
+        </div>
         <div class="me-search-wrap">
-          <svg class="me-search-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="me-search-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -32,20 +37,20 @@
           </button>
         </div>
         <div class="me-topbar-right">
-          <!-- Wallet balance / top-up — top-level so it works with zero events -->
+          <!-- Wallet pill is parked out of the bar until it has a new home. -->
           <div
             class="me-balance-wrap"
             ref="balanceWrapRef"
-            v-if="orgBalance !== null"
+            v-if="false"
           >
             <button class="me-balance-pill" @click="showTopUp = !showTopUp">
               <svg
-                width="13"
-                height="13"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
+                stroke-width="1.8"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
@@ -60,12 +65,12 @@
               <svg
                 class="me-balance-chevron"
                 :class="{ 'me-balance-chevron--open': showTopUp }"
-                width="11"
-                height="11"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2.6"
+                stroke-width="2.2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
@@ -166,25 +171,20 @@
           <div class="me-admin-wrap" ref="adminWrapRef">
             <button
               class="me-admin-pill"
+              :title="orgLabel"
               @click="showAdminDropdown = !showAdminDropdown"
             >
               <span class="me-admin-dot" />
-              <!-- Role prefix is a separate span so the pill can shed it as an
-                   intermediate step ("Admin · Stanley Sam" → "Stanley Sam" →
-                   icon only) instead of jumping straight to no label. -->
-              <span class="me-admin-label"
-                ><span class="me-admin-role">Admin · </span
-                >{{ userDisplayName }}</span
-              >
+              <span class="me-admin-label">{{ orgLabel }}</span>
               <svg
                 class="me-admin-chevron"
                 :class="{ 'me-admin-chevron--open': showAdminDropdown }"
-                width="12"
-                height="12"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2.4"
+                stroke-width="2.2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
@@ -195,33 +195,12 @@
               <div class="me-dropdown-header">
                 <span class="me-admin-dot me-dropdown-dot" />
                 <div class="me-dropdown-header-text">
-                  <span class="me-dropdown-name">{{ userDisplayName }}</span>
-                  <span class="me-dropdown-email">{{ userEmail }}</span>
+                  <span class="me-dropdown-kicker">Active organization</span>
+                  <span class="me-dropdown-name">{{ orgLabel }}</span>
+                  <span class="me-dropdown-email">{{ userDisplayName }} · {{ userEmail }}</span>
                 </div>
               </div>
               <div class="me-dropdown-divider" />
-              <button
-                class="me-dropdown-item"
-                @click="
-                  showAdminDropdown = false;
-                  $router.push('/organization');
-                "
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <rect x="3" y="7" width="18" height="13" rx="2" />
-                  <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-                Organization
-              </button>
               <button
                 class="me-dropdown-item me-dropdown-item--signout"
                 @click="
@@ -230,8 +209,8 @@
                 "
               >
                 <svg
-                  width="13"
-                  height="13"
+                  width="15"
+                  height="15"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -253,8 +232,8 @@
             @click="$router.push('/create-event')"
           >
             <svg
-              width="14"
-              height="14"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -267,6 +246,45 @@
             </svg>
             <span class="me-create-label">Create event</span>
           </button>
+          <button class="me-gear-btn" title="Organization" @click="$router.push('/organization')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="me-controls">
+        <div class="me-tabs">
+          <button
+            v-for="f in statusFilters"
+            :key="f.value"
+            class="me-tab"
+            :class="{ 'me-tab--active': activeFilter === f.value }"
+            @click="
+              activeFilter = f.value;
+              clearSearch();
+            "
+          >
+            {{ f.label }}
+            <span
+              class="me-tab-count"
+              :class="{ 'me-tab-count--active': activeFilter === f.value }"
+              >{{ f.count }}</span
+            >
+          </button>
+        </div>
+        <div class="me-controls-right">
+          <select v-model="activeRole" class="me-fb-select">
+            <option v-for="r in roleFilters" :key="r.value" :value="r.value">
+              {{ r.label }}
+            </option>
+          </select>
+          <select v-model="activeSort" class="me-fb-select">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">A → Z</option>
+          </select>
         </div>
       </div>
     </nav>
@@ -329,41 +347,6 @@
           </div>
         </div>
       </header>
-
-      <!-- Controls -->
-      <div class="me-controls">
-        <div class="me-tabs">
-          <button
-            v-for="f in statusFilters"
-            :key="f.value"
-            class="me-tab"
-            :class="{ 'me-tab--active': activeFilter === f.value }"
-            @click="
-              activeFilter = f.value;
-              clearSearch();
-            "
-          >
-            {{ f.label }}
-            <span
-              class="me-tab-count"
-              :class="{ 'me-tab-count--active': activeFilter === f.value }"
-              >{{ f.count }}</span
-            >
-          </button>
-        </div>
-        <div class="me-controls-right">
-          <select v-model="activeRole" class="me-fb-select">
-            <option v-for="r in roleFilters" :key="r.value" :value="r.value">
-              {{ r.label }}
-            </option>
-          </select>
-          <select v-model="activeSort" class="me-fb-select">
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-            <option value="az">A → Z</option>
-          </select>
-        </div>
-      </div>
 
       <!-- ── Affiliate Earnings Strip — hidden for now, not useful yet ── -->
       <div v-if="false && affiliate" class="me-aff-strip">
@@ -738,11 +721,7 @@
               <span class="me-row-cd-mon">{{
                 formatMonth(event.startDate) || "—"
               }}</span>
-              <span
-                class="me-row-cd-day"
-                :style="{ color: thumbColors(event).accent }"
-                >{{ formatDay(event.startDate) }}</span
-              >
+              <span class="me-row-cd-day">{{ formatDay(event.startDate) }}</span>
               <div class="me-row-cd-ticket" :class="daysAwayClass(event)">
                 <template v-if="statusClass(event) === 'ongoing'">
                   <span class="me-live-dot" />LIVE
@@ -838,6 +817,7 @@ import { useOrg } from "../composables/useOrg.js";
 import { useTopUp } from "../composables/useTopUp.js";
 
 const { activeOrg, isOwner, canCreateEvents, brandName, brandLogoUrl } = useOrg();
+const orgLabel = computed(() => activeOrg.value?.name || brandName.value || "Organization");
 const {
   orgBalance,
   formatBalance,
@@ -1119,19 +1099,6 @@ function daysAwayClass(event) {
   if (d !== null && d > 0 && d < 30) return "me-row-days-pill--soon";
   if (d !== null && d <= 0) return "me-row-days-pill--past";
   return "";
-}
-
-function thumbColors(event) {
-  const cover = coverType(event);
-  const map = {
-    goldfloral: { bg: "rgba(201,168,76,0.13)", accent: "#C9A84C" },
-    bridal: { bg: "rgba(200,160,180,0.13)", accent: "#C8A0B4" },
-    minimal: { bg: "rgba(150,150,150,0.08)", accent: "#999" },
-    pearl: { bg: "rgba(176,168,152,0.11)", accent: "#B0A898" },
-    rose: { bg: "rgba(200,120,120,0.13)", accent: "#C87878" },
-    navy: { bg: "rgba(100,130,200,0.13)", accent: "#7090d0" },
-  };
-  return map[cover] || map.minimal;
 }
 
 function coverType(event) {
@@ -1448,17 +1415,18 @@ onUnmounted(() => {
   padding: 0;
   box-sizing: border-box;
   background: #fff;
+  border-bottom: 1px solid #f0f0f2;
 }
 .me-topbar-inner {
-  height: 92px;
-  padding: 0 36px;
-  display: flex;
+  height: 96px;
+  padding: 0 40px;
+  display: grid;
+  grid-template-columns: minmax(auto, 1fr) minmax(0, 420px) minmax(auto, 1fr);
   align-items: center;
-  gap: 14px;
+  column-gap: 24px;
   border-radius: 0;
   background: #fff;
   border: none;
-  border-bottom: 1px solid #f1f3f5;
   box-shadow: none;
 }
 .me-topbar-inner:hover {
@@ -1466,29 +1434,64 @@ onUnmounted(() => {
   border-color: #f1f3f5;
   box-shadow: none;
 }
-.me-hd-sep { width: 1px; height: 16px; background: #e5e7eb; flex-shrink: 0; margin: 0 4px; }
-.me-hd-title-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.me-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: auto;
+  justify-self: start;
+}
+.me-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.me-org-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1a1a1a;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+.me-hd-sep {
+  width: 1px;
+  height: 22px;
+  background: #e5e7eb;
+  flex-shrink: 0;
+  margin: 0 6px;
+}
+.me-hd-title-group { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; }
 .me-hub-title {
   margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  color: #18181b;
-  letter-spacing: -0.015em;
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  font-size: 34px;
+  font-weight: 500;
+  color: #1a1a1a;
+  letter-spacing: -0.02em;
+  line-height: 1;
   white-space: nowrap;
 }
 .me-hub-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: #4b5563;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 9999px;
-  padding: 1px 10px;
+  font-size: 16px;
+  font-weight: 450;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 .me-brand {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
   background: #fff;
@@ -1497,7 +1500,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 34px;
+  min-width: 44px;
   gap: 0;
 }
 .me-brand-logo {
@@ -1510,9 +1513,9 @@ onUnmounted(() => {
   font-family: "Playfair Display", Georgia, serif;
   font-style: italic;
   font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.04em;
+  font-weight: 500;
+  color: #1a1a1a;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 .me-brand-name { display: none; }
@@ -1530,8 +1533,10 @@ onUnmounted(() => {
 .me-topbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: auto;
+  justify-self: end;
 }
 
 /* Wallet balance pill / top-up dropdown */
@@ -1542,17 +1547,18 @@ onUnmounted(() => {
 .me-balance-pill {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  height: 40px;
-  padding: 0 14px;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 450;
+  height: 48px;
+  padding: 0 18px;
   border-radius: 9999px;
   background: #fff;
   color: #374151;
   letter-spacing: 0;
   white-space: nowrap;
   border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
   cursor: pointer;
   font-family: inherit;
   transition: background 130ms, border-color 130ms, color 130ms;
@@ -1600,19 +1606,19 @@ onUnmounted(() => {
 }
 .me-tu-title {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--ink);
 }
 .me-tu-balance {
   font-size: 13px;
-  font-weight: 700;
-  color: #111827;
+  font-weight: 500;
+  color: #1a1a1a;
   white-space: nowrap;
 }
 .me-tu-label {
   font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-soft);
+  font-weight: 500;
+  color: var(--ink-muted);
   margin-top: 4px;
 }
 .me-tu-input {
@@ -1651,7 +1657,7 @@ onUnmounted(() => {
   border-radius: 9999px;
   background: #fff;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: #64748b;
 }
 .me-tu-phone-input {
@@ -1733,14 +1739,15 @@ onUnmounted(() => {
 .me-admin-pill {
   display: flex;
   align-items: center;
-  gap: 7px;
-  height: 40px;
-  padding: 0 14px 0 12px;
+  gap: 8px;
+  height: 48px;
+  padding: 0 18px 0 16px;
   border-radius: 9999px;
   border: 1px solid #e5e7eb;
   background: #fff;
-  font-size: 13px;
-  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  font-size: 15px;
+  font-weight: 450;
   color: #374151;
   cursor: pointer;
   font-family: inherit;
@@ -1800,9 +1807,16 @@ onUnmounted(() => {
   gap: 2px;
   min-width: 0;
 }
+.me-dropdown-kicker {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
 .me-dropdown-name {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -1846,8 +1860,8 @@ onUnmounted(() => {
   color: #dc2626;
 }
 .me-admin-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--emerald);
   flex-shrink: 0;
@@ -1870,21 +1884,21 @@ onUnmounted(() => {
 .me-create-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 40px;
-  background: #222;
+  gap: 10px;
+  height: 52px;
+  background: #242424;
   color: #fff;
   border: none;
-  padding: 0 20px;
+  padding: 0 26px;
   border-radius: 9999px;
-  font-size: 13.5px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
   letter-spacing: 0;
   white-space: nowrap;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 .me-create-btn:hover {
   background: #000;
@@ -1898,6 +1912,25 @@ onUnmounted(() => {
 .me-create-btn:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.18);
+}
+.me-gear-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: #f3f4f6;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 130ms ease, color 130ms ease;
+}
+.me-gear-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
 }
 .me-create-btn--lg {
   height: 44px;
@@ -1924,13 +1957,13 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 32px;
-  padding: 28px 36px 8px;
+  gap: 48px;
+  padding: 32px 48px 0;
   border-bottom: none;
 }
 .me-greeting {
   font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 500;
   letter-spacing: -0.02em;
   color: #1a1a1a;
@@ -1940,57 +1973,53 @@ onUnmounted(() => {
 .me-header-copy {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 .me-header-sub {
-  font-size: 13px;
-  color: var(--ink-muted);
+  font-size: 14px;
+  color: #64748b;
   margin: 0;
   font-weight: 400;
+  line-height: 1.55;
 }
 .me-header-sub--loading {
   color: var(--ink-dim);
 }
 
 .me-header-stats {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  flex-shrink: 0;
+  display: none;
 }
 .me-hstat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 0 22px;
+  gap: 6px;
+  padding: 0 28px;
 }
 .me-hstat-div {
   width: 1px;
   height: 28px;
-  background: var(--line);
+  background: #f0f0f2;
   flex-shrink: 0;
 }
 .me-hstat-val {
-  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--ink);
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  font-size: 32px;
+  font-weight: 500;
+  color: #1a1a1a;
   line-height: 1;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.02em;
 }
-.me-hstat-val--gold {
-  color: #111827;
-}
+.me-hstat-val--gold,
 .me-hstat-val--green {
-  color: var(--emerald);
+  color: #1a1a1a;
 }
 .me-hstat-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
+  font-size: 11px;
+  font-weight: 450;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: #94a3b8;
 }
 
 /* ── Controls bar ── */
@@ -1998,65 +2027,70 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
   background: #fff;
   border: none;
-  border-bottom: 1px solid #f1f3f5;
   border-radius: 0;
-  padding: 10px 36px;
+  padding: 0 32px 18px;
   box-shadow: none;
 }
 .me-tabs {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 2px;
+  flex-wrap: nowrap;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
 .me-tab {
   display: flex;
   align-items: center;
-  gap: 7px;
-  min-height: 34px;
-  padding: 6px 14px;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
   border-radius: 9999px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  font-size: 13px;
-  font-weight: 500;
-  color: #374151;
+  border: none;
+  background: transparent;
+  font-size: 14.5px;
+  font-weight: 450;
+  color: #9ca3af;
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: none;
+  transition: background 140ms ease, color 140ms ease;
 }
 .me-tab:hover {
-  background: #f9fafb;
+  background: #f3f4f6;
   color: #111827;
-  border-color: #d1d5db;
+  border-color: transparent;
   transform: none;
 }
 .me-tab--active {
-  background: #f7f7f8;
-  border-color: #e5e7eb;
+  background: #f3f4f6;
+  border-color: transparent;
   box-shadow: none;
   color: #111827;
-  font-weight: 600;
+  font-weight: 500;
 }
 .me-tab-count {
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 450;
+  font-variant-numeric: tabular-nums;
   background: transparent;
-  color: #6b7280;
+  color: #c5c9d1;
   padding: 0;
 }
 .me-tab-count--active {
   background: transparent;
-  color: #111827;
+  color: #6b7280;
+  font-weight: 450;
 }
 .me-controls-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
 }
 
 /* ── Intro ── (legacy class — kept for compatibility) */
@@ -2163,26 +2197,29 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1 1 0;
-  margin: 0 12px 0 8px;
-  min-width: 180px;
+  justify-self: stretch;
+  width: 100%;
+  max-width: 420px;
+  margin: 0;
+  min-width: 0;
 }
 .me-search-icon-svg {
   position: absolute;
-  left: 16px;
+  left: 20px;
   color: #9ca3af;
   pointer-events: none;
   flex-shrink: 0;
 }
 .me-search-input {
   width: 100%;
-  height: 44px;
-  padding: 0 44px 0 44px;
+  height: 52px;
+  padding: 0 52px 0 52px;
   border: 1px solid #e5e7eb;
   border-radius: 9999px;
   background: #ffffff;
-  font-size: 15px;
-  color: #111827;
+  font-size: 16px;
+  font-weight: 400;
+  color: #1a1a1a;
   outline: none;
   font-family: inherit;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
@@ -2197,9 +2234,9 @@ onUnmounted(() => {
 }
 .me-search-clear {
   position: absolute;
-  right: 10px;
-  width: 32px;
-  height: 32px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
   background: none;
   border: none;
   cursor: pointer;
@@ -2264,38 +2301,42 @@ onUnmounted(() => {
   color: var(--accent-deep);
 }
 .me-fb-select {
-  height: 34px;
-  padding: 0 14px;
-  border: 1px solid #e5e7eb;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 40px;
+  padding: 0 32px 0 14px;
+  border: none;
   border-radius: 9999px;
-  background: #ffffff;
-  font-size: 13px;
-  font-weight: 500;
-  color: #374151;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  font-size: 14.5px;
+  font-weight: 450;
+  color: #6b7280;
   font-family: inherit;
   outline: none;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: none;
 }
 .me-fb-select option {
   color: #111827;
   background: #fff;
 }
-.me-fb-select:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
-}
+.me-fb-select:hover,
 .me-fb-select:focus {
-  border-color: #d1d5db;
-  background: #ffffff;
+  background-color: #f3f4f6;
+  color: #111827;
+  border: none;
+  outline: none;
 }
 
 /* ── Loading skeletons ── */
 .me-skeleton-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 20px 36px 8px;
+  gap: 14px;
+  padding: 28px 48px 8px;
 }
 .me-skeleton {
   height: 160px;
@@ -2319,10 +2360,10 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  margin: 24px 36px;
+  margin: 36px 48px;
   padding: 80px 20px;
   border: 1px dashed #e5e7eb;
-  border-radius: 16px;
+  border-radius: 20px;
 }
 .me-empty-glyph {
   font-size: 32px;
@@ -2330,10 +2371,10 @@ onUnmounted(() => {
   opacity: 1;
 }
 .me-empty-title {
-  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-  font-weight: 700;
-  font-size: 22px;
-  color: var(--ink);
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  font-weight: 500;
+  font-size: 28px;
+  color: #1a1a1a;
   margin: 0;
   text-align: center;
 }
@@ -2342,14 +2383,17 @@ onUnmounted(() => {
 .me-status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 20px;
-  letter-spacing: 0.1px;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 450;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  letter-spacing: 0;
   white-space: nowrap;
-  border: 1px solid transparent;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 .me-status-dot {
   width: 5px;
@@ -2358,28 +2402,29 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .me-status-pill--upcoming {
-  background: var(--me-page-bg);
-  border-color: var(--line);
-  color: var(--ink-soft);
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #374151;
 }
 .me-status-pill--upcoming .me-status-dot {
-  background: var(--ink-muted);
+  background: #94a3b8;
 }
 .me-status-pill--ongoing {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #065f46;
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #374151;
 }
 .me-status-pill--ongoing .me-status-dot {
   background: #059669;
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
 .me-status-pill--completed {
-  background: var(--me-page-bg);
-  color: var(--ink-muted);
+  background: #ffffff;
+  border-color: #e5e7eb;
+  color: #64748b;
 }
 .me-status-pill--completed .me-status-dot {
-  background: var(--ink-dim);
+  background: #cbd5e1;
 }
 @keyframes pulse-dot {
   0%,
@@ -2405,49 +2450,48 @@ onUnmounted(() => {
 .me-role-badge {
   display: inline-flex;
   align-items: center;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
 }
-.me-role-badge--owner {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  color: #111827;
-}
+.me-role-badge--owner,
 .me-role-badge--admin {
-  background: var(--me-page-bg);
-  border: 1px solid var(--line);
-  color: var(--ink-soft);
+  background: transparent;
+  border: none;
+  color: #94a3b8;
 }
 
 /* ── Featured hero ── */
 .me-featured {
   position: relative;
   display: grid;
-  grid-template-columns: 165px 1fr 180px;
+  grid-template-columns: 140px 1fr auto;
   grid-template-rows: 1fr auto;
   grid-template-areas:
     "thumb top    cd-top"
     "thumb bottom cd-bottom";
-  column-gap: 24px;
-  row-gap: 10px;
-  margin: 20px 36px 0;
-  padding: 20px 22px 20px 18px;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  column-gap: 36px;
+  row-gap: 18px;
+  margin: 28px 48px 0;
+  padding: 32px 36px;
+  border: 1px solid #f0f0f2;
+  border-radius: 20px;
   box-shadow: none;
   cursor: pointer;
-  background: #fff;
+  background: #f8f8f9;
   overflow: hidden;
 }
 .me-featured:hover {
-  border-color: #d1d5db;
+  border-color: #e5e7eb;
   box-shadow: none;
   transform: none;
-  background: #f7f7f8;
+  background: #f3f4f6;
 }
 
 /* Kept as a no-op layer (was a light-catch sheen for the old photo-backdrop
@@ -2504,10 +2548,10 @@ onUnmounted(() => {
 }
 .me-feat-eyebrow-label {
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #64748b;
+  color: #94a3b8;
   white-space: nowrap;
 }
 .me-feat-eyebrow-sparkle {
@@ -2519,16 +2563,14 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .me-feat-eyebrow-line {
-  flex: 1;
-  height: 1px;
-  background: var(--line);
+  display: none;
 }
 .me-feat-title {
   font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
-  font-size: 30px;
+  font-size: 34px;
   font-weight: 500;
   color: #1a1a1a;
-  margin: 0 0 16px;
+  margin: 0 0 14px;
   letter-spacing: -0.02em;
   line-height: 1.15;
   display: -webkit-box;
@@ -2541,7 +2583,7 @@ onUnmounted(() => {
   display: flex;
   gap: 6px 20px;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 .me-feat-meta-item {
   display: flex;
@@ -2553,9 +2595,9 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .me-feat-meta-val {
-  font-size: 13px;
-  color: var(--ink-soft);
-  font-weight: 500;
+  font-size: 13.5px;
+  color: #64748b;
+  font-weight: 450;
 }
 
 .me-feat-progress {
@@ -2596,18 +2638,21 @@ onUnmounted(() => {
   background: #242424;
   color: #fff;
   border: none;
-  height: 40px;
-  padding: 0 18px;
+  height: 42px;
+  padding: 0 22px;
   border-radius: 9999px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
 }
 .me-feat-open-btn:hover {
   background: #000;
   opacity: 1;
-  transform: none;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
 }
 .me-feat-open-btn:focus-visible {
   outline: none;
@@ -2628,30 +2673,30 @@ onUnmounted(() => {
   min-height: 0;
 }
 .me-feat-cd-month {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: #94a3b8;
   line-height: 1;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 .me-feat-cd-day {
-  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-  font-size: 82px;
-  font-weight: 700;
-  color: var(--ink);
-  letter-spacing: -2px;
-  line-height: 0.85;
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  font-size: 56px;
+  font-weight: 500;
+  color: #1a1a1a;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
   display: block;
 }
 .me-feat-cd-year {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  color: var(--ink-muted);
-  margin-top: 12px;
-  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: #94a3b8;
+  margin-top: 6px;
+  margin-bottom: 0;
 }
 .me-feat-cd-ticket {
   grid-area: cd-bottom;
@@ -2669,39 +2714,40 @@ onUnmounted(() => {
   gap: 8px;
 }
 .me-feat-cd-words {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 450;
+  letter-spacing: 0;
+  text-transform: none;
   color: #64748b;
   white-space: nowrap;
   line-height: 1.3;
 }
 .me-feat-cd-num {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: -0.2px;
+  letter-spacing: 0;
+  color: #374151;
 }
 
 /* ── Section heading ── */
 .me-section-head {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 22px 36px 8px;
+  gap: 16px;
+  padding: 36px 48px 12px;
 }
 .me-section-line {
   flex: 1;
   height: 1px;
-  background: var(--line);
+  background: #f0f0f2;
 }
 .me-section-meta {
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ink-dim);
+  color: #94a3b8;
   white-space: nowrap;
 }
 
@@ -2709,8 +2755,8 @@ onUnmounted(() => {
 .me-hanging-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 8px 36px 0;
+  gap: 14px;
+  padding: 4px 48px 0;
 }
 
 /* Same glass recipe as .me-featured, so the list reads as one material.
@@ -2722,18 +2768,19 @@ onUnmounted(() => {
 .me-row {
   position: relative;
   display: grid;
-  grid-template-columns: 118px 1fr 100px;
+  grid-template-columns: 108px 1fr auto;
   border-radius: 16px;
-  border: 1px solid #e5e7eb;
-  border-left: 1px solid #e5e7eb;
+  border: 1px solid #f0f0f2;
+  border-left: 1px solid #f0f0f2;
   cursor: pointer;
   overflow: hidden;
-  min-height: 124px;
+  min-height: 108px;
   background: #fff;
   box-shadow: none;
+  transition: background 140ms ease, border-color 140ms ease;
 }
 .me-row:hover {
-  border-color: #d1d5db;
+  border-color: #e5e7eb;
   box-shadow: none;
   transform: none;
   background: #f7f7f8;
@@ -2760,8 +2807,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 10px;
-  border-right: 1px solid var(--line);
+  padding: 16px 4px 16px 18px;
+  border-right: none;
   overflow: hidden;
 }
 .me-row-card-outline { display: none; }
@@ -2794,31 +2841,29 @@ onUnmounted(() => {
   flex-direction: column;
   justify-content: center;
   gap: 0;
-  padding: 18px 24px;
+  padding: 20px 28px 20px 16px;
 }
 .me-row-eyebrow {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 11px;
+  margin-bottom: 6px;
 }
 .me-row-eyebrow-spark {
   display: none;
 }
 .me-row-eyebrow-line {
-  flex: 1;
-  height: 1px;
-  background: #f1f3f5;
+  display: none;
 }
 
 .me-row-title {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  color: #18181b;
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  font-size: 24px;
+  font-weight: 500;
+  color: #1a1a1a;
   margin: 0 0 10px;
   letter-spacing: -0.015em;
-  line-height: 1.3;
+  line-height: 1.15;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -2829,22 +2874,24 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 6px 14px;
 }
 .me-row-meta-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  color: var(--ink-soft);
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 450;
+  color: #64748b;
 }
 .me-row-meta-item svg {
   flex-shrink: 0;
 }
 .me-status-pill--inline {
-  font-size: 10.5px;
-  padding: 2px 8px;
-  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 450;
+  padding: 4px 11px;
+  border-radius: 9999px;
 }
 
 /* ── Theme toggle ── */
@@ -2872,65 +2919,67 @@ onUnmounted(() => {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  border-left: 1px solid var(--line);
-  padding: 14px 8px;
+  border-left: none;
+  padding: 16px 28px 16px 12px;
   gap: 0;
+  min-width: 88px;
 }
 .me-row-cd-year {
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 2.5px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ink-muted);
+  color: #94a3b8;
   line-height: 1;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 .me-row-cd-mon {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 2.5px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: #94a3b8;
   line-height: 1;
   margin-bottom: 0;
 }
 .me-row-cd-day {
-  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-  font-size: 60px;
-  font-weight: 700;
-  line-height: 0.85;
-  letter-spacing: -1.5px;
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
   display: block;
-  color: var(--ink);
+  color: #1a1a1a;
 }
 .me-row-cd-ticket {
-  margin-top: 11px;
+  margin-top: 8px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 9999px;
-  padding: 4px 9px;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  color: #111827;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 450;
+  letter-spacing: 0;
+  color: #64748b;
   text-align: center;
   line-height: 1.3;
   display: flex;
   align-items: center;
   gap: 4px;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 .me-row-cd-ticket.me-row-days-pill--live {
-  border-color: #a7f3d0;
-  background: #ecfdf5;
-  color: #065f46;
+  border-color: #e5e7eb;
+  background: #ffffff;
+  color: #374151;
 }
 .me-row-cd-ticket.me-row-days-pill--soon {
   border-color: #e5e7eb;
   background: #ffffff;
-  color: #111827;
+  color: #374151;
 }
 .me-row-cd-ticket.me-row-days-pill--past {
   opacity: 0.4;
@@ -2950,7 +2999,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 36px 8px;
+  padding: 28px 48px 8px;
 }
 .me-pagination-info {
   font-size: 13px;
@@ -3028,12 +3077,12 @@ onUnmounted(() => {
     border-color 300ms ease;
 }
 .me-modal-title {
-  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--ink);
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  font-size: 26px;
+  font-weight: 500;
+  color: #1a1a1a;
   margin: 0;
-  letter-spacing: -0.1px;
+  letter-spacing: -0.02em;
 }
 .me-modal-body {
   font-size: 13.5px;
@@ -3076,10 +3125,26 @@ onUnmounted(() => {
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .me-topbar-inner { height: auto; flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
-  .me-hd-sep { display: none; }
-  .me-search-wrap { flex: 1 1 100%; margin: 8px 0 0; order: 8; }
-  .me-tabs, .me-controls { padding-left: 16px; padding-right: 16px; }
+  .me-topbar-inner {
+    height: auto;
+    display: flex;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  .me-topbar-left { flex: 1; min-width: 0; }
+  .me-hd-sep, .me-org-name { display: none; }
+  .me-search-wrap {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 8px 0 0;
+    order: 8;
+  }
+  .me-controls { padding-left: 16px; padding-right: 16px; }
+  .me-skeleton-list { padding-left: 16px; padding-right: 16px; }
+  .me-empty { margin-left: 16px; margin-right: 16px; }
   .me-header, .me-hanging-list, .me-section-head, .me-pagination { padding-left: 16px; padding-right: 16px; }
   .me-featured { margin-left: 16px; margin-right: 16px; }
   .me-tabs {
@@ -3193,7 +3258,7 @@ onUnmounted(() => {
   .me-balance-dropdown,
   .me-admin-dropdown {
     position: fixed;
-    top: 62px;
+    top: 108px;
     left: 12px;
     right: 12px;
     width: auto;
@@ -3239,8 +3304,8 @@ onUnmounted(() => {
   .me-controls {
     flex-direction: column;
     align-items: stretch;
-    gap: 6px;
-    padding: 8px;
+    gap: 8px;
+    padding: 10px 16px 14px;
     overflow: hidden;
   }
   .me-tabs {
@@ -3348,7 +3413,7 @@ onUnmounted(() => {
     padding: 12px 14px;
   }
   .me-row-title {
-    font-size: 16px;
+    font-size: 20px;
     margin-bottom: 6px;
   }
   .me-row-eyebrow {
@@ -3386,8 +3451,10 @@ onUnmounted(() => {
   /* Square up the tap target — 18px of side padding around a lone 14px glyph
      leaves a stretched pill with the icon floating in it. */
   .me-create-btn {
-    padding: 9px 11px;
+    width: 52px;
+    padding: 0;
     gap: 0;
+    justify-content: center;
   }
 
   /* The four status tabs need ~382px in a row; below ~440 they don't fit, and
@@ -3397,13 +3464,22 @@ onUnmounted(() => {
   .me-tabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 4px;
+    gap: 6px;
     overflow-x: visible;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
   }
   .me-tab {
-    /* Label left, count right, using the full cell instead of hugging content. */
     justify-content: space-between;
     min-width: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+  .me-tab--active {
+    background: #f3f4f6;
+    box-shadow: none;
   }
   .me-tab-count {
     flex-shrink: 0;

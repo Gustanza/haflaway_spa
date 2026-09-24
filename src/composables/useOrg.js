@@ -136,9 +136,13 @@ const brandLogoUrl = computed(() => (isBrandingApproved.value && activeOrg.value
 // the credentials themselves — the actual secret values never round-trip
 // back to the client once saved.
 const smsCredentialsStatus = ref({ smtz: null, wasambazie: null })
-// Whichever provider Haflaway currently routes SMS through platform-wide —
-// an org's sender-ID pool only has any effect while its provider is this one.
+// The provider this org's SMS actually goes out through right now, per its
+// staff-set switch (haflaway_server organizations/messagingAccounts.js):
+// Haflaway's platform provider on 'haflaway', its own provider on 'own'
+// (null if it has none configured — every SMS send is then refused).
 const activeSmsProvider = ref(null)
+// 'own' | 'haflaway' — set by Haflaway staff only, from the admin console.
+const smsMode = ref('haflaway')
 
 // Not a live listener — status comes from haflaway_server, not a Firestore
 // read, so this re-fetches on demand (tab open / org switch) rather than
@@ -149,11 +153,13 @@ async function loadSmsCredentialsStatus(orgId) {
   if (!orgId) {
     smsCredentialsStatus.value = { smtz: null, wasambazie: null }
     activeSmsProvider.value = null
+    smsMode.value = 'haflaway'
     return smsCredentialsStatus.value
   }
-  const { smtz, wasambazie, activeProvider } = await callOrgServer(`/organizations/${orgId}/sms-credentials/status`)
+  const { smtz, wasambazie, activeProvider, mode } = await callOrgServer(`/organizations/${orgId}/sms-credentials/status`)
   smsCredentialsStatus.value = { smtz, wasambazie }
   activeSmsProvider.value = activeProvider ?? null
+  smsMode.value = mode === 'own' ? 'own' : 'haflaway'
   return smsCredentialsStatus.value
 }
 
@@ -161,12 +167,15 @@ async function loadSmsCredentialsStatus(orgId) {
 // if the org has configured that provider's own credentials. Shaped as
 // {id, value} pairs to match the old approved-sender-ID list EventSettings.vue
 // already renders.
+// Only on the org's own account — on Haflaway's, every SMS goes out as HAFLAWAY.
 const approvedSenderIds = computed(() => {
+  if (smsMode.value !== 'own') return []
   const entry = activeSmsProvider.value && smsCredentialsStatus.value[activeSmsProvider.value]
   if (!entry?.configured) return []
   return (entry.senderIds ?? []).map(value => ({ id: value, value }))
 })
 const defaultSenderId = computed(() => {
+  if (smsMode.value !== 'own') return null
   const entry = activeSmsProvider.value && smsCredentialsStatus.value[activeSmsProvider.value]
   return (entry?.configured && entry.defaultSenderId) || null
 })
@@ -177,18 +186,26 @@ const defaultSenderId = computed(() => {
 // Haflaway's shared one — the same BYO pattern as smtz/wasambazie above, but
 // a template's contentSid only exists inside the Twilio account it was
 // approved in, so credentials and templates are managed together here.
-// `configured` and the template list are the only things ever exposed —
-// secret values never round-trip back to the client once saved.
-const twilioCredentialsStatus = ref({ configured: false, updatedAt: null, templates: [], brandingApproved: false })
+// `configured`, masked hints (e.g. AC••••a1b2) and the template list are the
+// only things ever exposed — secret values never round-trip back to the
+// client once saved.
+// `mode` ('own' | 'haflaway') is the staff-set switch deciding whose account
+// this org's WhatsApp actually goes out on — see smsMode above.
+const twilioCredentialsStatus = ref({ configured: false, updatedAt: null, masked: null, templates: [], brandingApproved: false, mode: 'haflaway' })
 
 // The fixed message-purpose taxonomy WhatsApp campaigns send through —
 // mirrors server/src/dispatch/whatsappTemplateCategories.js. Kept in sync by
 // hand since the SPA and haflaway_server don't share a module tree.
+// `vars` is the variable order haflaway_server fills for that message type
+// (buildContentVariables in dispatch/whatsapp.js). 'general' covers card-less
+// Bulk Messages sends — the organizer's own text rides in variable 8.
+const CARD_TEMPLATE_VARS = '1 Guest name · 2 Event title · 3 Date · 4 Venue · 5 Time · 6 Card image path · 7 Event/Attendee ID'
 const WHATSAPP_TEMPLATE_CATEGORIES = [
-  { purpose: 'invitation', category: 'whatsapp-wedding-invitations', label: 'Invitation' },
-  { purpose: 'save_the_date', category: 'whatsapp-wedding-save-the-date', label: 'Save the date' },
-  { purpose: 'thank_you', category: 'whatsapp-wedding-thank-you', label: 'Thank you' },
-  { purpose: 'enclosure', category: 'whatsapp-wedding-enclosure', label: 'Enclosure' },
+  { purpose: 'invitation', category: 'whatsapp-wedding-invitations', label: 'Invitation', vars: CARD_TEMPLATE_VARS },
+  { purpose: 'save_the_date', category: 'whatsapp-wedding-save-the-date', label: 'Save the date', vars: CARD_TEMPLATE_VARS },
+  { purpose: 'thank_you', category: 'whatsapp-wedding-thank-you', label: 'Thank you', vars: CARD_TEMPLATE_VARS },
+  { purpose: 'enclosure', category: 'whatsapp-wedding-enclosure', label: 'Enclosure', vars: CARD_TEMPLATE_VARS },
+  { purpose: 'general', category: 'haflaway-general-campaign', label: 'General (Bulk Messages)', vars: '1 Guest name · 8 Your campaign message (set per campaign in Bulk Messages)' },
 ]
 const WHATSAPP_TEMPLATE_LANGUAGES = [
   { value: 'sw', label: 'Swahili' },
@@ -197,11 +214,14 @@ const WHATSAPP_TEMPLATE_LANGUAGES = [
 
 async function loadTwilioCredentialsStatus(orgId) {
   if (!orgId) {
-    twilioCredentialsStatus.value = { configured: false, updatedAt: null, templates: [], brandingApproved: false }
+    twilioCredentialsStatus.value = { configured: false, updatedAt: null, masked: null, templates: [], brandingApproved: false, mode: 'haflaway' }
     return twilioCredentialsStatus.value
   }
-  const { configured, updatedAt, templates, brandingApproved } = await callOrgServer(`/organizations/${orgId}/twilio-credentials/status`)
-  twilioCredentialsStatus.value = { configured, updatedAt, templates: templates ?? [], brandingApproved }
+  const { configured, updatedAt, masked, templates, brandingApproved, mode } = await callOrgServer(`/organizations/${orgId}/twilio-credentials/status`)
+  twilioCredentialsStatus.value = {
+    configured, updatedAt, masked: masked ?? null, templates: templates ?? [], brandingApproved,
+    mode: mode === 'own' ? 'own' : 'haflaway',
+  }
   return twilioCredentialsStatus.value
 }
 
@@ -217,18 +237,25 @@ async function setTwilioCredentials(orgId, credentials) {
   return data
 }
 
-// Also wipes every template registered against these credentials server-side
-// — the org's very next WhatsApp send bills to Haflaway's shared account again.
+// Also wipes every template registered against these credentials server-side.
+// On its own account (mode 'own') that stops its WhatsApp sends until they're
+// back — haflaway_server never falls back to Haflaway's account.
 async function clearTwilioCredentials(orgId) {
   const data = await callOrgServer(`/organizations/${orgId}/twilio-credentials`, { method: 'DELETE' })
   await loadTwilioCredentialsStatus(orgId)
   return data
 }
 
-async function setWhatsAppTemplate(orgId, category, language, contentSid) {
+// `meta` is { name, content, notes, active, previous } — the same descriptive
+// fields haflaway_admin_spa's WhatsAppTemplatesView.vue records for the shared
+// library. `previous` ({ category, language }) marks an edit of an existing
+// entry; if category/language changed, the server moves it to the new slot.
+// Without it this is an add, and the server refuses an already-taken slot.
+async function setWhatsAppTemplate(orgId, category, language, contentSid, meta = {}) {
+  const { name, content, notes, active, previous } = meta
   const data = await callOrgServer(`/organizations/${orgId}/whatsapp-templates`, {
     method: 'POST',
-    body: JSON.stringify({ category, language, contentSid }),
+    body: JSON.stringify({ category, language, contentSid, name, content, notes, active, previous }),
   })
   await loadTwilioCredentialsStatus(orgId)
   return data
@@ -295,8 +322,9 @@ async function setSmsCredentials(orgId, provider, credentials) {
   return data
 }
 
-// Drops the org's override so dispatch falls back to the platform default —
-// the org's very next SMS send bills to Haflaway's shared account again.
+// Drops the org's saved credentials for this provider. On its own account
+// (smsMode 'own') that stops its SMS sends until they're back — haflaway_server
+// never falls back to Haflaway's account.
 async function clearSmsCredentials(orgId, provider) {
   const data = await callOrgServer(`/organizations/${orgId}/sms-credentials/${provider}`, { method: 'DELETE' })
   await loadSmsCredentialsStatus(orgId)
@@ -452,6 +480,7 @@ export function useOrg() {
     setEventSenderId,
     smsCredentialsStatus,
     activeSmsProvider,
+    smsMode,
     loadSmsCredentialsStatus,
     setSmsCredentials,
     clearSmsCredentials,

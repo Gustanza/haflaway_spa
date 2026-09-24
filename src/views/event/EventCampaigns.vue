@@ -705,7 +705,11 @@
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                       <span>No WhatsApp Custom Message set for this campaign — the template's placeholder will be blank. <button class="em-msg-missing-warn-btn" @click="openCampDialog(selectedCustomCamp, 'whatsapp')">Set it now</button> before sending.</span>
                     </div>
-                    <div v-if="!loadingTemplates && !templates.length" class="em-tpl-empty">
+                    <div v-if="sendAccountBlock" class="em-msg-missing-warn">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      <span>{{ sendAccountBlock }} Nothing will be sent through Haflaway's account instead.</span>
+                    </div>
+                    <div v-else-if="!loadingTemplates && !templates.length" class="em-tpl-empty">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B5B5BB" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                       <span v-if="selectedCustomCamp?.kind === 'card'">No approved WhatsApp template found for {{ campaignTypeLabel(selectedCustomCamp.type) }} ({{ (props.event?.language ?? 'sw').toUpperCase() }}) yet — create one in Message Templates under that category.</span>
                       <span v-else>No general-campaign WhatsApp templates registered yet.</span>
@@ -728,6 +732,11 @@
                   </template>
 
                   <template v-else>
+                    <div v-if="sendAccountBlock" class="em-msg-missing-warn">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      <span>{{ sendAccountBlock }} Nothing will be sent through Haflaway's account instead.</span>
+                    </div>
+                    <p v-else-if="smsAccountNote" class="em-send-account-note">{{ smsAccountNote }}</p>
                     <div v-if="selectedCustomCamp?.smsMessage" class="em-tpl-item em-tpl-item--active" style="cursor: default">
                       <div class="em-tpl-body">
                         <p class="em-tpl-content">{{ selectedCustomCamp.smsMessage }}</p>
@@ -808,7 +817,8 @@
                           <div class="em-chat-thread">
                             <span class="em-chat-stamp">Today 10:42 AM</span>
                             <div class="em-preview-bubble" :class="{ 'em-preview-bubble--wsp': sendChannel === 'whatsapp' }" v-if="previewParts.length">
-                              <p class="em-preview-bubble-text">
+                              <p v-if="previewFilledHtml" class="em-preview-bubble-text" v-html="previewFilledHtml" />
+                              <p v-else class="em-preview-bubble-text">
                                 <template v-for="(part, i) in previewParts" :key="i">
                                   <span v-if="isVarToken(part)" class="em-preview-token">{{ part }}</span>
                                   <template v-else>{{ part }}</template>
@@ -842,12 +852,6 @@
                       </div>
                     </div>
 
-                    <div class="em-preview-summary">
-                      <h3 class="em-preview-title">Watch it land on their phone</h3>
-                      <p class="em-preview-caption">
-                        Going to <strong>{{ sendRecipCount }}</strong> recipient{{ sendRecipCount !== 1 ? 's' : '' }} for <strong>{{ selectedCustomCamp?.name }}</strong>
-                      </p>
-                    </div>
                   </div>
                 </aside>
                 </div>
@@ -1104,6 +1108,7 @@ import { db, auth } from '../../firebase'
 import { collection, query, orderBy, where, limit, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore'
 import { useNavDrawer } from '../../composables/useNavDrawer.js'
 import { useOrg } from '../../composables/useOrg.js'
+import { hasTemplateVariables, buildPreviewVariables, renderWhatsAppPreviewHtml } from '../../utils/whatsappPreview.js'
 
 // cardScope: this same page/component doubles as the Invitations screen
 // (route: 'invitations', see router/index.js) — Create tab shows card
@@ -1113,7 +1118,10 @@ const props = defineProps({ event: Object, eventId: String, cardScope: { type: B
 const route  = useRoute()
 const router = useRouter()
 const navDrawer = useNavDrawer()
-const { brandName, brandLogoUrl, twilioCredentialsStatus, loadTwilioCredentialsStatus } = useOrg()
+const {
+  brandName, brandLogoUrl, twilioCredentialsStatus, loadTwilioCredentialsStatus,
+  smsCredentialsStatus, loadSmsCredentialsStatus, smsMode, activeSmsProvider, defaultSenderId: orgDefaultSenderId,
+} = useOrg()
 const eventId = computed(() => props.eventId ?? route.params.eventId)
 
 // Ported from EventMessages.vue — generates/rotates the public token guests'
@@ -1161,7 +1169,6 @@ const vClickOutside = {
   unmounted(el) { document.removeEventListener('mousedown', el._co) }
 }
 
-const WSP_URL = 'https://sendwhatsappinvitationmessages-frbu33fema-uc.a.run.app'
 const GENERAL_CAMPAIGN_CATEGORY = 'haflaway-general-campaign'
 
 // haflaway_server (standalone VPS backend) — card campaigns (kind:'card')
@@ -2013,7 +2020,7 @@ const sendRecipPool = computed(() => {
   // Every send path now either renders a card on demand server-side at
   // send time (kind:'card', or a cardPurpose campaign — see executeSend)
   // or sends genuinely card-less plain text (the Pledge/RSVP/Meeting/
-  // General Reminder presets — see executeSendPlainSms / routes/
+  // General Reminder presets — see executeSendPlain / routes/
   // campaigns.js's purpose-optional handling). Neither case requires an
   // attendee to already have some unrelated card pre-rendered, so there's
   // nothing left to filter the pool by here.
@@ -2253,6 +2260,7 @@ const deepLinkReturnTo = ref(deepLinkSend ? (route.query.returnTo ?? null) : nul
 
 const canSend = computed(() => {
   if (sending.value || sendRecipCount.value === 0) return false
+  if (sendAccountBlock.value) return false
   if (sendChannel.value === 'whatsapp') {
     // Card templates are fully pre-authored (the card image IS the content) —
     // no separate custom message to fill in, unlike the general/bulk templates
@@ -2276,6 +2284,26 @@ const previewMessage = computed(() => {
   return selectedCustomCamp.value?.smsMessage ?? ''
 })
 const previewParts = computed(() => previewMessage.value.split(/(\{\{[^}]+\}\})/g).filter(Boolean))
+
+// When the picked WhatsApp template has its approved body pasted into Notes
+// (Message Templates / the org's own template drawer), show that body filled
+// in with the values haflaway_server would send — this event's details and a
+// real guest (first picked recipient, else the first in the pool) — instead
+// of just the template's display text. See utils/whatsappPreview.js.
+const previewAttendee = computed(() => sendRecipients.value[0] ?? sendRecipPool.value[0] ?? null)
+const previewFilledHtml = computed(() => {
+  if (sendChannel.value !== 'whatsapp') return ''
+  const body = selectedTemplate.value?.notes
+  if (!hasTemplateVariables(body)) return ''
+  const vars = buildPreviewVariables({
+    event: props.event,
+    eventId: eventId.value,
+    attendee: previewAttendee.value,
+    customMessage: selectedCustomCamp.value?.whatsappMessage ?? '',
+    hasCard: selectedCustomCamp.value?.kind === 'card',
+  })
+  return renderWhatsAppPreviewHtml(body.trim(), vars)
+})
 function isVarToken(part) { return /^\{\{[^}]+\}\}$/.test(part) }
 
 const previewEventDate = computed(() => {
@@ -2358,70 +2386,126 @@ function safeReturnTo(v) {
   return typeof v === 'string' && v.startsWith('/') && !v.startsWith('//') ? v : null
 }
 
+// Why this send can't go out, if the org's own account (the staff-set switch,
+// see haflaway_server organizations/messagingAccounts.js) is missing
+// something. haflaway_server refuses these sends itself — this just says so
+// up front and disables Send, instead of offering Haflaway's shared
+// templates/sender as a fallback.
+const sendAccountBlock = ref('')
+// Shown under the channel for SMS: which account + sender this goes out as.
+const smsAccountNote = ref('')
+// Bumped on every load — a slower, older load (e.g. the SMS check still in
+// flight after switching back to WhatsApp) must not overwrite the newer one.
+let sendAccountLoadSeq = 0
+
 async function loadSendTemplates() {
-  if (!eventId.value || sendChannel.value !== 'whatsapp') {
+  const seq = ++sendAccountLoadSeq
+  const stale = () => seq !== sendAccountLoadSeq
+  sendAccountBlock.value = ''
+  smsAccountNote.value = ''
+  if (!eventId.value) {
     templates.value = []
     selectedTemplate.value = null
+    return
+  }
+  if (sendChannel.value === 'sms') {
+    templates.value = []
+    selectedTemplate.value = null
+    await loadSmsAccount(stale)
     return
   }
   loadingTemplates.value = true
   templates.value = []
   selectedTemplate.value = null
   try {
-    // WhatsApp templates are pre-approved and admin-managed (read only here).
-    // A card-send campaign (kind:'card') needs its purpose's own
-    // invitation-lifecycle category — same one the Invitations screen uses —
-    // since those templates are fully pre-authored with the card baked in.
-    // Anything else (the plain Message flow) stays on the general/bulk
-    // category this composer was originally built for.
+    // WhatsApp templates are pre-approved (read only here). A card-send
+    // campaign (kind:'card') needs its purpose's own invitation-lifecycle
+    // category — since those templates are fully pre-authored with the card
+    // baked in. Anything else (the plain Message flow) uses the general/bulk
+    // category, whose variable 8 carries the campaign's own message.
     const lang = props.event?.language ?? 'sw'
-    const isCard = selectedCustomCamp.value?.kind === 'card'
+    // Same purpose the send itself goes out with (see executeSend), so the
+    // template offered here is the one the server will check it against.
+    const cardType = selectedCustomCamp.value?.kind === 'card'
+      ? selectedCustomCamp.value.type
+      : (selectedCustomCamp.value?.cardPurpose ?? null)
+    const isCard = !!cardType
     const category = isCard
-      ? (CARD_PURPOSE_WHATSAPP_CATEGORY[selectedCustomCamp.value.type] ?? GENERAL_CAMPAIGN_CATEGORY)
+      ? (CARD_PURPOSE_WHATSAPP_CATEGORY[cardType] ?? GENERAL_CAMPAIGN_CATEGORY)
       : GENERAL_CAMPAIGN_CATEGORY
+    const typeLabel = isCard ? campaignTypeLabel(cardType) : 'General (Bulk Messages)'
 
-    const [snap] = await Promise.all([
-      getDocs(query(collection(db, 'messageTemplates'), where('category', '==', category), where('language', '==', lang))),
-      // Loaded fresh per drawer-open (not cached) so a credential/approval
-      // change on the Organization screen is reflected the next time this
-      // drawer opens, same as smsCredentialsStatus elsewhere.
-      props.event?.orgId ? loadTwilioCredentialsStatus(props.event.orgId) : Promise.resolve(),
-    ])
-    const globalTpls = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.active !== false)
+    // Loaded fresh per drawer-open (not cached) so a switch/credential change
+    // is reflected the next time this drawer opens.
+    if (props.event?.orgId) await loadTwilioCredentialsStatus(props.event.orgId)
+    if (stale()) return
+    const mode = props.event?.orgId ? twilioCredentialsStatus.value.mode : 'haflaway'
 
-    // If this org has its own approved Twilio credentials AND a template
-    // registered for this exact category+language, surface it as an extra,
-    // clearly-marked option — picking it sends `templateId` as that
-    // contentSid, which haflaway_server's campaigns.js matches against the
-    // org's own registration to decide whether to send through the org's
-    // Twilio account instead of Haflaway's shared one. This is purely a UI
-    // convenience for surfacing the choice; the server re-derives the match
-    // itself rather than trusting a flag from here.
-    const ownTpl = isCard && twilioCredentialsStatus.value.brandingApproved
-      ? twilioCredentialsStatus.value.templates.find(t => t.category === category && t.language === lang)
-      : null
-    // Once this org has its own approved template for this exact
-    // category+language, its own account is the only sensible choice for it
-    // — same "org's own always wins" precedent as the SMS provider
-    // resolution (resolveEffectiveProvider). Haflaway's shared-library
-    // options for this category+language are hidden rather than offered
-    // alongside it, so there's no ambiguity about which account a send
-    // actually goes out on.
-    if (ownTpl) {
-      templates.value = [{
-        id: ownTpl.contentSid,
-        content: `Your own ${campaignTypeLabel(selectedCustomCamp.value.type)} template — sent via your Twilio account`,
-        language: lang,
-        own: true,
-      }]
+    if (mode === 'own') {
+      // This org sends WhatsApp only through its own Twilio account — only
+      // its own template for this exact type+language is ever offered, and
+      // Haflaway's shared library never is (no fallback, by design).
+      const ownTpl = (twilioCredentialsStatus.value.templates ?? []).find(t => t.category === category && t.language === lang)
+      const refusal = 'Your organization sends WhatsApp only through its own Twilio account'
+      if (!twilioCredentialsStatus.value.configured) {
+        sendAccountBlock.value = `${refusal}, but no Twilio credentials are saved. Add them in Organization settings → Messaging Providers.`
+      } else if (!ownTpl) {
+        sendAccountBlock.value = `${refusal}, and it has no template of its own for ${typeLabel} (${lang.toUpperCase()}). Add one in Organization settings → Messaging Providers.`
+      } else if (ownTpl.active === false) {
+        sendAccountBlock.value = `${refusal}, and its ${typeLabel} (${lang.toUpperCase()}) template is switched off. Turn it on in Organization settings → Messaging Providers.`
+      } else {
+        templates.value = [{
+          id: ownTpl.contentSid,
+          content: ownTpl.content
+            ? `${ownTpl.content} — sent via your Twilio account`
+            : `Your own ${typeLabel} template — sent via your Twilio account`,
+          notes: ownTpl.notes ?? '',
+          language: lang,
+          own: true,
+        }]
+      }
     } else {
-      templates.value = globalTpls
+      const snap = await getDocs(query(collection(db, 'messageTemplates'), where('category', '==', category), where('language', '==', lang)))
+      if (stale()) return
+      templates.value = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.active !== false)
     }
     if (templates.value.length === 1) selectedTemplate.value = templates.value[0]
   } catch (e) {
-    console.error('Failed to load templates', e)
+    if (!stale()) console.error('Failed to load templates', e)
   } finally {
-    loadingTemplates.value = false
+    if (!stale()) loadingTemplates.value = false
+  }
+}
+
+// SMS counterpart of the WhatsApp check above: which account/sender this
+// goes out as, and — on the org's own account — whether it's missing
+// anything haflaway_server would refuse the send over.
+async function loadSmsAccount(stale) {
+  if (!props.event?.orgId) {
+    smsAccountNote.value = "Sends through Haflaway's account as HAFLAWAY."
+    return
+  }
+  try {
+    await loadSmsCredentialsStatus(props.event.orgId)
+  } catch (e) {
+    if (!stale()) sendAccountBlock.value = `Couldn't check which account this organization sends SMS from (${e.message}). Try again.`
+    return
+  }
+  if (stale()) return
+  if (smsMode.value !== 'own') {
+    smsAccountNote.value = "Sends through Haflaway's account as HAFLAWAY."
+    return
+  }
+  const provider = activeSmsProvider.value
+  const entry = provider ? smsCredentialsStatus.value[provider] : null
+  const refusal = 'Your organization sends SMS only through its own provider account'
+  if (!entry?.configured) {
+    sendAccountBlock.value = `${refusal}, but no smtz or wasambazie credentials are saved. Add them in Organization settings → Messaging Providers.`
+  } else if (!entry.senderIds?.length) {
+    sendAccountBlock.value = `${refusal}, but no sender ID is registered on ${provider}. Add one in Organization settings → Messaging Providers.`
+  } else {
+    const pinned = props.event?.senderId && entry.senderIds.includes(props.event.senderId) ? props.event.senderId : null
+    smsAccountNote.value = `Sends through your own ${provider} account as ${pinned || orgDefaultSenderId.value || entry.senderIds[0]}.`
   }
 }
 
@@ -2439,6 +2523,9 @@ async function executeSendCard() {
         attendeeIds: sendRecipients.value.map(a => a.id),
         channel: sendChannel.value,
         purpose: selectedCustomCamp.value.cardPurpose,
+        // The template picked in the drawer — the server checks it against
+        // the org's switch (its own template, or a registered shared one).
+        ...(sendChannel.value === 'whatsapp' ? { templateId: selectedTemplate.value?.id } : {}),
       }),
     }
   )
@@ -2446,17 +2533,18 @@ async function executeSendCard() {
   if (res.status === 409 && data.runId) {
     // Another click/tab already has a run going for this campaign — attach to
     // it instead of erroring, so progress still shows correctly.
-    watchSendRun(campaignId, data.runId)
+    watchSendRun(data.runId)
     return
   }
   if (!res.ok || !data.ok) {
     sendResult.value = { ok: false, message: data.message ?? `Request failed (${res.status}).` }
+    sending.value = false
     return
   }
   // The batch keeps running on the card server after this returns — progress
   // streams in live via the sendRuns doc this now starts watching, the same
   // way Sent/Unsent counts elsewhere on this screen stay live off Firestore.
-  watchSendRun(campaignId, data.runId)
+  watchSendRun(data.runId)
   drawerPickList.value = []
 }
 
@@ -2466,68 +2554,31 @@ async function executeSend() {
     await executeCardSend()
     return
   }
-  // A plain SMS blast (no cardPurpose) now goes through haflaway_server too
-  // — same as executeCardSend/executeSendCard — so it gets the org-aware
-  // provider/credential resolution and self-service sender IDs instead of
-  // always sending through Haflaway's shared account via the legacy
-  // sendSMSAction Cloud Function. WhatsApp's card-less path stays on that
-  // legacy function below — there's no BYO-credential concept for WhatsApp,
-  // so there was nothing to fix there.
-  if (!selectedCustomCamp.value?.cardPurpose && sendChannel.value === 'sms') {
-    await executeSendPlainSms()
+  if (selectedCustomCamp.value?.cardPurpose) {
+    sending.value = true
+    sendResult.value = null
+    stopWatchingSendRun()
+    try {
+      await executeSendCard()
+    } catch (e) {
+      sendResult.value = { ok: false, message: e.message }
+      sending.value = false
+    }
     return
   }
-  sending.value = true
-  sendResult.value = null
-  try {
-    if (selectedCustomCamp.value?.cardPurpose) {
-      await executeSendCard()
-      return
-    }
-    // Only WhatsApp with no cardPurpose can reach here — the SMS case was
-    // routed to executeSendPlainSms() above, and executeSendCard() handles
-    // any cardPurpose campaign on either channel.
-    const user = auth.currentUser
-    if (!user) throw new Error('Not authenticated')
-    const body = { templateId: selectedTemplate.value.id, type: sendCampaign.value, eventId: eventId.value, attendeesIds: sendRecipients.value.map(a => a.id), kardType: null }
-    const res  = await fetch(WSP_URL, { method: 'POST', headers: { Authorization: `Bearer ${user.uid}` }, body: JSON.stringify(body) })
-    const data = await res.json()
-    // The Cloud Function only aggregates counts into `data.message` ("Action
-    // completed with 1 failure(s)…") — the actual per-recipient reason lives
-    // in `data.details.failures[]` and was otherwise silently dropped here,
-    // leaving no way to tell why a send failed short of reading function logs.
-    let message = data.message ?? (data.status ? 'Done.' : 'Request failed.')
-    const reasons = (data.details?.failures ?? []).map(f => f.error || f.reason).filter(Boolean)
-    if (reasons.length) message += ' — ' + [...new Set(reasons)].slice(0, 3).join('; ')
-    sendResult.value = { ok: data.status === true, message }
-    if (data.status) {
-      await load()
-      drawerPickList.value = []
-      if (selectedCustomCamp.value && selectedCustomCamp.value.status !== 'sent') {
-        try {
-          await setDoc(doc(db, 'events', eventId.value, 'campaigns', sendCampaign.value), { status: 'sent' }, { merge: true })
-          selectedCustomCamp.value = { ...selectedCustomCamp.value, status: 'sent' }
-          const idx = customCampaigns.value.findIndex(c => c.id === sendCampaign.value)
-          if (idx !== -1) customCampaigns.value[idx] = { ...customCampaigns.value[idx], status: 'sent' }
-        } catch (e) {
-          console.error('Failed to mark campaign as sent', e)
-        }
-      }
-      msgTab.value = 'sent'
-      router.replace({ query: { ...route.query, tab: 'sent' } })
-    }
-  } catch (e) {
-    sendResult.value = { ok: false, message: e.message }
-  } finally {
-    sending.value = false
-  }
+  // Card-less sends — a plain SMS blast or a Bulk Messages WhatsApp send —
+  // both go through haflaway_server, which enforces the org's
+  // own-account/Haflaway-account switch. (WhatsApp used to go through the
+  // legacy sendWhatsAppInvitationMessages Cloud Function, which always sent
+  // on Haflaway's Twilio account.)
+  await executeSendPlain()
 }
 
 // A plain SMS text blast — no card, no purpose, message comes straight from
 // the campaign doc's own smsMessage field. Same haflaway_server endpoint as
 // executeCardSend, just with no `purpose` in the body, which tells the
 // server to skip card rendering entirely (see routes/campaigns.js).
-async function executeSendPlainSms() {
+async function executeSendPlain() {
   sending.value = true
   sendResult.value = null
   stopWatchingSendRun()
@@ -2535,7 +2586,10 @@ async function executeSendPlainSms() {
     const user = auth.currentUser
     if (!user) throw new Error('Not authenticated')
     const idToken = await user.getIdToken()
-    const body = { attendeeIds: sendRecipients.value.map(a => a.id), channel: 'sms' }
+    const body = { attendeeIds: sendRecipients.value.map(a => a.id), channel: sendChannel.value }
+    // The server validates this against the org's switch: its own template on
+    // its own account, or a registered shared one on Haflaway's.
+    if (sendChannel.value === 'whatsapp') body.templateId = selectedTemplate.value?.id
 
     const res = await fetch(`${CARD_SERVER_URL}/events/${eventId.value}/campaigns/${sendCampaign.value}/send`, {
       method: 'POST',
@@ -4208,9 +4262,11 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.16);
   color: var(--c-txt-3); font-style: italic; box-shadow: none;
 }
+.em-send-account-note { margin: 0 0 8px; font-size: 12.5px; color: var(--c-txt-3); }
+.em-preview-bubble-text :deep(.em-preview-var) { background: rgba(255,255,255,0.16); padding: 0 4px; border-radius: 4px; }
+.em-preview-bubble-text :deep(.em-preview-var--missing) { background: rgba(249,115,22,0.25); font-style: italic; }
+.em-preview-bubble-text :deep(code) { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
 .em-preview-token { display: inline-block; background: rgba(255,255,255,0.2); padding: 1px 7px; border-radius: 6px; font-weight: 700; }
-.em-preview-caption { margin: 0; font-size: 13px; color: var(--c-txt-2); text-align: center; }
-.em-preview-caption strong { color: var(--c-txt); font-weight: 700; }
 
 @media (max-width: 1040px) {
   .em-drawer-grid { grid-template-columns: 1fr; gap: 32px; }
@@ -5178,7 +5234,7 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 40px 48px 48px !important;
+  padding: 24px 40px 28px !important;
   position: static !important;
   top: 0 !important;
   scrollbar-width: thin !important;
@@ -5195,7 +5251,9 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 /* ── Preview stage: collage + phone, same language as EventOverview ── */
 .em-drawer.em-drawer--composer .em-preview-card {
   width: 100% !important;
-  max-width: 400px !important;
+  max-width: 460px !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
@@ -5242,7 +5300,9 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer.em-drawer--composer .em-preview-collage {
   position: relative !important;
   width: 100% !important;
-  height: 430px !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -5261,8 +5321,8 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer.em-drawer--composer .em-inv--left {
   width: 118px !important;
   height: 162px !important;
-  left: 2% !important;
-  top: 58px !important;
+  left: 0 !important;
+  top: 16% !important;
   background: #faf7f2 !important;
   border: 1px solid #efe8db !important;
   color: #5c4d43 !important;
@@ -5272,8 +5332,8 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer.em-drawer--composer .em-inv--right {
   width: 110px !important;
   height: 150px !important;
-  right: 2% !important;
-  top: 78px !important;
+  right: 0 !important;
+  top: 22% !important;
   background: #fff5f6 !important;
   border: 1px solid #fee8eb !important;
   color: #4a2e35 !important;
@@ -5308,15 +5368,19 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer.em-drawer--composer .em-preview-phone {
   position: relative !important;
   z-index: 4 !important;
-  width: 198px !important;
-  max-width: 198px !important;
+  /* Fills the preview column's height (capped), keeping the phone's shape —
+     the phone is the whole point of this pane. */
+  width: auto !important;
+  max-width: none !important;
+  aspect-ratio: 198 / 392 !important;
   margin: 0 auto !important;
   background: #18181b !important;
   border: none !important;
-  border-radius: 28px !important;
-  padding: 7px 6px 10px !important;
+  border-radius: 34px !important;
+  padding: 8px 7px 11px !important;
   min-height: 392px !important;
-  height: 392px !important;
+  height: 100% !important;
+  max-height: 640px !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: flex-start !important;
@@ -5420,10 +5484,21 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   min-height: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: flex-end !important;
+  justify-content: flex-start !important;
   padding: 10px 8px 8px !important;
   gap: 6px !important;
+  /* A filled-in template body can be far taller than the screen — scroll it
+     inside the chat area instead of letting it spill over the header. */
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0,0,0,0.18) transparent !important;
 }
+.em-drawer.em-drawer--composer .em-chat-thread::-webkit-scrollbar { width: 3px !important; }
+.em-drawer.em-drawer--composer .em-chat-thread::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18) !important; border-radius: 999px !important; }
+.em-drawer.em-drawer--composer .em-chat-thread > * { flex-shrink: 0 !important; }
+/* Short messages still sit at the bottom like a real chat. */
+.em-drawer.em-drawer--composer .em-chat-thread > :first-child { margin-top: auto !important; }
 .em-drawer.em-drawer--composer .em-chat-stamp {
   align-self: center !important;
   font-size: 8px !important;
@@ -5443,9 +5518,9 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   color: #ffffff !important;
   border-radius: 16px 16px 5px 16px !important;
   padding: 7px 9px 5px !important;
-  font-size: 11px !important;
-  line-height: 1.4 !important;
-  max-width: 88% !important;
+  font-size: 12px !important;
+  line-height: 1.42 !important;
+  max-width: 90% !important;
   margin-left: auto !important;
   box-shadow: none !important;
   word-break: break-word !important;
@@ -5483,6 +5558,19 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
 .em-drawer.em-drawer--composer .em-preview-bubble--wsp .em-preview-token {
   background: rgba(0, 0, 0, 0.06) !important;
   color: #075e54 !important;
+}
+/* Filled-in template body (utils/whatsappPreview.js) — values tinted just
+   enough to show which parts come from the event/guest. */
+.em-drawer.em-drawer--composer .em-preview-bubble--wsp .em-preview-var {
+  background: rgba(7, 94, 84, 0.08) !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border-radius: 2px !important;
+  box-shadow: 0 0 0 1px rgba(7, 94, 84, 0.08) !important;
+}
+.em-drawer.em-drawer--composer .em-preview-bubble--wsp .em-preview-var--missing {
+  background: rgba(249, 115, 22, 0.18) !important;
+  color: #9a3412 !important;
 }
 .em-drawer.em-drawer--composer .em-chat-dock {
   display: flex !important;
@@ -5532,31 +5620,6 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   background: #3f3f46 !important;
   margin: 7px auto 0 !important;
   flex-shrink: 0 !important;
-}
-.em-drawer.em-drawer--composer .em-preview-summary {
-  text-align: center !important;
-  margin-top: 10px !important;
-}
-.em-drawer.em-drawer--composer .em-preview-title {
-  margin: 0 0 8px !important;
-  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif !important;
-  font-weight: 600 !important;
-  font-size: 22px !important;
-  color: #1a1a1a !important;
-  line-height: 1.25 !important;
-  letter-spacing: -0.01em !important;
-}
-.em-drawer.em-drawer--composer .em-preview-caption {
-  font-size: 13px !important;
-  color: #64748b !important;
-  text-align: center !important;
-  margin: 0 auto !important;
-  line-height: 1.55 !important;
-  max-width: 34ch !important;
-}
-.em-drawer.em-drawer--composer .em-preview-caption strong {
-  color: #1a1a1a !important;
-  font-weight: 600 !important;
 }
 .em-drawer.em-drawer--composer .em-preview-empty-state {
   display: flex !important;
@@ -5727,6 +5790,12 @@ watch(eventId, () => { if (eventId.value) { load(); loadCustomCampaigns() } })
   }
   .em-drawer.em-drawer--composer .em-preview-collage {
     height: auto !important;
+  }
+  /* Stacked layout: the pane has no fixed height to fill, so size the phone
+     directly (same shape, via aspect-ratio). */
+  .em-drawer.em-drawer--composer .em-preview-phone {
+    height: min(520px, 75vh) !important;
+    min-height: 392px !important;
   }
   .em-drawer.em-drawer--composer .em-recip-filters {
     grid-template-columns: 1fr !important;
